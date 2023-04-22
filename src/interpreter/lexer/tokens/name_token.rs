@@ -1,4 +1,3 @@
-use std::arch::x86_64::_mm_extract_si64;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
@@ -7,13 +6,14 @@ use crate::interpreter::constants::KEYWORDS;
 use crate::interpreter::lexer::tokens::assignable_token::AssignableToken;
 use crate::interpreter::lexer::tokens::assignable_tokens::string_token::StringToken;
 
+#[derive(Debug)]
 pub struct NameToken {
     name: String,
 }
 
 #[derive(Debug)]
 pub enum NameTokenErr {
-    UnmatchedRegex,
+    UnmatchedRegex { target_value: String },
     KeywordReserved(String),
 }
 
@@ -22,7 +22,7 @@ impl Error for NameTokenErr {}
 impl Display for NameTokenErr {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let message = match self {
-            NameTokenErr::UnmatchedRegex => "Name must match: ^[a-zA-Z_$][a-zA-Z_$0-9$]*$".to_string(),
+            NameTokenErr::UnmatchedRegex { target_value} => format!("\"{target_value}\" must match: ^[a-zA-Z_$][a-zA-Z_$0-9$]*$"),
             NameTokenErr::KeywordReserved(value) => {
                 format!("The variable name \"{}\" variable name can't have the same name as a reserved keyword", value.to_string())
             }
@@ -41,7 +41,9 @@ impl Display for NameTokenErr {
 
             if let Ok(regex) = Regex::new("^[a-zA-Z_$][a-zA-Z_$0-9$]*$") {
                 if !regex.is_match(s) {
-                    return Err(NameTokenErr::UnmatchedRegex);
+                    return Err(NameTokenErr::UnmatchedRegex {
+                        target_value: s.to_string(),
+                    });
                 }
             }
 

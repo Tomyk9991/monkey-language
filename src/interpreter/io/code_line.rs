@@ -1,8 +1,10 @@
+use crate::utils::extension_methods::RemoveWhiteSpacesBetween;
+
 #[derive(Debug)]
 pub struct CodeLine {
-    line: String,
-    actual_line_number: usize,
-    virtual_line_number: usize
+    pub line: String,
+    pub actual_line_number: usize,
+    pub virtual_line_number: usize
 }
 
 impl CodeLine {
@@ -12,6 +14,28 @@ impl CodeLine {
             actual_line_number,
             virtual_line_number,
         }
+    }
+    
+    pub fn ends_with_semicolon(&self) -> bool {
+        if let Some(last_element) = self.line.chars().last() {
+            return last_element == ';'
+        }
+        
+        return false;
+    }
+    
+    /// Splits the line with the provided chars
+    /// # Side-effect
+    /// It removes the semicolon (if present) before it splits it
+    pub fn split(&self, chars: Vec<char>) -> Vec<String> {
+        return if self.ends_with_semicolon() { 
+            let s = self.line.clone(); 
+            let s = s.replace(";", "");
+            
+            s.split(&chars[..]).map(|a| a.trim().to_string()).collect()
+        } else {
+            self.line.split(&chars[..]).map(|a| a.trim().to_string()).collect()
+        };
     }
 }
 
@@ -42,8 +66,8 @@ impl Normalizable for Vec<CodeLine> {
 }
 
 fn push_code_line_if_validated(vec: &mut Vec<CodeLine>, target: &str, actual_line_number: usize, line: usize) {
-    let target = target.trim();
-
+    let target = target.remove_whitespaces_between();
+    
     if target.is_empty() { return; }
 
     vec.push(CodeLine::new(target.to_string(), actual_line_number, line));

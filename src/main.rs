@@ -4,6 +4,7 @@ use crate::interpreter::lexer::lexer::Lexer;
 
 mod interpreter;
 mod cli;
+mod utils;
 
 fn main() -> anyhow::Result<()> {
     let main_file: ProgramVariable = ProgramVariable::try_from(vec!["i", "-i"])?;
@@ -11,6 +12,7 @@ fn main() -> anyhow::Result<()> {
 
     let mut lexer = Lexer::new(&file);
     let top_level_scope = lexer.tokenize()?;
+    println!("{:#?}", top_level_scope);
 
     // let interpreter: Interpreter = Interpreter::new();
     //
@@ -19,7 +21,7 @@ fn main() -> anyhow::Result<()> {
     // }
 
 
-    println!("{:#?}", file);
+    println!("{:?}", file);
 
     Ok(())
 }

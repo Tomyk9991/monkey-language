@@ -21,6 +21,7 @@ impl<'a> Lexer<'a> {
 
         for line in &self.current_file.lines {
             let token = Scope::try_parse(line)?;
+            scope.tokens.push(token);
         }
 
         Ok(scope)
