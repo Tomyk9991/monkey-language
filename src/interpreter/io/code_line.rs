@@ -25,17 +25,8 @@ impl CodeLine {
     }
     
     /// Splits the line with the provided chars
-    /// # Side-effect
-    /// It removes the semicolon (if present) before it splits it
     pub fn split(&self, chars: Vec<char>) -> Vec<String> {
-        return if self.ends_with_semicolon() { 
-            let s = self.line.clone(); 
-            let s = s.replace(";", "");
-            
-            s.split(&chars[..]).map(|a| a.trim().to_string()).collect()
-        } else {
-            self.line.split(&chars[..]).map(|a| a.trim().to_string()).collect()
-        };
+        self.line.split_inclusive(&chars[..]).map(|a| a.trim().to_string()).collect()
     }
 }
 
@@ -66,9 +57,12 @@ impl Normalizable for Vec<CodeLine> {
 }
 
 fn push_code_line_if_validated(vec: &mut Vec<CodeLine>, target: &str, actual_line_number: usize, line: usize) {
-    let target = target.remove_whitespaces_between();
-    
     if target.is_empty() { return; }
+
+    let mut target = target.remove_whitespaces_between();
+    if target.ends_with(";") {
+        target = target.replace(";" , " ;");
+    }
 
     vec.push(CodeLine::new(target.to_string(), actual_line_number, line));
 }

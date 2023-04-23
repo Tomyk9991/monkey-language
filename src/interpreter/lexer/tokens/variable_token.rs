@@ -41,20 +41,17 @@ impl Display for ParseVariableTokenErr {
 
 impl VariableToken {
     pub fn try_from(code_line: &CodeLine) -> anyhow::Result<Self, ParseVariableTokenErr> {
-        let split = code_line.split(vec!['=']);
+        let split_alloc = code_line.split(vec![' ', ';']);
+        let split = split_alloc.iter().map(|a| a.as_str()).collect::<Vec<_>>();
 
-        if !code_line.ends_with_semicolon() {
-            return Err(ParseVariableTokenErr::PatternNotMatched { target_value: code_line.line.to_string()});
-        } 
-        
-        if let [name, assignable] = split.iter().map(|a| a.as_str()).collect::<Vec<&str>>()[..] {
-            return Ok(VariableToken {
+        return if let [name, "=", middle @ .., ";"] = &split[..] {
+            Ok(VariableToken {
                 name_token: NameToken::from_str(name)?,
-                assignable: AssignableToken::try_from(assignable)?,
+                assignable: AssignableToken::try_from(middle.join(" ").as_str())?,
             })
+        } else {
+            Err(ParseVariableTokenErr::PatternNotMatched { target_value: code_line.line.to_string() })
         }
-        
-        return Err(ParseVariableTokenErr::PatternNotMatched { target_value: code_line.line.to_string()});
     }
 }
 
