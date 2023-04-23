@@ -13,7 +13,6 @@ impl TryParse for Scope {
     type Output = Token;
 
     fn try_parse(code_line: &CodeLine) -> anyhow::Result<Self::Output> {
-
         let variable_pattern = PatternedLevenshteinString::default()
             .insert(PatternedLevenshteinString::ignore())
             .insert("=")
