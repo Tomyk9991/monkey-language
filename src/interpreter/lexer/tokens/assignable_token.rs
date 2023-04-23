@@ -26,7 +26,8 @@ impl Error for AssignableTokenErr { }
 impl Display for AssignableTokenErr {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", match self {
-            AssignableTokenErr::PatternNotMatched { target_value} => format!("Pattern not matched for: \"{target_value}\"Assignments are: string: \"Hallo\", integer: 21, -125, double: -51.1512, 152.1521")
+            AssignableTokenErr::PatternNotMatched { target_value}
+            => format!("Pattern not matched for: \"{target_value}\"Assignments are: string: \"Hallo\", integer: 21, -125, double: -51.1512, 152.1521")
         })
     }
 }

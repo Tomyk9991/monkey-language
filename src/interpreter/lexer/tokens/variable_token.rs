@@ -2,6 +2,7 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 use crate::interpreter::io::code_line::CodeLine;
+use crate::interpreter::lexer::levenshtein_distance::{levenshtein_distance, PatternedLevenshteinDistance};
 use crate::interpreter::lexer::tokens::assignable_token::{AssignableToken, AssignableTokenErr};
 use crate::interpreter::lexer::tokens::name_token::{NameToken, NameTokenErr};
 
@@ -54,5 +55,14 @@ impl VariableToken {
         }
         
         return Err(ParseVariableTokenErr::PatternNotMatched { target_value: code_line.line.to_string()});
+    }
+}
+
+impl PatternedLevenshteinDistance for VariableToken {
+    fn distance<P: Into<String>, K: Into<String>>(a: P, b: K) -> usize {
+        let string_1 = a.into();
+        let string_2 = b.into();
+
+        return levenshtein_distance(&string_1, &string_2);
     }
 }
