@@ -3,8 +3,6 @@ use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 use regex::Regex;
 use crate::interpreter::constants::KEYWORDS;
-use crate::interpreter::lexer::tokens::assignable_token::AssignableToken;
-use crate::interpreter::lexer::tokens::assignable_tokens::string_token::StringToken;
 
 #[derive(Debug)]
 pub struct NameToken {

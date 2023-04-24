@@ -19,12 +19,10 @@ impl TryParse for Scope {
             .insert(PatternedLevenshteinString::ignore())
             .insert(";");
 
-        let variable_token_distance = VariableToken::distance(
+        let _variable_token_distance = VariableToken::distance(
             PatternedLevenshteinString::match_to(&code_line.line, &variable_pattern),
             variable_pattern
         );
-
-        println!("Variable distance: {}", variable_token_distance);
 
         if let Ok(variable_token) = VariableToken::try_from(code_line) {
             return Ok(Token::VariableToken(variable_token));

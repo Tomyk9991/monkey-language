@@ -22,7 +22,7 @@ pub mod levenshtein_distance {
     /// let value2 = "sitting".to_string();
     /// assert_eq!(3, monkey_language::interpreter::lexer::levenshtein_distance::levenshtein_distance(value1.as_str(), value2.as_str()));
     /// ```
-    pub fn levenshtein_distance(a: &str, b:&str) -> usize {
+    pub fn levenshtein_distance(a: &str, b: &str) -> usize {
         let mut result = 0;
 
         if a == b {
@@ -41,8 +41,8 @@ pub mod levenshtein_distance {
         }
 
         let mut cache: Vec<usize> = (1..).take(length_a).collect();
-        let mut distance_a = 0;
-        let mut distance_b = 0;
+        let mut distance_a;
+        let mut distance_b;
 
         for (index_b, code_b) in b.chars().enumerate() {
             result = index_b;
@@ -81,7 +81,7 @@ pub mod levenshtein_distance {
     }
 
     pub struct PatternedLevenshteinString {
-        data: Vec<String>
+        data: Vec<String>,
     }
 
     impl From<PatternedLevenshteinString> for String {
@@ -100,11 +100,15 @@ pub mod levenshtein_distance {
 
     impl PatternedLevenshteinString {
         pub fn match_to(value: &str, pattern: &PatternedLevenshteinString) -> String {
-            let mut segments = value.split_whitespace().map(|a| a.to_string()).collect::<Vec<_>>();
-
+            let mut segments = value.split_whitespace()
+                    .map(|a| a.to_string())
+                    .collect::<Vec<_>>();
+            
+            normalize_quotes(&mut segments);
+            
             for (i, datum) in pattern.data.iter().enumerate() {
                 if datum == PatternedLevenshteinString::ignore() {
-                    segments[i] = PatternedLevenshteinString::ignore().to_string()
+                    segments[i] = PatternedLevenshteinString::ignore().to_string();
                 }
             }
 
@@ -115,7 +119,39 @@ pub mod levenshtein_distance {
             self.data.push(value.to_string());
             self
         }
-
+        
         pub fn ignore() -> &'static str { IGNORED_LEVENSHTEIN_CASE }
+    }
+
+    fn normalize_quotes(values: &mut Vec<String>) {
+        let mut new_vec = vec![];
+
+        let mut start_i = 0;
+        let mut collecting = false;
+
+        let length = values.len();
+        
+        for i in 0..length {
+            let value = &values[i];
+
+            if value.starts_with("\"") {
+                start_i = i;
+                collecting = true;
+            }
+            
+            if value.ends_with("\"") {
+                collecting = false;
+                new_vec.push(values[start_i..i + 1].join(" ").clone());
+                continue;
+            }
+
+            if !collecting {
+                new_vec.push(value.to_string());
+            }
+            
+        }
+        
+        
+        *values = new_vec;
     }
 }

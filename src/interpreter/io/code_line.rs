@@ -16,14 +16,6 @@ impl CodeLine {
         }
     }
     
-    pub fn ends_with_semicolon(&self) -> bool {
-        if let Some(last_element) = self.line.chars().last() {
-            return last_element == ';'
-        }
-        
-        return false;
-    }
-    
     /// Splits the line with the provided chars
     pub fn split(&self, chars: Vec<char>) -> Vec<String> {
         self.line.split_inclusive(&chars[..]).map(|a| a.trim().to_string()).collect()

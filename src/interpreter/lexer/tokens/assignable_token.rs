@@ -4,7 +4,6 @@ use std::str::FromStr;
 use crate::interpreter::lexer::tokens::assignable_tokens::double_token::DoubleToken;
 use crate::interpreter::lexer::tokens::assignable_tokens::integer_token::IntegerToken;
 use crate::interpreter::lexer::tokens::assignable_tokens::string_token::StringToken;
-use crate::interpreter::lexer::tokens::name_token::NameToken;
 
 #[derive(Debug)]
 pub enum AssignableToken {
