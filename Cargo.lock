@@ -18,6 +18,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7de8ce5e0f9f8d88245311066a578d72b7af3e7088f32783804676302df237e4"
 
 [[package]]
+name = "binary_search_tree"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ba1e4579698a162f2256fabdb07bb88bf360622342c40375468e91bb107e9e4c"
+
+[[package]]
 name = "memchr"
 version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -28,6 +34,7 @@ name = "monkey-language"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "binary_search_tree",
  "regex",
 ]
 

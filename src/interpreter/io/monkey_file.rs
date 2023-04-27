@@ -32,5 +32,22 @@ impl MonkeyFile {
             size,
         })
     }
+
+    pub fn read_from_str<>(buffer: &str) -> Self {
+        let mut buffer: String = buffer.to_owned();
+
+        let mut lines = buffer.lines()
+            .enumerate()
+            .map(|(index, line)| CodeLine::new(line.to_string(), index + 1, index + 1))
+            .collect::<Vec<_>>();
+
+        lines.normalize();
+
+        Self {
+            path: PathBuf::new(),
+            lines,
+            size: buffer.chars().count(),
+        }
+    }
 }
 

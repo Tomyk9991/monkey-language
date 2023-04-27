@@ -6,13 +6,15 @@ pub struct Lexer<'a> {
     current_file: &'a MonkeyFile
 }
 
-impl<'a> Lexer<'a> {
-    pub fn new(file: &'a MonkeyFile) -> Self {
+impl<'a> From<&'a MonkeyFile> for Lexer<'a> {
+    fn from(file: &'a MonkeyFile) -> Self {
         Self {
             current_file: file
         }
     }
+}
 
+impl<'a> Lexer<'a> {
     pub fn tokenize(&mut self) -> anyhow::Result<Scope> {
         let mut scope = Scope {
             tokens: vec![],
