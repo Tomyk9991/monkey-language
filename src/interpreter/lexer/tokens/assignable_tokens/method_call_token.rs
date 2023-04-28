@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
@@ -19,7 +20,7 @@ pub struct MethodCallToken {
 pub enum MethodCallTokenErr {
     PatternNotMatched { target_value: String },
     NameTokenErr(NameTokenErr),
-    DyckLanguageErr { target_value: String },
+    DyckLanguageErr { target_value: String, ordering: Ordering },
     AssignableTokenErr(AssignableTokenErr),
 }
 
@@ -39,7 +40,15 @@ impl Display for MethodCallTokenErr {
             MethodCallTokenErr::PatternNotMatched { target_value } => format!("\"{target_value}\" must match: methodName(assignable1, ..., assignableN)"),
             MethodCallTokenErr::AssignableTokenErr(a) => a.to_string(),
             MethodCallTokenErr::NameTokenErr(a) => a.to_string(),
-            MethodCallTokenErr::DyckLanguageErr { target_value } => format!("\"{target_value}\": Not a well-clasped expression")
+            MethodCallTokenErr::DyckLanguageErr { target_value, ordering } =>
+            {
+                let error: String = match ordering {
+                    Ordering::Less => String::from("Expected `)`"),
+                    Ordering::Equal => String::from("Expected expression between `,`"),
+                    Ordering::Greater => String::from("Expected `(`")
+                };
+                format!("\"{target_value}\": {error}")
+            }
         };
 
         write!(f, "{}", message)
@@ -101,7 +110,11 @@ impl PatternedLevenshteinDistance for MethodCallToken {
             PatternedLevenshteinString::match_to(
                 &code_line.line,
                 &method_call_pattern,
-                vec![Box::new(QuoteSummarizeTransform), Box::new(EmptyMethodCallExpand), Box::new(ArgumentsIgnoreSummarizeTransform)],
+                vec![
+                    Box::new(QuoteSummarizeTransform),
+                    Box::new(EmptyMethodCallExpand),
+                    Box::new(ArgumentsIgnoreSummarizeTransform)
+                ],
             ),
             method_call_pattern,
         )
@@ -126,7 +139,10 @@ pub fn dyck_language(parameter_string: &str) -> Result<Vec<String>, MethodCallTo
                 let value = &parameter_string[current_start_index..index].trim();
 
                 if value.is_empty() {
-                    return Err(MethodCallTokenErr::DyckLanguageErr { target_value: parameter_string.to_string() });
+                    return Err(MethodCallTokenErr::DyckLanguageErr {
+                        target_value: parameter_string.to_string(),
+                        ordering: Ordering::Equal
+                    });
                 }
 
                 individual_parameters.push(value.to_string());
@@ -136,10 +152,18 @@ pub fn dyck_language(parameter_string: &str) -> Result<Vec<String>, MethodCallTo
         }
     }
 
-    if counter != 0 {
-        return Err(MethodCallTokenErr::DyckLanguageErr { target_value: parameter_string.to_string() });
+    return match counter {
+        number if number > 0 => Err(MethodCallTokenErr::DyckLanguageErr {
+            target_value: parameter_string.to_string(),
+            ordering: Ordering::Less
+        }),
+        number if number < 0 => return Err(MethodCallTokenErr::DyckLanguageErr {
+            target_value: parameter_string.to_string(),
+            ordering: Ordering::Greater
+        }),
+        _ => {
+            individual_parameters.push(parameter_string[current_start_index..parameter_string.len()].trim().to_string());
+            Ok(individual_parameters)
+        }
     }
-
-    individual_parameters.push(parameter_string[current_start_index..parameter_string.len()].trim().to_string());
-    return Ok(individual_parameters);
 }
