@@ -9,7 +9,7 @@ use crate::interpreter::lexer::tokens::name_token::{NameToken, NameTokenErr};
 use crate::interpreter::lexer::TryParse;
 
 #[derive(Debug)]
-pub struct VariableToken {
+pub struct VariableToken<const Assignment: char, const Separator: char> {
     pub name_token: NameToken,
     pub assignable: AssignableToken
 }
@@ -54,18 +54,23 @@ impl Display for ParseVariableTokenErr {
     }
 }
 
-impl VariableToken {
+impl<const Assignment: char, const Separator: char> VariableToken<Assignment, Separator> {
     pub fn try_parse(code_line: &CodeLine) -> anyhow::Result<Self, ParseVariableTokenErr> {
         let split_alloc = code_line.split(vec![' ', ';']);
         let split = split_alloc.iter().map(|a| a.as_str()).collect::<Vec<_>>();
 
-        return if let [name, "=", middle @ .., ";"] = &split[..] {
-            Ok(VariableToken {
-                name_token: NameToken::from_str(name)?,
-                assignable: AssignableToken::try_from(middle.join(" ").as_str()).context(code_line.line.clone())?,
-            })
-        } else {
-            Err(ParseVariableTokenErr::PatternNotMatched { target_value: code_line.line.to_string() })
+
+        let assignment = Assignment.to_string();
+        let separator = Separator.to_string();
+
+        return match &split[..] {
+            [name, assignment_token, middle @ .., separator_token] if assignment_token == assignment && separator_token == separator => {
+                Ok(VariableToken {
+                    name_token: NameToken::from_str(name)?,
+                    assignable: AssignableToken::try_from(middle.join(" ").as_str()).context(code_line.line.clone())?,
+                })
+            },
+            _ => Err(ParseVariableTokenErr::PatternNotMatched { target_value: code_line.line.to_string() })
         }
     }
 }

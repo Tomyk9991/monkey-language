@@ -5,6 +5,7 @@ use crate::interpreter::lexer::tokens::assignable_tokens::double_token::DoubleTo
 use crate::interpreter::lexer::tokens::assignable_tokens::integer_token::IntegerToken;
 use crate::interpreter::lexer::tokens::assignable_tokens::method_call_token::MethodCallToken;
 use crate::interpreter::lexer::tokens::assignable_tokens::string_token::{StringToken, StringTokenErr};
+use crate::interpreter::lexer::tokens::name_token::NameToken;
 
 #[derive(Debug)]
 pub enum AssignableToken {
@@ -12,9 +13,9 @@ pub enum AssignableToken {
     IntegerToken(IntegerToken),
     DoubleToken(DoubleToken),
     MethodCallToken(MethodCallToken),
+    Variable(NameToken),
+    Object(ObjectToken),
     // Equation(EquationToken),
-    // Object(ObjectToken),
-    // Variable(NameToken),
 }
 
 #[derive(Debug)]
@@ -43,9 +44,10 @@ impl AssignableToken {
             return Ok(AssignableToken::DoubleToken(double_token))
         } else if let Ok(method_call_token) = MethodCallToken::from_str(line) {
             return Ok(AssignableToken::MethodCallToken(method_call_token))
+        } else if let Ok(variable_name) = NameToken::from_str(line) {
+            return Ok(AssignableToken::Variable(variable_name))
         }
         
         return Err(AssignableTokenErr::PatternNotMatched { target_value: line.to_string()});
-        
     }
 }
