@@ -34,6 +34,12 @@ impl From<AssignableTokenErr> for MethodCallTokenErr {
     fn from(value: AssignableTokenErr) -> Self { MethodCallTokenErr::AssignableTokenErr(value) }
 }
 
+impl From<DyckError> for MethodCallTokenErr {
+    fn from(s: DyckError) -> Self {
+        MethodCallTokenErr::DyckLanguageErr { target_value: s.target_value, ordering: s.ordering }
+    }
+}
+
 impl Display for MethodCallTokenErr {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let message = match self {
@@ -80,7 +86,7 @@ impl MethodCallToken {
                 arguments: vec![],
             })
         } else if let [name, "(", argument_segments @ .., ")", ";"] = &split[..] {
-            let argument_strings = dyck_language(&argument_segments.join(" "))?;
+            let argument_strings = dyck_language(&argument_segments.join(" "), ['(', ',', ')'])?;
             let arguments = argument_strings
                 .iter()
                 .map(|s| AssignableToken::try_from(s))
@@ -122,42 +128,47 @@ impl PatternedLevenshteinDistance for MethodCallToken {
 }
 
 
+#[derive(Debug)]
+pub struct DyckError {
+    pub target_value: String,
+    pub ordering: Ordering
+}
+
 /// # Formal definition
 /// Let Σ = {( ) [a-z A-Z]}
 ///
 /// {u ∈ Σ* | all prefixes of u contain no more )'s than ('s and the number of ('s in equals the number of )'s }
-pub fn dyck_language(parameter_string: &str) -> Result<Vec<String>, MethodCallTokenErr> {
+pub fn dyck_language(parameter_string: &str, values: [char; 3]) -> Result<Vec<String>, DyckError> {
     let mut individual_parameters: Vec<String> = Vec::new();
     let mut counter = 0;
     let mut current_start_index = 0;
 
     for (index, c) in parameter_string.chars().enumerate() {
-        match c {
-            '(' => counter += 1,
-            ')' => counter -= 1,
-            ',' if counter == 0 => {
-                let value = &parameter_string[current_start_index..index].trim();
-
-                if value.is_empty() {
-                    return Err(MethodCallTokenErr::DyckLanguageErr {
-                        target_value: parameter_string.to_string(),
-                        ordering: Ordering::Equal
-                    });
-                }
-
-                individual_parameters.push(value.to_string());
-                current_start_index = index + 1;
+        if c == values[0] { // opening
+            counter += 1;
+        } else if c == values[2] { // closing
+            counter -= 1;
+        } else if c == values[1] && counter == 0 { // separator
+            let value = &parameter_string[current_start_index..index].trim();
+        
+            if value.is_empty() {
+                return Err(DyckError {
+                    target_value: parameter_string.to_string(),
+                    ordering: Ordering::Equal
+                });
             }
-            _ => {}
+        
+            individual_parameters.push(value.to_string());
+            current_start_index = index + 1;
         }
     }
 
     return match counter {
-        number if number > 0 => Err(MethodCallTokenErr::DyckLanguageErr {
+        number if number > 0 => Err(DyckError {
             target_value: parameter_string.to_string(),
             ordering: Ordering::Less
         }),
-        number if number < 0 => return Err(MethodCallTokenErr::DyckLanguageErr {
+        number if number < 0 => return Err(DyckError {
             target_value: parameter_string.to_string(),
             ordering: Ordering::Greater
         }),

@@ -5,3 +5,5 @@ name(nestedMethod("Hallo", moin("Ciao", 5)));
 hallo = "Thomas"; tschuess = 5;
 mallo = "";
 variable_with_another_variable_assignment = fisch;
+
+michi = { guten: "Hallo", ciau: 5, rofl: name(), };

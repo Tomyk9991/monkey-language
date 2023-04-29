@@ -64,7 +64,7 @@ impl<const Assignment: char, const Separator: char> VariableToken<Assignment, Se
         let separator = Separator.to_string();
 
         return match &split[..] {
-            [name, assignment_token, middle @ .., separator_token] if assignment_token == assignment && separator_token == separator => {
+            [name, assignment_token, middle @ .., separator_token] if assignment_token == &assignment && separator_token == &separator => {
                 Ok(VariableToken {
                     name_token: NameToken::from_str(name)?,
                     assignable: AssignableToken::try_from(middle.join(" ").as_str()).context(code_line.line.clone())?,
@@ -76,15 +76,15 @@ impl<const Assignment: char, const Separator: char> VariableToken<Assignment, Se
 }
 
 
-impl PatternedLevenshteinDistance for VariableToken {
+impl<const Assignment: char, const Separator: char> PatternedLevenshteinDistance for VariableToken<Assignment, Separator> {
     fn distance_from_code_line(code_line: &CodeLine) -> usize {
         let variable_pattern = PatternedLevenshteinString::default()
             .insert(PatternedLevenshteinString::ignore())
-            .insert("=")
+            .insert(&Assignment.to_string())
             .insert(PatternedLevenshteinString::ignore())
-            .insert(";");
+            .insert(&Separator.to_string());
 
-        <VariableToken as PatternedLevenshteinDistance>::distance(
+        <VariableToken<Assignment, Separator> as PatternedLevenshteinDistance>::distance(
             PatternedLevenshteinString::match_to(
                 &code_line.line,
                 &variable_pattern,

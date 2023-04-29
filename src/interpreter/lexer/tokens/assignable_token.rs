@@ -4,6 +4,7 @@ use std::str::FromStr;
 use crate::interpreter::lexer::tokens::assignable_tokens::double_token::DoubleToken;
 use crate::interpreter::lexer::tokens::assignable_tokens::integer_token::IntegerToken;
 use crate::interpreter::lexer::tokens::assignable_tokens::method_call_token::MethodCallToken;
+use crate::interpreter::lexer::tokens::assignable_tokens::object_token::ObjectToken;
 use crate::interpreter::lexer::tokens::assignable_tokens::string_token::{StringToken, StringTokenErr};
 use crate::interpreter::lexer::tokens::name_token::NameToken;
 
@@ -46,6 +47,8 @@ impl AssignableToken {
             return Ok(AssignableToken::MethodCallToken(method_call_token))
         } else if let Ok(variable_name) = NameToken::from_str(line) {
             return Ok(AssignableToken::Variable(variable_name))
+        } else if let Ok(object_token) = ObjectToken::from_str(line) {
+            return Ok(AssignableToken::Object(object_token))
         }
         
         return Err(AssignableTokenErr::PatternNotMatched { target_value: line.to_string()});

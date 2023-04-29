@@ -48,7 +48,7 @@ impl TryParse for Scope {
 
         match VariableToken::try_parse(code_line) {
             Ok(variable_token) => return Ok(Token::VariableToken(variable_token)),
-            Err(err) => pattern_distances.push((VariableToken::distance_from_code_line(code_line), Box::new(err)))
+            Err(err) => pattern_distances.push((VariableToken::<'=', ';'>::distance_from_code_line(code_line), Box::new(err)))
         }
 
         match MethodCallToken::try_parse(code_line) {
