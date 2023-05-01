@@ -86,7 +86,15 @@ impl ObjectToken {
         let split = split_alloc.iter().map(|a| a.as_str()).collect::<Vec<_>>();
         
         return if let ["{", arguments_segments @ .., "}", ";"] = &split[..] {
-            let argument_strings = dyck_language(&arguments_segments.join(" "), ['{', ',', '}'])?;
+            let mut argument_strings = dyck_language(&arguments_segments.join(" "), ['{', ',', '}'])?;
+            argument_strings.iter_mut().for_each(|s|
+                if !s.ends_with(",") {
+                    s.push_str(" ,")
+                }
+            );
+
+            println!("{:#?}", argument_strings);
+
             let arguments = argument_strings
                 .iter()
                 .map(|s| VariableToken::try_parse(&CodeLine::imaginary(s)))
