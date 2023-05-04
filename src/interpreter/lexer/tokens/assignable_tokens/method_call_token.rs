@@ -134,21 +134,32 @@ pub struct DyckError {
     pub ordering: Ordering
 }
 
+pub trait ArrayOrObject<T> {
+    fn list(&self) -> Vec<T>;
+}
+
+impl ArrayOrObject<char> for char {
+    fn list(&self) -> Vec<char> {
+        return vec![self.clone()];
+    }
+}
+
+
 /// # Formal definition
 /// Let Σ = {( ) [a-z A-Z]}
 ///
 /// {u ∈ Σ* | all prefixes of u contain no more )'s than ('s and the number of ('s in equals the number of )'s }
-pub fn dyck_language(parameter_string: &str, values: [char; 3]) -> Result<Vec<String>, DyckError> {
+pub fn dyck_language<T: ArrayOrObject<char>>(parameter_string: &str, values: [T; 3]) -> Result<Vec<String>, DyckError> {
     let mut individual_parameters: Vec<String> = Vec::new();
     let mut counter = 0;
     let mut current_start_index = 0;
 
     for (index, c) in parameter_string.chars().enumerate() {
-        if c == values[0] { // opening
-            counter += 1;
-        } else if c == values[2] { // closing
+        if values[0].list().contains(&c) {
+                counter += 1;
+        } else if values[2].list().contains(&c) {
             counter -= 1;
-        } else if c == values[1] && counter == 0 { // separator
+        } else if values[1].list().contains(&c) && counter == 0 {
             let value = &parameter_string[current_start_index..index].trim();
         
             if value.is_empty() {
