@@ -11,7 +11,6 @@ fn main() -> anyhow::Result<()> {
     let file: MonkeyFile = MonkeyFile::read(main_file.value)?;
 
     let mut lexer = Lexer::from(&file);
-
     let top_level_scope = lexer.tokenize()?;
 
     println!("{:?}", top_level_scope);

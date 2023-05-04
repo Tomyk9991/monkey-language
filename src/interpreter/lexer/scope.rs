@@ -35,7 +35,7 @@ impl Error for ScopeError {}
 
 impl Debug for Scope {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Scope: [\n{}]", self.tokens.iter().map(|token| format!("\t{}\n", token)).collect::<String>())
+        write!(f, "Scope: [\n{}]", self.tokens.iter().map(|token| format!("\t{:?}\n", token)).collect::<String>())
     }
 }
 
@@ -61,7 +61,7 @@ impl TryParse for Scope {
 
         if let Some((nearest_pattern, err)) = pattern_distances.first() {
             return Err(ScopeError::ParsingError {
-                message: format!("Codeline: {} with distance: {}\n\t{}", code_line.actual_line_number, nearest_pattern, err)
+                message: format!("Codeline: {:?} with distance: {}\n\t{}", code_line.actual_line_number, nearest_pattern, err)
             });
         }
 

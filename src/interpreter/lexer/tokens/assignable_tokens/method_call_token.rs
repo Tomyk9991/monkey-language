@@ -197,7 +197,11 @@ pub fn dyck_language<T: ArrayOrObject<char>>(parameter_string: &str, values: [T;
             ordering: Ordering::Greater
         }),
         _ => {
-            individual_parameters.push(parameter_string[current_start_index..parameter_string.len()].trim().to_string());
+            let s = parameter_string[current_start_index..parameter_string.len()].trim().to_string();
+            if !s.is_empty() {
+                individual_parameters.push(parameter_string[current_start_index..parameter_string.len()].trim().to_string());
+            }
+
             Ok(individual_parameters)
         }
     }

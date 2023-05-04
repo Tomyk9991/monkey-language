@@ -99,8 +99,6 @@ impl ObjectToken {
                 }
             );
 
-            println!("{:#?}", argument_strings);
-
             let arguments = argument_strings
                 .iter()
                 .map(|s| VariableToken::try_parse(&CodeLine::imaginary(s)))

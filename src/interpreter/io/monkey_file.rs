@@ -13,7 +13,6 @@ pub struct MonkeyFile {
 
 impl MonkeyFile {
     pub fn read<P: AsRef<Path>>(path: P) -> anyhow::Result<Self> {
-        #[deny(clippy::clone_double_ref)]
         let path_buffer = PathBuf::from(path.as_ref());
         let mut file: File = File::open(path)
             .context(format!("Can't find file: {:?}", path_buffer))?;
@@ -23,9 +22,11 @@ impl MonkeyFile {
 
         let mut lines = buffer.lines()
             .enumerate()
-            .map(|(index, line)| CodeLine::new(line.to_string(), index + 1, index + 1))
+            .map(|(index, line)| CodeLine::new(line.to_string(), index + 1..index + 1, index + 1))
             .collect::<Vec<_>>();
 
+        lines.normalize();
+        lines.merge()?;
         lines.normalize();
 
         Ok(Self {
@@ -36,12 +37,12 @@ impl MonkeyFile {
     }
 
     #[allow(unused)]
-    pub fn read_from_str<>(buffer: &str) -> Self {
+    pub fn read_from_str(buffer: &str) -> Self {
         let mut buffer: String = buffer.to_owned();
 
         let mut lines = buffer.lines()
             .enumerate()
-            .map(|(index, line)| CodeLine::new(line.to_string(), index + 1, index + 1))
+            .map(|(index, line)| CodeLine::new(line.to_string(), index + 1..index + 1, index + 1))
             .collect::<Vec<_>>();
 
         lines.normalize();
