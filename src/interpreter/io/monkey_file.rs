@@ -13,8 +13,10 @@ pub struct MonkeyFile {
 
 impl MonkeyFile {
     pub fn read<P: AsRef<Path>>(path: P) -> anyhow::Result<Self> {
-        let mut file: File = File::open(path.as_ref().clone())
-            .context(format!("Can't find file: {:?}", path.as_ref()))?;
+        #[deny(clippy::clone_double_ref)]
+        let path_buffer = PathBuf::from(path.as_ref());
+        let mut file: File = File::open(path)
+            .context(format!("Can't find file: {:?}", path_buffer))?;
         let mut buffer = String::new();
 
         let size = file.read_to_string(&mut buffer)?;
@@ -27,12 +29,13 @@ impl MonkeyFile {
         lines.normalize();
 
         Ok(Self {
-            path: path.as_ref().to_path_buf(),
+            path: path_buffer,
             lines,
             size,
         })
     }
 
+    #[allow(unused)]
     pub fn read_from_str<>(buffer: &str) -> Self {
         let mut buffer: String = buffer.to_owned();
 

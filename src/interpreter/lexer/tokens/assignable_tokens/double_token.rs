@@ -1,3 +1,4 @@
+use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 use regex::Regex;
 use crate::interpreter::lexer::tokens::assignable_tokens::integer_token::NumberTokenErr;
@@ -6,6 +7,13 @@ use crate::interpreter::lexer::tokens::assignable_tokens::integer_token::NumberT
 pub struct DoubleToken {
     value: f64
 }
+
+impl Display for DoubleToken {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.value)
+    }
+}
+
 
 impl FromStr for DoubleToken {
     type Err = NumberTokenErr;

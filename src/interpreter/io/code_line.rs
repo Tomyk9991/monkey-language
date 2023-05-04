@@ -48,7 +48,7 @@ impl Normalizable for Vec<CodeLine> {
         let mut result: Vec<CodeLine> = Vec::new();
         let mut line_counter = 1;
 
-        for code_line in (&*self).iter() {
+        for code_line in (*self).iter() {
             let splits = code_line.line
                 .split_inclusive(&SEPARATORS[..])
                 .collect::<Vec<_>>();
@@ -73,7 +73,7 @@ impl Normalizable for Vec<CodeLine> {
                 v.reverse();
 
                 for index in v {
-                    if *index + 1 <= target.len() {
+                    if *index < target.len() {
                         target.insert(*index + 1, ' ');
                     }
 

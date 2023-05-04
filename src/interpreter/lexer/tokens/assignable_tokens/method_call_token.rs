@@ -4,16 +4,23 @@ use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 use crate::interpreter::lexer::tokens::assignable_token::{AssignableToken, AssignableTokenErr};
 use crate::interpreter::lexer::tokens::name_token::{NameToken, NameTokenErr};
-use crate::interpreter::lexer::Visibility;
-use crate::interpreter::constants::KEYWORDS;
 use crate::interpreter::io::code_line::CodeLine;
 use crate::interpreter::lexer::levenshtein_distance::{ArgumentsIgnoreSummarizeTransform, EmptyMethodCallExpand, PatternedLevenshteinDistance, PatternedLevenshteinString, QuoteSummarizeTransform};
-use crate::interpreter::lexer::tokens::variable_token::VariableToken;
 
 #[derive(Debug)]
 pub struct MethodCallToken {
     name: NameToken,
     arguments: Vec<AssignableToken>,
+}
+
+impl Display for MethodCallToken {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}({})", self.name, self.arguments
+            .iter()
+            .map(|ass| format!("{}", ass))
+            .collect::<Vec<String>>()
+            .join(", "))
+    }
 }
 
 #[derive(Debug)]
@@ -67,7 +74,7 @@ impl FromStr for MethodCallToken {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut code_line = CodeLine::imaginary(s);
 
-        if !s.ends_with(";") {
+        if !s.ends_with(';') {
             code_line.line += " ;";
         }
 
@@ -140,7 +147,13 @@ pub trait ArrayOrObject<T> {
 
 impl ArrayOrObject<char> for char {
     fn list(&self) -> Vec<char> {
-        return vec![self.clone()];
+        vec![*self]
+    }
+}
+
+impl ArrayOrObject<char> for Vec<char> {
+    fn list(&self) -> Vec<char> {
+        self.clone()
     }
 }
 
@@ -155,11 +168,11 @@ pub fn dyck_language<T: ArrayOrObject<char>>(parameter_string: &str, values: [T;
     let mut current_start_index = 0;
 
     for (index, c) in parameter_string.chars().enumerate() {
-        if values[0].list().contains(&c) {
+        if values[0].list().contains(&c) { // opening
                 counter += 1;
-        } else if values[2].list().contains(&c) {
+        } else if values[2].list().contains(&c) { // closing
             counter -= 1;
-        } else if values[1].list().contains(&c) && counter == 0 {
+        } else if values[1].list().contains(&c) && counter == 0 { // seperator
             let value = &parameter_string[current_start_index..index].trim();
         
             if value.is_empty() {

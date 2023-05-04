@@ -3,14 +3,20 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 use crate::interpreter::io::code_line::CodeLine;
-use crate::interpreter::lexer::tokens::assignable_token::{AssignableToken, AssignableTokenErr};
-use crate::interpreter::lexer::tokens::assignable_tokens::method_call_token::{dyck_language, DyckError, MethodCallToken};
-use crate::interpreter::lexer::tokens::name_token::{NameToken, NameTokenErr};
+use crate::interpreter::lexer::tokens::assignable_token::AssignableTokenErr;
+use crate::interpreter::lexer::tokens::assignable_tokens::method_call_token::{dyck_language, DyckError};
+use crate::interpreter::lexer::tokens::name_token::NameTokenErr;
 use crate::interpreter::lexer::tokens::variable_token::{ParseVariableTokenErr, VariableToken};
 
 #[derive(Debug)]
 pub struct ObjectToken {
     pub variables: Vec<VariableToken<':', ','>>
+}
+
+impl Display for ObjectToken {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.variables.iter().map(|var| format!("{}", var)).collect::<Vec<String>>().join(", "))
+    }
 }
 
 #[derive(Debug)]
@@ -72,7 +78,7 @@ impl FromStr for ObjectToken {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut code_line = CodeLine::imaginary(s);
         
-        if !s.ends_with(";") {
+        if !s.ends_with(';') {
             code_line.line += " ;";
         }
         
@@ -86,9 +92,9 @@ impl ObjectToken {
         let split = split_alloc.iter().map(|a| a.as_str()).collect::<Vec<_>>();
         
         return if let ["{", arguments_segments @ .., "}", ";"] = &split[..] {
-            let mut argument_strings = dyck_language(&arguments_segments.join(" "), ['{', ',', '}'])?;
+            let mut argument_strings = dyck_language(&arguments_segments.join(" "),[vec!['{', '('], vec![','], vec!['}', ')']])?;
             argument_strings.iter_mut().for_each(|s|
-                if !s.ends_with(",") {
+                if !s.ends_with(',') {
                     s.push_str(" ,")
                 }
             );

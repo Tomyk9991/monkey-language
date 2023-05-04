@@ -1,7 +1,6 @@
 use crate::interpreter::io::code_line::CodeLine;
-use crate::interpreter::lexer::tokens::assignable_tokens::method_call_token::dyck_language;
 
-static IGNORED_LEVENSHTEIN_CASE: &'static str = "LEVENSHTEIN_IGNORE";
+static IGNORED_LEVENSHTEIN_CASE: &str = "LEVENSHTEIN_IGNORE";
 
 // https://i.imgur.com/AI56ag7.png
 ///```rust
@@ -68,7 +67,7 @@ pub trait PatternedLevenshteinDistance {
         let string_a = a.into();
         let string_b = b.into();
 
-        return levenshtein_distance(&string_a, &string_b);
+        levenshtein_distance(&string_a, &string_b)
     }
 
     fn distance_from_code_line(code_line: &CodeLine) -> usize;
@@ -95,12 +94,12 @@ impl SegmentTransform for QuoteSummarizeTransform {
         for i in 0..length {
             let value = &values[i];
 
-            if value.starts_with("\"") {
+            if value.starts_with('\"') {
                 start_i = i;
                 collecting = true;
             }
 
-            if value.ends_with("\"") {
+            if value.ends_with('\"') {
                 collecting = false;
                 new_vec.push(values[start_i..i + 1].join(" ").clone());
                 continue;
@@ -161,7 +160,7 @@ impl SegmentTransform for EmptyMethodCallExpand {
 
             if value == "(" {
                 if let Some(next_value) = values.get(i + 1) {
-                    if next_value == &")" {
+                    if next_value == ")" {
                         // this is an empty method-call
                         // transform it to:
                         // ( IGNORE )
@@ -231,6 +230,7 @@ impl SegmentTransform for ArgumentsIgnoreSummarizeTransform {
 }
 
 
+#[derive(Default)]
 pub struct PatternedLevenshteinString {
     data: Vec<String>,
 }
@@ -238,14 +238,6 @@ pub struct PatternedLevenshteinString {
 impl From<PatternedLevenshteinString> for String {
     fn from(value: PatternedLevenshteinString) -> Self {
         value.data.join(" ")
-    }
-}
-
-impl Default for PatternedLevenshteinString {
-    fn default() -> Self {
-        Self {
-            data: vec![],
-        }
     }
 }
 
@@ -266,7 +258,7 @@ impl PatternedLevenshteinString {
             }
         }
 
-        return segments.join(" ");
+        segments.join(" ")
     }
 
     pub fn insert(mut self, value: &str) -> Self {

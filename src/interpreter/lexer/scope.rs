@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 use crate::interpreter::io::code_line::CodeLine;
-use crate::interpreter::lexer::levenshtein_distance::{PatternedLevenshteinDistance, PatternedLevenshteinString};
+use crate::interpreter::lexer::levenshtein_distance::PatternedLevenshteinDistance;
 use crate::interpreter::lexer::token::Token;
 use crate::interpreter::lexer::tokens::assignable_tokens::method_call_token::MethodCallToken;
 use crate::interpreter::lexer::tokens::variable_token::VariableToken;
@@ -17,7 +17,7 @@ pub enum ScopeError {
 
 impl Debug for ScopeError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.to_string())
+        write!(f, "{}", self)
     }
 }
 
@@ -35,7 +35,7 @@ impl Error for ScopeError {}
 
 impl Debug for Scope {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Scope: [\n{}]", self.tokens.iter().map(|token| format!("\t{:?}\n", token)).collect::<String>())
+        write!(f, "Scope: [\n{}]", self.tokens.iter().map(|token| format!("\t{}\n", token)).collect::<String>())
     }
 }
 
@@ -47,12 +47,12 @@ impl TryParse for Scope {
         let mut pattern_distances: Vec<(usize, Box<dyn Error>)> = vec![];
 
         match VariableToken::try_parse(code_line) {
-            Ok(variable_token) => return Ok(Token::VariableToken(variable_token)),
+            Ok(variable_token) => return Ok(Token::Variable(variable_token)),
             Err(err) => pattern_distances.push((VariableToken::<'=', ';'>::distance_from_code_line(code_line), Box::new(err)))
         }
 
         match MethodCallToken::try_parse(code_line) {
-            Ok(method_token) => return Ok(Token::MethodToken(method_token)),
+            Ok(method_token) => return Ok(Token::MethodCall(method_token)),
             Err(err) => pattern_distances.push((MethodCallToken::distance_from_code_line(code_line), Box::new(err)))
         }
 
@@ -65,6 +65,6 @@ impl TryParse for Scope {
             });
         }
 
-        return Ok(Token::None);
+        Ok(Token::None)
     }
 }

@@ -1,17 +1,22 @@
 use std::error::Error;
-use std::fmt::{Display, Formatter};
+use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
 use anyhow::Context;
 use crate::interpreter::io::code_line::CodeLine;
-use crate::interpreter::lexer::levenshtein_distance::{levenshtein_distance, MethodCallSummarizeTransform, PatternedLevenshteinDistance, PatternedLevenshteinString, QuoteSummarizeTransform};
+use crate::interpreter::lexer::levenshtein_distance::{MethodCallSummarizeTransform, PatternedLevenshteinDistance, PatternedLevenshteinString, QuoteSummarizeTransform};
 use crate::interpreter::lexer::tokens::assignable_token::{AssignableToken, AssignableTokenErr};
 use crate::interpreter::lexer::tokens::name_token::{NameToken, NameTokenErr};
-use crate::interpreter::lexer::TryParse;
 
 #[derive(Debug)]
-pub struct VariableToken<const Assignment: char, const Separator: char> {
+pub struct VariableToken<const ASSIGNMENT: char, const SEPARATOR: char> {
     pub name_token: NameToken,
     pub assignable: AssignableToken
+}
+
+impl<const ASSIGNMENT: char, const SEPARATOR: char> Display for VariableToken<ASSIGNMENT, SEPARATOR> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {} {}", self.name_token, ASSIGNMENT, self.assignable)
+    }
 }
 
 #[derive(Debug)]
@@ -54,14 +59,14 @@ impl Display for ParseVariableTokenErr {
     }
 }
 
-impl<const Assignment: char, const Separator: char> VariableToken<Assignment, Separator> {
+impl<const ASSIGNMENT: char, const SEPARATOR: char> VariableToken<ASSIGNMENT, SEPARATOR> {
     pub fn try_parse(code_line: &CodeLine) -> anyhow::Result<Self, ParseVariableTokenErr> {
         let split_alloc = code_line.split(vec![' ', ';']);
         let split = split_alloc.iter().map(|a| a.as_str()).collect::<Vec<_>>();
 
 
-        let assignment = Assignment.to_string();
-        let separator = Separator.to_string();
+        let assignment = ASSIGNMENT.to_string();
+        let separator = SEPARATOR.to_string();
 
         return match &split[..] {
             [name, assignment_token, middle @ .., separator_token] if assignment_token == &assignment && separator_token == &separator => {
@@ -76,15 +81,15 @@ impl<const Assignment: char, const Separator: char> VariableToken<Assignment, Se
 }
 
 
-impl<const Assignment: char, const Separator: char> PatternedLevenshteinDistance for VariableToken<Assignment, Separator> {
+impl<const ASSIGNMENT: char, const SEPARATOR: char> PatternedLevenshteinDistance for VariableToken<ASSIGNMENT, SEPARATOR> {
     fn distance_from_code_line(code_line: &CodeLine) -> usize {
         let variable_pattern = PatternedLevenshteinString::default()
             .insert(PatternedLevenshteinString::ignore())
-            .insert(&Assignment.to_string())
+            .insert(&ASSIGNMENT.to_string())
             .insert(PatternedLevenshteinString::ignore())
-            .insert(&Separator.to_string());
+            .insert(&SEPARATOR.to_string());
 
-        <VariableToken<Assignment, Separator> as PatternedLevenshteinDistance>::distance(
+        <VariableToken<ASSIGNMENT, SEPARATOR> as PatternedLevenshteinDistance>::distance(
             PatternedLevenshteinString::match_to(
                 &code_line.line,
                 &variable_pattern,

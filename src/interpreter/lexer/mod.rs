@@ -1,6 +1,6 @@
 use crate::interpreter::io::code_line::CodeLine;
 
-pub mod lexer;
+pub mod tokenizer;
 pub mod scope;
 pub mod token;
 pub mod tokens;
@@ -13,6 +13,7 @@ pub trait TryParse {
     fn try_parse(code_line: &CodeLine) -> anyhow::Result<Self::Output, Self::Err>;
 }
 
+#[allow(unused)]
 #[derive(Debug)]
 pub enum Visibility {
     Public,

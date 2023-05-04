@@ -8,6 +8,12 @@ pub struct StringToken {
     value: String
 }
 
+impl Display for StringToken {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.value)
+    }
+}
+
 #[derive(Debug)]
 pub enum StringTokenErr {
     UnmatchedRegex,

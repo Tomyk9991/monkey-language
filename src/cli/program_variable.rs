@@ -31,7 +31,7 @@ impl TryFrom<Vec<&'static str>> for ProgramVariable {
         let args = env::args().collect::<Vec<_>>();
 
         for key_value_pair in args.windows(2).skip(1) {
-            if let [key, value] = &key_value_pair[..] {
+            if let [key, value] = key_value_pair {
                 if target.contains(&key.to_lowercase().as_str()) {
                     return Ok(ProgramVariable {
                         key: key.to_string(),
@@ -41,6 +41,6 @@ impl TryFrom<Vec<&'static str>> for ProgramVariable {
             }
         }
 
-        return Err(ProgramVariableErr::NotFound(target.join(", ")));
+        Err(ProgramVariableErr::NotFound(target.join(", ")))
     }
 }

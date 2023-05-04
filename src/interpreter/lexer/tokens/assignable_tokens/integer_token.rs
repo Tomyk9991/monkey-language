@@ -9,6 +9,13 @@ pub struct IntegerToken {
     value: i32
 }
 
+impl Display for IntegerToken {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.value)
+    }
+}
+
+
 #[derive(Debug)]
 pub enum NumberTokenErr {
     UnmatchedRegex,

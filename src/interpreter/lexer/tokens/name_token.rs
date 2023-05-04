@@ -15,6 +15,12 @@ pub enum NameTokenErr {
     KeywordReserved(String),
 }
 
+impl Display for NameToken {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.name)
+    }
+}
+
 impl Error for NameTokenErr {}
 
 impl Display for NameTokenErr {
@@ -22,7 +28,7 @@ impl Display for NameTokenErr {
         let message = match self {
             NameTokenErr::UnmatchedRegex { target_value } => format!("\"{target_value}\" must match: ^[a-zA-Z_$][a-zA-Z_$0-9$]*$"),
             NameTokenErr::KeywordReserved(value) => {
-                format!("The variable name \"{}\" variable name can't have the same name as a reserved keyword", value.to_string())
+                format!("The variable name \"{}\" variable name can't have the same name as a reserved keyword", value)
             }
         };
         write!(f, "{}", message)

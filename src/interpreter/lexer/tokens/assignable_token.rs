@@ -5,7 +5,7 @@ use crate::interpreter::lexer::tokens::assignable_tokens::double_token::DoubleTo
 use crate::interpreter::lexer::tokens::assignable_tokens::integer_token::IntegerToken;
 use crate::interpreter::lexer::tokens::assignable_tokens::method_call_token::MethodCallToken;
 use crate::interpreter::lexer::tokens::assignable_tokens::object_token::ObjectToken;
-use crate::interpreter::lexer::tokens::assignable_tokens::string_token::{StringToken, StringTokenErr};
+use crate::interpreter::lexer::tokens::assignable_tokens::string_token::StringToken;
 use crate::interpreter::lexer::tokens::name_token::NameToken;
 
 #[derive(Debug)]
@@ -22,6 +22,19 @@ pub enum AssignableToken {
 #[derive(Debug)]
 pub enum AssignableTokenErr {
     PatternNotMatched { target_value: String }
+}
+
+impl Display for AssignableToken {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", match self {
+            AssignableToken::String(token) => format!("{}", token),
+            AssignableToken::IntegerToken(token) => format!("{}", token),
+            AssignableToken::DoubleToken(token) => format!("{}", token),
+            AssignableToken::MethodCallToken(token) => format!("{}", token),
+            AssignableToken::Variable(token) => format!("{}", token),
+            AssignableToken::Object(token) => format!("{}", token),
+        })
+    }
 }
 
 impl Error for AssignableTokenErr { }
@@ -51,6 +64,6 @@ impl AssignableToken {
             return Ok(AssignableToken::Object(object_token))
         }
         
-        return Err(AssignableTokenErr::PatternNotMatched { target_value: line.to_string()});
+        Err(AssignableTokenErr::PatternNotMatched { target_value: line.to_string()})
     }
 }
