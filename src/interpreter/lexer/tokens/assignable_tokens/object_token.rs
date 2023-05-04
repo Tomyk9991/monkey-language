@@ -15,7 +15,7 @@ pub struct ObjectToken {
 
 impl Display for ObjectToken {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.variables.iter().map(|var| format!("{}", var)).collect::<Vec<String>>().join(", "))
+        write!(f, "{{{}}}", self.variables.iter().map(|var| format!("{}", var)).collect::<Vec<String>>().join(", "))
     }
 }
 

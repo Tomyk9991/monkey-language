@@ -7,3 +7,4 @@ mallo = "";
 variable_with_another_variable_assignment = fisch;
 
 michi = { guten: "Hallo", ciau: 5, rofl: name(), mofl: name(nestedMethod("Hallo", moin("Ciao", 5))) };
+nestedMichi = { guten: "Hallo", ciau: 5, rofl: name(), mofl: { guten: "Hallo", ciau: 5, rofl: name(), mofl: name(nestedMethod("Hallo", moin("Ciao", 5))) } };
