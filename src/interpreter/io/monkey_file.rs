@@ -29,6 +29,8 @@ impl MonkeyFile {
         lines.merge()?;
         lines.normalize();
 
+        println!("{:#?}", lines);
+
         Ok(Self {
             path: path_buffer,
             lines,

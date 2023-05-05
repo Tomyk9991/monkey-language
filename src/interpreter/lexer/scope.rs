@@ -4,6 +4,7 @@ use crate::interpreter::io::code_line::CodeLine;
 use crate::interpreter::lexer::levenshtein_distance::PatternedLevenshteinDistance;
 use crate::interpreter::lexer::token::Token;
 use crate::interpreter::lexer::tokens::assignable_tokens::method_call_token::MethodCallToken;
+use crate::interpreter::lexer::tokens::method_definition::MethodDefinition;
 use crate::interpreter::lexer::tokens::variable_token::VariableToken;
 use crate::interpreter::lexer::TryParse;
 
@@ -54,6 +55,11 @@ impl TryParse for Scope {
         match MethodCallToken::try_parse(code_line) {
             Ok(method_token) => return Ok(Token::MethodCall(method_token)),
             Err(err) => pattern_distances.push((MethodCallToken::distance_from_code_line(code_line), Box::new(err)))
+        }
+
+        match MethodDefinition::try_parse(code_line) {
+            Ok(method_token) => return Ok(Token::MethodDefinition(method_token)),
+            Err(err) => { }
         }
 
         pattern_distances.sort_by(|(nearest_a, _), (nearest_b, _)| (*nearest_a).cmp(nearest_b));

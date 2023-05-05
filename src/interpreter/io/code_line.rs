@@ -150,7 +150,7 @@ impl Normalizable for Vec<CodeLine> {
                 }
             }
 
-            if code_line.line.contains(';') {
+            if code_line.line.contains(';') && indent_level != 0 {
                 let mut c = code_line.clone();
                 c.virtual_line_number = counter;
 

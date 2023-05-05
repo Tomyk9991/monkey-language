@@ -1,4 +1,5 @@
 use std::fmt::{Display, Formatter};
+use crate::interpreter::lexer::tokens::method_definition::MethodDefinition;
 use crate::interpreter::lexer::tokens::assignable_tokens::method_call_token::MethodCallToken;
 use crate::interpreter::lexer::tokens::variable_token::VariableToken;
 
@@ -6,6 +7,7 @@ use crate::interpreter::lexer::tokens::variable_token::VariableToken;
 pub enum Token {
     Variable(VariableToken<'=', ';'>),
     MethodCall(MethodCallToken),
+    MethodDefinition(MethodDefinition),
     None
 }
 
@@ -14,7 +16,8 @@ impl Display for Token {
         write!(f, "{}", match self {
             Token::Variable(v) => format!("{}", v),
             Token::MethodCall(m) => format!("{}", m),
-            Token::None => "None".to_string()
+            Token::MethodDefinition(m) => format!("{}", m),
+            Token::None => "None".to_string(),
         })
     }
 }
