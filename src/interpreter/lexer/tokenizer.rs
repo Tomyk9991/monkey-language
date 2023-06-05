@@ -2,27 +2,28 @@ use crate::interpreter::io::monkey_file::MonkeyFile;
 use crate::interpreter::lexer::scope::Scope;
 use crate::interpreter::lexer::TryParse;
 
-pub struct Lexer<'a> {
-    current_file: &'a MonkeyFile
+pub struct Lexer {
+    current_file: MonkeyFile
 }
 
-impl<'a> From<&'a MonkeyFile> for Lexer<'a> {
-    fn from(file: &'a MonkeyFile) -> Self {
+impl Lexer {
+    pub fn from(file: MonkeyFile) -> Self {
         Self {
             current_file: file
         }
     }
 }
 
-impl<'a> Lexer<'a> {
+impl Lexer {
     pub fn tokenize(&mut self) -> anyhow::Result<Scope> {
         let mut scope = Scope {
             tokens: vec![],
         };
 
+        let mut iterator = self.current_file.lines.iter().peekable();
 
-        for line in &self.current_file.lines {
-            let token = Scope::try_parse(line)?;
+        while let Some(_) = iterator.peek() {
+            let token = Scope::try_parse(&mut iterator)?;
             scope.tokens.push(token);
         }
 

@@ -1,5 +1,7 @@
 use std::ops::Range;
 use binary_search_tree::BinarySearchTree;
+use regex::Regex;
+use regex_split::RegexSplit;
 use crate::interpreter::lexer::scope::ScopeError::ParsingError;
 use crate::utils::extension_methods::RemoveWhiteSpacesBetween;
 
@@ -7,7 +9,13 @@ use crate::utils::extension_methods::RemoveWhiteSpacesBetween;
 pub struct CodeLine {
     pub line: String,
     pub actual_line_number: Range<usize>,
-    pub virtual_line_number: usize,
+    pub virtual_line_number: usize
+}
+
+impl CodeLine {
+    pub fn contains_token(&self, token: &str) -> bool {
+        self.line.split(" ").any(|symbol| symbol == token)
+    }
 }
 
 
@@ -16,11 +24,11 @@ impl CodeLine {
         Self {
             line: l.to_string(),
             actual_line_number: 0..0,
-            virtual_line_number: 0,
+            virtual_line_number: 0
         }
     }
 
-    pub fn merge(&mut self, other: &[Self]) -> anyhow::Result<()> {
+    pub fn merge(&mut self, other: &[&Self]) -> anyhow::Result<()> {
         let mut all: Vec<&CodeLine> = Vec::with_capacity(1 + other.len());
         all.push(self);
         all.extend(other);
@@ -36,13 +44,19 @@ impl CodeLine {
             .ok_or(ParsingError { message: "Iterator is empty".to_string() })?
             .actual_line_number.end;
 
+        let merge_size = all.len();
+
         drop(all);
 
         for line in other {
             self.line.push_str(&line.line);
         }
 
-        self.actual_line_number = min_line..max_line;
+        if merge_size == 2 {
+            self.actual_line_number = max_line..max_line;
+        } else {
+            self.actual_line_number = min_line..max_line;
+        }
 
         Ok(())
     }
@@ -67,21 +81,24 @@ impl CodeLine {
 }
 
 pub trait Normalizable {
+    /// Splits the given vec of Code lines into multiple code lines if any separator tokens is found and inserts spaces.
+    /// Spaces are inserted in front of special characters
     fn normalize(&mut self);
-    fn merge(&mut self)  -> anyhow::Result<()>;
 }
 
 impl Normalizable for Vec<CodeLine> {
     fn normalize(&mut self) {
         static INSERT_SPACE: [char; 7] = [';', '(', ')', ':', ',', '{', '}'];
-        static SEPARATORS: [char; 1] = [';'];
+        static SCOPE_CHAR_PAIRS: (char, char) = ('{', '}');
+        static SEPARATORS: [&str; 2] = [";", r"fn .*?\(.*?\):\s.*?\{.*?\}"];
 
         let mut result: Vec<CodeLine> = Vec::new();
         let mut line_counter = 1;
 
         for code_line in (*self).iter() {
-            let splits = code_line.line
-                .split_inclusive(&SEPARATORS[..])
+            let s = format!("{}", SEPARATORS.join("|"));
+            let regex = Regex::new(&s).unwrap();
+            let splits = regex.split_inclusive(&code_line.line)
                 .collect::<Vec<_>>();
 
             for split in splits {
@@ -123,49 +140,8 @@ impl Normalizable for Vec<CodeLine> {
 
         *self = result;
     }
-
-    fn merge(&mut self) -> anyhow::Result<()> {
-        let mut result: Vec<CodeLine> = Vec::new();
-
-        let mut start = 0;
-        let mut indent_level = 0;
-        let mut counter = 1;
-
-        for (index, code_line) in (*self).iter().enumerate() {
-            if code_line.line.contains('{') {
-                indent_level += 1;
-            }
-
-            if code_line.line.contains('}') {
-                indent_level -= 1;
-
-                if indent_level == 0 {
-                    let mut virtual_code_line = CodeLine::new(String::new(), index..index, counter);
-                    virtual_code_line.merge(&self[start..index + 1])?;
-                    result.push(virtual_code_line);
-
-                    start = index + 1;
-                    counter += 1;
-                    continue;
-                }
-            }
-
-            if code_line.line.contains(';') && indent_level != 0 {
-                let mut c = code_line.clone();
-                c.virtual_line_number = counter;
-
-                result.push(c);
-
-                counter += 1;
-                continue;
-            }
-        }
-
-        *self = result;
-
-        Ok(())
-    }
 }
+
 
 fn push_code_line_after_validated(vec: &mut Vec<CodeLine>, target: &str, actual_line_number: &Range<usize>, line: usize) -> bool {
     if target.trim().is_empty() { return false; };

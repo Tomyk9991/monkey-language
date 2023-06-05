@@ -18,7 +18,8 @@ nestedMichi = {
     rofl: name(),
 };
 
-moin = { test: "Hallo", nested: { integer: -51 } }; variable_inside = { test: "Hallo" };
+moin = { test: "Hallo", nested: { integer: -51 } };
+variable_inside = { test: "Hallo" };
 
 fisch = "Fische sind wirklich wirklich toll";
 guten_tag = name();
@@ -27,3 +28,18 @@ name(nestedMethod("Hallo", moin("Ciao", 5)));
 hallo = "Thomas"; tschuess = 5;
 mallo = "";
 variable_with_another_variable_assignment = fisch;
+
+variable_with_another_variable_assignment = fisch;
+
+fn method_name(variable, variable): -
+{
+    function_variable = 5;
+}
+
+fn f(variable, variable): -
+{
+    function_variable_two = 10;
+}
+
+hallo = "Thomas"; tschuess = 5;
+mallo = "";

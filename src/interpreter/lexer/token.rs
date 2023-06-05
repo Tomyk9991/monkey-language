@@ -4,14 +4,14 @@ use crate::interpreter::lexer::tokens::assignable_tokens::method_call_token::Met
 use crate::interpreter::lexer::tokens::variable_token::VariableToken;
 
 #[derive(Debug)]
-pub enum Token {
+pub enum Token<'a> {
     Variable(VariableToken<'=', ';'>),
     MethodCall(MethodCallToken),
-    MethodDefinition(MethodDefinition),
+    MethodDefinition(MethodDefinition<'a>),
     None
 }
 
-impl Display for Token {
+impl Display for Token<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", match self {
             Token::Variable(v) => format!("{}", v),

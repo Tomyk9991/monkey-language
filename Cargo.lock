@@ -36,6 +36,7 @@ dependencies = [
  "anyhow",
  "binary_search_tree",
  "regex",
+ "regex-split",
 ]
 
 [[package]]
@@ -47,6 +48,15 @@ dependencies = [
  "aho-corasick",
  "memchr",
  "regex-syntax",
+]
+
+[[package]]
+name = "regex-split"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "544861d1810a3e429bb5e80266e537138b0e69e59bed9334326ae129a4c3e676"
+dependencies = [
+ "regex",
 ]
 
 [[package]]

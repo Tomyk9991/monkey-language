@@ -1,3 +1,5 @@
+use std::iter::Peekable;
+use std::slice::Iter;
 use crate::interpreter::io::code_line::CodeLine;
 
 pub mod tokenizer;
@@ -10,7 +12,7 @@ pub trait TryParse {
     type Output;
     type Err;
 
-    fn try_parse(code_line: &CodeLine) -> anyhow::Result<Self::Output, Self::Err>;
+    fn try_parse(code_line: &mut Peekable<Iter<CodeLine>>) -> anyhow::Result<Self::Output, Self::Err>;
 }
 
 #[allow(unused)]
