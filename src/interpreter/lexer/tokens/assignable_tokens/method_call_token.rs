@@ -7,7 +7,7 @@ use crate::interpreter::lexer::tokens::name_token::{NameToken, NameTokenErr};
 use crate::interpreter::io::code_line::CodeLine;
 use crate::interpreter::lexer::levenshtein_distance::{ArgumentsIgnoreSummarizeTransform, EmptyMethodCallExpand, PatternedLevenshteinDistance, PatternedLevenshteinString, QuoteSummarizeTransform};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct MethodCallToken {
     name: NameToken,
     arguments: Vec<AssignableToken>,
@@ -89,7 +89,7 @@ impl MethodCallToken {
 
         return if let [name, "(", ")", ";"] = &split[..] {
             Ok(MethodCallToken {
-                name: NameToken::from_str(name)?,
+                name: NameToken::from_str(name, false)?,
                 arguments: vec![],
             })
         } else if let [name, "(", argument_segments @ .., ")", ";"] = &split[..] {
@@ -100,7 +100,7 @@ impl MethodCallToken {
                 .collect::<Result<Vec<_>, _>>()?;
 
             Ok(MethodCallToken {
-                name: NameToken::from_str(name)?,
+                name: NameToken::from_str(name, false)?,
                 arguments,
             })
         } else {

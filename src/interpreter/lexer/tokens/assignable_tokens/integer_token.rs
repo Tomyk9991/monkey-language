@@ -4,7 +4,7 @@ use std::num::{ParseFloatError, ParseIntError};
 use std::str::FromStr;
 use regex::Regex;
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct IntegerToken {
     value: i32
 }

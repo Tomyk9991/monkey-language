@@ -4,7 +4,7 @@ use std::str::FromStr;
 use regex::Regex;
 use crate::interpreter::constants::KEYWORDS;
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct NameToken {
     name: String,
 }
@@ -35,11 +35,9 @@ impl Display for NameTokenErr {
     }
 }
 
-impl FromStr for NameToken {
-    type Err = NameTokenErr;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if KEYWORDS.iter().any(|keyword| keyword.to_lowercase() == s.to_lowercase()) {
+impl NameToken {
+    pub fn from_str(s: &str, allow_reserved: bool) -> Result<NameToken, NameTokenErr> {
+        if !allow_reserved && KEYWORDS.iter().any(|keyword| keyword.to_lowercase() == s.to_lowercase()) {
             return Err(NameTokenErr::KeywordReserved(s.to_string()));
         }
 

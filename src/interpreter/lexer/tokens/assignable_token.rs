@@ -8,7 +8,7 @@ use crate::interpreter::lexer::tokens::assignable_tokens::object_token::ObjectTo
 use crate::interpreter::lexer::tokens::assignable_tokens::string_token::StringToken;
 use crate::interpreter::lexer::tokens::name_token::NameToken;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum AssignableToken {
     String(StringToken),
     IntegerToken(IntegerToken),
@@ -58,7 +58,7 @@ impl AssignableToken {
             return Ok(AssignableToken::DoubleToken(double_token))
         } else if let Ok(method_call_token) = MethodCallToken::from_str(line) {
             return Ok(AssignableToken::MethodCallToken(method_call_token))
-        } else if let Ok(variable_name) = NameToken::from_str(line) {
+        } else if let Ok(variable_name) = NameToken::from_str(line, false) {
             return Ok(AssignableToken::Variable(variable_name))
         } else if let Ok(object_token) = ObjectToken::from_str(line) {
             return Ok(AssignableToken::Object(object_token))

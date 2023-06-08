@@ -31,12 +31,11 @@ variable_with_another_variable_assignment = fisch;
 
 variable_with_another_variable_assignment = fisch;
 
-fn method_name(variable, variable): -
-{
-    function_variable = 5;
+fn method_name(variable, variable): void {
+    function_variable_one = 10;
 }
 
-fn f(variable, variable): -
+fn f(variable, variable): void
 {
     function_variable_two = 10;
 }

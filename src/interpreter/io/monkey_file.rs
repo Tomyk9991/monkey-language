@@ -33,8 +33,6 @@ impl MonkeyFile {
                 line.actual_line_number = number.clone();
             });
 
-        println!("{:#?}", lines);
-
         Ok(Self {
             path: path_buffer,
             lines,
@@ -69,51 +67,63 @@ impl MonkeyFile {
 fn get_line_ranges(buffer: &str) -> Vec<Range<usize>> {
     let mut line_ranges = Vec::new();
     let mut start = None;
+    let mut latest_range = 0..0;
 
     let mut line_count = 1;
-    let mut in_function = false;
-    let mut function_ident_level = 0;
-
     let mut iter = buffer.chars().into_iter();
+    let mut in_function = false;
+    let mut ident_level = 0;
 
-    while let Some(c) = iter.next() {
-        if start.is_none() && !c.is_whitespace() {
+    while let Some(char) = iter.next() {
+        if start.is_none() && !char.is_whitespace() {
             start = Some(line_count);
         }
 
+        if char == '{' {
+            ident_level += 1;
+        }
+
+        if char == '}' {
+            ident_level -= 1;
+
+            if in_function && ident_level == 0 {
+                if let Some(s) = start {
+                    let range = s..line_count;
+                    latest_range = range.clone();
+                    line_ranges.push(range);
+                    start = None;
+                }
+
+                in_function = false;
+            }
+        }
+
+        if char == '\n' {
+            line_count += 1;
+        }
+
         // "fn "
-        if c == 'f' && &iter.as_str()[..2] == "n " {
+        if char == 'f' && &iter.as_str()[..2] == "n " {
             in_function = true;
             start = Some(line_count);
         }
 
-        if c == '{' && in_function {
-            function_ident_level += 1;
-        }
-
-        if c == '}' && in_function {
-            function_ident_level -= 1;
-
-            if function_ident_level == 0 {
-                if let Some(s) = start {
-                    let range = s..line_count;
-                    line_ranges.push(range);
-                    start = None;
-                    in_function = false;
-                }
-            }
-        }
-
-        if c == ';' && !in_function {
+        if char == '{' && ident_level == 1 && in_function {
             if let Some(s) = start {
                 let range = s..line_count;
+                latest_range = range.clone();
                 line_ranges.push(range);
                 start = None;
             }
         }
 
-        if c == '\n' {
-            line_count += 1;
+        if char == ';' {
+            if let Some(s) = start {
+                let range = s..line_count;
+                latest_range = range.clone();
+                line_ranges.push(range);
+                start = None;
+            }
         }
     }
 

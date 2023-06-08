@@ -10,8 +10,8 @@ use crate::interpreter::lexer::tokens::method_definition::MethodDefinition;
 use crate::interpreter::lexer::tokens::variable_token::VariableToken;
 use crate::interpreter::lexer::TryParse;
 
-pub struct Scope<'a> {
-    pub tokens: Vec<Token<'a>>,
+pub struct Scope {
+    pub tokens: Vec<Token>,
 }
 
 pub enum ScopeError {
@@ -38,14 +38,14 @@ impl Display for ScopeError {
 impl Error for ScopeError {}
 
 
-impl<'a> Debug for Scope<'_> {
+impl<'a> Debug for Scope {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "Scope: [\n{}]", self.tokens.iter().map(|token| format!("\t{:?}\n", token)).collect::<String>())
     }
 }
 
-impl<'a> TryParse for Scope<'a> {
-    type Output = Token<'a>;
+impl<'a> TryParse for Scope {
+    type Output = Token;
     type Err = ScopeError;
 
     fn try_parse(code_lines: &mut Peekable<Iter<CodeLine>>) -> anyhow::Result<Self::Output, ScopeError> {
@@ -73,13 +73,21 @@ impl<'a> TryParse for Scope<'a> {
             )
         }
 
+        match code_line.line == "}" {
+            true => {
+                code_lines.next();
+                return Ok(Token::ScopeClosing)
+            }
+            false => { eprintln!("Unexpected tokens: {line}", line = code_line.line) }
+        }
+
         match MethodDefinition::try_parse(code_lines) {
             Ok(method_token) => {
-                code_lines.next();
                 return Ok(Token::MethodDefinition(method_token))
             },
             Err(err) => { eprintln!("{}", err) }
         }
+
 
         pattern_distances.sort_by(|(nearest_a, _), (nearest_b, _)| (*nearest_a).cmp(nearest_b));
 

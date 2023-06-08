@@ -90,10 +90,11 @@ impl Normalizable for Vec<CodeLine> {
     fn normalize(&mut self) {
         static INSERT_SPACE: [char; 7] = [';', '(', ')', ':', ',', '{', '}'];
         static SCOPE_CHAR_PAIRS: (char, char) = ('{', '}');
-        static SEPARATORS: [&str; 2] = [";", r"fn .*?\(.*?\):\s.*?\{.*?\}"];
+        static SEPARATORS: [&str; 3] = [";", r"fn .*?\(.*?\):\s.*?\{", r"fn .*?\(.*?\):\s.*?\{.*?\}"];
 
         let mut result: Vec<CodeLine> = Vec::new();
         let mut line_counter = 1;
+        let mut in_scope_state = false;
 
         for code_line in (*self).iter() {
             let s = format!("{}", SEPARATORS.join("|"));
@@ -132,7 +133,7 @@ impl Normalizable for Vec<CodeLine> {
                     target.insert(*index, ' ');
                 }
 
-                if push_code_line_after_validated(&mut result, &target, &code_line.actual_line_number, line_counter) {
+                if push_code_line_after_validated(&mut result, &target, &code_line.actual_line_number, &mut line_counter, &mut in_scope_state) {
                     line_counter += 1;
                 }
             }
@@ -143,11 +144,25 @@ impl Normalizable for Vec<CodeLine> {
 }
 
 
-fn push_code_line_after_validated(vec: &mut Vec<CodeLine>, target: &str, actual_line_number: &Range<usize>, line: usize) -> bool {
-    if target.trim().is_empty() { return false; };
+fn push_code_line_after_validated(vec: &mut Vec<CodeLine>, target: &str, actual_line_number: &Range<usize>, line: &mut usize, in_scope_state: &mut bool) -> bool {
+    let mut target = target.trim().to_string();
+
     if target.is_empty() { return false; }
 
-    vec.push(CodeLine::new(target.to_string(), actual_line_number.clone(), line));
+    if in_scope_state == &true && target.starts_with("}") {
+        *in_scope_state = false;
+
+        vec.push(CodeLine::new("}".to_string(), actual_line_number.clone(), *line));
+        target = target.replacen("}", "", 1);
+
+        *line += 1;
+    }
+
+    if in_scope_state == &false && target.starts_with("fn") && target.ends_with("{") {
+        *in_scope_state = true;
+    }
+
+    vec.push(CodeLine::new(target.to_string(), actual_line_number.clone(), *line));
 
     true
 }

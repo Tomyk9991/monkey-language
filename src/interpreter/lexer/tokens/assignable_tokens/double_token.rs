@@ -3,7 +3,7 @@ use std::str::FromStr;
 use regex::Regex;
 use crate::interpreter::lexer::tokens::assignable_tokens::integer_token::NumberTokenErr;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct DoubleToken {
     value: f64
 }

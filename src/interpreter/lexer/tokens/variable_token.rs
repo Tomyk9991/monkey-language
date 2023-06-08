@@ -7,7 +7,7 @@ use crate::interpreter::lexer::levenshtein_distance::{MethodCallSummarizeTransfo
 use crate::interpreter::lexer::tokens::assignable_token::{AssignableToken, AssignableTokenErr};
 use crate::interpreter::lexer::tokens::name_token::{NameToken, NameTokenErr};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct VariableToken<const ASSIGNMENT: char, const SEPARATOR: char> {
     pub name_token: NameToken,
     pub assignable: AssignableToken
@@ -71,7 +71,7 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> VariableToken<ASSIGNMENT, SE
         return match &split[..] {
             [name, assignment_token, middle @ .., separator_token] if assignment_token == &assignment && separator_token == &separator => {
                 Ok(VariableToken {
-                    name_token: NameToken::from_str(name)?,
+                    name_token: NameToken::from_str(name, false)?,
                     assignable: AssignableToken::try_from(middle.join(" ").as_str()).context(code_line.line.clone())?,
                 })
             },

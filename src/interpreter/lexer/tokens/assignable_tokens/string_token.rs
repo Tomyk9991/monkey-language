@@ -3,7 +3,7 @@ use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 use regex::Regex;
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct StringToken {
     value: String
 }
