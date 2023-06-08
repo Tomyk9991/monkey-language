@@ -6,20 +6,22 @@ mod interpreter;
 mod cli;
 mod utils;
 
+
 fn main() -> anyhow::Result<()> {
     let main_file: ProgramVariable = ProgramVariable::try_from(vec!["i", "-i"])?;
     let file: MonkeyFile = MonkeyFile::read(main_file.value)?;
 
     let mut lexer = Lexer::from(file);
     let top_level_scope = lexer.tokenize()?;
-
-    println!("{:?}", top_level_scope);
+    
+    println!("Done lexing");
 
     // let interpreter: Interpreter = Interpreter::new();
     //
     // for instruction in instructions {
     //     instruction.execute();
     // }
+    
 
     Ok(())
 }

@@ -6,7 +6,7 @@ use crate::interpreter::constants::KEYWORDS;
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct NameToken {
-    name: String,
+    pub name: String,
 }
 
 #[derive(Debug)]

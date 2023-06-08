@@ -5,7 +5,7 @@ use regex::Regex;
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct StringToken {
-    value: String
+    pub value: String
 }
 
 impl Display for StringToken {

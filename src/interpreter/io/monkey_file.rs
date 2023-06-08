@@ -21,7 +21,8 @@ impl MonkeyFile {
 
         let size = file.read_to_string(&mut buffer)?;
         let actual_lines = get_line_ranges(&buffer);
-        buffer = buffer.replace("\r\n", "");
+        buffer = buffer.replace("\n", "");
+        buffer = buffer.replace("\r", "");
 
         let mut lines = Self::read_buffer(&buffer);
 
@@ -45,8 +46,20 @@ impl MonkeyFile {
         let mut buffer: String = buffer.to_owned();
 
         let mut lines = Self::read_buffer(&buffer);
+        let actual_lines = get_line_ranges(&buffer);
+
+        buffer = buffer.replace("\n", "");
+        buffer = buffer.replace("\r\n", "");
+
+        let mut lines = Self::read_buffer(&buffer);
 
         lines.normalize();
+
+        lines.iter_mut()
+            .zip(actual_lines.iter())
+            .for_each(|(mut line, number)| {
+                line.actual_line_number = number.clone();
+            });
 
         Self {
             path: PathBuf::new(),

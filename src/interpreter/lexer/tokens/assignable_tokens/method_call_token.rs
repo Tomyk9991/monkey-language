@@ -9,8 +9,8 @@ use crate::interpreter::lexer::levenshtein_distance::{ArgumentsIgnoreSummarizeTr
 
 #[derive(Debug, PartialEq)]
 pub struct MethodCallToken {
-    name: NameToken,
-    arguments: Vec<AssignableToken>,
+    pub name: NameToken,
+    pub arguments: Vec<AssignableToken>,
 }
 
 impl Display for MethodCallToken {
@@ -93,7 +93,9 @@ impl MethodCallToken {
                 arguments: vec![],
             })
         } else if let [name, "(", argument_segments @ .., ")", ";"] = &split[..] {
-            let argument_strings = dyck_language(&argument_segments.join(" "), ['(', ',', ')'])?;
+            let joined = &argument_segments.join(" ");
+            let argument_strings = dyck_language(joined, [vec!['{', '('], vec![','], vec!['}', ')']])?;
+
             let arguments = argument_strings
                 .iter()
                 .map(|s| AssignableToken::try_from(s))

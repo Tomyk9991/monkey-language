@@ -6,7 +6,7 @@ use regex::Regex;
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct IntegerToken {
-    value: i32
+    pub value: i32
 }
 
 impl Display for IntegerToken {
