@@ -79,10 +79,17 @@ pub trait SegmentTransform {
 
 pub struct QuoteSummarizeTransform;
 pub struct MethodCallSummarizeTransform;
-pub struct EmptyMethodCallExpand;
+pub struct EmptyParenthesesExpand;
 pub struct ArgumentsIgnoreSummarizeTransform;
 
+
 impl SegmentTransform for QuoteSummarizeTransform {
+    /// Implementing SegmentTransform for QuoteSummarizeTransform.
+    /// This struct will handle the transformation of quoted segments within an input vector of strings.
+    /// The `transform` method takes a mutable reference to a vector of strings and modifies it by:
+    ///   1. Joining the quoted segments into a single string value.
+    ///   2. Replacing the original segmented values in the vector with the joined string value.
+    /// The main goal of this implementation is to handle and merge the provided quoted segments in the input vector of strings.
     fn transform(&self, values: &mut Vec<String>) {
         let mut new_vec = vec![];
 
@@ -116,6 +123,12 @@ impl SegmentTransform for QuoteSummarizeTransform {
 }
 
 impl SegmentTransform for MethodCallSummarizeTransform {
+    /// Implementing SegmentTransform for MethodCallSummarizeTransform.
+    /// This struct handles the transformation of method calls within an input vector of strings.
+    /// The `transform` method takes a mutable reference to a Vec<String> and modifies it by:
+    ///   1. Joining the method call segments (including its arguments) into a single string value.
+    ///   2. Replacing the original segmented values in the vector with the joined string value.
+    /// The primary goal is to handle and merge method call segments in the provided Vec<String>.
     fn transform(&self, values: &mut Vec<String>) {
         let mut new_vec = vec![];
 
@@ -149,7 +162,14 @@ impl SegmentTransform for MethodCallSummarizeTransform {
     }
 }
 
-impl SegmentTransform for EmptyMethodCallExpand {
+
+impl SegmentTransform for EmptyParenthesesExpand {
+    /// Implementing SegmentTransform for EmptyParenthesesExpand.
+    /// This struct focuses on transforming input vector of strings containing empty parentheses.
+    /// Thse `transform` method takes a mutable reference to a Vec<String> and modifies it by:
+    ///   1. Adding IGNORED_LEVENSHTEIN_CASE in between empty parentheses.
+    ///   2. Replacing the original segmented values with modified values in the vector.
+    /// The purpose of this implementation is to handle empty method calls within the input vector of strings.
     fn transform(&self, values: &mut Vec<String>) {
         let mut new_vec: Vec<String> = vec![];
         let length = values.len();
@@ -185,6 +205,11 @@ impl SegmentTransform for EmptyMethodCallExpand {
 }
 
 impl SegmentTransform for ArgumentsIgnoreSummarizeTransform {
+    /// Implementing SegmentTransform for ArgumentsIgnoreSummarizeTransform.
+    /// This implementation is responsible for transforming input vector of strings containing parenthesized arguments.
+    /// The `transform` method takes a mutable reference to a Vec<String> and modifies it by:
+    ///   1. Replacing the parenthesized segments with "( IGNORE )".
+    /// It effectively ignores method call arguments present in between parentheses within the input vector of strings.
     fn transform(&self, values: &mut Vec<String>) {
         let mut new_vec: Vec<String> = vec![];
         let length = values.len();

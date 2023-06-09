@@ -7,6 +7,7 @@ use crate::interpreter::lexer::levenshtein_distance::PatternedLevenshteinDistanc
 use crate::interpreter::lexer::token::Token;
 use crate::interpreter::lexer::tokens::assignable_tokens::method_call_token::MethodCallToken;
 use crate::interpreter::lexer::tokens::method_definition::MethodDefinition;
+use crate::interpreter::lexer::tokens::scope_ending::ScopeEnding;
 use crate::interpreter::lexer::tokens::variable_token::VariableToken;
 use crate::interpreter::lexer::TryParse;
 
@@ -73,19 +74,23 @@ impl<'a> TryParse for Scope {
             )
         }
 
-        match code_line.line == "}" {
-            true => {
+        match ScopeEnding::try_parse(code_line) {
+            Ok(scope_ending) => {
                 code_lines.next();
-                return Ok(Token::ScopeClosing)
+                return Ok(Token::ScopeClosing(scope_ending))
             }
-            false => { eprintln!("Unexpected tokens: {line}", line = code_line.line) }
+            Err(err) => pattern_distances.push((
+                ScopeEnding::distance_from_code_line(code_line), Box::new(err))
+            )
         }
 
         match MethodDefinition::try_parse(code_lines) {
             Ok(method_token) => {
                 return Ok(Token::MethodDefinition(method_token))
             },
-            Err(err) => { eprintln!("{}", err) }
+            Err(err) => pattern_distances.push((
+                MethodDefinition::distance_from_code_line(code_line), Box::new(err))
+            )
         }
 
 

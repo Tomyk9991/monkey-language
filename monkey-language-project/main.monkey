@@ -1,3 +1,7 @@
+fn hallo(): void {
+
+}
+
 michi =
 {
     guten: "Hallo",

@@ -5,7 +5,7 @@ use std::str::FromStr;
 use crate::interpreter::lexer::tokens::assignable_token::{AssignableToken, AssignableTokenErr};
 use crate::interpreter::lexer::tokens::name_token::{NameToken, NameTokenErr};
 use crate::interpreter::io::code_line::CodeLine;
-use crate::interpreter::lexer::levenshtein_distance::{ArgumentsIgnoreSummarizeTransform, EmptyMethodCallExpand, PatternedLevenshteinDistance, PatternedLevenshteinString, QuoteSummarizeTransform};
+use crate::interpreter::lexer::levenshtein_distance::{ArgumentsIgnoreSummarizeTransform, EmptyParenthesesExpand, PatternedLevenshteinDistance, PatternedLevenshteinString, QuoteSummarizeTransform};
 
 #[derive(Debug, PartialEq)]
 pub struct MethodCallToken {
@@ -127,7 +127,7 @@ impl PatternedLevenshteinDistance for MethodCallToken {
                 &method_call_pattern,
                 vec![
                     Box::new(QuoteSummarizeTransform),
-                    Box::new(EmptyMethodCallExpand),
+                    Box::new(EmptyParenthesesExpand),
                     Box::new(ArgumentsIgnoreSummarizeTransform)
                 ],
             ),

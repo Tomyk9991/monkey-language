@@ -9,6 +9,9 @@ use std::fmt::{Display, Formatter};
 use std::iter::Peekable;
 use std::slice::Iter;
 use std::str::FromStr;
+use crate::interpreter::lexer::tokens::scope_ending::ScopeEnding;
+use crate::interpreter::lexer::levenshtein_distance::PatternedLevenshteinDistance;
+use crate::interpreter::lexer::levenshtein_distance::{ArgumentsIgnoreSummarizeTransform, EmptyParenthesesExpand, PatternedLevenshteinString, QuoteSummarizeTransform};
 
 #[derive(Debug, PartialEq)]
 pub struct MethodDefinition {
@@ -81,6 +84,14 @@ impl MethodDefinition {
         let split_ref = split_alloc.iter().map(|a| a.as_str()).collect::<Vec<_>>();
 
         if let ["fn", name, "(", arguments @ .., ")", ":", return_type, "{"] = &split_ref[..] {
+            let arguments_string = arguments.join("");
+            let arguments = arguments_string.split(",").filter(|a| !a.is_empty()).collect::<Vec<_>>();
+            let mut assignable_arguments = vec![];
+
+            for argument in arguments {
+                assignable_arguments.push(AssignableToken::try_from(argument)?);
+            }
+
             let mut tokens = vec![];
 
             // consume the header
@@ -91,20 +102,11 @@ impl MethodDefinition {
                 let token = Scope::try_parse(code_lines)
                     .map_err(|scope_error| MethodDefinitionErr::ScopeErrorErr(scope_error))?;
 
-                if token == Token::ScopeClosing {
+                if token == Token::ScopeClosing(ScopeEnding) {
                     break;
                 }
 
                 tokens.push(token);
-            }
-
-            let mut assignable_arguments = vec![];
-
-            let arguments_string = arguments.join("");
-            let arguments = arguments_string.split(",").collect::<Vec<_>>();
-
-            for argument in arguments {
-                assignable_arguments.push(AssignableToken::try_from(argument)?);
             }
 
             return Ok(MethodDefinition {
@@ -115,15 +117,35 @@ impl MethodDefinition {
             });
         }
 
-        // if let ["fn", name, "(", ")", ":", return_type, "{", stack, "}"] = split_header[..] {
-        //     println!("match parameterless");
-        // }
-
-        Ok(MethodDefinition {
-            name: NameToken::from_str("hallo", false)?,
-            return_type: NameToken::from_str("hallo", true)?,
-            arguments: vec![],
-            stack: vec![],
+        Err(MethodDefinitionErr::PatternNotMatched {
+            target_value: method_header.line.to_string()
         })
+    }
+}
+
+impl PatternedLevenshteinDistance for MethodDefinition {
+    fn distance_from_code_line(code_line: &CodeLine) -> usize {
+        let method_header_pattern = PatternedLevenshteinString::default()
+            .insert("fn")
+            .insert(PatternedLevenshteinString::ignore())
+            .insert("(")
+            .insert(PatternedLevenshteinString::ignore())
+            .insert(")")
+            .insert(":")
+            .insert(PatternedLevenshteinString::ignore())
+            .insert("{");
+
+        <MethodDefinition as PatternedLevenshteinDistance>::distance(
+            PatternedLevenshteinString::match_to(
+                &code_line.line,
+                &method_header_pattern,
+                vec![
+                    Box::new(QuoteSummarizeTransform),
+                    Box::new(EmptyParenthesesExpand),
+                    Box::new(ArgumentsIgnoreSummarizeTransform)
+                ]
+            ),
+            method_header_pattern
+        )
     }
 }

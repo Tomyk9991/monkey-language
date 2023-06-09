@@ -13,9 +13,11 @@ fn main() -> anyhow::Result<()> {
 
     let mut lexer = Lexer::from(file);
     let top_level_scope = lexer.tokenize()?;
-    
-    println!("Done lexing");
 
+    println!("Done lexing");
+    println!("{:?}", top_level_scope);
+
+    
     // let interpreter: Interpreter = Interpreter::new();
     //
     // for instruction in instructions {
