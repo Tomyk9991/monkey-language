@@ -1,6 +1,5 @@
 use std::error::Error;
 use std::fmt::{Display, Formatter};
-use std::str::FromStr;
 use regex::Regex;
 use crate::interpreter::constants::KEYWORDS;
 

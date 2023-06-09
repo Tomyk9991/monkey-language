@@ -1,5 +1,4 @@
 use monkey_language::interpreter::io::monkey_file::MonkeyFile;
-use monkey_language::interpreter::lexer::scope::ScopeError;
 use monkey_language::interpreter::lexer::token::Token;
 use monkey_language::interpreter::lexer::tokenizer::Lexer;
 use monkey_language::interpreter::lexer::tokens::assignable_token::AssignableToken;

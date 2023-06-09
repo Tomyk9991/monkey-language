@@ -21,8 +21,8 @@ impl MonkeyFile {
 
         let size = file.read_to_string(&mut buffer)?;
         let actual_lines = get_line_ranges(&buffer);
-        buffer = buffer.replace("\n", "");
-        buffer = buffer.replace("\r", "");
+        buffer = buffer.replace('\n', "");
+        buffer = buffer.replace('\r', "");
 
         let mut lines = Self::read_buffer(&buffer);
 
@@ -48,8 +48,8 @@ impl MonkeyFile {
         let mut lines = Self::read_buffer(&buffer);
         let actual_lines = get_line_ranges(&buffer);
 
-        buffer = buffer.replace("\n", "");
-        buffer = buffer.replace("\r\n", "");
+        buffer = buffer.replace('\n', "");
+        buffer = buffer.replace('\r', "");
 
         let mut lines = Self::read_buffer(&buffer);
 
@@ -68,7 +68,7 @@ impl MonkeyFile {
         }
     }
 
-    fn read_buffer(buffer: &String) -> Vec<CodeLine> {
+    fn read_buffer(buffer: &str) -> Vec<CodeLine> {
         buffer.lines()
             .enumerate()
             .filter(|(_, line)| !line.trim().starts_with("//"))
@@ -80,10 +80,9 @@ impl MonkeyFile {
 fn get_line_ranges(buffer: &str) -> Vec<Range<usize>> {
     let mut line_ranges = Vec::new();
     let mut start = None;
-    let mut latest_range = 0..0;
 
     let mut line_count = 1;
-    let mut iter = buffer.chars().into_iter();
+    let mut iter = buffer.chars();
     let mut in_function = false;
     let mut ident_level = 0;
 
@@ -102,7 +101,6 @@ fn get_line_ranges(buffer: &str) -> Vec<Range<usize>> {
             if in_function && ident_level == 0 {
                 if let Some(s) = start {
                     let range = s..line_count;
-                    latest_range = range.clone();
                     line_ranges.push(range);
                     start = None;
                 }
@@ -124,7 +122,6 @@ fn get_line_ranges(buffer: &str) -> Vec<Range<usize>> {
         if char == '{' && ident_level == 1 && in_function {
             if let Some(s) = start {
                 let range = s..line_count;
-                latest_range = range.clone();
                 line_ranges.push(range);
                 start = None;
             }
@@ -133,7 +130,6 @@ fn get_line_ranges(buffer: &str) -> Vec<Range<usize>> {
         if char == ';' {
             if let Some(s) = start {
                 let range = s..line_count;
-                latest_range = range.clone();
                 line_ranges.push(range);
                 start = None;
             }

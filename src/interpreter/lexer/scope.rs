@@ -39,13 +39,13 @@ impl Display for ScopeError {
 impl Error for ScopeError {}
 
 
-impl<'a> Debug for Scope {
+impl Debug for Scope {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "Scope: [\n{}]", self.tokens.iter().map(|token| format!("\t{:?}\n", token)).collect::<String>())
     }
 }
 
-impl<'a> TryParse for Scope {
+impl TryParse for Scope {
     type Output = Token;
     type Err = ScopeError;
 

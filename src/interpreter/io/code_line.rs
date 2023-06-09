@@ -1,4 +1,3 @@
-use crate::interpreter::lexer::scope::ScopeError::ParsingError;
 use crate::utils::extension_methods::RemoveWhiteSpacesBetween;
 use binary_search_tree::BinarySearchTree;
 use regex::Regex;
@@ -50,17 +49,19 @@ pub trait Normalizable {
 impl Normalizable for Vec<CodeLine> {
     fn normalize(&mut self) {
         static INSERT_SPACE: [char; 7] = [';', '(', ')', ':', ',', '{', '}'];
-        static SCOPE_CHAR_PAIRS: (char, char) = ('{', '}');
         static SEPARATORS: [&str; 3] =
             [";", r"fn .*?\(.*?\):\s.*?\{", r"fn .*?\(.*?\):\s.*?\{.*?\}"];
+
+        let split_by_regex = SEPARATORS.join("|");
+        #[allow(clippy::unwrap_used)]
+        let regex = Regex::new(&split_by_regex).unwrap();
 
         let mut result: Vec<CodeLine> = Vec::new();
         let mut line_counter = 1;
         let mut in_scope_state = false;
 
         for code_line in (*self).iter() {
-            let split_by_regex = format!("{}", SEPARATORS.join("|"));
-            let regex = Regex::new(&split_by_regex).unwrap();
+
             let combined_codeline_split =
                 regex.split_inclusive(&code_line.line).collect::<Vec<_>>();
 
@@ -132,7 +133,7 @@ fn push_code_line_after_validated(
         return false;
     }
 
-    if in_scope_state == &true && target.starts_with("}") {
+    if in_scope_state == &true && target.starts_with('}') {
         *in_scope_state = false;
 
         vec.push(CodeLine::new(
@@ -140,17 +141,17 @@ fn push_code_line_after_validated(
             actual_line_number.clone(),
             *line,
         ));
-        target = target.replacen("}", "", 1);
+        target = target.replacen('}', "", 1);
 
         *line += 1;
     }
 
-    if in_scope_state == &false && target.starts_with("fn") && target.ends_with("{") {
+    if in_scope_state == &false && target.starts_with("fn") && target.ends_with('{') {
         *in_scope_state = true;
     }
 
     vec.push(CodeLine::new(
-        target.to_string(),
+        target,
         actual_line_number.clone(),
         *line,
     ));

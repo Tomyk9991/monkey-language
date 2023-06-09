@@ -1,8 +1,6 @@
 use monkey_language::interpreter::lexer::tokens::assignable_tokens::double_token::DoubleToken;
 use monkey_language::interpreter::lexer::tokens::assignable_tokens::integer_token::IntegerToken;
-use monkey_language::interpreter::lexer::tokens::assignable_tokens::string_token::{
-    StringToken, StringTokenErr,
-};
+use monkey_language::interpreter::lexer::tokens::assignable_tokens::string_token::StringToken;
 use std::str::FromStr;
 use monkey_language::interpreter::lexer::tokens::assignable_tokens::method_call_token::MethodCallToken;
 use monkey_language::interpreter::lexer::tokens::assignable_tokens::object_token::ObjectToken;

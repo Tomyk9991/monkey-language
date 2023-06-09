@@ -6,6 +6,7 @@ use crate::interpreter::lexer::levenshtein_distance::{PatternedLevenshteinDistan
 #[derive(Debug, PartialEq)]
 pub struct ScopeEnding;
 
+#[derive(Debug)]
 pub enum ScopeEndingErr {
     PatternNotMatched { target_value: String }
 }
@@ -15,12 +16,6 @@ impl Error for ScopeEndingErr { }
 impl Display for ScopeEnding {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "")
-    }
-}
-
-impl Debug for ScopeEndingErr {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        todo!()
     }
 }
 
@@ -35,7 +30,7 @@ impl Display for ScopeEndingErr {
 
 impl ScopeEnding {
     pub fn try_parse(code_line: &CodeLine) -> anyhow::Result<Self, ScopeEndingErr> {
-        return if code_line.line == "}" {
+        if code_line.line == "}" {
             Ok(Self)
         } else {
             Err(ScopeEndingErr::PatternNotMatched { target_value: code_line.line.to_string() })

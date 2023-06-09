@@ -8,7 +8,6 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::iter::Peekable;
 use std::slice::Iter;
-use std::str::FromStr;
 use crate::interpreter::lexer::tokens::scope_ending::ScopeEnding;
 use crate::interpreter::lexer::levenshtein_distance::PatternedLevenshteinDistance;
 use crate::interpreter::lexer::levenshtein_distance::{ArgumentsIgnoreSummarizeTransform, EmptyParenthesesExpand, PatternedLevenshteinString, QuoteSummarizeTransform};
@@ -85,7 +84,7 @@ impl MethodDefinition {
 
         if let ["fn", name, "(", arguments @ .., ")", ":", return_type, "{"] = &split_ref[..] {
             let arguments_string = arguments.join("");
-            let arguments = arguments_string.split(",").filter(|a| !a.is_empty()).collect::<Vec<_>>();
+            let arguments = arguments_string.split(',').filter(|a| !a.is_empty()).collect::<Vec<_>>();
             let mut assignable_arguments = vec![];
 
             for argument in arguments {
@@ -98,9 +97,9 @@ impl MethodDefinition {
             let _ = code_lines.next();
 
             // consume the body
-            while let Some(_) = code_lines.peek() {
+            while code_lines.peek().is_some() {
                 let token = Scope::try_parse(code_lines)
-                    .map_err(|scope_error| MethodDefinitionErr::ScopeErrorErr(scope_error))?;
+                    .map_err(MethodDefinitionErr::ScopeErrorErr)?;
 
                 if token == Token::ScopeClosing(ScopeEnding) {
                     break;

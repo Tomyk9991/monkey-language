@@ -22,7 +22,7 @@ impl Lexer {
 
         let mut iterator = self.current_file.lines.iter().peekable();
 
-        while let Some(_) = iterator.peek() {
+        while iterator.peek().is_some() {
             let token = Scope::try_parse(&mut iterator)?;
             scope.tokens.push(token);
         }
