@@ -14,10 +14,10 @@ use crate::interpreter::lexer::levenshtein_distance::{ArgumentsIgnoreSummarizeTr
 
 #[derive(Debug, PartialEq)]
 pub struct MethodDefinition {
-    name: NameToken,
-    return_type: NameToken,
-    arguments: Vec<AssignableToken>,
-    stack: Vec<Token>,
+    pub name: NameToken,
+    pub return_type: NameToken,
+    pub arguments: Vec<AssignableToken>,
+    pub stack: Vec<Token>,
 }
 
 #[derive(Debug)]

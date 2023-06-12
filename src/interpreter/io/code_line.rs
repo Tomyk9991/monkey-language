@@ -62,11 +62,11 @@ impl Normalizable for Vec<CodeLine> {
 
         for code_line in (*self).iter() {
 
-            let combined_codeline_split =
+            let combined_code_line_split =
                 regex.split_inclusive(&code_line.line).collect::<Vec<_>>();
 
-            for separatored_code_line in combined_codeline_split {
-                let mut code_line_string = separatored_code_line.remove_whitespaces_between();
+            for separated_code_line in combined_code_line_split {
+                let mut code_line_string = separated_code_line.remove_whitespaces_between();
                 code_line_string = code_line_string.replace(" {", "{").replace(" }", "}");
                 code_line_string.remove_whitespaces_between();
 
@@ -93,10 +93,10 @@ impl Normalizable for Vec<CodeLine> {
                     }
                 }
 
-                let mut sorted_indicies = indices.sorted_vec();
-                sorted_indicies.reverse();
+                let mut sorted_indices = indices.sorted_vec();
+                sorted_indices.reverse();
 
-                for index in sorted_indicies {
+                for index in sorted_indices {
                     if *index < code_line_string.len() {
                         code_line_string.insert(*index + 1, ' ');
                     }
@@ -128,11 +128,7 @@ fn push_code_line_after_validated(
     in_scope_state: &mut bool,
 ) -> bool {
     let mut target = target.trim().to_string();
-
-    if target.is_empty() {
-        return false;
-    }
-
+    
     if in_scope_state == &true && target.starts_with('}') {
         *in_scope_state = false;
 
@@ -142,8 +138,13 @@ fn push_code_line_after_validated(
             *line,
         ));
         target = target.replacen('}', "", 1);
-
+        target = target.trim().to_string();
+        
         *line += 1;
+    }
+    
+    if target.is_empty() {
+        return false;
     }
 
     if in_scope_state == &false && target.starts_with("fn") && target.ends_with('{') {
