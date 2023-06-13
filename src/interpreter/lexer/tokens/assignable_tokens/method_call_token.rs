@@ -87,7 +87,7 @@ impl MethodCallToken {
         let split_alloc = code_line.split(vec![' ', ';']);
         let split = split_alloc.iter().map(|a| a.as_str()).collect::<Vec<_>>();
 
-        return if let [name, "(", ")", ";"] = &split[..] {
+        if let [name, "(", ")", ";"] = &split[..] {
             Ok(MethodCallToken {
                 name: NameToken::from_str(name, false)?,
                 arguments: vec![],
@@ -107,7 +107,7 @@ impl MethodCallToken {
             })
         } else {
             Err(MethodCallTokenErr::PatternNotMatched { target_value: code_line.line.to_string() })
-        };
+        }
     }
 }
 
