@@ -6,6 +6,7 @@ use crate::interpreter::io::code_line::CodeLine;
 use crate::interpreter::lexer::levenshtein_distance::PatternedLevenshteinDistance;
 use crate::interpreter::lexer::token::Token;
 use crate::interpreter::lexer::tokens::assignable_tokens::method_call_token::MethodCallToken;
+use crate::interpreter::lexer::tokens::if_definition::IfDefinition;
 use crate::interpreter::lexer::tokens::method_definition::MethodDefinition;
 use crate::interpreter::lexer::tokens::scope_ending::ScopeEnding;
 use crate::interpreter::lexer::tokens::variable_token::VariableToken;
@@ -84,6 +85,15 @@ impl TryParse for Scope {
             )
         }
 
+        match IfDefinition::try_parse(code_lines) {
+            Ok(if_token) => {
+                return Ok(Token::IfDefinition(if_token))
+            },
+            Err(err) => pattern_distances.push((
+                IfDefinition::distance_from_code_line(code_line), Box::new(err))
+            )
+        }
+
         match MethodDefinition::try_parse(code_lines) {
             Ok(method_token) => {
                 return Ok(Token::MethodDefinition(method_token))
@@ -105,7 +115,8 @@ impl TryParse for Scope {
             });
         }
 
-        code_lines.next();
-        Ok(Token::None)
+        return Err(ScopeError::ParsingError {
+            message: format!("Unexpected token: {:?}: {}", code_line.actual_line_number, code_line.line)
+        });
     }
 }

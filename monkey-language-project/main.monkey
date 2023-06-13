@@ -1,3 +1,11 @@
+if (hallo) {
+    if_stack_variable = 5;
+
+    if (if_stack_variable) {
+        nested_if_stack_variable = 13;
+    }
+}
+
 fn hallo(): void {
 
 }

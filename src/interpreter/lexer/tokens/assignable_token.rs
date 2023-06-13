@@ -17,6 +17,7 @@ pub enum AssignableToken {
     Variable(NameToken),
     Object(ObjectToken),
     // Equation(EquationToken),
+    // BooleanStatement(BooleanToken)
 }
 
 #[derive(Debug)]

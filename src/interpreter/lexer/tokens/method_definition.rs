@@ -8,6 +8,7 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::iter::Peekable;
 use std::slice::Iter;
+use crate::interpreter::constants::FUNCTION_KEYWORD;
 use crate::interpreter::lexer::tokens::scope_ending::ScopeEnding;
 use crate::interpreter::lexer::levenshtein_distance::PatternedLevenshteinDistance;
 use crate::interpreter::lexer::levenshtein_distance::{ArgumentsIgnoreSummarizeTransform, EmptyParenthesesExpand, PatternedLevenshteinString, QuoteSummarizeTransform};
@@ -125,7 +126,7 @@ impl MethodDefinition {
 impl PatternedLevenshteinDistance for MethodDefinition {
     fn distance_from_code_line(code_line: &CodeLine) -> usize {
         let method_header_pattern = PatternedLevenshteinString::default()
-            .insert("fn")
+            .insert(FUNCTION_KEYWORD)
             .insert(PatternedLevenshteinString::ignore())
             .insert("(")
             .insert(PatternedLevenshteinString::ignore())
