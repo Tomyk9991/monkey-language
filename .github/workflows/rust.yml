@@ -1,0 +1,49 @@
+name: Rust CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  build_and_test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          components: clippy
+
+      - name: Build
+        run: cargo build --verbose
+
+      - name: Run tests
+        run: cargo test
+
+      - name: Run Clippy
+        run: cargo clippy -- --D clippy::unwrap_used --D clippy::expect_used --D clippy::panic -D warnings
+
+  run_monkey_script:
+    runs-on: ubuntu-latest
+    needs: build_and_test
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+
+      - name: Build
+        run: cargo build --release
+
+      - name: Run application with monkey-language-project/main.monkey
+        run: ./target/release/monkey-language -i monkey-language-project/main.monkey

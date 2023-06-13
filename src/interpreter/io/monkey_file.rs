@@ -2,16 +2,18 @@ use std::fs::File;
 use std::io::Read;
 use std::ops::Range;
 use std::path::{Path, PathBuf};
+
 use anyhow::Context;
-use crate::interpreter::constants::{CLOSING_SCOPE};
-use crate::interpreter::io::code_line::ScopeType;
+
+use crate::interpreter::constants::CLOSING_SCOPE;
 use crate::interpreter::io::code_line::{CodeLine, Normalizable};
+use crate::interpreter::io::code_line::ScopeType;
 
 #[derive(Debug)]
 pub struct MonkeyFile {
     pub path: PathBuf,
     pub lines: Vec<CodeLine>,
-    pub size: usize
+    pub size: usize,
 }
 
 impl MonkeyFile {
@@ -30,7 +32,7 @@ impl MonkeyFile {
         Ok(Self {
             path: path_buffer,
             size,
-            .. monkey_file
+            ..monkey_file
         })
     }
 
@@ -83,16 +85,14 @@ fn get_line_ranges(buffer: &str) -> Vec<Range<usize>> {
             start = Some(line_count);
         }
 
-        if char == CLOSING_SCOPE {
-            if let Some(_) = scope_stack.last() {
-                if let Some(s) = start {
-                    let range = s..line_count;
-                    line_ranges.push(range);
-                    start = None;
-                }
-
-                scope_stack.pop();
+        if char == CLOSING_SCOPE && scope_stack.last().is_some() {
+            if let Some(s) = start {
+                let range = s..line_count;
+                line_ranges.push(range);
+                start = None;
             }
+
+            scope_stack.pop();
         }
 
         if char == '\n' {
@@ -111,13 +111,11 @@ fn get_line_ranges(buffer: &str) -> Vec<Range<usize>> {
             start = Some(line_count);
         }
 
-        if let Some(_) = scope_stack.last() {
-            if char == '{' {
-                if let Some(s) = start {
-                    let range = s..line_count;
-                    line_ranges.push(range);
-                    start = None;
-                }
+        if scope_stack.last().is_some() && char == '{' {
+            if let Some(s) = start {
+                let range = s..line_count;
+                line_ranges.push(range);
+                start = None;
             }
         }
 
