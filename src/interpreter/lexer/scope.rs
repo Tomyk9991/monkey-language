@@ -115,8 +115,8 @@ impl TryParse for Scope {
             });
         }
 
-        return Err(ScopeError::ParsingError {
+        Err(ScopeError::ParsingError {
             message: format!("Unexpected token: {:?}: {}", code_line.actual_line_number, code_line.line)
-        });
+        })
     }
 }

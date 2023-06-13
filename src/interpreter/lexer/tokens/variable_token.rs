@@ -67,7 +67,7 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> VariableToken<ASSIGNMENT, SE
         let assignment = ASSIGNMENT.to_string();
         let separator = SEPARATOR.to_string();
 
-        return match &split[..] {
+        match &split[..] {
             [name, assignment_token, middle @ .., separator_token] if assignment_token == &assignment && separator_token == &separator => {
                 Ok(VariableToken {
                     name_token: NameToken::from_str(name, false)?,
