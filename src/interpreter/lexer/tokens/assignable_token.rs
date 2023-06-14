@@ -1,7 +1,9 @@
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
+use crate::interpreter::lexer::tokens::assignable_tokens::equation_parser::EquationToken;
 use crate::interpreter::lexer::tokens::assignable_tokens::double_token::DoubleToken;
+use crate::interpreter::lexer::tokens::assignable_tokens::equation_parser::expression::Expression;
 use crate::interpreter::lexer::tokens::assignable_tokens::integer_token::IntegerToken;
 use crate::interpreter::lexer::tokens::assignable_tokens::method_call_token::MethodCallToken;
 use crate::interpreter::lexer::tokens::assignable_tokens::object_token::ObjectToken;
@@ -16,7 +18,7 @@ pub enum AssignableToken {
     MethodCallToken(MethodCallToken),
     Variable(NameToken),
     Object(ObjectToken),
-    // Equation(EquationToken),
+    Equation(Box<Expression>),
     // BooleanStatement(BooleanToken)
 }
 
@@ -34,6 +36,7 @@ impl Display for AssignableToken {
             AssignableToken::MethodCallToken(token) => format!("{}", token),
             AssignableToken::Variable(token) => format!("{}", token),
             AssignableToken::Object(token) => format!("{}", token),
+            AssignableToken::Equation(_token) => "Token String".to_string()
         })
     }
 }
@@ -63,6 +66,8 @@ impl AssignableToken {
             return Ok(AssignableToken::Variable(variable_name))
         } else if let Ok(object_token) = ObjectToken::from_str(line) {
             return Ok(AssignableToken::Object(object_token))
+        } else if let Ok(equation_token) = EquationToken::from_str(line) {
+            return Ok(AssignableToken::Equation(equation_token))
         }
         
         Err(AssignableTokenErr::PatternNotMatched { target_value: line.to_string()})
