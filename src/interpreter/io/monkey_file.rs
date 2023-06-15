@@ -7,7 +7,7 @@ use anyhow::Context;
 
 use crate::interpreter::constants::CLOSING_SCOPE;
 use crate::interpreter::io::code_line::{CodeLine, Normalizable};
-use crate::interpreter::io::code_line::ScopeType;
+use crate::interpreter::model::scope_type::{ScopeType, ScopeTypeIterator};
 
 #[derive(Debug)]
 pub struct MonkeyFile {
@@ -77,6 +77,7 @@ fn get_line_ranges(buffer: &str) -> Vec<Range<usize>> {
     let mut start = None;
 
     let mut line_count = 1;
+
     let mut iter = buffer.chars();
     let mut scope_stack: Vec<ScopeType> = vec![];
 
@@ -99,16 +100,23 @@ fn get_line_ranges(buffer: &str) -> Vec<Range<usize>> {
             line_count += 1;
         }
 
-        // "fn "
-        if char == 'f' && &iter.as_str()[..2] == "n " {
-            scope_stack.push(ScopeType::Fn);
-            start = Some(line_count);
-        }
+        let iterator = ScopeTypeIterator::new();
 
-        // "if "
-        if char == 'i' && &iter.as_str()[..2] == "f " {
-            scope_stack.push(ScopeType::If);
-            start = Some(line_count);
+        for (buffer_match, scope_type) in iterator {
+            let len = buffer_match.len() - 1;
+            let iter_clone = iter.clone();
+            let iter_len = iter_clone.count();
+
+            if iter_len < len {
+                continue;
+            }
+
+            let lookup = String::from(char) + &iter.as_str()[..len];
+
+            if lookup == buffer_match {
+                scope_stack.push(scope_type);
+                start = Some(line_count);
+            }
         }
 
         if scope_stack.last().is_some() && char == '{' {

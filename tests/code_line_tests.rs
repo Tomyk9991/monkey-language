@@ -6,56 +6,56 @@ use monkey_language::interpreter::io::monkey_file::MonkeyFile;
 fn code_line_test() -> anyhow::Result<()> {
     let source_code = r#"if (hallo) {
 
-}
+    }
 
-fn hallo(): void {
+    fn hallo(): void {
 
-}
+    }
 
-michi =
-{
-    guten: "Hallo",
-    ciau: 5,
-    rofl: name(),
-    mofl: name(nestedMethod("Hallo", moin("Ciao", 5)))
-};
-
-nestedMichi = {
-    guten: "Hallo",
-    ciau: 5,
-    mofl: {
+    michi =
+    {
         guten: "Hallo",
         ciau: 5,
         rofl: name(),
         mofl: name(nestedMethod("Hallo", moin("Ciao", 5)))
-    },
-    rofl: name(),
-};
+    };
 
-moin = { test: "Hallo", nested: { integer: -51 } };
-variable_inside = { test: "Hallo" };
+    nestedMichi = {
+        guten: "Hallo",
+        ciau: 5,
+        mofl: {
+            guten: "Hallo",
+            ciau: 5,
+            rofl: name(),
+            mofl: name(nestedMethod("Hallo", moin("Ciao", 5)))
+        },
+        rofl: name(),
+    };
 
-fisch = "Fische sind wirklich wirklich toll";
-guten_tag = name();
-guten_tag = name("Guten Morgen", 5);
-name(nestedMethod("Hallo", moin("Ciao", 5)));
-hallo = "Thomas"; tschuess = 5;
-mallo = "";
-variable_with_another_variable_assignment = fisch;
+    moin = { test: "Hallo", nested: { integer: -51 } };
+    variable_inside = { test: "Hallo" };
 
-variable_with_another_variable_assignment = fisch;
+    fisch = "Fische sind wirklich wirklich toll";
+    guten_tag = name();
+    guten_tag = name("Guten Morgen", 5);
+    name(nestedMethod("Hallo", moin("Ciao", 5)));
+    hallo = "Thomas"; tschuess = 5;
+    mallo = "";
+    variable_with_another_variable_assignment = fisch;
 
-fn method_name(variable, variable): void {
-    function_variable_one = 10;
-}
+    variable_with_another_variable_assignment = fisch;
 
-fn f(variable, variable): void
-{
-    function_variable_two = 10;
-}
+    fn method_name(variable, variable): void {
+        function_variable_one = 10;
+    }
 
-hallo = "Thomas"; tschuess = 5;
-mallo = "";
+    fn f(variable, variable): void
+    {
+        function_variable_two = 10;
+    }
+
+    hallo = "Thomas"; tschuess = 5;
+    mallo = "";
     "#;
 
     let monkey_file: MonkeyFile = MonkeyFile::read_from_str(source_code);

@@ -5,17 +5,13 @@ use regex_split::RegexSplit;
 use std::ops::Range;
 use crate::interpreter::constants::{IF_KEYWORD, OPENING_SCOPE};
 use crate::interpreter::constants::{CLOSING_SCOPE, FUNCTION_KEYWORD};
+use crate::interpreter::model::scope_type::{ScopeSplitterIterator, ScopeType};
 
 #[derive(Debug, Default, Clone)]
 pub struct CodeLine {
     pub line: String,
     pub actual_line_number: Range<usize>,
     pub virtual_line_number: usize,
-}
-
-pub enum ScopeType {
-    Fn,
-    If
 }
 
 
@@ -57,13 +53,13 @@ pub trait Normalizable {
 impl Normalizable for Vec<CodeLine> {
     fn normalize(&mut self) {
         static INSERT_SPACE: [char; 7] = [';', '(', ')', ':', ',', '{', '}'];
-        static SEPARATORS: [&str; 5] =
-            [";",
-                r"fn .*?\(.*?\):\s.*?\{", r"fn .*?\(.*?\):\s.*?\{.*?\}",
-                r"if\s*\(.*?\)\s*\{", r"if\s*\(.*?\)\s*\{.*?\}",
-            ];
 
-        let split_by_regex = SEPARATORS.join("|");
+        let mut separators = vec![";"];
+        separators.extend(ScopeSplitterIterator::new()
+            .flat_map(|s| s.0));
+
+
+        let split_by_regex = separators.join("|");
         #[allow(clippy::unwrap_used)]
         let regex = Regex::new(&split_by_regex).unwrap();
 
@@ -77,7 +73,16 @@ impl Normalizable for Vec<CodeLine> {
 
             for separated_code_line in combined_code_line_split {
                 let mut code_line_string = separated_code_line.remove_whitespaces_between();
-                code_line_string = code_line_string.replace(" {", "{").replace(" }", "}");
+
+                let opening_owned = OPENING_SCOPE.to_string();
+                let closing_owned = CLOSING_SCOPE.to_string();
+
+                let opening = opening_owned.as_str();
+                let closing = closing_owned.as_str();
+
+                code_line_string = code_line_string
+                    .replace(&(String::from(" ") + opening), opening)
+                    .replace(&(String::from(" ") + closing), closing);
                 code_line_string.remove_whitespaces_between();
 
                 // describes all indices, where a space has to be inserted

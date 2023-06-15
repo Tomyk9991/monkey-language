@@ -14,6 +14,7 @@ pub struct EquationToken {
 }
 
 #[derive(Debug)]
+#[allow(unused)]
 pub enum Error {
     PositionNotInRange(i32),
     UndefinedSequence,
@@ -71,7 +72,7 @@ impl EquationToken {
         }
     }
 
-    pub fn evaluate(&mut self) -> Result<f64, Error> {
+    pub fn _evaluate(&mut self) -> Result<f64, Error> {
         if self.source_code.is_empty() {
             return Err(Error::SourceEmpty)
         }
