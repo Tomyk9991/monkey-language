@@ -2,7 +2,6 @@ use std::fmt::{Debug, Display, Formatter};
 use std::marker::PhantomData;
 use crate::interpreter::io::code_line::{CodeLine, Normalizable};
 use crate::interpreter::lexer::tokens::assignable_token::{AssignableToken, AssignableTokenErr};
-use crate::interpreter::lexer::tokens::assignable_tokens::double_token::DoubleToken;
 use crate::interpreter::lexer::tokens::assignable_tokens::equation_parser::equation_token_options::EquationTokenOptions;
 
 use crate::interpreter::lexer::tokens::assignable_tokens::equation_parser::expression::Expression;
@@ -25,7 +24,7 @@ pub struct EquationToken<T: EquationTokenOptions> {
 #[allow(unused)]
 pub enum Error {
     PositionNotInRange(i32),
-    UndefinedSequence(String),
+    UndefinedSequence(Option<String>),
     FunctionNotFound,
     SourceEmpty,
     NotAFloat(String),
@@ -49,7 +48,7 @@ impl From<AssignableTokenErr> for Error {
 }
 
 impl From<NameTokenErr> for Error {
-    fn from(value: NameTokenErr) -> Self { Error::UndefinedSequence(value.to_string()) }
+    fn from(value: NameTokenErr) -> Self { Error::UndefinedSequence(Some(value.to_string())) }
 }
 
 impl Display for Error {
@@ -59,7 +58,12 @@ impl Display for Error {
             Error::ExpressionErr(err) => format!("{:?}", err),
             Error::ParenExpected => "Expected \")\"".to_string(),
             Error::NotAFloat(v) => v.to_string(),
-            Error::UndefinedSequence(value) => value.to_string(),
+            Error::UndefinedSequence(value) => {
+                match value {
+                    Some(value) => value.to_string(),
+                    None => "Undefined sequence".to_string()
+                }
+            },
             Error::FunctionNotFound => "Not a function".to_string(),
             Error::SourceEmpty => "Source code is empty".to_string(),
         })
@@ -225,17 +229,13 @@ impl<T: EquationTokenOptions> EquationToken<T> {
                 let sub_string = &temp[0].line.to_string();
 
                 let assignable_token = AssignableToken::try_from(sub_string)?;
-                x = Box::new(Expression::new_f64(assignable_token));
 
+                x = Box::new(Expression::new_f64(assignable_token));
             } else {
-                x = Box::new(Expression::new_f64(AssignableToken::DoubleToken(DoubleToken { value: 0.0 })));
+                return Err(Error::UndefinedSequence(self.ch.map(|a| a.to_string())));
             }
         } else {
-            return if let Some(ch) = self.ch {
-                Err(Error::UndefinedSequence(String::from(ch)))
-            } else {
-                unreachable!("A character sequence while things tokens already have been read");
-            }
+            return Err(Error::UndefinedSequence(self.ch.map(|a| a.to_string())));
         }
 
         Ok(x)
