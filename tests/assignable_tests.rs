@@ -2,7 +2,8 @@ use monkey_language::interpreter::lexer::tokens::assignable_tokens::double_token
 use monkey_language::interpreter::lexer::tokens::assignable_tokens::integer_token::IntegerToken;
 use monkey_language::interpreter::lexer::tokens::assignable_tokens::string_token::StringToken;
 use std::str::FromStr;
-use monkey_language::interpreter::lexer::tokens::assignable_tokens::equation_parser::{ArithmeticEquationOptions, EquationToken};
+use monkey_language::interpreter::lexer::tokens::assignable_tokens::equation_parser::{EquationToken};
+use monkey_language::interpreter::lexer::tokens::assignable_tokens::equation_parser::equation_token_options::ArithmeticEquationOptions;
 use monkey_language::interpreter::lexer::tokens::assignable_tokens::method_call_token::MethodCallToken;
 use monkey_language::interpreter::lexer::tokens::assignable_tokens::object_token::ObjectToken;
 
@@ -180,10 +181,12 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
     for (result, expected_result, value) in &values {
         let token = EquationToken::<ArithmeticEquationOptions>::from_str(value);
 
+
         match *expected_result {
             true => {
                 assert!(token.is_ok(), "{value}, {:?}", token);
                 if let Ok(f) = token {
+                    println!("{:#?}", f);
                     if let Some(result) = result {
                         assert!((result - f.evaluate()) < 0.00001 && (result - f.evaluate()) > -0.00001, "Error is bigger {}", f.evaluate());
                         println!("Result is: {r}", r = f.evaluate())

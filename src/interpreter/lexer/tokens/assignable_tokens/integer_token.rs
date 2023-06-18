@@ -4,16 +4,11 @@ use std::num::{ParseFloatError, ParseIntError};
 use std::str::FromStr;
 use regex::Regex;
 
-#[derive(Debug, Eq, PartialEq, Clone)]
+#[derive(Default, Debug, Eq, PartialEq, Clone)]
 pub struct IntegerToken {
     pub value: i32
 }
 
-impl Default for IntegerToken {
-    fn default() -> Self {
-        IntegerToken { value: 0 }
-    }
-}
 
 impl Display for IntegerToken {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {

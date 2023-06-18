@@ -4,25 +4,17 @@ pub enum ScopeType {
     If
 }
 
+#[derive(Default)]
 pub struct ScopeSplitterIterator {
     current: usize
 }
 
+#[derive(Default)]
 pub struct ScopeTypeIterator {
     current: usize
 }
 
-impl ScopeSplitterIterator {
-    pub fn new() -> Self {
-        Self { current: 0 }
-    }
-}
 
-impl ScopeTypeIterator {
-    pub fn new() -> Self {
-        Self { current: 0 }
-    }
-}
 
 impl Iterator for ScopeSplitterIterator {
     type Item = (Vec<&'static str>, ScopeType);

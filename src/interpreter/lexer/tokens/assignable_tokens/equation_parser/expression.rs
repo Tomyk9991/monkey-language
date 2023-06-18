@@ -7,8 +7,7 @@ pub struct Expression {
     lhs: Option<Box<Expression>>,
     rhs: Option<Box<Expression>>,
     operator: Operator,
-    pub value: AssignableToken,
-    func: String
+    pub value: AssignableToken
 }
 
 #[derive(Debug)]
@@ -23,7 +22,6 @@ impl Default for Expression {
             rhs: None,
             operator: Operator::Noop,
             value: AssignableToken::default(),
-            func: String::new(),
         }
     }
 }
@@ -35,7 +33,6 @@ impl Expression {
             rhs,
             operator,
             value,
-            func: "".to_string(),
         }
     }
 
@@ -59,7 +56,7 @@ impl Expression {
     }
 
     pub fn evaluate(&self) -> f64 {
-        return match &self.value {
+        match &self.value {
             AssignableToken::String(_) => 0.0,
             AssignableToken::IntegerToken(a) => a.value as f64,
             AssignableToken::DoubleToken(a) => a.value,

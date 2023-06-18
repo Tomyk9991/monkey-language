@@ -1,8 +1,9 @@
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
-use crate::interpreter::lexer::tokens::assignable_tokens::equation_parser::{ArithmeticEquationOptions, EquationToken};
+use crate::interpreter::lexer::tokens::assignable_tokens::equation_parser::{EquationToken};
 use crate::interpreter::lexer::tokens::assignable_tokens::double_token::DoubleToken;
+use crate::interpreter::lexer::tokens::assignable_tokens::equation_parser::equation_token_options::ArithmeticEquationOptions;
 use crate::interpreter::lexer::tokens::assignable_tokens::equation_parser::expression::Expression;
 use crate::interpreter::lexer::tokens::assignable_tokens::integer_token::IntegerToken;
 use crate::interpreter::lexer::tokens::assignable_tokens::method_call_token::MethodCallToken;

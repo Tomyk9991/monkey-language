@@ -100,7 +100,7 @@ fn get_line_ranges(buffer: &str) -> Vec<Range<usize>> {
             line_count += 1;
         }
 
-        let iterator = ScopeTypeIterator::new();
+        let iterator = ScopeTypeIterator::default();
 
         for (buffer_match, scope_type) in iterator {
             let len = buffer_match.len() - 1;

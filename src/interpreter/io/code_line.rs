@@ -55,7 +55,7 @@ impl Normalizable for Vec<CodeLine> {
         static INSERT_SPACE: [char; 7] = [';', '(', ')', ':', ',', '{', '}'];
 
         let mut separators = vec![";"];
-        separators.extend(ScopeSplitterIterator::new()
+        separators.extend(ScopeSplitterIterator::default()
             .flat_map(|s| s.0));
 
 

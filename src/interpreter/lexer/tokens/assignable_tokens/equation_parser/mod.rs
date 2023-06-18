@@ -3,13 +3,14 @@ use std::marker::PhantomData;
 use crate::interpreter::io::code_line::{CodeLine, Normalizable};
 use crate::interpreter::lexer::tokens::assignable_token::{AssignableToken, AssignableTokenErr};
 use crate::interpreter::lexer::tokens::assignable_tokens::double_token::DoubleToken;
+use crate::interpreter::lexer::tokens::assignable_tokens::equation_parser::equation_token_options::EquationTokenOptions;
 
 use crate::interpreter::lexer::tokens::assignable_tokens::equation_parser::expression::Expression;
-use crate::interpreter::lexer::tokens::assignable_tokens::equation_parser::operator::Operator;
-use crate::interpreter::lexer::tokens::name_token::{NameToken, NameTokenErr};
+use crate::interpreter::lexer::tokens::name_token::NameTokenErr;
 
 pub mod expression;
 pub mod operator;
+pub mod equation_token_options;
 
 #[derive(Debug, PartialEq)]
 pub struct EquationToken<T: EquationTokenOptions> {
@@ -18,92 +19,6 @@ pub struct EquationToken<T: EquationTokenOptions> {
     pos: i32,
     ch: Option<char>,
     _marker: PhantomData<T>,
-}
-
-pub trait EquationTokenOptions {
-    fn additive() -> char;
-    fn inverse_additive() -> char;
-
-    fn multiplicative() -> char;
-    fn inverse_multiplicative() -> char;
-
-    fn negate() -> char;
-
-    fn add_operation(value: Box<Expression>, other: Box<Expression>) -> Result<Box<Expression>, Error>;
-    fn inverse_add_operation(value: Box<Expression>, other: Box<Expression>) -> Result<Box<Expression>, Error>;
-
-    fn mul_operation(value: Box<Expression>, other: Box<Expression>) -> Result<Box<Expression>, Error>;
-    fn inverse_mul_operation(value: Box<Expression>, other: Box<Expression>) -> Result<Box<Expression>, Error>;
-}
-
-pub struct ArithmeticEquationOptions;
-
-impl EquationTokenOptions for ArithmeticEquationOptions {
-    fn additive() -> char { '+' }
-    fn inverse_additive() -> char { '-' }
-    fn multiplicative() -> char { '*' }
-    fn inverse_multiplicative() -> char { '/' }
-    fn negate() -> char { '-' }
-
-    fn add_operation(first: Box<Expression>, other: Box<Expression>) -> Result<Box<Expression>, Error> {
-        let other_result = other.evaluate();
-        let first_result = first.evaluate();
-
-        let ex = Expression::new(
-            Some(first.clone()),
-            Operator::Add,
-            Some(other),
-            AssignableToken::DoubleToken(DoubleToken { value: first_result + other_result }),
-        );
-
-        Ok(Box::new(ex))
-    }
-
-    fn inverse_add_operation(first: Box<Expression>, other: Box<Expression>) -> Result<Box<Expression>, Error> {
-        let other_result = other.evaluate();
-        let first_result = first.evaluate();
-
-        let ex = Expression::new(
-            Some(first.clone()),
-            Operator::Sub,
-            Some(other),
-            AssignableToken::DoubleToken(DoubleToken { value: first_result - other_result }),
-        );
-
-        Ok(Box::new(ex))
-    }
-
-    fn mul_operation(first: Box<Expression>, other: Box<Expression>) -> Result<Box<Expression>, Error> {
-        let other_result = other.evaluate();
-        let first_result = first.evaluate();
-
-        let ex = Expression::new(
-            Some(first.clone()),
-            Operator::Mul,
-            Some(other),
-            AssignableToken::DoubleToken(DoubleToken { value: first_result * other_result }),
-        );
-
-        Ok(Box::new(ex))
-    }
-
-    fn inverse_mul_operation(first: Box<Expression>, other: Box<Expression>) -> Result<Box<Expression>, Error> {
-        let other_result = other.evaluate();
-        let first_result = first.evaluate();
-
-        if other_result == 0.0 {
-            return Err(Error::ExpressionErr(expression::Error::DivisionByZero));
-        }
-
-        let ex = Expression::new(
-            Some(first.clone()),
-            Operator::Div,
-            Some(other),
-            AssignableToken::DoubleToken(DoubleToken { value: first_result / other_result }),
-        );
-
-        Ok(Box::new(ex))
-    }
 }
 
 #[derive(Debug)]
@@ -128,7 +43,7 @@ impl From<expression::Error> for Error {
 impl From<AssignableTokenErr> for Error {
     fn from(value: AssignableTokenErr) -> Self {
         Error::NotAFloat(match value {
-            AssignableTokenErr::PatternNotMatched { target_value } => format!("{}", target_value)
+            AssignableTokenErr::PatternNotMatched { target_value } => target_value
         })
     }
 }
@@ -143,8 +58,8 @@ impl Display for Error {
             Error::PositionNotInRange(index) => format!("Index {index} out of range"),
             Error::ExpressionErr(err) => format!("{:?}", err),
             Error::ParenExpected => "Expected \")\"".to_string(),
-            Error::NotAFloat(v) => format!("{}", v),
-            Error::UndefinedSequence(value) => format!("{}", value),
+            Error::NotAFloat(v) => v.to_string(),
+            Error::UndefinedSequence(value) => value.to_string(),
             Error::FunctionNotFound => "Not a function".to_string(),
             Error::SourceEmpty => "Source code is empty".to_string(),
         })
@@ -258,7 +173,7 @@ impl<T: EquationTokenOptions> EquationToken<T> {
             if !self.eat(')') {
                 return Err(Error::ParenExpected);
             }
-        } else if let Some(_) = self.ch {
+        } else if self.ch.is_some() {
             // digits only
             if self.ch >= Some('0') && self.ch <= Some('9') || self.ch == Some('.') {
                 while self.ch >= Some('0') && self.ch <= Some('9') || self.ch == Some('.') {
@@ -307,9 +222,9 @@ impl<T: EquationTokenOptions> EquationToken<T> {
                 let mut temp = vec![CodeLine::imaginary(sub_string)];
                 temp.normalize();
 
-                let sub_string = (&temp[0].line).to_string();
+                let sub_string = &temp[0].line.to_string();
 
-                let assignable_token = AssignableToken::try_from(&sub_string)?;
+                let assignable_token = AssignableToken::try_from(sub_string)?;
                 x = Box::new(Expression::new_f64(assignable_token));
 
             } else {
