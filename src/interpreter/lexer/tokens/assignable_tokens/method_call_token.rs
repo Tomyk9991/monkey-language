@@ -7,7 +7,7 @@ use crate::interpreter::lexer::tokens::name_token::{NameToken, NameTokenErr};
 use crate::interpreter::io::code_line::CodeLine;
 use crate::interpreter::lexer::levenshtein_distance::{ArgumentsIgnoreSummarizeTransform, EmptyParenthesesExpand, PatternedLevenshteinDistance, PatternedLevenshteinString, QuoteSummarizeTransform};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct MethodCallToken {
     pub name: NameToken,
     pub arguments: Vec<AssignableToken>,

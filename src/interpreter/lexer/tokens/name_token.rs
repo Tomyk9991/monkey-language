@@ -3,7 +3,7 @@ use std::fmt::{Display, Formatter};
 use regex::Regex;
 use crate::interpreter::constants::KEYWORDS;
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub struct NameToken {
     pub name: String,
 }

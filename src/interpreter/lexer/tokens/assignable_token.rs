@@ -1,7 +1,7 @@
 use std::error::Error;
-use std::fmt::{Display, Formatter};
+use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
-use crate::interpreter::lexer::tokens::assignable_tokens::equation_parser::EquationToken;
+use crate::interpreter::lexer::tokens::assignable_tokens::equation_parser::{ArithmeticEquationOptions, EquationToken};
 use crate::interpreter::lexer::tokens::assignable_tokens::double_token::DoubleToken;
 use crate::interpreter::lexer::tokens::assignable_tokens::equation_parser::expression::Expression;
 use crate::interpreter::lexer::tokens::assignable_tokens::integer_token::IntegerToken;
@@ -10,7 +10,7 @@ use crate::interpreter::lexer::tokens::assignable_tokens::object_token::ObjectTo
 use crate::interpreter::lexer::tokens::assignable_tokens::string_token::StringToken;
 use crate::interpreter::lexer::tokens::name_token::NameToken;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum AssignableToken {
     String(StringToken),
     IntegerToken(IntegerToken),
@@ -25,6 +25,12 @@ pub enum AssignableToken {
 #[derive(Debug)]
 pub enum AssignableTokenErr {
     PatternNotMatched { target_value: String }
+}
+
+impl Default for AssignableToken {
+    fn default() -> Self {
+        AssignableToken::IntegerToken(IntegerToken::default())
+    }
 }
 
 impl Display for AssignableToken {
@@ -66,7 +72,7 @@ impl AssignableToken {
             return Ok(AssignableToken::Variable(variable_name))
         } else if let Ok(object_token) = ObjectToken::from_str(line) {
             return Ok(AssignableToken::Object(object_token))
-        } else if let Ok(equation_token) = EquationToken::from_str(line) {
+        } else if let Ok(equation_token) = EquationToken::<ArithmeticEquationOptions>::from_str(line) {
             return Ok(AssignableToken::Equation(equation_token))
         }
         

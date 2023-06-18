@@ -1,3 +1,4 @@
+use crate::interpreter::lexer::tokens::assignable_token::AssignableToken;
 use crate::interpreter::lexer::tokens::assignable_tokens::equation_parser::operator::Operator;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -6,7 +7,7 @@ pub struct Expression {
     lhs: Option<Box<Expression>>,
     rhs: Option<Box<Expression>>,
     operator: Operator,
-    pub value: f64,
+    pub value: AssignableToken,
     func: String
 }
 
@@ -21,14 +22,14 @@ impl Default for Expression {
             lhs: None,
             rhs: None,
             operator: Operator::Noop,
-            value: 0.0,
+            value: AssignableToken::default(),
             func: String::new(),
         }
     }
 }
 
 impl Expression {
-    pub fn new(lhs: Option<Box<Expression>>, operator: Operator, rhs: Option<Box<Expression>>, value: f64) -> Self {
+    pub fn new(lhs: Option<Box<Expression>>, operator: Operator, rhs: Option<Box<Expression>>, value: AssignableToken) -> Self {
         Self {
             lhs,
             rhs,
@@ -39,95 +40,33 @@ impl Expression {
     }
 
     pub fn flip_value(&mut self) {
-        self.value *= -1.0;
+        match &mut self.value {
+            AssignableToken::String(_) => {}
+            AssignableToken::IntegerToken(a) => a.value *= -1,
+            AssignableToken::DoubleToken(a) => a.value *= -1.0,
+            AssignableToken::MethodCallToken(_) => {}
+            AssignableToken::Variable(_) => {}
+            AssignableToken::Object(_) => {}
+            AssignableToken::Equation(_) => {}
+        }
     }
 
-    pub fn new_f64(value: f64) -> Self {
+    pub fn new_f64(value: AssignableToken) -> Self {
         Expression {
             value,
             ..Default::default()
         }
     }
 
-    pub fn new_func(func: impl Into<String>, lhs: Option<Box<Expression>>, value: f64) -> Self {
-        Self {
-            lhs,
-            value,
-            func: func.into(),
-            ..Default::default()
-        }
-    }
-
     pub fn evaluate(&self) -> f64 {
-        self.value
-    }
-
-    pub fn add(&mut self, other: Box<Expression>) -> Result<Box<Expression>, Error> {
-        let other_result = other.evaluate();
-
-        let ex = Expression::new(
-            Some(Box::new(self.clone())),
-            Operator::Add,
-            Some(other),
-            self.value + other_result
-        );
-
-        Ok(Box::new(ex))
-    }
-
-    pub fn sub(&mut self, other: Box<Expression>) -> Result<Box<Expression>, Error> {
-        let other_result = other.evaluate();
-
-        let ex = Expression::new(
-            Some(Box::new(self.clone())),
-            Operator::Sub,
-            Some(other),
-            self.value - other_result
-        );
-
-        Ok(Box::new(ex))
-    }
-
-    pub fn div(&mut self, other: Box<Expression>) -> Result<Box<Expression>, Error> {
-        let other_result = other.evaluate();
-
-        if other_result == 0.0 {
-            return Err(Error::DivisionByZero)
+        return match &self.value {
+            AssignableToken::String(_) => 0.0,
+            AssignableToken::IntegerToken(a) => a.value as f64,
+            AssignableToken::DoubleToken(a) => a.value,
+            AssignableToken::MethodCallToken(_) => 0.0,
+            AssignableToken::Variable(_) => 0.0,
+            AssignableToken::Object(_) => 0.0,
+            AssignableToken::Equation(_) => 0.0,
         }
-
-        let ex = Expression::new(
-            Some(Box::new(self.clone())),
-            Operator::Div,
-            Some(other),
-            self.value / other_result
-        );
-
-        Ok(Box::new(ex))
-    }
-
-    pub fn mul(&mut self, other: Box<Expression>) -> Result<Box<Expression>, Error> {
-        let other_result = other.evaluate();
-
-        let ex = Expression::new(
-            Some(Box::new(self.clone())),
-            Operator::Mul,
-            Some(other),
-            self.value * other_result
-        );
-
-        Ok(Box::new(ex))
-    }
-
-    pub fn pow(&mut self, other: Box<Expression>) -> Result<Box<Expression>, Error> {
-        let other_result = other.evaluate();
-
-        let ex = Expression::new(
-            Some(Box::new(self.clone())),
-            Operator::Pow,
-            Some(other),
-            self.value.powf(other_result)
-        );
-
-        Ok(Box::new(ex))
     }
 }

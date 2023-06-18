@@ -8,7 +8,7 @@ use crate::interpreter::lexer::tokens::assignable_tokens::method_call_token::{dy
 use crate::interpreter::lexer::tokens::name_token::NameTokenErr;
 use crate::interpreter::lexer::tokens::variable_token::{ParseVariableTokenErr, VariableToken};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct ObjectToken {
     pub variables: Vec<VariableToken<':', ','>>
 }

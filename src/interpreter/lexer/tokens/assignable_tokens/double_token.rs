@@ -3,9 +3,9 @@ use std::str::FromStr;
 use regex::Regex;
 use crate::interpreter::lexer::tokens::assignable_tokens::integer_token::NumberTokenErr;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct DoubleToken {
-    value: f64
+    pub value: f64
 }
 
 impl Display for DoubleToken {

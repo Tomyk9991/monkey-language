@@ -7,7 +7,6 @@ pub enum Operator {
     Sub,
     Div,
     Mul,
-    Pow
 }
 
 impl Display for Operator {
