@@ -113,12 +113,12 @@ impl<T: EquationTokenOptions> EquationToken<T> {
 
     fn parse(&mut self) -> Result<&Expression, Error> {
         self.next_char();
-        self.syntax_tree = self.parse_expression()?;
 
-        if self.pos < self.source_code.len() as i32 {
+        if self.pos < 0 || self.pos >= self.source_code.len() as i32 {
             return Err(Error::PositionNotInRange(self.pos));
         }
 
+        self.syntax_tree = self.parse_expression()?;
         Ok(&self.syntax_tree)
     }
 

@@ -170,12 +170,13 @@ fn assignable_imaginary_fn_calls() -> anyhow::Result<()> {
 #[test]
 fn assignable_arithmetic_equation() -> anyhow::Result<()> {
     let values: Vec<(Option<f64>, bool, String)> = vec![
-        (Some(312.5), true, "((4 - (2*3) * 5 + 1) * -(3*3+4*4)) / 2".to_string()),
-        (Some(312.5), true, "((4 - (2*3) * 5 + 1) * -(3*3+4*4)) / 2".to_string()),
-        (Some(312.5), true, "((4 - (2*3) * 5 + 1) * -(3*3+4*4)) / 2".to_string()),
-        (Some(312.5), true, "((4 - (2*3) * 5 + 1) * -(3*3+4*4)) / 2".to_string()),
-        (Some(0.0), true, "((4 - (2*3) * 5 + 1) * -sqrt) / 2".to_string()),
-        (Some(-1.0), true,       "((4 - 2*3 + 1 *) -sqrt(3*3+4*4)) / 2".to_string()),
+        (Some(312.5),   true, "((4 - (2*3) * 5 + 1) * -(3*3+4*4)) / 2".to_string()),
+        (Some(312.5),   true, "((4 - (2*3) * 5 + 1) * -(3*3+4*4)) / 2".to_string()),
+        (Some(312.5),   true, "((4 - (2*3) * 5 + 1) * -(3*3+4*4)) / 2".to_string()),
+        (Some(312.5),   true, "((4 - (2*3) * 5 + 1) * -(3*3+4*4)) / 2".to_string()),
+        (Some(0.0),     true, "((4 - (2*3) * 5 + 1) * -sqrt) / 2".to_string()),
+        (Some(-0.5),    true, "((4 - 2*3 + 1) -sqrt(3*3+4*4)) / 2".to_string()),
+        (Some(0.0), true, "a(b(c(d(e*f)))))".to_string())
     ];
 
     for (result, expected_result, value) in &values {
@@ -186,7 +187,6 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
             true => {
                 assert!(token.is_ok(), "{value}, {:?}", token);
                 if let Ok(f) = token {
-                    println!("{:#?}", f);
                     if let Some(result) = result {
                         assert!((result - f.evaluate()) < 0.00001 && (result - f.evaluate()) > -0.00001, "Error is bigger {}", f.evaluate());
                         println!("Result is: {r}", r = f.evaluate())
