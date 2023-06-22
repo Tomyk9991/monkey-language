@@ -1,4 +1,4 @@
-variable = ((4 - 2*3 + 1) * -sqrt(3*3+4*4)) / 2;
+variable = ((4 - 2*         3 + 1) * -sqrt(3*3+4*4)) / 2;
 
 if(hallo) {
     if_stack_variable = 5;

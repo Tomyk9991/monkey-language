@@ -15,7 +15,6 @@ pub struct ScopeTypeIterator {
 }
 
 
-
 impl Iterator for ScopeSplitterIterator {
     type Item = (Vec<&'static str>, ScopeType);
 

@@ -1,10 +1,14 @@
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
+use std::iter::Peekable;
+use std::slice::Iter;
 use anyhow::Context;
 use crate::interpreter::io::code_line::CodeLine;
+use crate::interpreter::lexer::errors::EmptyIteratorErr;
 use crate::interpreter::lexer::levenshtein_distance::{MethodCallSummarizeTransform, PatternedLevenshteinDistance, PatternedLevenshteinString, QuoteSummarizeTransform};
 use crate::interpreter::lexer::tokens::assignable_token::{AssignableToken, AssignableTokenErr};
 use crate::interpreter::lexer::tokens::name_token::{NameToken, NameTokenErr};
+use crate::interpreter::lexer::TryParse;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct VariableToken<const ASSIGNMENT: char, const SEPARATOR: char> {
@@ -22,7 +26,8 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> Display for VariableToken<AS
 pub enum ParseVariableTokenErr {
     PatternNotMatched { target_value: String },
     NameTokenErr(NameTokenErr),
-    AssignableTokenErr(AssignableTokenErr)
+    AssignableTokenErr(AssignableTokenErr),
+    EmptyIterator(EmptyIteratorErr)
 }
 
 impl Error for ParseVariableTokenErr { }
@@ -53,8 +58,19 @@ impl Display for ParseVariableTokenErr {
         write!(f, "{}", match self {
             ParseVariableTokenErr::PatternNotMatched { target_value} => format!("`{target_value}`\n\tThe pattern for a variable is defined as: name = assignment;"),
             ParseVariableTokenErr::NameTokenErr(a) => a.to_string(),
-            ParseVariableTokenErr::AssignableTokenErr(a) => a.to_string()
+            ParseVariableTokenErr::AssignableTokenErr(a) => a.to_string(),
+            ParseVariableTokenErr::EmptyIterator(e) => e.to_string()
         })
+    }
+}
+
+impl<const ASSIGNMENT: char, const SEPARATOR: char> TryParse for VariableToken<ASSIGNMENT, SEPARATOR> {
+    type Output = VariableToken<ASSIGNMENT, SEPARATOR>;
+    type Err = ParseVariableTokenErr;
+
+    fn try_parse(code_lines_iterator: &mut Peekable<Iter<CodeLine>>) -> anyhow::Result<Self::Output, Self::Err> {
+        let code_line = *code_lines_iterator.peek().ok_or(ParseVariableTokenErr::EmptyIterator(EmptyIteratorErr::default()))?;
+        VariableToken::try_parse(code_line)
     }
 }
 

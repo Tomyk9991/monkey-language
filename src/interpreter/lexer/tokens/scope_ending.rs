@@ -1,14 +1,19 @@
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
+use std::iter::Peekable;
+use std::slice::Iter;
 use crate::interpreter::io::code_line::CodeLine;
+use crate::interpreter::lexer::errors::EmptyIteratorErr;
 use crate::interpreter::lexer::levenshtein_distance::{PatternedLevenshteinDistance, PatternedLevenshteinString};
+use crate::interpreter::lexer::TryParse;
 
 #[derive(Debug, PartialEq)]
 pub struct ScopeEnding;
 
 #[derive(Debug)]
 pub enum ScopeEndingErr {
-    PatternNotMatched { target_value: String }
+    PatternNotMatched { target_value: String },
+    EmptyIterator(EmptyIteratorErr)
 }
 
 impl Error for ScopeEndingErr { }
@@ -24,7 +29,18 @@ impl Display for ScopeEndingErr {
         write!(f, "{}", match self {
             ScopeEndingErr::PatternNotMatched { target_value } =>
                 format!("Pattern not matched for: `{target_value}`\n\t }}"),
+            ScopeEndingErr::EmptyIterator(e) => e.to_string()
         })
+    }
+}
+
+impl TryParse for ScopeEnding {
+    type Output = ScopeEnding;
+    type Err = ScopeEndingErr;
+
+    fn try_parse(code_lines_iterator: &mut Peekable<Iter<CodeLine>>) -> anyhow::Result<Self::Output, Self::Err> {
+        let code_line = *code_lines_iterator.peek().ok_or(ScopeEndingErr::EmptyIterator(EmptyIteratorErr::default()))?;
+        ScopeEnding::try_parse(code_line)
     }
 }
 

@@ -2,9 +2,11 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::iter::Peekable;
 use std::slice::Iter;
-use crate::interpreter::constants::OPENING_SCOPE;
+
 use crate::interpreter::constants::IF_KEYWORD;
+use crate::interpreter::constants::OPENING_SCOPE;
 use crate::interpreter::io::code_line::CodeLine;
+use crate::interpreter::lexer::errors::EmptyIteratorErr;
 use crate::interpreter::lexer::levenshtein_distance::{ArgumentsIgnoreSummarizeTransform, EmptyParenthesesExpand, PatternedLevenshteinDistance, PatternedLevenshteinString, QuoteSummarizeTransform};
 use crate::interpreter::lexer::scope::{Scope, ScopeError};
 use crate::interpreter::lexer::token::Token;
@@ -24,7 +26,7 @@ pub enum IfDefinitionErr {
     PatternNotMatched { target_value: String },
     AssignableTokenErr(AssignableTokenErr),
     ScopeErrorErr(ScopeError),
-    EmptyIterator,
+    EmptyIterator(EmptyIteratorErr),
 }
 
 impl From<AssignableTokenErr> for IfDefinitionErr {
@@ -47,7 +49,7 @@ impl Display for IfDefinition {
     }
 }
 
-impl Error for IfDefinitionErr { }
+impl Error for IfDefinitionErr {}
 
 impl Display for IfDefinitionErr {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -56,16 +58,19 @@ impl Display for IfDefinitionErr {
             => format!("Pattern not matched for: `{target_value}\n\t if(condition) {{ }}`"),
             IfDefinitionErr::AssignableTokenErr(a) => a.to_string(),
             IfDefinitionErr::ScopeErrorErr(a) => a.to_string(),
-            IfDefinitionErr::EmptyIterator => String::from("Iterator is empty"),
+            IfDefinitionErr::EmptyIterator(e) => e.to_string(),
         })
     }
 }
 
-impl IfDefinition {
-    pub fn try_parse(code_lines: &mut Peekable<Iter<CodeLine>>) -> anyhow::Result<Self, IfDefinitionErr> {
-        let if_header = *code_lines
+impl TryParse for IfDefinition {
+    type Output = IfDefinition;
+    type Err = IfDefinitionErr;
+
+    fn try_parse(code_lines_iterator: &mut Peekable<Iter<CodeLine>>) -> anyhow::Result<Self::Output, Self::Err> {
+        let if_header = *code_lines_iterator
             .peek()
-            .ok_or(IfDefinitionErr::EmptyIterator)?;
+            .ok_or(IfDefinitionErr::EmptyIterator(EmptyIteratorErr::default()))?;
 
         let split_alloc = if_header.split(vec![' ']);
         let split_ref = split_alloc.iter().map(|a| a.as_str()).collect::<Vec<_>>();
@@ -76,10 +81,10 @@ impl IfDefinition {
             let condition = AssignableToken::try_from(condition)?;
 
             // consume the header
-            let _ = code_lines.next();
+            let _ = code_lines_iterator.next();
 
-            while code_lines.peek().is_some() {
-                let token = Scope::try_parse(code_lines)
+            while code_lines_iterator.peek().is_some() {
+                let token = Scope::try_parse(code_lines_iterator)
                     .map_err(IfDefinitionErr::ScopeErrorErr)?;
 
                 if token == Token::ScopeClosing(ScopeEnding) {
@@ -120,10 +125,10 @@ impl PatternedLevenshteinDistance for IfDefinition {
                 vec![
                     Box::new(QuoteSummarizeTransform),
                     Box::new(EmptyParenthesesExpand),
-                    Box::new(ArgumentsIgnoreSummarizeTransform)
-                ]
+                    Box::new(ArgumentsIgnoreSummarizeTransform),
+                ],
             ),
-            if_header_pattern
+            if_header_pattern,
         )
     }
 }

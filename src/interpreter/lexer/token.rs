@@ -14,6 +14,23 @@ pub enum Token {
     IfDefinition(IfDefinition)
 }
 
+#[derive(Default)]
+pub struct TokenIterator {
+    current: usize
+}
+
+impl Iterator for TokenIterator {
+    type Item = Token;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.current > 4 {
+            return None;
+        }
+
+        return None;
+    }
+}
+
 impl Display for Token {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", match self {

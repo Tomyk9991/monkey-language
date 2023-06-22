@@ -1,11 +1,15 @@
 use std::cmp::Ordering;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
+use std::iter::Peekable;
+use std::slice::Iter;
 use std::str::FromStr;
 use crate::interpreter::lexer::tokens::assignable_token::{AssignableToken, AssignableTokenErr};
 use crate::interpreter::lexer::tokens::name_token::{NameToken, NameTokenErr};
 use crate::interpreter::io::code_line::CodeLine;
+use crate::interpreter::lexer::errors::EmptyIteratorErr;
 use crate::interpreter::lexer::levenshtein_distance::{ArgumentsIgnoreSummarizeTransform, EmptyParenthesesExpand, PatternedLevenshteinDistance, PatternedLevenshteinString, QuoteSummarizeTransform};
+use crate::interpreter::lexer::TryParse;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct MethodCallToken {
@@ -29,6 +33,7 @@ pub enum MethodCallTokenErr {
     NameTokenErr(NameTokenErr),
     DyckLanguageErr { target_value: String, ordering: Ordering },
     AssignableTokenErr(AssignableTokenErr),
+    EmptyIterator(EmptyIteratorErr)
 }
 
 impl Error for MethodCallTokenErr {}
@@ -62,6 +67,7 @@ impl Display for MethodCallTokenErr {
                 };
                 format!("\"{target_value}\": {error}")
             }
+            MethodCallTokenErr::EmptyIterator(e) => e.to_string()
         };
 
         write!(f, "{}", message)
@@ -79,6 +85,16 @@ impl FromStr for MethodCallToken {
         }
 
         MethodCallToken::try_parse(&code_line)
+    }
+}
+
+impl TryParse for MethodCallToken {
+    type Output = MethodCallToken;
+    type Err = MethodCallTokenErr;
+
+    fn try_parse(code_lines_iterator: &mut Peekable<Iter<CodeLine>>) -> anyhow::Result<Self::Output, Self::Err> {
+        let code_line = *code_lines_iterator.peek().ok_or(MethodCallTokenErr::EmptyIterator(EmptyIteratorErr::default()))?;
+        MethodCallToken::try_parse(code_line)
     }
 }
 

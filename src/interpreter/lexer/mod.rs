@@ -7,12 +7,13 @@ pub mod scope;
 pub mod token;
 pub mod tokens;
 pub mod levenshtein_distance;
+pub mod errors;
 
 pub trait TryParse {
     type Output;
     type Err;
 
-    fn try_parse(code_line: &mut Peekable<Iter<CodeLine>>) -> anyhow::Result<Self::Output, Self::Err>;
+    fn try_parse(code_lines_iterator: &mut Peekable<Iter<CodeLine>>) -> anyhow::Result<Self::Output, Self::Err>;
 }
 
 #[allow(unused)]

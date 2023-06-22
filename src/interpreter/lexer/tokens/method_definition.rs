@@ -9,6 +9,7 @@ use std::fmt::{Display, Formatter};
 use std::iter::Peekable;
 use std::slice::Iter;
 use crate::interpreter::constants::FUNCTION_KEYWORD;
+use crate::interpreter::lexer::errors::EmptyIteratorErr;
 use crate::interpreter::lexer::tokens::scope_ending::ScopeEnding;
 use crate::interpreter::lexer::levenshtein_distance::PatternedLevenshteinDistance;
 use crate::interpreter::lexer::levenshtein_distance::{ArgumentsIgnoreSummarizeTransform, EmptyParenthesesExpand, PatternedLevenshteinString, QuoteSummarizeTransform};
@@ -27,7 +28,7 @@ pub enum MethodDefinitionErr {
     NameTokenErr(NameTokenErr),
     AssignableTokenErr(AssignableTokenErr),
     ScopeErrorErr(ScopeError),
-    EmptyIterator,
+    EmptyIterator(EmptyIteratorErr),
 }
 
 impl From<AssignableTokenErr> for MethodDefinitionErr {
@@ -66,19 +67,20 @@ impl Display for MethodDefinitionErr {
             => format!("Pattern not matched for: `{target_value}`\n\t fn function_name(argument1, ..., argumentN): returnType {{ }}"),
             MethodDefinitionErr::AssignableTokenErr(a) => a.to_string(),
             MethodDefinitionErr::NameTokenErr(a) => a.to_string(),
-            MethodDefinitionErr::EmptyIterator => String::from("Iterator is empty"),
+            MethodDefinitionErr::EmptyIterator(e) => e.to_string(),
             MethodDefinitionErr::ScopeErrorErr(a) => a.to_string()
         })
     }
 }
 
-impl MethodDefinition {
-    pub fn try_parse(
-        code_lines: &mut Peekable<Iter<CodeLine>>,
-    ) -> anyhow::Result<Self, MethodDefinitionErr> {
-        let method_header = *code_lines
+impl TryParse for MethodDefinition {
+    type Output = MethodDefinition;
+    type Err = MethodDefinitionErr;
+
+    fn try_parse(code_lines_iterator: &mut Peekable<Iter<CodeLine>>) -> anyhow::Result<Self, MethodDefinitionErr> {
+        let method_header = *code_lines_iterator
             .peek()
-            .ok_or(MethodDefinitionErr::EmptyIterator)?;
+            .ok_or(MethodDefinitionErr::EmptyIterator(EmptyIteratorErr::default()))?;
 
         let split_alloc = method_header.split(vec![' ']);
         let split_ref = split_alloc.iter().map(|a| a.as_str()).collect::<Vec<_>>();
@@ -95,11 +97,11 @@ impl MethodDefinition {
             let mut tokens = vec![];
 
             // consume the header
-            let _ = code_lines.next();
+            let _ = code_lines_iterator.next();
 
             // consume the body
-            while code_lines.peek().is_some() {
-                let token = Scope::try_parse(code_lines)
+            while code_lines_iterator.peek().is_some() {
+                let token = Scope::try_parse(code_lines_iterator)
                     .map_err(MethodDefinitionErr::ScopeErrorErr)?;
 
                 if token == Token::ScopeClosing(ScopeEnding) {
