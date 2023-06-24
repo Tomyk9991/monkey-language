@@ -8,6 +8,7 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::iter::Peekable;
 use std::slice::Iter;
+use std::str::FromStr;
 use crate::interpreter::constants::FUNCTION_KEYWORD;
 use crate::interpreter::lexer::errors::EmptyIteratorErr;
 use crate::interpreter::lexer::tokens::scope_ending::ScopeEnding;
@@ -80,7 +81,7 @@ impl TryParse for MethodDefinition {
     fn try_parse(code_lines_iterator: &mut Peekable<Iter<CodeLine>>) -> anyhow::Result<Self, MethodDefinitionErr> {
         let method_header = *code_lines_iterator
             .peek()
-            .ok_or(MethodDefinitionErr::EmptyIterator(EmptyIteratorErr::default()))?;
+            .ok_or_else(|| MethodDefinitionErr::EmptyIterator(EmptyIteratorErr::default()))?;
 
         let split_alloc = method_header.split(vec![' ']);
         let split_ref = split_alloc.iter().map(|a| a.as_str()).collect::<Vec<_>>();
@@ -91,7 +92,7 @@ impl TryParse for MethodDefinition {
             let mut assignable_arguments = vec![];
 
             for argument in arguments {
-                assignable_arguments.push(AssignableToken::try_from(argument)?);
+                assignable_arguments.push(AssignableToken::from_str(argument)?);
             }
 
             let mut tokens = vec![];

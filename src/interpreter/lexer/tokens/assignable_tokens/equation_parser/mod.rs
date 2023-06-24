@@ -1,15 +1,18 @@
 use std::fmt::{Debug, Display, Formatter};
 use std::marker::PhantomData;
+use std::str::FromStr;
 use crate::interpreter::io::code_line::{CodeLine, Normalizable};
 use crate::interpreter::lexer::tokens::assignable_token::{AssignableToken, AssignableTokenErr};
 use crate::interpreter::lexer::tokens::assignable_tokens::equation_parser::equation_token_options::EquationTokenOptions;
-
 use crate::interpreter::lexer::tokens::assignable_tokens::equation_parser::expression::Expression;
 use crate::interpreter::lexer::tokens::name_token::NameTokenErr;
 
 pub mod expression;
 pub mod operator;
 pub mod equation_token_options;
+
+const OPENING: char = '(';
+const CLOSING: char = ')';
 
 #[derive(Debug, PartialEq)]
 pub struct EquationToken<T: EquationTokenOptions> {
@@ -30,6 +33,7 @@ pub enum Error {
     NotAFloat(String),
     ExpressionErr(expression::Error),
     ParenExpected,
+    CannotParse
 }
 
 
@@ -66,6 +70,7 @@ impl Display for Error {
             },
             Error::FunctionNotFound => "Not a function".to_string(),
             Error::SourceEmpty => "Source code is empty".to_string(),
+            Error::CannotParse => "Cannot parse".to_string()
         })
     }
 }
@@ -74,9 +79,11 @@ impl std::error::Error for Error {}
 
 #[allow(clippy::should_implement_trait)]
 impl<T: EquationTokenOptions> EquationToken<T> {
+
     pub fn from_str(string: &str) -> Result<Box<Expression>, Error> {
         let mut s: EquationToken<T> = EquationToken::new(string);
-        Ok(Box::new(s.parse()?.clone()))
+        let f = s.parse()?.clone();
+        Ok(Box::new(f))
     }
 
     pub fn new(source_code: impl Into<String>) -> Self {
@@ -94,7 +101,8 @@ impl<T: EquationTokenOptions> EquationToken<T> {
             return Err(Error::SourceEmpty);
         }
 
-        return Ok(self.parse()?.evaluate());
+        todo!();
+        // return Ok(self.parse()?.evaluate());
     }
 
     fn next_char(&mut self) {
@@ -102,12 +110,12 @@ impl<T: EquationTokenOptions> EquationToken<T> {
         self.ch = self.source_code.chars().nth(self.pos as usize);
     }
 
-    fn eat(&mut self, char_to_eat: char) -> bool {
+    fn eat(&mut self, char_to_eat: Option<char>) -> bool {
         while self.ch == Some(' ') {
             self.next_char();
         }
 
-        if self.ch == Some(char_to_eat) {
+        if self.ch == char_to_eat {
             self.next_char();
             return true;
         }
@@ -127,15 +135,16 @@ impl<T: EquationTokenOptions> EquationToken<T> {
     }
 
     fn parse_expression(&mut self) -> Result<Box<Expression>, Error> {
-        let mut x = self.parse_term()?;
+        let x = self.parse_term()?;
 
         loop {
+            #[allow(clippy::if_same_then_else)]
             if self.eat(T::additive()) {
-                let p = self.parse_term()?;
-                x = T::add_operation(x, p)?;
+                let _p = self.parse_term()?;
+                // x = T::add_operation(x, p)?;
             } else if self.eat(T::inverse_additive()) {
-                let p = self.parse_term()?;
-                x = T::inverse_add_operation(x, p)?;
+                let _p = self.parse_term()?;
+                // x = T::inverse_add_operation(x, p)?;
             } else {
                 return Ok(x);
             }
@@ -143,14 +152,15 @@ impl<T: EquationTokenOptions> EquationToken<T> {
     }
 
     fn parse_term(&mut self) -> Result<Box<Expression>, Error> {
-        let mut x = self.parse_factor()?;
+        let x = self.parse_factor()?;
         loop {
+            #[allow(clippy::if_same_then_else)]
             if self.eat(T::multiplicative()) {
-                let p = self.parse_term()?;
-                x = T::mul_operation(x, p)?;
+                let _p = self.parse_term()?;
+                // x = T::mul_operation(x, p)?;
             } else if self.eat(T::inverse_multiplicative()) {
-                let p = self.parse_term()?;
-                x = T::inverse_mul_operation(x, p)?;
+                let _p = self.parse_term()?;
+                // x = T::inverse_mul_operation(x, p)?;
             } else {
                 return Ok(x);
             }
@@ -171,10 +181,10 @@ impl<T: EquationTokenOptions> EquationToken<T> {
         }
 
         let start_pos: i32 = self.pos;
-        if self.eat('(') {
+        if self.eat(Some(OPENING)) {
             x = self.parse_expression()?;
 
-            if !self.eat(')') {
+            if !self.eat(Some(CLOSING)) {
                 return Err(Error::ParenExpected);
             }
         } else if self.ch.is_some() {
@@ -185,8 +195,8 @@ impl<T: EquationTokenOptions> EquationToken<T> {
                 }
 
                 let sub_string: &str = &self.source_code[start_pos as usize..self.pos as usize];
-                let s = AssignableToken::try_from(sub_string)?;
-                x = Box::new(Expression::new_f64(s));
+                let s = AssignableToken::from_str(sub_string)?;
+                x = Box::new(Expression::from(s));
             } else if (self.ch >= Some('A') && self.ch <= Some('Z')) || (self.ch >= Some('a') && self.ch <= Some('z')) {
                 // works for variables but not functions
                 let mut ident = 0;
@@ -198,10 +208,10 @@ impl<T: EquationTokenOptions> EquationToken<T> {
 
 
                 while ident != 0 || (
-                        self.ch != Some(add_token) &&
-                        self.ch != Some(inv_add_token) &&
-                        self.ch != Some(mul_token) &&
-                        self.ch != Some(inv_mul_token)
+                        self.ch != add_token &&
+                        self.ch != inv_add_token &&
+                        self.ch != mul_token &&
+                        self.ch != inv_mul_token
                     ) {
                     if let Some(char) = self.ch {
                         match char {
@@ -226,11 +236,11 @@ impl<T: EquationTokenOptions> EquationToken<T> {
                 let mut temp = vec![CodeLine::imaginary(sub_string)];
                 temp.normalize();
 
-                let sub_string = &temp[0].line.to_string();
+                let sub_string = temp[0].line.to_string();
 
-                let assignable_token = AssignableToken::try_from(sub_string)?;
+                let assignable_token = AssignableToken::from_str(sub_string.as_str())?;
 
-                x = Box::new(Expression::new_f64(assignable_token));
+                x = Box::new(Expression::from(assignable_token));
             } else {
                 return Err(Error::UndefinedSequence(self.ch.map(|a| a.to_string())));
             }

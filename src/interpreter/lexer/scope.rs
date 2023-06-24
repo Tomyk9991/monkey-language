@@ -41,11 +41,11 @@ impl Display for ScopeError {
 impl Error for ScopeError {}
 
 macro_rules! token_expand {
-    ($code_lines_iterator: ident, $pattern_distances: ident, $(($token_implementation:ty, $token_type:ident, $iterate_next:ident)),*) => {
+    ($code_lines_iterator: ident, $pattern_distances: ident, $(($token_implementation:ty, $token_type:ident, $iterates_over_same_scope:ident)),*) => {
         $(
             match <$token_implementation as TryParse>::try_parse($code_lines_iterator) {
                 Ok(t) => {
-                    if $iterate_next {
+                    if $iterates_over_same_scope {
                         $code_lines_iterator.next();
                     }
                     return Ok(Token::$token_type(t))
@@ -73,15 +73,16 @@ impl TryParse for Scope {
     fn try_parse(code_lines_iterator: &mut Peekable<Iter<CodeLine>>) -> anyhow::Result<Self::Output, ScopeError> {
         let mut pattern_distances: Vec<(usize, Box<dyn Error>)> = vec![];
 
-        let code_line = *code_lines_iterator.peek().ok_or(ScopeError::EmptyIterator(EmptyIteratorErr::default()))?;
+        let code_line = *code_lines_iterator.peek().ok_or_else(|| ScopeError::EmptyIterator(EmptyIteratorErr::default()))?;
 
         token_expand!(code_lines_iterator, pattern_distances,
             (VariableToken::<'=', ';'>, Variable,           true),
             (MethodCallToken,           MethodCall,         true),
             (ScopeEnding,               ScopeClosing,       true),
-            (IfDefinition,              IfDefinition,       true),
+            (IfDefinition,              IfDefinition,       false),
             (MethodDefinition,          MethodDefinition,   false)
         );
+
 
 
         pattern_distances.sort_by(|(nearest_a, _), (nearest_b, _)| (*nearest_a).cmp(nearest_b));

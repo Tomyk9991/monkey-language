@@ -2,6 +2,7 @@ use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 use std::iter::Peekable;
 use std::slice::Iter;
+use std::str::FromStr;
 use anyhow::Context;
 use crate::interpreter::io::code_line::CodeLine;
 use crate::interpreter::lexer::errors::EmptyIteratorErr;
@@ -69,7 +70,7 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> TryParse for VariableToken<A
     type Err = ParseVariableTokenErr;
 
     fn try_parse(code_lines_iterator: &mut Peekable<Iter<CodeLine>>) -> anyhow::Result<Self::Output, Self::Err> {
-        let code_line = *code_lines_iterator.peek().ok_or(ParseVariableTokenErr::EmptyIterator(EmptyIteratorErr::default()))?;
+        let code_line = *code_lines_iterator.peek().ok_or_else(|| ParseVariableTokenErr::EmptyIterator(EmptyIteratorErr::default()))?;
         VariableToken::try_parse(code_line)
     }
 }
@@ -87,7 +88,7 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> VariableToken<ASSIGNMENT, SE
             [name, assignment_token, middle @ .., separator_token] if assignment_token == &assignment && separator_token == &separator => {
                 Ok(VariableToken {
                     name_token: NameToken::from_str(name, false)?,
-                    assignable: AssignableToken::try_from(middle.join(" ").as_str()).context(code_line.line.clone())?,
+                    assignable: AssignableToken::from_str(middle.join(" ").as_str()).context(code_line.line.clone())?,
                 })
             },
             _ => Err(ParseVariableTokenErr::PatternNotMatched { target_value: code_line.line.to_string() })

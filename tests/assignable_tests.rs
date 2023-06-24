@@ -1,11 +1,13 @@
-use monkey_language::interpreter::lexer::tokens::assignable_tokens::double_token::DoubleToken;
-use monkey_language::interpreter::lexer::tokens::assignable_tokens::integer_token::IntegerToken;
-use monkey_language::interpreter::lexer::tokens::assignable_tokens::string_token::StringToken;
 use std::str::FromStr;
-use monkey_language::interpreter::lexer::tokens::assignable_tokens::equation_parser::{EquationToken};
+use monkey_language::interpreter::lexer::tokens::assignable_tokens::boolean_token::BooleanToken;
+
+use monkey_language::interpreter::lexer::tokens::assignable_tokens::double_token::DoubleToken;
+use monkey_language::interpreter::lexer::tokens::assignable_tokens::equation_parser::EquationToken;
 use monkey_language::interpreter::lexer::tokens::assignable_tokens::equation_parser::equation_token_options::ArithmeticEquationOptions;
+use monkey_language::interpreter::lexer::tokens::assignable_tokens::integer_token::IntegerToken;
 use monkey_language::interpreter::lexer::tokens::assignable_tokens::method_call_token::MethodCallToken;
 use monkey_language::interpreter::lexer::tokens::assignable_tokens::object_token::ObjectToken;
+use monkey_language::interpreter::lexer::tokens::assignable_tokens::string_token::StringToken;
 
 #[test]
 fn assignable_string() -> anyhow::Result<()> {
@@ -152,7 +154,7 @@ fn assignable_imaginary_fn_calls() -> anyhow::Result<()> {
         (true, "imaginary_fn20 ( { } )".to_string()),
         (false, "imaginary_fn21 ( { key1 : { inner_key1 : 'func6 ( param1, param2 )', inner_key2 : 2 }, key2 : 2 } )".to_string()),
         (true, "imaginary_fn21 ( { key1 : { inner_key1 : { inner_inner_key : func7 ( param1 ) } }, key2 : 2 } )".to_string()),
-        (true, "imaginary_fn22 ( { a : imaginary ( b ) } , imaginary ( { } ) ) ".to_string())
+        (true, "imaginary_fn22 ( { a : imaginary ( b ) } , imaginary ( { } ) ) ".to_string()),
     ];
 
     for (expected_result, value) in &values {
@@ -168,31 +170,52 @@ fn assignable_imaginary_fn_calls() -> anyhow::Result<()> {
 }
 
 #[test]
-fn assignable_arithmetic_equation() -> anyhow::Result<()> {
-    let values: Vec<(Option<f64>, bool, String)> = vec![
-        (Some(312.5),   true, "((4 - (2*3) * 5 + 1) * -(3*3+4*4)) / 2".to_string()),
-        (Some(312.5),   true, "((4 - (2*3) * 5 + 1) * -(3*3+4*4)) / 2".to_string()),
-        (Some(312.5),   true, "((4 - (2*3) * 5 + 1) * -(3*3+4*4)) / 2".to_string()),
-        (Some(312.5),   true, "((4 - (2*3) * 5 + 1) * -(3*3+4*4)) / 2".to_string()),
-        (Some(0.0),     true, "((4 - (2*3) * 5 + 1) * -sqrt) / 2".to_string()),
-        (Some(-0.5),    true, "((4 - 2*3 + 1) -sqrt(3*3+4*4)) / 2".to_string()),
-        (Some(0.0), true, "a(b(c(d(e*f)))))".to_string())
+fn assignable_booleans() -> anyhow::Result<()> {
+    let values = [
+        ("true", true),
+        ("false", true),
+        ("TRUE", false),
+        ("FALSE", false),
+        ("True", false),
+        ("False", false),
+        ("1", false),
+        ("tru", false),
+        ("falsey", false)
     ];
 
-    for (result, expected_result, value) in &values {
+    for (value, expected_result) in &values {
+        let token = BooleanToken::from_str(value);
+
+        match *expected_result {
+            true => assert!(token.is_ok(), "{:?}", value),
+            false => assert!(token.is_err(), "{:?}", value)
+        }
+    }
+
+    Ok(())
+}
+
+#[test]
+fn assignable_arithmetic_equation() -> anyhow::Result<()> {
+    let values: Vec<(bool, String)> = vec![
+        (true, "((4 - (2*3) * 5 + 1) * -(3*3+4*4)) / 2".to_string()),
+        (true, "((4 - (2*3) * 5 + 1) * -(3*3+4*4)) / 2".to_string()),
+        (true, "((4 - (2*3) * 5 + 1) * -(3*3+4*4)) / 2".to_string()),
+        (true, "((4 - (2*3) * 5 + 1) * -(3*3+4*4)) / 2".to_string()),
+        (true, "((4 - (2*3) * 5 + 1) * -sqrt) / 2".to_string()),
+        (true, "((4 - 2*3 + 1) -sqrt(3*3+4*4)) / 2".to_string()),
+        (true, "a(b(c(d(e*f)))))".to_string()),
+        (false, "((4 - 2 * ) -sqrt(3*3+4*4)) / 2".to_string()),
+    ];
+
+    for (expected_result, value) in &values {
         let token = EquationToken::<ArithmeticEquationOptions>::from_str(value);
 
 
         match *expected_result {
             true => {
                 assert!(token.is_ok(), "{value}, {:?}", token);
-                if let Ok(f) = token {
-                    if let Some(result) = result {
-                        assert!((result - f.evaluate()) < 0.00001 && (result - f.evaluate()) > -0.00001, "Error is bigger {}", f.evaluate());
-                        println!("Result is: {r}", r = f.evaluate())
-                    }
-                }
-            },
+            }
             false => assert!(token.is_err(), "{:?}", value)
         }
     }

@@ -1,5 +1,6 @@
 use std::fmt::{Display, Formatter};
 
+#[allow(unused)]
 #[derive(PartialEq, Clone, Debug)]
 pub enum Operator {
     Noop,

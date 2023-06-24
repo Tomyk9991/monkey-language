@@ -93,7 +93,7 @@ impl TryParse for MethodCallToken {
     type Err = MethodCallTokenErr;
 
     fn try_parse(code_lines_iterator: &mut Peekable<Iter<CodeLine>>) -> anyhow::Result<Self::Output, Self::Err> {
-        let code_line = *code_lines_iterator.peek().ok_or(MethodCallTokenErr::EmptyIterator(EmptyIteratorErr::default()))?;
+        let code_line = *code_lines_iterator.peek().ok_or_else(|| MethodCallTokenErr::EmptyIterator(EmptyIteratorErr::default()))?;
         MethodCallToken::try_parse(code_line)
     }
 }
@@ -114,7 +114,7 @@ impl MethodCallToken {
 
             let arguments = argument_strings
                 .iter()
-                .map(|s| AssignableToken::try_from(s))
+                .map(|s| AssignableToken::from_str(s))
                 .collect::<Result<Vec<_>, _>>()?;
 
             Ok(MethodCallToken {

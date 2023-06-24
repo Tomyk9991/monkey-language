@@ -11,8 +11,6 @@ fn main() -> anyhow::Result<()> {
     let main_file: ProgramVariable = ProgramVariable::try_from(vec!["i", "-i"])?;
     let file: MonkeyFile = MonkeyFile::read(main_file.value)?;
 
-    println!("{:#?}", file.lines);
-
     let mut lexer = Lexer::from(file);
     let top_level_scope = lexer.tokenize()?;
 

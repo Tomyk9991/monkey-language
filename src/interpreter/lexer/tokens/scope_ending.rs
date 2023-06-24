@@ -39,7 +39,7 @@ impl TryParse for ScopeEnding {
     type Err = ScopeEndingErr;
 
     fn try_parse(code_lines_iterator: &mut Peekable<Iter<CodeLine>>) -> anyhow::Result<Self::Output, Self::Err> {
-        let code_line = *code_lines_iterator.peek().ok_or(ScopeEndingErr::EmptyIterator(EmptyIteratorErr::default()))?;
+        let code_line = *code_lines_iterator.peek().ok_or_else(|| ScopeEndingErr::EmptyIterator(EmptyIteratorErr::default()))?;
         ScopeEnding::try_parse(code_line)
     }
 }

@@ -27,7 +27,7 @@ impl Iterator for TokenIterator {
             return None;
         }
 
-        return None;
+        None
     }
 }
 
