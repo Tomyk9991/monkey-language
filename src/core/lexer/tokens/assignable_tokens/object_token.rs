@@ -2,11 +2,11 @@ use std::cmp::Ordering;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
-use crate::interpreter::io::code_line::CodeLine;
-use crate::interpreter::lexer::tokens::assignable_token::AssignableTokenErr;
-use crate::interpreter::lexer::tokens::assignable_tokens::method_call_token::{dyck_language, DyckError};
-use crate::interpreter::lexer::tokens::name_token::NameTokenErr;
-use crate::interpreter::lexer::tokens::variable_token::{ParseVariableTokenErr, VariableToken};
+use crate::core::io::code_line::CodeLine;
+use crate::core::lexer::tokens::assignable_token::AssignableTokenErr;
+use crate::core::lexer::tokens::assignable_tokens::method_call_token::{dyck_language, DyckError};
+use crate::core::lexer::tokens::name_token::NameTokenErr;
+use crate::core::lexer::tokens::variable_token::{ParseVariableTokenErr, VariableToken};
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct ObjectToken {

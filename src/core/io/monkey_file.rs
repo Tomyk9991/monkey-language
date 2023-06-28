@@ -5,9 +5,9 @@ use std::path::{Path, PathBuf};
 
 use anyhow::Context;
 
-use crate::interpreter::constants::CLOSING_SCOPE;
-use crate::interpreter::io::code_line::{CodeLine, Normalizable};
-use crate::interpreter::model::scope_type::{ScopeType, ScopeTypeIterator};
+use crate::core::constants::{CLOSING_SCOPE, OPENING_SCOPE};
+use crate::core::io::code_line::{CodeLine, Normalizable};
+use crate::core::model::scope_type::{ScopeType, ScopeTypeIterator};
 
 #[derive(Debug)]
 pub struct MonkeyFile {
@@ -28,7 +28,6 @@ impl MonkeyFile {
 
         let monkey_file = Self::read_from_str(&buffer);
 
-
         Ok(Self {
             path: path_buffer,
             size,
@@ -40,7 +39,10 @@ impl MonkeyFile {
     pub fn read_from_str(buffer: &str) -> Self {
         let mut buffer: String = buffer.to_owned();
 
+        buffer = buffer.replace("if(", "if (");
+
         let mut lines = Self::read_buffer(&buffer);
+
         let actual_lines = get_line_ranges(&buffer);
 
         buffer = buffer.replace('\n', "");
@@ -78,10 +80,10 @@ fn get_line_ranges(buffer: &str) -> Vec<Range<usize>> {
 
     let mut line_count = 1;
 
-    let mut iter = buffer.chars();
+    let mut whole_file = buffer.chars();
     let mut scope_stack: Vec<ScopeType> = vec![];
 
-    while let Some(char) = iter.next() {
+    while let Some(char) = whole_file.next() {
         if start.is_none() && !char.is_whitespace() {
             start = Some(line_count);
         }
@@ -104,14 +106,16 @@ fn get_line_ranges(buffer: &str) -> Vec<Range<usize>> {
 
         for (buffer_match, scope_type) in iterator {
             let len = buffer_match.len() - 1;
-            let iter_clone = iter.clone();
+            let iter_clone = whole_file.clone(); // clone is fine here, its just an iterator
             let iter_len = iter_clone.count();
 
+            // check if current + lookahead is equal to one of the searching words
+            // in this case "fn " and "if "
             if iter_len < len {
                 continue;
             }
 
-            let lookup = String::from(char) + &iter.as_str()[..len];
+            let lookup = String::from(char) + &whole_file.as_str()[..len];
 
             if lookup == buffer_match {
                 scope_stack.push(scope_type);
@@ -119,7 +123,7 @@ fn get_line_ranges(buffer: &str) -> Vec<Range<usize>> {
             }
         }
 
-        if scope_stack.last().is_some() && char == '{' {
+        if scope_stack.last().is_some() && char == OPENING_SCOPE {
             if let Some(s) = start {
                 let range = s..line_count;
                 line_ranges.push(range);

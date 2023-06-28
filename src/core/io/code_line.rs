@@ -3,9 +3,9 @@ use binary_search_tree::BinarySearchTree;
 use regex::Regex;
 use regex_split::RegexSplit;
 use std::ops::Range;
-use crate::interpreter::constants::{IF_KEYWORD, OPENING_SCOPE};
-use crate::interpreter::constants::{CLOSING_SCOPE, FUNCTION_KEYWORD};
-use crate::interpreter::model::scope_type::{ScopeSplitterIterator, ScopeType};
+use crate::core::constants::{IF_KEYWORD, OPENING_SCOPE};
+use crate::core::constants::{CLOSING_SCOPE, FUNCTION_KEYWORD};
+use crate::core::model::scope_type::{ScopeSplitterIterator, ScopeType};
 
 #[derive(Debug, Default, Clone)]
 pub struct CodeLine {

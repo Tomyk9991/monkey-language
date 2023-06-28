@@ -1,7 +1,6 @@
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::str::{FromStr, ParseBoolError};
-use regex::Regex;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct BooleanToken {
@@ -37,10 +36,8 @@ impl FromStr for BooleanToken {
     type Err = BooleanTokenErr;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if let Ok(regex) = Regex::new("^(?i:true|false)$") {
-            if !regex.is_match(s) {
-                return Err(BooleanTokenErr::UnmatchedRegex);
-            }
+        if !lazy_regex::regex_is_match!("^(?i:true|false)$", s) {
+            return Err(BooleanTokenErr::UnmatchedRegex);
         }
 
         Ok(BooleanToken {

@@ -1,7 +1,6 @@
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
-use regex::Regex;
 
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub struct StringToken {
@@ -34,10 +33,8 @@ impl FromStr for StringToken {
     type Err = StringTokenErr;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if let Ok(regex) = Regex::new("^\".*\"$") {
-            if !regex.is_match(s) {
-                return Err(StringTokenErr::UnmatchedRegex);
-            }
+        if !lazy_regex::regex_is_match!("^\".*\"$", s) {
+            return Err(StringTokenErr::UnmatchedRegex);
         }
 
         Ok(StringToken {

@@ -2,16 +2,16 @@ use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 use std::iter::Peekable;
 use std::slice::Iter;
-use crate::interpreter::io::code_line::CodeLine;
-use crate::interpreter::lexer::errors::EmptyIteratorErr;
-use crate::interpreter::lexer::levenshtein_distance::PatternedLevenshteinDistance;
-use crate::interpreter::lexer::token::Token;
-use crate::interpreter::lexer::tokens::assignable_tokens::method_call_token::MethodCallToken;
-use crate::interpreter::lexer::tokens::if_definition::IfDefinition;
-use crate::interpreter::lexer::tokens::method_definition::MethodDefinition;
-use crate::interpreter::lexer::tokens::scope_ending::ScopeEnding;
-use crate::interpreter::lexer::tokens::variable_token::VariableToken;
-use crate::interpreter::lexer::TryParse;
+use crate::core::io::code_line::CodeLine;
+use crate::core::lexer::errors::EmptyIteratorErr;
+use crate::core::lexer::levenshtein_distance::PatternedLevenshteinDistance;
+use crate::core::lexer::token::Token;
+use crate::core::lexer::tokens::assignable_tokens::method_call_token::MethodCallToken;
+use crate::core::lexer::tokens::if_definition::IfDefinition;
+use crate::core::lexer::tokens::method_definition::MethodDefinition;
+use crate::core::lexer::tokens::scope_ending::ScopeEnding;
+use crate::core::lexer::tokens::variable_token::VariableToken;
+use crate::core::lexer::TryParse;
 
 pub struct Scope {
     pub tokens: Vec<Token>,
@@ -62,7 +62,9 @@ macro_rules! token_expand {
 
 impl Debug for Scope {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Scope: [\n{}]", self.tokens.iter().map(|token| format!("\t{:?}\n", token)).collect::<String>())
+        write!(f, "Scope: [\n{}]", self.tokens
+            .iter()
+            .map(|token| format!("\t{:?}\n", token)).collect::<String>())
     }
 }
 
@@ -72,7 +74,6 @@ impl TryParse for Scope {
 
     fn try_parse(code_lines_iterator: &mut Peekable<Iter<CodeLine>>) -> anyhow::Result<Self::Output, ScopeError> {
         let mut pattern_distances: Vec<(usize, Box<dyn Error>)> = vec![];
-
         let code_line = *code_lines_iterator.peek().ok_or_else(|| ScopeError::EmptyIterator(EmptyIteratorErr::default()))?;
 
         token_expand!(code_lines_iterator, pattern_distances,

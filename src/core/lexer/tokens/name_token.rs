@@ -1,7 +1,6 @@
 use std::error::Error;
 use std::fmt::{Display, Formatter};
-use regex::Regex;
-use crate::interpreter::constants::KEYWORDS;
+use crate::core::constants::KEYWORDS;
 
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub struct NameToken {
@@ -40,12 +39,10 @@ impl NameToken {
             return Err(NameTokenErr::KeywordReserved(s.to_string()));
         }
 
-        if let Ok(regex) = Regex::new("^[a-zA-Z_$][a-zA-Z_$0-9$]*$") {
-            if !regex.is_match(s) {
-                return Err(NameTokenErr::UnmatchedRegex {
-                    target_value: s.to_string(),
-                });
-            }
+        if !lazy_regex::regex_is_match!("^[a-zA-Z_$][a-zA-Z_$0-9$]*$", s) {
+            return Err(NameTokenErr::UnmatchedRegex {
+                target_value: s.to_string(),
+            });
         }
 
         Ok(NameToken {

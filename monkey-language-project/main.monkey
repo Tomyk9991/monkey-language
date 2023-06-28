@@ -1,9 +1,10 @@
 variable = ((4 - 2 * 3 + 1) * -sqrt(3*3+4*4)) / 2;
 
-if(hallo) {
+if (hallo) {
     if_stack_variable = 5;
 
-    if (if_stack_variable) {
+    if(if_stack_variable)
+     {
         nested_if_stack_variable = 13;
     }
 }

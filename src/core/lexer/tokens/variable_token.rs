@@ -4,12 +4,12 @@ use std::iter::Peekable;
 use std::slice::Iter;
 use std::str::FromStr;
 use anyhow::Context;
-use crate::interpreter::io::code_line::CodeLine;
-use crate::interpreter::lexer::errors::EmptyIteratorErr;
-use crate::interpreter::lexer::levenshtein_distance::{MethodCallSummarizeTransform, PatternedLevenshteinDistance, PatternedLevenshteinString, QuoteSummarizeTransform};
-use crate::interpreter::lexer::tokens::assignable_token::{AssignableToken, AssignableTokenErr};
-use crate::interpreter::lexer::tokens::name_token::{NameToken, NameTokenErr};
-use crate::interpreter::lexer::TryParse;
+use crate::core::io::code_line::CodeLine;
+use crate::core::lexer::errors::EmptyIteratorErr;
+use crate::core::lexer::levenshtein_distance::{MethodCallSummarizeTransform, PatternedLevenshteinDistance, PatternedLevenshteinString, QuoteSummarizeTransform};
+use crate::core::lexer::tokens::assignable_token::{AssignableToken, AssignableTokenErr};
+use crate::core::lexer::tokens::name_token::{NameToken, NameTokenErr};
+use crate::core::lexer::TryParse;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct VariableToken<const ASSIGNMENT: char, const SEPARATOR: char> {
@@ -19,7 +19,7 @@ pub struct VariableToken<const ASSIGNMENT: char, const SEPARATOR: char> {
 
 impl<const ASSIGNMENT: char, const SEPARATOR: char> Display for VariableToken<ASSIGNMENT, SEPARATOR> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} {} {}", self.name_token, ASSIGNMENT, self.assignable)
+        write!(f, "{:<30} {} {}", self.name_token, ASSIGNMENT, self.assignable)
     }
 }
 

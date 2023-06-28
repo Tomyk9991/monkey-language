@@ -1,5 +1,5 @@
-use crate::interpreter::lexer::tokens::assignable_token::AssignableToken;
-use crate::interpreter::lexer::tokens::assignable_tokens::equation_parser::operator::Operator;
+use crate::core::lexer::tokens::assignable_token::AssignableToken;
+use crate::core::lexer::tokens::assignable_tokens::equation_parser::operator::Operator;
 
 #[derive(Debug, Clone, PartialEq)]
 #[allow(unused)]

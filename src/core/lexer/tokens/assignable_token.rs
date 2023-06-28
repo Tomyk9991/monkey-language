@@ -2,16 +2,16 @@ use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
 
-use crate::interpreter::lexer::tokens::assignable_tokens::boolean_token::BooleanToken;
-use crate::interpreter::lexer::tokens::assignable_tokens::double_token::DoubleToken;
-use crate::interpreter::lexer::tokens::assignable_tokens::equation_parser::EquationToken;
-use crate::interpreter::lexer::tokens::assignable_tokens::equation_parser::equation_token_options::{ArithmeticEquationOptions, BooleanEquationOptions};
-use crate::interpreter::lexer::tokens::assignable_tokens::equation_parser::expression::Expression;
-use crate::interpreter::lexer::tokens::assignable_tokens::integer_token::IntegerToken;
-use crate::interpreter::lexer::tokens::assignable_tokens::method_call_token::MethodCallToken;
-use crate::interpreter::lexer::tokens::assignable_tokens::object_token::ObjectToken;
-use crate::interpreter::lexer::tokens::assignable_tokens::string_token::{StringToken};
-use crate::interpreter::lexer::tokens::name_token::NameToken;
+use crate::core::lexer::tokens::assignable_tokens::boolean_token::BooleanToken;
+use crate::core::lexer::tokens::assignable_tokens::double_token::DoubleToken;
+use crate::core::lexer::tokens::assignable_tokens::equation_parser::EquationToken;
+use crate::core::lexer::tokens::assignable_tokens::equation_parser::equation_token_options::{ArithmeticEquationOptions, BooleanEquationOptions};
+use crate::core::lexer::tokens::assignable_tokens::equation_parser::expression::Expression;
+use crate::core::lexer::tokens::assignable_tokens::integer_token::IntegerToken;
+use crate::core::lexer::tokens::assignable_tokens::method_call_token::MethodCallToken;
+use crate::core::lexer::tokens::assignable_tokens::object_token::ObjectToken;
+use crate::core::lexer::tokens::assignable_tokens::string_token::{StringToken};
+use crate::core::lexer::tokens::name_token::NameToken;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum AssignableToken {

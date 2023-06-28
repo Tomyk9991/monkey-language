@@ -1,11 +1,11 @@
 use std::fmt::{Debug, Display, Formatter};
 use std::marker::PhantomData;
 use std::str::FromStr;
-use crate::interpreter::io::code_line::{CodeLine, Normalizable};
-use crate::interpreter::lexer::tokens::assignable_token::{AssignableToken, AssignableTokenErr};
-use crate::interpreter::lexer::tokens::assignable_tokens::equation_parser::equation_token_options::EquationTokenOptions;
-use crate::interpreter::lexer::tokens::assignable_tokens::equation_parser::expression::Expression;
-use crate::interpreter::lexer::tokens::name_token::NameTokenErr;
+use crate::core::io::code_line::{CodeLine, Normalizable};
+use crate::core::lexer::tokens::assignable_token::{AssignableToken, AssignableTokenErr};
+use crate::core::lexer::tokens::assignable_tokens::equation_parser::equation_token_options::EquationTokenOptions;
+use crate::core::lexer::tokens::assignable_tokens::equation_parser::expression::Expression;
+use crate::core::lexer::tokens::name_token::NameTokenErr;
 
 pub mod expression;
 pub mod operator;

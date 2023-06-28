@@ -2,7 +2,6 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::num::{ParseFloatError, ParseIntError};
 use std::str::FromStr;
-use regex::Regex;
 
 #[derive(Default, Debug, Eq, PartialEq, Clone)]
 pub struct IntegerToken {
@@ -50,10 +49,8 @@ impl FromStr for IntegerToken {
     type Err = NumberTokenErr;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if let Ok(regex) = Regex::new("^[+-]?\\d+$") {
-            if !regex.is_match(s) {
-                return Err(NumberTokenErr::UnmatchedRegex);
-            }
+        if !lazy_regex::regex_is_match!("^[+-]?\\d+$", s) {
+            return Err(NumberTokenErr::UnmatchedRegex);
         }
 
         Ok(IntegerToken {

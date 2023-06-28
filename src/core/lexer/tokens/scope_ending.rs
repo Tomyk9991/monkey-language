@@ -2,10 +2,10 @@ use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 use std::iter::Peekable;
 use std::slice::Iter;
-use crate::interpreter::io::code_line::CodeLine;
-use crate::interpreter::lexer::errors::EmptyIteratorErr;
-use crate::interpreter::lexer::levenshtein_distance::{PatternedLevenshteinDistance, PatternedLevenshteinString};
-use crate::interpreter::lexer::TryParse;
+use crate::core::io::code_line::CodeLine;
+use crate::core::lexer::errors::EmptyIteratorErr;
+use crate::core::lexer::levenshtein_distance::{PatternedLevenshteinDistance, PatternedLevenshteinString};
+use crate::core::lexer::TryParse;
 
 #[derive(Debug, PartialEq)]
 pub struct ScopeEnding;

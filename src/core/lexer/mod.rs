@@ -1,6 +1,6 @@
 use std::iter::Peekable;
 use std::slice::Iter;
-use crate::interpreter::io::code_line::CodeLine;
+use crate::core::io::code_line::CodeLine;
 
 pub mod tokenizer;
 pub mod scope;

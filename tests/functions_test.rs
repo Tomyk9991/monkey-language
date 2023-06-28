@@ -1,12 +1,12 @@
-use monkey_language::interpreter::io::monkey_file::MonkeyFile;
-use monkey_language::interpreter::lexer::token::Token;
-use monkey_language::interpreter::lexer::tokenizer::Lexer;
-use monkey_language::interpreter::lexer::tokens::assignable_token::AssignableToken;
-use monkey_language::interpreter::lexer::tokens::assignable_tokens::integer_token::IntegerToken;
-use monkey_language::interpreter::lexer::tokens::assignable_tokens::string_token::StringToken;
-use monkey_language::interpreter::lexer::tokens::method_definition::MethodDefinition;
-use monkey_language::interpreter::lexer::tokens::name_token::NameToken;
-use monkey_language::interpreter::lexer::tokens::variable_token::VariableToken;
+use monkey_language::core::io::monkey_file::MonkeyFile;
+use monkey_language::core::lexer::token::Token;
+use monkey_language::core::lexer::tokenizer::Lexer;
+use monkey_language::core::lexer::tokens::assignable_token::AssignableToken;
+use monkey_language::core::lexer::tokens::assignable_tokens::integer_token::IntegerToken;
+use monkey_language::core::lexer::tokens::assignable_tokens::string_token::StringToken;
+use monkey_language::core::lexer::tokens::method_definition::MethodDefinition;
+use monkey_language::core::lexer::tokens::name_token::NameToken;
+use monkey_language::core::lexer::tokens::variable_token::VariableToken;
 
 #[test]
 fn function_test() -> anyhow::Result<()> {

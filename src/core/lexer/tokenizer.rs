@@ -1,15 +1,15 @@
-use crate::interpreter::io::monkey_file::MonkeyFile;
-use crate::interpreter::lexer::scope::Scope;
-use crate::interpreter::lexer::TryParse;
+use crate::core::io::monkey_file::MonkeyFile;
+use crate::core::lexer::scope::Scope;
+use crate::core::lexer::TryParse;
 
 pub struct Lexer {
     current_file: MonkeyFile
 }
 
-impl Lexer {
-    pub fn from(file: MonkeyFile) -> Self {
+impl From<MonkeyFile> for Lexer {
+    fn from(value: MonkeyFile) -> Self {
         Self {
-            current_file: file
+            current_file: value
         }
     }
 }

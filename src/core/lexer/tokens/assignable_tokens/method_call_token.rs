@@ -4,12 +4,12 @@ use std::fmt::{Display, Formatter};
 use std::iter::Peekable;
 use std::slice::Iter;
 use std::str::FromStr;
-use crate::interpreter::lexer::tokens::assignable_token::{AssignableToken, AssignableTokenErr};
-use crate::interpreter::lexer::tokens::name_token::{NameToken, NameTokenErr};
-use crate::interpreter::io::code_line::CodeLine;
-use crate::interpreter::lexer::errors::EmptyIteratorErr;
-use crate::interpreter::lexer::levenshtein_distance::{ArgumentsIgnoreSummarizeTransform, EmptyParenthesesExpand, PatternedLevenshteinDistance, PatternedLevenshteinString, QuoteSummarizeTransform};
-use crate::interpreter::lexer::TryParse;
+use crate::core::lexer::tokens::assignable_token::{AssignableToken, AssignableTokenErr};
+use crate::core::lexer::tokens::name_token::{NameToken, NameTokenErr};
+use crate::core::io::code_line::CodeLine;
+use crate::core::lexer::errors::EmptyIteratorErr;
+use crate::core::lexer::levenshtein_distance::{ArgumentsIgnoreSummarizeTransform, EmptyParenthesesExpand, PatternedLevenshteinDistance, PatternedLevenshteinString, QuoteSummarizeTransform};
+use crate::core::lexer::TryParse;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct MethodCallToken {

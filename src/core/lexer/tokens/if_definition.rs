@@ -4,16 +4,16 @@ use std::iter::Peekable;
 use std::slice::Iter;
 use std::str::FromStr;
 
-use crate::interpreter::constants::IF_KEYWORD;
-use crate::interpreter::constants::OPENING_SCOPE;
-use crate::interpreter::io::code_line::CodeLine;
-use crate::interpreter::lexer::errors::EmptyIteratorErr;
-use crate::interpreter::lexer::levenshtein_distance::{ArgumentsIgnoreSummarizeTransform, EmptyParenthesesExpand, PatternedLevenshteinDistance, PatternedLevenshteinString, QuoteSummarizeTransform};
-use crate::interpreter::lexer::scope::{Scope, ScopeError};
-use crate::interpreter::lexer::token::Token;
-use crate::interpreter::lexer::tokens::assignable_token::{AssignableToken, AssignableTokenErr};
-use crate::interpreter::lexer::tokens::scope_ending::ScopeEnding;
-use crate::interpreter::lexer::TryParse;
+use crate::core::constants::IF_KEYWORD;
+use crate::core::constants::OPENING_SCOPE;
+use crate::core::io::code_line::CodeLine;
+use crate::core::lexer::errors::EmptyIteratorErr;
+use crate::core::lexer::levenshtein_distance::{ArgumentsIgnoreSummarizeTransform, EmptyParenthesesExpand, PatternedLevenshteinDistance, PatternedLevenshteinString, QuoteSummarizeTransform};
+use crate::core::lexer::scope::{Scope, ScopeError};
+use crate::core::lexer::token::Token;
+use crate::core::lexer::tokens::assignable_token::{AssignableToken, AssignableTokenErr};
+use crate::core::lexer::tokens::scope_ending::ScopeEnding;
+use crate::core::lexer::TryParse;
 
 #[derive(Debug, PartialEq)]
 pub struct IfDefinition {

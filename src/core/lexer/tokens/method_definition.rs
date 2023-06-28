@@ -1,19 +1,19 @@
-use crate::interpreter::io::code_line::CodeLine;
-use crate::interpreter::lexer::scope::{Scope, ScopeError};
-use crate::interpreter::lexer::token::Token;
-use crate::interpreter::lexer::tokens::assignable_token::{AssignableToken, AssignableTokenErr};
-use crate::interpreter::lexer::tokens::name_token::{NameToken, NameTokenErr};
-use crate::interpreter::lexer::TryParse;
+use crate::core::io::code_line::CodeLine;
+use crate::core::lexer::scope::{Scope, ScopeError};
+use crate::core::lexer::token::Token;
+use crate::core::lexer::tokens::assignable_token::{AssignableToken, AssignableTokenErr};
+use crate::core::lexer::tokens::name_token::{NameToken, NameTokenErr};
+use crate::core::lexer::TryParse;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::iter::Peekable;
 use std::slice::Iter;
 use std::str::FromStr;
-use crate::interpreter::constants::FUNCTION_KEYWORD;
-use crate::interpreter::lexer::errors::EmptyIteratorErr;
-use crate::interpreter::lexer::tokens::scope_ending::ScopeEnding;
-use crate::interpreter::lexer::levenshtein_distance::PatternedLevenshteinDistance;
-use crate::interpreter::lexer::levenshtein_distance::{ArgumentsIgnoreSummarizeTransform, EmptyParenthesesExpand, PatternedLevenshteinString, QuoteSummarizeTransform};
+use crate::core::constants::FUNCTION_KEYWORD;
+use crate::core::lexer::errors::EmptyIteratorErr;
+use crate::core::lexer::tokens::scope_ending::ScopeEnding;
+use crate::core::lexer::levenshtein_distance::PatternedLevenshteinDistance;
+use crate::core::lexer::levenshtein_distance::{ArgumentsIgnoreSummarizeTransform, EmptyParenthesesExpand, PatternedLevenshteinString, QuoteSummarizeTransform};
 
 #[derive(Debug, PartialEq)]
 pub struct MethodDefinition {

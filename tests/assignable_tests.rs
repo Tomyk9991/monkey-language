@@ -1,13 +1,13 @@
 use std::str::FromStr;
-use monkey_language::interpreter::lexer::tokens::assignable_tokens::boolean_token::BooleanToken;
+use monkey_language::core::lexer::tokens::assignable_tokens::boolean_token::BooleanToken;
 
-use monkey_language::interpreter::lexer::tokens::assignable_tokens::double_token::DoubleToken;
-use monkey_language::interpreter::lexer::tokens::assignable_tokens::equation_parser::EquationToken;
-use monkey_language::interpreter::lexer::tokens::assignable_tokens::equation_parser::equation_token_options::ArithmeticEquationOptions;
-use monkey_language::interpreter::lexer::tokens::assignable_tokens::integer_token::IntegerToken;
-use monkey_language::interpreter::lexer::tokens::assignable_tokens::method_call_token::MethodCallToken;
-use monkey_language::interpreter::lexer::tokens::assignable_tokens::object_token::ObjectToken;
-use monkey_language::interpreter::lexer::tokens::assignable_tokens::string_token::StringToken;
+use monkey_language::core::lexer::tokens::assignable_tokens::double_token::DoubleToken;
+use monkey_language::core::lexer::tokens::assignable_tokens::equation_parser::EquationToken;
+use monkey_language::core::lexer::tokens::assignable_tokens::equation_parser::equation_token_options::ArithmeticEquationOptions;
+use monkey_language::core::lexer::tokens::assignable_tokens::integer_token::IntegerToken;
+use monkey_language::core::lexer::tokens::assignable_tokens::method_call_token::MethodCallToken;
+use monkey_language::core::lexer::tokens::assignable_tokens::object_token::ObjectToken;
+use monkey_language::core::lexer::tokens::assignable_tokens::string_token::StringToken;
 
 #[test]
 fn assignable_string() -> anyhow::Result<()> {
