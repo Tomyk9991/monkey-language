@@ -52,6 +52,12 @@ pub trait Normalizable {
 
 impl Normalizable for Vec<CodeLine> {
     fn normalize(&mut self) {
+        let opening_owned = OPENING_SCOPE.to_string();
+        let closing_owned = CLOSING_SCOPE.to_string();
+
+        let opening = opening_owned.as_str();
+        let closing = closing_owned.as_str();
+
         static INSERT_SPACE: [char; 7] = [';', '(', ')', ':', ',', '{', '}'];
 
         let mut separators = vec![";"];
@@ -73,12 +79,6 @@ impl Normalizable for Vec<CodeLine> {
 
             for separated_code_line in combined_code_line_split {
                 let mut code_line_string = separated_code_line.remove_whitespaces_between();
-
-                let opening_owned = OPENING_SCOPE.to_string();
-                let closing_owned = CLOSING_SCOPE.to_string();
-
-                let opening = opening_owned.as_str();
-                let closing = closing_owned.as_str();
 
                 code_line_string = code_line_string
                     .replace(&(String::from(" ") + opening), opening)

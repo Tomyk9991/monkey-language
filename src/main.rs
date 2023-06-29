@@ -1,4 +1,4 @@
-use crate::cli::program_variable::ProgramVariable;
+use crate::cli::program_variable::{ProgramVariable};
 use crate::core::io::monkey_file::MonkeyFile;
 use crate::core::lexer::tokenizer::Lexer;
 
@@ -8,8 +8,18 @@ mod utils;
 
 
 fn main() -> anyhow::Result<()> {
-    let main_file: ProgramVariable = ProgramVariable::try_from(vec!["i", "-i"])?;
-    let file: MonkeyFile = MonkeyFile::read(main_file.value)?;
+    let flags = vec![
+        (ProgramVariable::<false>::try_from(vec!["-h", "--help"]), || { println!("{}", cli::main_screen::help_screen()); })
+    ];
+
+    for (flag, action) in flags {
+        if let Ok(_) = flag {
+            action();
+        }
+    }
+
+    let main_file = ProgramVariable::<true>::try_from(vec!["-i", "--input"])?;
+    let file: MonkeyFile = MonkeyFile::read(main_file.get_value())?;
 
     let top_level_scope = Lexer::from(file).tokenize()?;
 
