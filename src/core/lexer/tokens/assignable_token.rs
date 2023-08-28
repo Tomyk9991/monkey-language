@@ -8,7 +8,7 @@ use crate::core::lexer::tokens::assignable_tokens::equation_parser::EquationToke
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::equation_token_options::{ArithmeticEquationOptions, BooleanEquationOptions};
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::expression::Expression;
 use crate::core::lexer::tokens::assignable_tokens::integer_token::IntegerToken;
-use crate::core::lexer::tokens::assignable_tokens::method_call_token::MethodCallToken;
+use crate::core::lexer::tokens::assignable_tokens::method_call_token::{MethodCallToken, MethodCallTokenErr};
 use crate::core::lexer::tokens::assignable_tokens::object_token::ObjectToken;
 use crate::core::lexer::tokens::assignable_tokens::string_token::{StringToken};
 use crate::core::lexer::tokens::name_token::NameToken;
@@ -47,8 +47,8 @@ impl Display for AssignableToken {
             AssignableToken::MethodCallToken(token) => format!("{}", token),
             AssignableToken::Variable(token) => format!("{}", token),
             AssignableToken::Object(token) => format!("{}", token),
-            AssignableToken::ArithmeticEquation(token) => format!("{}", token.value),
-            AssignableToken::BooleanEquation(token) => format!("{}", token.value),
+            AssignableToken::ArithmeticEquation(token) => format!("{}", token),
+            AssignableToken::BooleanEquation(token) => format!("{}", token),
         })
     }
 }
@@ -76,16 +76,27 @@ impl FromStr for AssignableToken {
             return Ok(AssignableToken::DoubleToken(double_token));
         } else if let Ok(boolean_token) = BooleanToken::from_str(line) {
             return Ok(AssignableToken::BooleanToken(boolean_token));
-        } else if let Ok(method_call_token) = MethodCallToken::from_str(line) {
-            return Ok(AssignableToken::MethodCallToken(method_call_token));
+        }
+
+        match MethodCallToken::from_str(line) {
+            Ok(method_call_token) => return Ok(AssignableToken::MethodCallToken(method_call_token)),
+            Err(err) => {
+                // this counts as a not recoverable error and should return immediately
+
+                if let MethodCallTokenErr::AssignableTokenErr(_) = err {
+                    return Err(AssignableTokenErr::PatternNotMatched { target_value: line.to_string() })
+                }
+            }
+        }
+
+        if let Ok(arithmetic_equation_token) = EquationToken::<ArithmeticEquationOptions>::from_str(line) {
+            return Ok(AssignableToken::ArithmeticEquation(arithmetic_equation_token));
+        } else if let Ok(boolean_equation_token) = EquationToken::<BooleanEquationOptions>::from_str(line) {
+            return Ok(AssignableToken::BooleanEquation(boolean_equation_token));
         } else if let Ok(variable_name) = NameToken::from_str(line, false) {
             return Ok(AssignableToken::Variable(variable_name));
         } else if let Ok(object_token) = ObjectToken::from_str(line) {
             return Ok(AssignableToken::Object(object_token));
-        } else if let Ok(arithmetic_equation_token) = EquationToken::<ArithmeticEquationOptions>::from_str(line) {
-            return Ok(AssignableToken::ArithmeticEquation(arithmetic_equation_token));
-        } else if let Ok(boolean_equation_token) = EquationToken::<BooleanEquationOptions>::from_str(line) {
-            return Ok(AssignableToken::BooleanEquation(boolean_equation_token));
         }
 
         Err(AssignableTokenErr::PatternNotMatched { target_value: line.to_string() })

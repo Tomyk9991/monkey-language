@@ -1,4 +1,5 @@
 variable = ((4 - 2 * 3 + 1) * -sqrt(3*3+4*4)) / 2;
+variable = ((true & true | true | true) & sqrt(false&true&false|true)) & false;
 
 if (hallo) {
     if_stack_variable = 5;
@@ -7,6 +8,7 @@ if (hallo) {
         nested_if_stack_variable = 13;
     }
 }
+
 
 fn hallo(): void {
 

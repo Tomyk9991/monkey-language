@@ -71,7 +71,7 @@ impl TryParse for IfDefinition {
     fn try_parse(code_lines_iterator: &mut Peekable<Iter<CodeLine>>) -> anyhow::Result<Self::Output, Self::Err> {
         let if_header = *code_lines_iterator
             .peek()
-            .ok_or_else(|| IfDefinitionErr::EmptyIterator(EmptyIteratorErr::default()))?;
+            .ok_or(IfDefinitionErr::EmptyIterator(EmptyIteratorErr))?;
 
         let split_alloc = if_header.split(vec![' ']);
         let split_ref = split_alloc.iter().map(|a| a.as_str()).collect::<Vec<_>>();

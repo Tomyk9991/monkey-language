@@ -5,6 +5,7 @@ use crate::core::io::code_line::{CodeLine, Normalizable};
 use crate::core::lexer::tokens::assignable_token::{AssignableToken, AssignableTokenErr};
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::equation_token_options::EquationTokenOptions;
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::expression::Expression;
+use crate::core::lexer::tokens::assignable_tokens::equation_parser::operator::Operator;
 use crate::core::lexer::tokens::name_token::NameTokenErr;
 
 pub mod expression;
@@ -30,7 +31,7 @@ pub enum Error {
     UndefinedSequence(Option<String>),
     FunctionNotFound,
     SourceEmpty,
-    NotAFloat(String),
+    TermNotParsable(String),
     ExpressionErr(expression::Error),
     ParenExpected,
     CannotParse
@@ -45,7 +46,7 @@ impl From<expression::Error> for Error {
 
 impl From<AssignableTokenErr> for Error {
     fn from(value: AssignableTokenErr) -> Self {
-        Error::NotAFloat(match value {
+        Error::TermNotParsable(match value {
             AssignableTokenErr::PatternNotMatched { target_value } => target_value
         })
     }
@@ -61,7 +62,7 @@ impl Display for Error {
             Error::PositionNotInRange(index) => format!("Index {index} out of range"),
             Error::ExpressionErr(err) => format!("{:?}", err),
             Error::ParenExpected => "Expected \")\"".to_string(),
-            Error::NotAFloat(v) => v.to_string(),
+            Error::TermNotParsable(v) => v.to_string(),
             Error::UndefinedSequence(value) => {
                 match value {
                     Some(value) => value.to_string(),
@@ -81,18 +82,30 @@ impl std::error::Error for Error {}
 impl<T: EquationTokenOptions> EquationToken<T> {
 
     pub fn from_str(string: &str) -> Result<Box<Expression>, Error> {
+        let operator_chars = vec![T::additive(), T::inverse_additive(), T::multiplicative(), T::inverse_multiplicative()]
+            .iter()
+            .filter_map(|&f| f)
+            .collect::<Vec<_>>();
+
+        let contains_corresponding_operator = string.chars().any(|char| operator_chars.contains(&char));
+
+        if !contains_corresponding_operator {
+            return Err(Error::CannotParse);
+        }
+
         let mut s: EquationToken<T> = EquationToken::new(string);
         let f = s.parse()?.clone();
         Ok(Box::new(f))
     }
 
     pub fn new(source_code: impl Into<String>) -> Self {
+        let s  =source_code.into();
         Self {
-            source_code: source_code.into(),
+            source_code: s,
             syntax_tree: Box::default(),
             pos: -1,
             ch: None,
-            _marker: PhantomData::default(),
+            _marker: PhantomData,
         }
     }
 
@@ -111,6 +124,10 @@ impl<T: EquationTokenOptions> EquationToken<T> {
     }
 
     fn eat(&mut self, char_to_eat: Option<char>) -> bool {
+        if char_to_eat.is_none() {
+            return false;
+        }
+
         while self.ch == Some(' ') {
             self.next_char();
         }
@@ -135,16 +152,22 @@ impl<T: EquationTokenOptions> EquationToken<T> {
     }
 
     fn parse_expression(&mut self) -> Result<Box<Expression>, Error> {
-        let x = self.parse_term()?;
+        let mut x = self.parse_term()?;
 
         loop {
             #[allow(clippy::if_same_then_else)]
             if self.eat(T::additive()) {
-                let _p = self.parse_term()?;
-                // x = T::add_operation(x, p)?;
+                let term = self.parse_term()?;
+                x.lhs = Some(x.clone());
+                x.operator = Operator::Add;
+                x.rhs = Some(term);
+                x.value = None;
             } else if self.eat(T::inverse_additive()) {
-                let _p = self.parse_term()?;
-                // x = T::inverse_add_operation(x, p)?;
+                let term = self.parse_term()?;
+                x.lhs = Some(x.clone());
+                x.operator = Operator::Sub;
+                x.rhs = Some(term);
+                x.value = None;
             } else {
                 return Ok(x);
             }
@@ -152,15 +175,22 @@ impl<T: EquationTokenOptions> EquationToken<T> {
     }
 
     fn parse_term(&mut self) -> Result<Box<Expression>, Error> {
-        let x = self.parse_factor()?;
+        let mut x = self.parse_factor()?;
         loop {
             #[allow(clippy::if_same_then_else)]
             if self.eat(T::multiplicative()) {
-                let _p = self.parse_term()?;
-                // x = T::mul_operation(x, p)?;
+                let term = self.parse_term()?;
+
+                x.lhs = Some(x.clone());
+                x.operator = Operator::Mul;
+                x.rhs = Some(term);
+                x.value = None;
             } else if self.eat(T::inverse_multiplicative()) {
-                let _p = self.parse_term()?;
-                // x = T::inverse_mul_operation(x, p)?;
+                let term = self.parse_term()?;
+                x.lhs = Some(x.clone());
+                x.operator = Operator::Div;
+                x.rhs = Some(term);
+                x.value = None;
             } else {
                 return Ok(x);
             }
@@ -196,9 +226,8 @@ impl<T: EquationTokenOptions> EquationToken<T> {
 
                 let sub_string: &str = &self.source_code[start_pos as usize..self.pos as usize];
                 let s = AssignableToken::from_str(sub_string)?;
-                x = Box::new(Expression::from(s));
+                x = Box::new(Expression::from(Some(s)));
             } else if (self.ch >= Some('A') && self.ch <= Some('Z')) || (self.ch >= Some('a') && self.ch <= Some('z')) {
-                // works for variables but not functions
                 let mut ident = 0;
 
                 let add_token = T::additive();
@@ -237,10 +266,10 @@ impl<T: EquationTokenOptions> EquationToken<T> {
                 temp.normalize();
 
                 let sub_string = temp[0].line.to_string();
-
                 let assignable_token = AssignableToken::from_str(sub_string.as_str())?;
 
-                x = Box::new(Expression::from(assignable_token));
+                let s = Expression::from(Some(assignable_token));
+                x = Box::new(s);
             } else {
                 return Err(Error::UndefinedSequence(self.ch.map(|a| a.to_string())));
             }

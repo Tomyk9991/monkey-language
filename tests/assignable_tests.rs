@@ -3,7 +3,7 @@ use monkey_language::core::lexer::tokens::assignable_tokens::boolean_token::Bool
 
 use monkey_language::core::lexer::tokens::assignable_tokens::double_token::DoubleToken;
 use monkey_language::core::lexer::tokens::assignable_tokens::equation_parser::EquationToken;
-use monkey_language::core::lexer::tokens::assignable_tokens::equation_parser::equation_token_options::ArithmeticEquationOptions;
+use monkey_language::core::lexer::tokens::assignable_tokens::equation_parser::equation_token_options::{ArithmeticEquationOptions, BooleanEquationOptions};
 use monkey_language::core::lexer::tokens::assignable_tokens::integer_token::IntegerToken;
 use monkey_language::core::lexer::tokens::assignable_tokens::method_call_token::MethodCallToken;
 use monkey_language::core::lexer::tokens::assignable_tokens::object_token::ObjectToken;
@@ -134,6 +134,7 @@ fn assignable_imaginary_fn_calls() -> anyhow::Result<()> {
     let values: Vec<(bool, String)> = vec![
         (true, "imaginary_fn1 ( )".to_string()),
         (true, "imaginary_fn2 ( )".to_string()),
+        (false, "imaginary_fn2 ( a * * b )".to_string()),
         (true, "imaginary_fn3 ( param1, param2 )".to_string()),
         (true, "imaginary_fn4 ( param1, imaginary_fn2 ( param2 ) )".to_string()),
         (false, "imaginary_fn5 (, param2 )".to_string()),
@@ -198,11 +199,20 @@ fn assignable_booleans() -> anyhow::Result<()> {
 #[test]
 fn assignable_arithmetic_equation() -> anyhow::Result<()> {
     let values: Vec<(bool, String)> = vec![
+        (true, "a*b".to_string()),
+        (false, "a**b".to_string()),
+        (false, "sqrt(b**c)".to_string()),
+        (false, "a*sqrt(b**c)".to_string()),
+        (true, "a+b*b".to_string()),
+        (true, "1--1".to_string()),
+        (true, "1*-2".to_string()),
+        (true, "-(-1+-3)".to_string()),
         (true, "((4 - (2*3) * 5 + 1) * -(3*3+4*4)) / 2".to_string()),
         (true, "((4 - (2*3) * 5 + 1) * -(3*3+4*4)) / 2".to_string()),
         (true, "((4 - (2*3) * 5 + 1) * -(3*3+4*4)) / 2".to_string()),
         (true, "((4 - (2*3) * 5 + 1) * -(3*3+4*4)) / 2".to_string()),
         (true, "((4 - (2*3) * 5 + 1) * -sqrt) / 2".to_string()),
+        (true, "((4 - 2 * 3 + 1) * -sqrt(3*3+4*4)) / 2".to_string()),
         (true, "((4 - 2*3 + 1) -sqrt(3*3+4*4)) / 2".to_string()),
         (true, "a(b(c(d(e*f)))))".to_string()),
         (false, "((4 - 2 * ) -sqrt(3*3+4*4)) / 2".to_string()),
@@ -214,6 +224,44 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
 
         match *expected_result {
             true => {
+                if let Ok(token) = &token {
+                    println!("{:#?}", token);
+                }
+                assert!(token.is_ok(), "{value}, {:?}", token);
+            }
+            false => assert!(token.is_err(), "{:?}", value)
+        }
+    }
+
+    Ok(())
+}
+
+#[test]
+fn assignable_boolean_equation() -> anyhow::Result<()> {
+    let values: Vec<(bool, String)> = vec![
+        (true, "a&b".to_string()),
+        (true, "a|b&b".to_string()),
+        (true, "a|b&b".to_string()),
+        (true, "((true | (true&false) & true | false) & |(false&false|true&true)) & true".to_string()),
+        (true, "((true | (true&false) & true | false) & |(false&false|true&true)) & true".to_string()),
+        (true, "((true | (true&false) & true | false) & |(false&false|true&true)) & true".to_string()),
+        (true, "((true | (true&false) & true | false) & |(false&false|true&true)) & true".to_string()),
+        (true, "((true | (true&false) & true | false) & |sqrt) & true".to_string()),
+        (true, "((true | true & false | false) & |sqrt(false&false|true&true)) & true".to_string()),
+        (true, "((true | true&false | false) |sqrt(false&false|true&true)) & true".to_string()),
+        (true, "a(b(c(d(e&f)))))".to_string()),
+        (false, "((true | true & ) |sqrt(false&false|true&true)) & true".to_string()),
+    ];
+
+    for (expected_result, value) in &values {
+        let token = EquationToken::<BooleanEquationOptions>::from_str(value);
+
+
+        match *expected_result {
+            true => {
+                if let Ok(token) = &token {
+                    println!("{}", token);
+                }
                 assert!(token.is_ok(), "{value}, {:?}", token);
             }
             false => assert!(token.is_err(), "{:?}", value)

@@ -70,7 +70,7 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> TryParse for VariableToken<A
     type Err = ParseVariableTokenErr;
 
     fn try_parse(code_lines_iterator: &mut Peekable<Iter<CodeLine>>) -> anyhow::Result<Self::Output, Self::Err> {
-        let code_line = *code_lines_iterator.peek().ok_or_else(|| ParseVariableTokenErr::EmptyIterator(EmptyIteratorErr::default()))?;
+        let code_line = *code_lines_iterator.peek().ok_or(ParseVariableTokenErr::EmptyIterator(EmptyIteratorErr))?;
         VariableToken::try_parse(code_line)
     }
 }

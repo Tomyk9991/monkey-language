@@ -74,7 +74,7 @@ impl TryParse for Scope {
 
     fn try_parse(code_lines_iterator: &mut Peekable<Iter<CodeLine>>) -> anyhow::Result<Self::Output, ScopeError> {
         let mut pattern_distances: Vec<(usize, Box<dyn Error>)> = vec![];
-        let code_line = *code_lines_iterator.peek().ok_or_else(|| ScopeError::EmptyIterator(EmptyIteratorErr::default()))?;
+        let code_line = *code_lines_iterator.peek().ok_or(ScopeError::EmptyIterator(EmptyIteratorErr))?;
 
         token_expand!(code_lines_iterator, pattern_distances,
             (VariableToken::<'=', ';'>, Variable,           true),

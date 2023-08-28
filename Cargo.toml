@@ -13,3 +13,5 @@ regex-split = "0.1.0"
 
 binary_search_tree = "0.2.2"
 lazy-regex = "2.5.0"
+colored = "2.0.0"
+clap = { version = "4.3.11", features = ["derive"]}

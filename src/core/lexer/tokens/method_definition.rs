@@ -81,7 +81,7 @@ impl TryParse for MethodDefinition {
     fn try_parse(code_lines_iterator: &mut Peekable<Iter<CodeLine>>) -> anyhow::Result<Self, MethodDefinitionErr> {
         let method_header = *code_lines_iterator
             .peek()
-            .ok_or_else(|| MethodDefinitionErr::EmptyIterator(EmptyIteratorErr::default()))?;
+            .ok_or(MethodDefinitionErr::EmptyIterator(EmptyIteratorErr))?;
 
         let split_alloc = method_header.split(vec![' ']);
         let split_ref = split_alloc.iter().map(|a| a.as_str()).collect::<Vec<_>>();
