@@ -26,22 +26,24 @@ impl Default for Expression {
 
 impl Debug for Expression {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let mut debug_struct_formatter = f.debug_struct("");
-
-        if let Some(lhs) = &self.lhs {
-            debug_struct_formatter.field("lhs", lhs);
-        }
-
+        let mut debug_struct_formatter = f.debug_struct("Expression");
+        
+        // if let Some(lhs) = &self.lhs {
+            debug_struct_formatter.field("lhs", &self.lhs);
+        // }
+        
         debug_struct_formatter.field("operator", &self.operator);
-
-        if let Some(rhs) = &self.rhs {
-            debug_struct_formatter.field("rhs", rhs);
-        }
-
-        if let Some(value) = &self.value {
-            debug_struct_formatter.field("value", value);
-        }
-
+        
+        // if let Some(rhs) = &self.rhs {
+            debug_struct_formatter.field("rhs", &self.rhs);
+        // }
+        
+        // if let Some(value) = &self.value {
+            debug_struct_formatter.field("value", &self.value);
+        // }
+        
+        debug_struct_formatter.field("positive", &self.positive);
+        
         debug_struct_formatter.finish()
     }
 }
