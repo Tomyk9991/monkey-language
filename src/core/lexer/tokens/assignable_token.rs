@@ -22,8 +22,8 @@ pub enum AssignableToken {
     MethodCallToken(MethodCallToken),
     Variable(NameToken),
     Object(ObjectToken),
-    ArithmeticEquation(Box<Expression>),
-    BooleanEquation(Box<Expression>),
+    ArithmeticEquation(Expression),
+    BooleanEquation(Expression),
 }
 
 #[derive(Debug)]

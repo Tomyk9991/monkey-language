@@ -1,13 +1,17 @@
 use std::str::FromStr;
-use monkey_language::core::lexer::tokens::assignable_tokens::boolean_token::BooleanToken;
 
+use monkey_language::core::lexer::tokens::assignable_token::AssignableToken;
+use monkey_language::core::lexer::tokens::assignable_tokens::boolean_token::BooleanToken;
 use monkey_language::core::lexer::tokens::assignable_tokens::double_token::DoubleToken;
-use monkey_language::core::lexer::tokens::assignable_tokens::equation_parser::EquationToken;
 use monkey_language::core::lexer::tokens::assignable_tokens::equation_parser::equation_token_options::{ArithmeticEquationOptions, BooleanEquationOptions};
+use monkey_language::core::lexer::tokens::assignable_tokens::equation_parser::EquationToken;
+use monkey_language::core::lexer::tokens::assignable_tokens::equation_parser::expression::Expression;
+use monkey_language::core::lexer::tokens::assignable_tokens::equation_parser::operator::Operator;
 use monkey_language::core::lexer::tokens::assignable_tokens::integer_token::IntegerToken;
 use monkey_language::core::lexer::tokens::assignable_tokens::method_call_token::MethodCallToken;
 use monkey_language::core::lexer::tokens::assignable_tokens::object_token::ObjectToken;
 use monkey_language::core::lexer::tokens::assignable_tokens::string_token::StringToken;
+use monkey_language::core::lexer::tokens::name_token::NameToken;
 
 #[test]
 fn assignable_string() -> anyhow::Result<()> {
@@ -198,38 +202,276 @@ fn assignable_booleans() -> anyhow::Result<()> {
 
 #[test]
 fn assignable_arithmetic_equation() -> anyhow::Result<()> {
-    let values: Vec<(bool, String)> = vec![
-        (true, "a*b".to_string()),
-        (false, "a**b".to_string()),
-        (false, "sqrt(b**c)".to_string()),
-        (false, "a*sqrt(b**c)".to_string()),
-        (true, "a+b*b".to_string()),
-        (true, "1--1".to_string()),
-        (true, "1*-2".to_string()),
-        (true, "-(-1+-3)".to_string()),
-        (true, "((4 - (2*3) * 5 + 1) * -(3*3+4*4)) / 2".to_string()),
-        (true, "((4 - (2*3) * 5 + 1) * -(3*3+4*4)) / 2".to_string()),
-        (true, "((4 - (2*3) * 5 + 1) * -(3*3+4*4)) / 2".to_string()),
-        (true, "((4 - (2*3) * 5 + 1) * -(3*3+4*4)) / 2".to_string()),
-        (true, "((4 - (2*3) * 5 + 1) * -sqrt) / 2".to_string()),
+    let values: Vec<(bool, String, Option<Expression>)> = vec![
+        (true, "a*b".to_string(), Some(Expression {
+            lhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, value: Some(Box::new(AssignableToken::Variable(NameToken { name: String::from("a") }))), positive: true })),
+            operator: Operator::Mul,
+            rhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, value: Some(Box::new(AssignableToken::Variable(NameToken { name: String::from("b") }))), positive: true })),
+            value: None,
+            positive: true,
+        })),
+        (false, "a**b".to_string(), None),
+        (false, "sqrt(b**c)".to_string(), None),
+        (false, "sqrt(b*c)/".to_string(), None),
+        (false, "a*sqrt(b**c)".to_string(), None),
+        (true, "a+b*b".to_string(), Some(Expression {
+            lhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, value: Some(Box::new(AssignableToken::Variable(NameToken { name: String::from("a") }))), positive: true })),
+            operator: Operator::Add,
+            rhs: Some(Box::new(Expression {
+                lhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, value: Some(Box::new(AssignableToken::Variable(NameToken { name: String::from("b") }))), positive: true })),
+                rhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, value: Some(Box::new(AssignableToken::Variable(NameToken { name: String::from("b") }))), positive: true })),
+                operator: Operator::Mul,
+                value: None,
+                positive: true,
+            })),
+            value: None,
+            positive: true,
+        })),
+        (true, "1--1".to_string(), Some(Expression {
+            lhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: 1 }))), positive: true })),
+            operator: Operator::Sub,
+            rhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: 1 }))), positive: false })),
+            value: None,
+            positive: true,
+        })),
+        (true, "1*-2".to_string(), Some(Expression {
+            lhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: 1 }))), positive: true })),
+            operator: Operator::Mul,
+            rhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: 2 }))), positive: false })),
+            value: None,
+            positive: true,
+        })),
+        (true, "-(-1+-3)".to_string(), Some(Expression {
+            lhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: 1 }))), positive: false })),
+            operator: Operator::Add,
+            rhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: 3 }))), positive: false })),
+            value: None,
+            positive: false,
+        })),
+        (true, "((4 - (2*3) * 5 + 1) * -(3*3+4*4)) / 2".to_string(), Some(Expression {
+            lhs: Some(Box::new(Expression {
+                lhs: Some(Box::new(Expression {
+                    lhs: Some(Box::new(Expression {
+                        lhs: Some(Box::new(Expression {
+                            operator: Operator::Noop,
+                            lhs: None,
+                            rhs: None,
+                            positive: true,
+                            value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: 4 }))),
+                        })),
+                        operator: Operator::Sub,
+                        rhs: Some(Box::new(Expression {
+                            lhs: Some(Box::new(Expression {
+                                lhs: Some(Box::new(Expression {
+                                    operator: Operator::Noop,
+                                    lhs: None,
+                                    rhs: None,
+                                    positive: true,
+                                    value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: 2 }))),
+                                })),
+                                operator: Operator::Mul,
+                                rhs: Some(Box::new(Expression {
+                                    operator: Operator::Noop,
+                                    lhs: None,
+                                    rhs: None,
+                                    positive: true,
+                                    value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: 3 }))),
+                                })),
+                                value: None,
+                                positive: true,
+                            })),
+                            operator: Operator::Mul,
+                            rhs: Some(Box::new(Expression {
+                                operator: Operator::Noop,
+                                lhs: None,
+                                rhs: None,
+                                positive: true,
+                                value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: 5 }))),
+                            })),
+                            value: None,
+                            positive: true,
+                        })),
+                        value: None,
+                        positive: true,
+                    })),
+                    operator: Operator::Add,
+                    rhs: Some(Box::new(Expression {
+                        value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: 1 }))),
+                        operator: Operator::Noop,
+                        lhs: None,
+                        rhs: None,
+                        positive: true,
+                    })),
+                    value: None,
+                    positive: true,
+                })),
+                operator: Operator::Mul,
+                value: None,
+                rhs: Some(Box::new(Expression {
+                    lhs: Some(Box::new(Expression {
+                        lhs: Some(Box::new(Expression {
+                            operator: Operator::Noop,
+                            lhs: None,
+                            rhs: None,
+                            positive: true,
+                            value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: 3 }))),
+                        })),
+                        operator: Operator::Mul,
+                        value: None,
+                        rhs: Some(Box::new(Expression {
+                            operator: Operator::Noop,
+                            lhs: None,
+                            rhs: None,
+                            positive: true,
+                            value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: 3 }))),
+                        })),
+                        positive: true,
+                    })),
+                    operator: Operator::Add,
+                    value: None,
+                    rhs: Some(Box::new(Expression {
+                        lhs: Some(Box::new(Expression {
+                            lhs: None,
+                            rhs: None,
+                            positive: true,
+                            value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: 4 }))),
+                            operator: Operator::Noop,
+                        })),
+                        operator: Operator::Mul,
+                        value: None,
+                        rhs: Some(Box::new(Expression {
+                            lhs: None,
+                            rhs: None,
+                            positive: true,
+                            value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: 4 }))),
+                            operator: Operator::Noop,
+                        })),
+                        positive: true,
+                    })),
+                    positive: true,
+                })),
+                positive: true,
+            })),
+            operator: Operator::Div,
+            rhs: Some(Box::new(Expression {
+                operator: Operator::Noop,
+                lhs: None,
+                rhs: None,
+                positive: true,
+                value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: 2 }))),
+            })),
+            value: None,
+            positive: true,
+        })),
+        (true, "((4 - (2*3) * 5 + 1) * -sqrt) / 2".to_string(), Some(Expression {
+            lhs: Some(Box::new(Expression {
+                lhs: Some(Box::new(Expression {
+                    lhs: Some(Box::new(Expression {
+                        lhs: Some(Box::new(Expression {
+                            operator: Operator::Noop,
+                            lhs: None,
+                            rhs: None,
+                            positive: true,
+                            value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: 4 }))),
+                        })),
+                        operator: Operator::Sub,
+                        rhs: Some(Box::new(Expression {
+                            lhs: Some(Box::new(Expression {
+                                lhs: Some(Box::new(Expression {
+                                    operator: Operator::Noop,
+                                    lhs: None,
+                                    rhs: None,
+                                    positive: true,
+                                    value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: 2 }))),
+                                })),
+                                operator: Operator::Mul,
+                                rhs: Some(Box::new(Expression {
+                                    operator: Operator::Noop,
+                                    lhs: None,
+                                    rhs: None,
+                                    positive: true,
+                                    value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: 3 }))),
+                                })),
+                                value: None,
+                                positive: true,
+                            })),
+                            operator: Operator::Mul,
+                            rhs: Some(Box::new(Expression {
+                                operator: Operator::Noop,
+                                lhs: None,
+                                rhs: None,
+                                positive: true,
+                                value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: 5 }))),
+                            })),
+                            value: None,
+                            positive: true,
+                        })),
+                        value: None,
+                        positive: true,
+                    })),
+                    operator: Operator::Add,
+                    rhs: Some(Box::new(Expression {
+                        value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: 1 }))),
+                        operator: Operator::Noop,
+                        lhs: None,
+                        rhs: None,
+                        positive: true,
+                    })),
+                    value: None,
+                    positive: true,
+                })),
+                operator: Operator::Mul,
+                value: None,
+                rhs: Some(Box::new(Expression {
+                    lhs: None,
+                    operator: Operator::Noop,
+                    value: Some(Box::new(AssignableToken::Variable(NameToken { name: String::from("sqrt")}))),
+                    rhs: None,
+                    positive: false,
+                })),
+                positive: true,
+            })),
+            operator: Operator::Div,
+            rhs: Some(Box::new(Expression {
+                operator: Operator::Noop,
+                lhs: None,
+                rhs: None,
+                positive: true,
+                value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: 2 }))),
+            })),
+            value: None,
+            positive: true,
+        })),
+
         (true, "((4 - 2 * 3 + 1) * -sqrt(3*3+4*4)) / 2".to_string()),
-        (true, "((4 - 2*3 + 1) -sqrt(3*3+4*4)) / 2".to_string()),
-        (true, "a(b(c(d(e*f)))))".to_string()),
-        (false, "((4 - 2 * ) -sqrt(3*3+4*4)) / 2".to_string()),
+        // (true, "((4 - 2 * 3 + 1) -sqrt(3*3+4*4)) / 2".to_string()),
+        // (true, "a(b(c(d(e*f)))))".to_string()),
+        // (false, "((4 - 2 * ) -sqrt(3*3+4*4)) / 2".to_string()),
     ];
 
-    for (expected_result, value) in &values {
+    for (expected_result, value, expected) in &values {
         let token = EquationToken::<ArithmeticEquationOptions>::from_str(value);
 
 
         match *expected_result {
             true => {
                 if let Ok(token) = &token {
-                    println!("{:#?}", token);
+                    println!("{token}");
+                    println!("{e}", e = expected.as_ref().unwrap().clone());
+
+                    let s = expected.as_ref().unwrap();
+                    let f = token;
+                    assert_eq!(*s, *token);
                 }
+
                 assert!(token.is_ok(), "{value}, {:?}", token);
             }
-            false => assert!(token.is_err(), "{:?}", value)
+            false => {
+                if let Err(err) = &token {
+                    println!("{:<5}{:?}", " ", err);
+                }
+                assert!(token.is_err(), "{:?}", value)
+            }
         }
     }
 

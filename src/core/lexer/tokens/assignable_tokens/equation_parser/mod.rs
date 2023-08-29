@@ -28,21 +28,14 @@ pub struct EquationToken<T: EquationTokenOptions> {
 #[allow(unused)]
 pub enum Error {
     PositionNotInRange(i32),
-    UndefinedSequence(Option<String>),
+    UndefinedSequence(String),
     FunctionNotFound,
     SourceEmpty,
     TermNotParsable(String),
-    ExpressionErr(expression::Error),
     ParenExpected,
     CannotParse
 }
 
-
-impl From<expression::Error> for Error {
-    fn from(value: expression::Error) -> Self {
-        Error::ExpressionErr(value)
-    }
-}
 
 impl From<AssignableTokenErr> for Error {
     fn from(value: AssignableTokenErr) -> Self {
@@ -53,22 +46,16 @@ impl From<AssignableTokenErr> for Error {
 }
 
 impl From<NameTokenErr> for Error {
-    fn from(value: NameTokenErr) -> Self { Error::UndefinedSequence(Some(value.to_string())) }
+    fn from(value: NameTokenErr) -> Self { Error::UndefinedSequence(value.to_string()) }
 }
 
 impl Display for Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", match self {
             Error::PositionNotInRange(index) => format!("Index {index} out of range"),
-            Error::ExpressionErr(err) => format!("{:?}", err),
             Error::ParenExpected => "Expected \")\"".to_string(),
             Error::TermNotParsable(v) => v.to_string(),
-            Error::UndefinedSequence(value) => {
-                match value {
-                    Some(value) => value.to_string(),
-                    None => "Undefined sequence".to_string()
-                }
-            },
+            Error::UndefinedSequence(value) => value.to_string(),
             Error::FunctionNotFound => "Not a function".to_string(),
             Error::SourceEmpty => "Source code is empty".to_string(),
             Error::CannotParse => "Cannot parse".to_string()
@@ -81,7 +68,7 @@ impl std::error::Error for Error {}
 #[allow(clippy::should_implement_trait)]
 impl<T: EquationTokenOptions> EquationToken<T> {
 
-    pub fn from_str(string: &str) -> Result<Box<Expression>, Error> {
+    pub fn from_str(string: &str) -> Result<Expression, Error> {
         let operator_chars = vec![T::additive(), T::inverse_additive(), T::multiplicative(), T::inverse_multiplicative()]
             .iter()
             .filter_map(|&f| f)
@@ -95,7 +82,7 @@ impl<T: EquationTokenOptions> EquationToken<T> {
 
         let mut s: EquationToken<T> = EquationToken::new(string);
         let f = s.parse()?.clone();
-        Ok(Box::new(f))
+        Ok(f)
     }
 
     pub fn new(source_code: impl Into<String>) -> Self {
@@ -107,15 +94,6 @@ impl<T: EquationTokenOptions> EquationToken<T> {
             ch: None,
             _marker: PhantomData,
         }
-    }
-
-    pub fn _evaluate(&mut self) -> Result<f64, Error> {
-        if self.source_code.is_empty() {
-            return Err(Error::SourceEmpty);
-        }
-
-        todo!();
-        // return Ok(self.parse()?.evaluate());
     }
 
     fn next_char(&mut self) {
@@ -226,7 +204,7 @@ impl<T: EquationTokenOptions> EquationToken<T> {
 
                 let sub_string: &str = &self.source_code[start_pos as usize..self.pos as usize];
                 let s = AssignableToken::from_str(sub_string)?;
-                x = Box::new(Expression::from(Some(s)));
+                x = Box::new(Expression::from(Some(Box::new(s))));
             } else if (self.ch >= Some('A') && self.ch <= Some('Z')) || (self.ch >= Some('a') && self.ch <= Some('z')) {
                 let mut ident = 0;
 
@@ -268,15 +246,29 @@ impl<T: EquationTokenOptions> EquationToken<T> {
                 let sub_string = temp[0].line.to_string();
                 let assignable_token = AssignableToken::from_str(sub_string.as_str())?;
 
-                let s = Expression::from(Some(assignable_token));
+                let s = Expression::from(Some(Box::new(assignable_token)));
                 x = Box::new(s);
             } else {
-                return Err(Error::UndefinedSequence(self.ch.map(|a| a.to_string())));
+                return self.undefined_or_empty();
             }
         } else {
-            return Err(Error::UndefinedSequence(self.ch.map(|a| a.to_string())));
+            return self.undefined_or_empty();
         }
 
         Ok(x)
+    }
+
+    fn undefined_or_empty(&self) -> Result<Box<Expression>, Error> {
+        let s = self.ch.map(|a| a.to_string());
+
+        return if let Some(character) = s {
+            Err(Error::UndefinedSequence(character))
+        } else {
+            if let Some(last_character) = self.source_code.chars().last() {
+                Err(Error::UndefinedSequence(last_character.to_string()))
+            } else {
+                Err(Error::SourceEmpty)
+            }
+        }
     }
 }
