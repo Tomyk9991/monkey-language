@@ -1,7 +1,8 @@
 #[derive(Debug)]
 pub enum ScopeType {
     Fn,
-    If
+    If,
+    Else,
 }
 
 #[derive(Default)]
@@ -26,8 +27,12 @@ impl Iterator for ScopeSplitterIterator {
             },
             1 => {
                 self.current += 1;
-                Some((vec![r"if\s*\(.*?\)\s*\{", r"if\s*\(.*?\)\s*\{.*?\}",], ScopeType::If))
+                Some((vec![r"if\s*\(.*?\)\s*\{", r"if\s*\(.*?\)\s*\{.*?\}"], ScopeType::If))
             },
+            2 => {
+                self.current += 1;
+                Some((vec![r"else\s*\{", r"else\s*\{.*?\}", r"\s*\}\s*else\s*\{"], ScopeType::Else))
+            }
             _ => None
         }
     }
@@ -46,6 +51,10 @@ impl Iterator for ScopeTypeIterator {
                 self.current += 1;
                 Some(("if ", ScopeType::If))
             },
+            2 => {
+                self.current += 1;
+                Some(("else", ScopeType::Else))
+            }
             _ => None
         }
     }

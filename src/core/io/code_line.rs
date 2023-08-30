@@ -3,9 +3,9 @@ use binary_search_tree::BinarySearchTree;
 use regex::Regex;
 use regex_split::RegexSplit;
 use std::ops::Range;
-use crate::core::constants::{IF_KEYWORD, OPENING_SCOPE};
-use crate::core::constants::{CLOSING_SCOPE, FUNCTION_KEYWORD};
-use crate::core::model::scope_type::{ScopeSplitterIterator, ScopeType};
+use crate::core::constants::OPENING_SCOPE;
+use crate::core::constants::CLOSING_SCOPE;
+use crate::core::model::scope_type::{ScopeSplitterIterator, ScopeType, ScopeTypeIterator};
 
 #[derive(Debug, Default, Clone)]
 pub struct CodeLine {
@@ -160,13 +160,14 @@ fn push_code_line_after_validated(vec: &mut Vec<CodeLine>, target: &str, actual_
     if target.is_empty() {
         return false;
     }
+    let scope_type_iterator = ScopeTypeIterator::default()
+        .map(|(scope_type_str, scope_type)| (scope_type_str.replace(' ', ""), scope_type))
+        .collect::<Vec<(String, ScopeType)>>();
 
-    if target.starts_with(FUNCTION_KEYWORD) && target.ends_with(OPENING_SCOPE) {
-        in_scope_state.push(ScopeType::Fn);
-    }
-
-    if target.starts_with(IF_KEYWORD) && target.ends_with(OPENING_SCOPE) {
-        in_scope_state.push(ScopeType::If);
+    for (scope_keyword, scope_type) in scope_type_iterator {
+        if target.starts_with(&scope_keyword) && target.ends_with(OPENING_SCOPE) {
+            in_scope_state.push(scope_type);
+        }
     }
 
     vec.push(CodeLine::new(

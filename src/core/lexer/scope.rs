@@ -88,6 +88,7 @@ impl TryParse for Scope {
 
         pattern_distances.sort_by(|(nearest_a, _), (nearest_b, _)| (*nearest_a).cmp(nearest_b));
 
+
         if let Some((nearest_pattern, err)) = pattern_distances.first() {
             code_lines_iterator.next();
 

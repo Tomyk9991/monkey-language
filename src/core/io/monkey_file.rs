@@ -22,6 +22,7 @@ impl MonkeyFile {
 
         let mut file: File = File::open(path)
             .context(format!("Can't find file: {:?}", path_buffer))?;
+
         let mut buffer = String::new();
 
         let size = file.read_to_string(&mut buffer)?;
@@ -40,7 +41,6 @@ impl MonkeyFile {
         let mut buffer: String = buffer.to_owned();
 
         buffer = buffer.replace("if(", "if (");
-
         let mut lines = Self::read_buffer(&buffer);
 
         let actual_lines = get_line_ranges(&buffer);
@@ -57,6 +57,7 @@ impl MonkeyFile {
             .for_each(|(mut line, number)| {
                 line.actual_line_number = number.clone();
             });
+
 
         Self {
             path: PathBuf::new(),
@@ -88,6 +89,7 @@ fn get_line_ranges(buffer: &str) -> Vec<Range<usize>> {
             start = Some(line_count);
         }
 
+
         if char == CLOSING_SCOPE && scope_stack.last().is_some() {
             if let Some(s) = start {
                 let range = s..line_count;
@@ -109,8 +111,7 @@ fn get_line_ranges(buffer: &str) -> Vec<Range<usize>> {
             let iter_clone = whole_file.clone(); // clone is fine here, its just an iterator
             let iter_len = iter_clone.count();
 
-            // check if current + lookahead is equal to one of the searching words
-            // in this case "fn " and "if "
+            // check if the whole file has still enough iterations to look ahead in lookup
             if iter_len < len {
                 continue;
             }

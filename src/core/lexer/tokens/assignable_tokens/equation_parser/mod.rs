@@ -263,12 +263,10 @@ impl<T: EquationTokenOptions> EquationToken<T> {
 
         return if let Some(character) = s {
             Err(Error::UndefinedSequence(character))
+        } else if let Some(last_character) = self.source_code.chars().last() {
+            Err(Error::UndefinedSequence(last_character.to_string()))
         } else {
-            if let Some(last_character) = self.source_code.chars().last() {
-                Err(Error::UndefinedSequence(last_character.to_string()))
-            } else {
-                Err(Error::SourceEmpty)
-            }
+            Err(Error::SourceEmpty)
         }
     }
 }

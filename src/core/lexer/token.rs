@@ -1,4 +1,4 @@
-use std::fmt::{Display, Formatter};
+use std::fmt::{Debug, Display, Formatter};
 use crate::core::lexer::tokens::scope_ending::ScopeEnding;
 use crate::core::lexer::tokens::method_definition::MethodDefinition;
 use crate::core::lexer::tokens::assignable_tokens::method_call_token::MethodCallToken;
@@ -42,3 +42,4 @@ impl Display for Token {
         })
     }
 }
+
