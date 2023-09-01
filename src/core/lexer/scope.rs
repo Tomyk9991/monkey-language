@@ -16,7 +16,6 @@ use crate::core::lexer::TryParse;
 pub struct Scope {
     pub tokens: Vec<Token>,
 }
-
 pub enum ScopeError {
     ParsingError { message: String },
     EmptyIterator(EmptyIteratorErr)
@@ -72,6 +71,10 @@ impl TryParse for Scope {
     type Output = Token;
     type Err = ScopeError;
 
+    /// Tries to parse the code lines into a scope using a peekable iterator and a greedy algorithm
+    /// # Returns
+    /// * Ok(Token) if the code lines iterator can be parsed into a scope
+    /// * Err(ScopeError) if the code lines iterator cannot be parsed into a scope
     fn try_parse(code_lines_iterator: &mut Peekable<Iter<CodeLine>>) -> anyhow::Result<Self::Output, ScopeError> {
         let mut pattern_distances: Vec<(usize, Box<dyn Error>)> = vec![];
         let code_line = *code_lines_iterator.peek().ok_or(ScopeError::EmptyIterator(EmptyIteratorErr))?;

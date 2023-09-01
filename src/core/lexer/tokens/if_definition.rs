@@ -15,6 +15,10 @@ use crate::core::lexer::tokens::assignable_token::{AssignableToken, AssignableTo
 use crate::core::lexer::tokens::scope_ending::ScopeEnding;
 use crate::core::lexer::TryParse;
 
+/// Token for if definition.
+/// # Pattern
+/// - `if (condition) {Body}`
+/// - `if (condition) {Body} else {Body}`
 #[derive(Debug, PartialEq)]
 pub struct IfDefinition {
     pub condition: AssignableToken,

@@ -15,6 +15,12 @@ impl From<MonkeyFile> for Lexer {
 }
 
 impl Lexer {
+    /// Tokenize the current file
+    /// # Returns
+    /// A `Scope` containing all the tokens
+    /// # Errors
+    /// - If the file is empty
+    /// - If the file contains an invalid token
     pub fn tokenize(&mut self) -> anyhow::Result<Scope> {
         let mut scope = Scope {
             tokens: vec![],

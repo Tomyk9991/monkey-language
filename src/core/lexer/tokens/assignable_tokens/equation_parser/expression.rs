@@ -87,6 +87,13 @@ impl Expression {
         }
     }
 
+    pub fn set(&mut self, lhs: Option<Box<Expression>>, operation: Operator, rhs: Option<Box<Expression>>, value: Option<Box<AssignableToken>>) {
+        self.lhs = lhs;
+        self.rhs = rhs;
+        self.operator = operation;
+        self.value = value;
+    }
+
     pub fn flip_value(&mut self) {
         if let Some(v) = &mut self.value {
             self.positive = !self.positive;

@@ -13,6 +13,7 @@ use crate::core::lexer::tokens::assignable_tokens::object_token::ObjectToken;
 use crate::core::lexer::tokens::assignable_tokens::string_token::{StringToken};
 use crate::core::lexer::tokens::name_token::NameToken;
 
+/// Token for assignable tokens. Numbers, strings, methodcalls, other variables, objects, and arithmetic / boolean equations.
 #[derive(Debug, PartialEq, Clone)]
 pub enum AssignableToken {
     String(StringToken),

@@ -11,6 +11,10 @@ use crate::core::lexer::tokens::assignable_token::{AssignableToken, AssignableTo
 use crate::core::lexer::tokens::name_token::{NameToken, NameTokenErr};
 use crate::core::lexer::TryParse;
 
+/// Token for a variable. Pattern is defined as: name <Assignment> assignment <Separator>
+/// # Examples
+/// - `name = assignment;`
+/// - `name: assignment,`
 #[derive(Debug, PartialEq, Clone)]
 pub struct VariableToken<const ASSIGNMENT: char, const SEPARATOR: char> {
     pub name_token: NameToken,

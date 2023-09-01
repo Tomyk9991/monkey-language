@@ -1,3 +1,5 @@
+
+/// ScopeType is an enum that represents the different types of scopes that can be found in the monkey language.
 #[derive(Debug)]
 pub enum ScopeType {
     Fn,
@@ -5,11 +7,13 @@ pub enum ScopeType {
     Else,
 }
 
+/// `ScopeSplitterIterator` is an iterator that returns a tuple of a vector of regexes and a ScopeType.
 #[derive(Default)]
 pub struct ScopeSplitterIterator {
     current: usize
 }
 
+/// `ScopeTypeIterator` is an iterator that returns a tuple of a string and a ScopeType.
 #[derive(Default)]
 pub struct ScopeTypeIterator {
     current: usize

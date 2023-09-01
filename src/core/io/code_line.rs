@@ -7,10 +7,13 @@ use crate::core::constants::OPENING_SCOPE;
 use crate::core::constants::CLOSING_SCOPE;
 use crate::core::model::scope_type::{ScopeSplitterIterator, ScopeType, ScopeTypeIterator};
 
+/// Represents a line of code
 #[derive(Debug, Default, Clone)]
 pub struct CodeLine {
     pub line: String,
+    /// The actual line number in the file
     pub actual_line_number: Range<usize>,
+    /// The virtual line number in increments of 1
     pub virtual_line_number: usize,
 }
 
@@ -35,6 +38,8 @@ impl CodeLine {
     }
 
     /// Splits the line with the provided chars
+    /// Examples:
+    ///
     pub fn split(&self, chars: Vec<char>) -> Vec<String> {
         self.line
             .split_inclusive(&chars[..])
@@ -45,12 +50,12 @@ impl CodeLine {
 }
 
 pub trait Normalizable {
-    /// Splits the given vec of Code lines into multiple code lines if any separator tokens is found and inserts spaces.
-    /// Spaces are inserted in front of special characters
     fn normalize(&mut self);
 }
 
 impl Normalizable for Vec<CodeLine> {
+    /// Splits the given vec of Code lines into multiple code lines if any separator tokens is found and inserts spaces.
+    /// Spaces are inserted in front of special characters like `;`, `(`, `)`, `:`, `,`, `{`, `}`.
     fn normalize(&mut self) {
         let opening_owned = OPENING_SCOPE.to_string();
         let closing_owned = CLOSING_SCOPE.to_string();
@@ -133,9 +138,22 @@ impl Normalizable for Vec<CodeLine> {
     }
 }
 
+/// Adds a `CodeLine` to the provided vector `vec` after validating and processing scope-related keywords.
+///
+/// # Arguments
+///
+/// * `vec` - Vector of CodeLines that will be updated.
+/// * `target` - A string that may contain code that starts or ends a scope.
+/// * `actual_line_number` - The range that includes line numbers of `target` in the original source file.
+/// * `line` - The current line number being processed.
+/// * `in_scope_state` - A vector that maintains a stack of the currently open scopes.
+///
+/// # Returns
+///
+/// `True` if `CodeLine` was added to `vec`, `false` if `target` was empty after trimming.
 fn push_code_line_after_validated(vec: &mut Vec<CodeLine>, target: &str, actual_line_number: &Range<usize>, line: &mut usize, in_scope_state: &mut Vec<ScopeType>) -> bool {
     let mut target = target.trim().to_string();
-    let mut current_scope = in_scope_state.last().is_some(); // gives a ref to the last element
+    let mut current_scope = in_scope_state.last().is_some();
 
     while current_scope {
         if target.starts_with(CLOSING_SCOPE) {

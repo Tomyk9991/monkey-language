@@ -5,6 +5,7 @@ use crate::core::lexer::tokens::assignable_tokens::method_call_token::MethodCall
 use crate::core::lexer::tokens::if_definition::IfDefinition;
 use crate::core::lexer::tokens::variable_token::VariableToken;
 
+/// A token is a piece of code that is used to represent atomic elements of a program.
 #[derive(Debug, PartialEq)]
 pub enum Token {
     Variable(VariableToken<'=', ';'>),
@@ -12,23 +13,6 @@ pub enum Token {
     MethodDefinition(MethodDefinition),
     ScopeClosing(ScopeEnding),
     IfDefinition(IfDefinition)
-}
-
-#[derive(Default)]
-pub struct TokenIterator {
-    current: usize
-}
-
-impl Iterator for TokenIterator {
-    type Item = Token;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.current > 4 {
-            return None;
-        }
-
-        None
-    }
 }
 
 impl Display for Token {

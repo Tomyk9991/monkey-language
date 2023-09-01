@@ -15,6 +15,7 @@ use crate::core::lexer::tokens::scope_ending::ScopeEnding;
 use crate::core::lexer::levenshtein_distance::PatternedLevenshteinDistance;
 use crate::core::lexer::levenshtein_distance::{ArgumentsIgnoreSummarizeTransform, EmptyParenthesesExpand, PatternedLevenshteinString, QuoteSummarizeTransform};
 
+/// Token for method definition. Pattern is `fn function_name(argument1, ..., argumentN): returnType { }`
 #[derive(Debug, PartialEq)]
 pub struct MethodDefinition {
     pub name: NameToken,

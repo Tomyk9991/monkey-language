@@ -136,16 +136,10 @@ impl<T: EquationTokenOptions> EquationToken<T> {
             #[allow(clippy::if_same_then_else)]
             if self.eat(T::additive()) {
                 let term = self.parse_term()?;
-                x.lhs = Some(x.clone());
-                x.operator = Operator::Add;
-                x.rhs = Some(term);
-                x.value = None;
+                x.set(Some(x.clone()), Operator::Add, Some(term), None);
             } else if self.eat(T::inverse_additive()) {
                 let term = self.parse_term()?;
-                x.lhs = Some(x.clone());
-                x.operator = Operator::Sub;
-                x.rhs = Some(term);
-                x.value = None;
+                x.set(Some(x.clone()), Operator::Sub, Some(term), None);
             } else {
                 return Ok(x);
             }
@@ -158,17 +152,10 @@ impl<T: EquationTokenOptions> EquationToken<T> {
             #[allow(clippy::if_same_then_else)]
             if self.eat(T::multiplicative()) {
                 let term = self.parse_term()?;
-
-                x.lhs = Some(x.clone());
-                x.operator = Operator::Mul;
-                x.rhs = Some(term);
-                x.value = None;
+                x.set(Some(x.clone()), Operator::Mul, Some(term), None);
             } else if self.eat(T::inverse_multiplicative()) {
                 let term = self.parse_term()?;
-                x.lhs = Some(x.clone());
-                x.operator = Operator::Div;
-                x.rhs = Some(term);
-                x.value = None;
+                x.set(Some(x.clone()), Operator::Div, Some(term), None);
             } else {
                 return Ok(x);
             }
