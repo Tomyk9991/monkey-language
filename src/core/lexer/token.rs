@@ -1,5 +1,5 @@
 use std::fmt::{Debug, Display, Formatter};
-use crate::core::code_generator::generator::{Generator, Stack};
+use crate::core::code_generator::generator::{Stack};
 use crate::core::code_generator::{Error, ToASM};
 use crate::core::lexer::tokens::scope_ending::ScopeEnding;
 use crate::core::lexer::tokens::method_definition::MethodDefinition;
@@ -18,18 +18,15 @@ pub enum Token {
 }
 
 impl ToASM for Token {
-    fn to_asm(&self, generator: &mut Stack) -> Result<String, Error> {
-        return match self {
-            Token::Variable(variable) => variable.to_asm(generator),
+    fn to_asm(&self, stack: &mut Stack) -> Result<String, Error> {
+        match self {
+            Token::Variable(variable) => variable.to_asm(stack),
             _ => Ok(String::new())
             // Token::MethodCall(_) => {}
             // Token::MethodDefinition(_) => {}
             // Token::ScopeClosing(_) => {}
             // Token::IfDefinition(_) => {}
-        };
-
-
-        return Ok(String::new());
+        }
     }
 }
 

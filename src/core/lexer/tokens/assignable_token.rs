@@ -1,6 +1,8 @@
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
+use crate::core::code_generator::generator::Stack;
+use crate::core::code_generator::ToASM;
 
 use crate::core::lexer::tokens::assignable_tokens::boolean_token::BooleanToken;
 use crate::core::lexer::tokens::assignable_tokens::double_token::DoubleToken;
@@ -62,6 +64,24 @@ impl Display for AssignableTokenErr {
             AssignableTokenErr::PatternNotMatched { target_value }
             => format!("Pattern not matched for: `{target_value}`\n\tAssignments are: string: \"String\", integer: 21, -125, double: -51.1512, 152.1521")
         })
+    }
+}
+
+impl ToASM for AssignableToken {
+    fn to_asm(&self, stack: &mut Stack) -> Result<String, crate::core::code_generator::Error> {
+        match &self {
+            AssignableToken::IntegerToken(token) => Ok(token.to_asm(stack)?),
+            AssignableToken::Variable(variable) => Ok(variable.to_asm(stack)?),
+            AssignableToken::ArithmeticEquation(expression) => Ok(expression.to_asm(stack)?),
+            token => Err(crate::core::code_generator::Error::TokenNotParsable { assignable_token: (*token).clone() })
+
+            // AssignableToken::String(_) => {}
+            // AssignableToken::DoubleToken(_) => {}
+            // AssignableToken::BooleanToken(_) => {}
+            // AssignableToken::MethodCallToken(_) => {}
+            // AssignableToken::Object(_) => {}
+            // AssignableToken::BooleanEquation(_) => {}
+        }
     }
 }
 

@@ -1,5 +1,6 @@
 use std::fmt::{Display, Formatter};
-use crate::core::code_generator::generator::{Generator, Stack};
+use crate::core::code_generator::generator::Stack;
+use crate::core::lexer::tokens::assignable_token::AssignableToken;
 
 pub mod generator;
 pub mod target_creator;
@@ -9,7 +10,8 @@ pub mod target_creator;
 #[derive(Debug)]
 pub enum Error {
     VariableAlreadyUsed { name: String },
-    UnresolvedReference { name: String }
+    UnresolvedReference { name: String },
+    TokenNotParsable { assignable_token: AssignableToken}
 }
 
 impl Display for Error {

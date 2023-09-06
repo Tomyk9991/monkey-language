@@ -2,7 +2,9 @@ use std::fmt::{Display, Formatter};
 use std::fs::File;
 use std::io::Write;
 use std::path::Path;
-use std::process::{Command, ExitStatus};
+use std::process::Command;
+
+use colored::Colorize;
 
 #[derive(Debug)]
 pub enum Error {
@@ -25,53 +27,46 @@ impl TargetCreator {
     pub fn compile_and_execute(&self, wsl: bool) -> i32 {
         println!("Compiling...");
 
-        let mut status: Option<ExitStatus> = None;
+        if let Ok(output) = Command::new("cmd").output() {
+            if !output.stderr.is_empty() {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                eprintln!("Error: \n{}", stderr);
 
-
-        let output = Command::new("cmd")
-            .output()
-            .expect("Failed to execute command");
-
-        if !output.stderr.is_empty() {
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            eprintln!("Error: \n{}", stderr);
-
-            return 1;
-        }
-
-
-        let output = if wsl {
-            Command::new("wsl")
-                .args(vec!["nasm", "-felf64", "main.asm", "&&", "ld", "-o", "main", "main.o", ";", "./main"])
-                .output()
-                .expect("Failed to execute command")
-        } else {
-            Command::new("nasm")
-                .args(vec!["-felf64", "main.asm", "&&", "ld", "-o", "main", "main.o", ";", "./main"])
-                .output()
-                .expect("Failed to execute command")
-        };
-
-        if !output.stdout.is_empty() {
-            let stdout = String::from_utf8_lossy(&output.stdout);
-            println!("{}", stdout);
-        }
-
-        status = Some(output.status);
-
-
-        if !output.stderr.is_empty() {
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            eprintln!("Error: \n{}", stderr);
-        }
-
-        if let Some(status) = status {
-            if let Some(code) = status.code() {
-                return code;
+                return 1;
             }
         }
 
-        return 1;
+
+        println!("{} `{}`...", "Running".green(), self.path_to_target_directory);
+        if let Ok(output) = if wsl {
+            Command::new("wsl").args(vec!["nasm", "-felf64", "main.asm", "&&", "ld", "-o", "main", "main.o", ";", "./main"])
+                .output()
+        } else {
+            Command::new("nasm").args(vec!["-felf64", "main.asm", "&&", "ld", "-o", "main", "main.o", ";", "./main"])
+                .output()
+        } {
+            if !output.stdout.is_empty() {
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                println!("{}", stdout);
+            }
+
+            let status = Some(output.status);
+
+
+            if !output.stderr.is_empty() {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                eprintln!("Error: \n{}", stderr);
+            }
+
+            if let Some(status) = status {
+                if let Some(code) = status.code() {
+                    return code;
+                }
+            }
+        }
+
+
+        1
     }
 }
 
@@ -86,7 +81,7 @@ impl TargetCreator {
     }
 
     pub fn path_to(&self, file_name: &str) -> String {
-        return format!("{}/{}", self.path_to_target_directory, file_name);
+        format!("{}/{}", self.path_to_target_directory, file_name)
     }
 }
 
@@ -103,6 +98,6 @@ impl TryFrom<&str> for TargetCreator {
             });
         }
 
-        return Err(Error::NotInDirectory);
+        Err(Error::NotInDirectory)
     }
 }

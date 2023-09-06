@@ -1,4 +1,6 @@
 use std::fmt::{Debug, Display, Formatter};
+use crate::core::code_generator::generator::Stack;
+use crate::core::code_generator::{Error, ToASM};
 use crate::core::lexer::tokens::assignable_token::AssignableToken;
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::operator::Operator;
 
@@ -28,19 +30,19 @@ impl Debug for Expression {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let mut debug_struct_formatter = f.debug_struct("Expression");
         
-        // if let Some(lhs) = &self.lhs {
+        if let Some(lhs) = &self.lhs {
             debug_struct_formatter.field("lhs", &self.lhs);
-        // }
+        }
         
         debug_struct_formatter.field("operator", &self.operator);
         
-        // if let Some(rhs) = &self.rhs {
+        if let Some(rhs) = &self.rhs {
             debug_struct_formatter.field("rhs", &self.rhs);
-        // }
+        }
         
-        // if let Some(value) = &self.value {
+        if let Some(value) = &self.value {
             debug_struct_formatter.field("value", &self.value);
-        // }
+        }
         
         debug_struct_formatter.field("positive", &self.positive);
         
@@ -72,6 +74,32 @@ impl From<Option<Box<AssignableToken>>> for Expression {
             value,
             ..Default::default()
         }
+    }
+}
+
+impl ToASM for Expression {
+    fn to_asm(&self, stack: &mut Stack) -> Result<String, Error> {
+        if let Some(value) = &self.value { // this means, no children are provided. this is the actual value
+            return value.to_asm(stack);
+        }
+
+        let mut target = String::new();
+        if let Some(rhs) = &self.rhs {
+            target.push_str(&rhs.to_asm(stack)?);
+        }
+
+        if let Some(lhs) = &self.lhs {
+            target.push_str(&lhs.to_asm(stack)?);
+        }
+
+
+        target.push_str(&stack.pop_stack("rax"));
+        target.push_str(&stack.pop_stack("rbx"));
+
+        target.push_str(&format!("{}\n", self.operator.to_asm(stack)?));
+        target.push_str(&stack.push_stack("rax"));
+
+        Ok(target)
     }
 }
 

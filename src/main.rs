@@ -1,4 +1,3 @@
-use std::process::{Command, ExitStatus};
 use clap::Parser;
 use crate::cli::program_args::ProgramArgs;
 use crate::core::code_generator::generator::Generator;
@@ -21,17 +20,17 @@ fn main() -> anyhow::Result<()> {
     println!("=>{:<12} Done lexing", " ");
     println!("{}", top_level_scope);
 
-    let source_code = r#"a = 5;"#;
+    let source_code = r#"a = ((8 + 5) * 3 + 1) / 20;"#;
     let basic_scope = Lexer::from(MonkeyFile::read_from_str(source_code))
         .tokenize()?;
-
-    // https://github.com/orosmatthew/hydrogen-cpp/blob/master/src/generation.hpp#L107
-    // https://github.com/orosmatthew/hydrogen-cpp/blob/master/src/parser.hpp
 
     let mut code_generator = Generator::from(basic_scope);
 
     let target_creator = TargetCreator::try_from(args.input.as_str())?;
-    // target_creator.write_to("main.asm", &code_generator.generate()?)?;
+    let asm_result = code_generator.generate()?;
+
+    println!("{asm_result}");
+    target_creator.write_to("main.asm", &asm_result)?;
 
     let s = std::env::current_dir()?;
 

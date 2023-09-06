@@ -3,8 +3,10 @@ use std::fmt::{Debug, Display, Formatter};
 use std::iter::Peekable;
 use std::slice::Iter;
 use std::str::FromStr;
+
 use anyhow::Context;
-use crate::core::code_generator::generator::{Generator, Stack};
+
+use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::ToASM;
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::errors::EmptyIteratorErr;
@@ -20,7 +22,7 @@ use crate::core::lexer::TryParse;
 #[derive(Debug, PartialEq, Clone)]
 pub struct VariableToken<const ASSIGNMENT: char, const SEPARATOR: char> {
     pub name_token: NameToken,
-    pub assignable: AssignableToken
+    pub assignable: AssignableToken,
 }
 
 impl<const ASSIGNMENT: char, const SEPARATOR: char> Display for VariableToken<ASSIGNMENT, SEPARATOR> {
@@ -34,10 +36,10 @@ pub enum ParseVariableTokenErr {
     PatternNotMatched { target_value: String },
     NameTokenErr(NameTokenErr),
     AssignableTokenErr(AssignableTokenErr),
-    EmptyIterator(EmptyIteratorErr)
+    EmptyIterator(EmptyIteratorErr),
 }
 
-impl Error for ParseVariableTokenErr { }
+impl Error for ParseVariableTokenErr {}
 
 impl From<NameTokenErr> for ParseVariableTokenErr {
     fn from(a: NameTokenErr) -> Self { ParseVariableTokenErr::NameTokenErr(a) }
@@ -63,7 +65,7 @@ impl From<AssignableTokenErr> for ParseVariableTokenErr {
 impl Display for ParseVariableTokenErr {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", match self {
-            ParseVariableTokenErr::PatternNotMatched { target_value} => format!("`{target_value}`\n\tThe pattern for a variable is defined as: name = assignment;"),
+            ParseVariableTokenErr::PatternNotMatched { target_value } => format!("`{target_value}`\n\tThe pattern for a variable is defined as: name = assignment;"),
             ParseVariableTokenErr::NameTokenErr(a) => a.to_string(),
             ParseVariableTokenErr::AssignableTokenErr(a) => a.to_string(),
             ParseVariableTokenErr::EmptyIterator(e) => e.to_string()
@@ -72,38 +74,19 @@ impl Display for ParseVariableTokenErr {
 }
 
 impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for VariableToken<ASSIGNMENT, SEPARATOR> {
-    fn to_asm(&self, generator: &mut Stack) -> Result<String, crate::core::code_generator::Error> {
+    fn to_asm(&self, stack: &mut Stack) -> Result<String, crate::core::code_generator::Error> {
         let mut target = String::new();
 
-        if generator.variables.contains_key(&self.name_token.name) {
+        if stack.variables.contains_key(&self.name_token.name) {
             return Err(crate::core::code_generator::Error::VariableAlreadyUsed { name: self.name_token.name.clone() });
         }
 
-        generator.variables.insert(self.name_token.name.clone(), generator.stack_position);
+        stack.variables.insert(self.name_token.name.clone(), stack.stack_position);
 
         target.push_str(&format!("    ; {}\n", self));
+        target.push_str(&self.assignable.to_asm(stack)?);
 
-        match &self.assignable {
-            AssignableToken::IntegerToken(token) => {
-                target.push_str(&format!("    mov rax, {}\n{}", token.value, generator.push_stack("rax")));
-            }
-            AssignableToken::Variable(variable) => {
-                if let Some(stack_location) = generator.variables.get(variable.name.as_str()) {
-                    target.push_str(&generator.push_stack(&format!("QWORD [rsp + {}]\n", (generator.stack_position - stack_location - 1) * 8)));
-                } else {
-                    return Err(crate::core::code_generator::Error::UnresolvedReference { name: variable.name.to_string() });
-                }
-            }
-            AssignableToken::String(_) => {}
-            AssignableToken::DoubleToken(_) => {}
-            AssignableToken::BooleanToken(_) => {}
-            AssignableToken::MethodCallToken(_) => {}
-            AssignableToken::Object(_) => {}
-            AssignableToken::ArithmeticEquation(_) => {}
-            AssignableToken::BooleanEquation(_) => {}
-        }
-
-        return Ok(target);
+        Ok(target)
     }
 }
 
@@ -133,7 +116,7 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> VariableToken<ASSIGNMENT, SE
                     name_token: NameToken::from_str(name, false)?,
                     assignable: AssignableToken::from_str(middle.join(" ").as_str()).context(code_line.line.clone())?,
                 })
-            },
+            }
             _ => Err(ParseVariableTokenErr::PatternNotMatched { target_value: code_line.line.to_string() })
         }
     }
@@ -152,7 +135,7 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> PatternedLevenshteinDistance
             PatternedLevenshteinString::match_to(
                 &code_line.line,
                 &variable_pattern,
-                vec![Box::new(QuoteSummarizeTransform), Box::new(MethodCallSummarizeTransform)]
+                vec![Box::new(QuoteSummarizeTransform), Box::new(MethodCallSummarizeTransform)],
             ),
             variable_pattern,
         )

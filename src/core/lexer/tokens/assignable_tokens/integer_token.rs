@@ -2,6 +2,8 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::num::{ParseFloatError, ParseIntError};
 use std::str::FromStr;
+use crate::core::code_generator::generator::Stack;
+use crate::core::code_generator::ToASM;
 
 #[derive(Default, Debug, Eq, PartialEq, Clone)]
 pub struct IntegerToken {
@@ -56,5 +58,11 @@ impl FromStr for IntegerToken {
         Ok(IntegerToken {
             value: s.parse::<i32>()?,
         })
+    }
+}
+
+impl ToASM for IntegerToken {
+    fn to_asm(&self, stack: &mut Stack) -> Result<String, crate::core::code_generator::Error> {
+        Ok(format!("    mov rax, {}\n{}", self.value, stack.push_stack("rax")))
     }
 }
