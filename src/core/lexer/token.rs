@@ -1,4 +1,6 @@
 use std::fmt::{Debug, Display, Formatter};
+use crate::core::code_generator::generator::{Generator, Stack};
+use crate::core::code_generator::{Error, ToASM};
 use crate::core::lexer::tokens::scope_ending::ScopeEnding;
 use crate::core::lexer::tokens::method_definition::MethodDefinition;
 use crate::core::lexer::tokens::assignable_tokens::method_call_token::MethodCallToken;
@@ -13,6 +15,22 @@ pub enum Token {
     MethodDefinition(MethodDefinition),
     ScopeClosing(ScopeEnding),
     IfDefinition(IfDefinition)
+}
+
+impl ToASM for Token {
+    fn to_asm(&self, generator: &mut Stack) -> Result<String, Error> {
+        return match self {
+            Token::Variable(variable) => variable.to_asm(generator),
+            _ => Ok(String::new())
+            // Token::MethodCall(_) => {}
+            // Token::MethodDefinition(_) => {}
+            // Token::ScopeClosing(_) => {}
+            // Token::IfDefinition(_) => {}
+        };
+
+
+        return Ok(String::new());
+    }
 }
 
 impl Display for Token {

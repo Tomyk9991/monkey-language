@@ -67,6 +67,15 @@ impl Debug for Scope {
     }
 }
 
+impl Display for Scope {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Scope: [\n{}]", self.tokens
+            .iter()
+            .map(|token| format!("\t{}\n", token)).collect::<String>())
+    }
+}
+
+
 impl TryParse for Scope {
     type Output = Token;
     type Err = ScopeError;

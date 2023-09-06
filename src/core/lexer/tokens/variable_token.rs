@@ -4,6 +4,8 @@ use std::iter::Peekable;
 use std::slice::Iter;
 use std::str::FromStr;
 use anyhow::Context;
+use crate::core::code_generator::generator::{Generator, Stack};
+use crate::core::code_generator::ToASM;
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::errors::EmptyIteratorErr;
 use crate::core::lexer::levenshtein_distance::{MethodCallSummarizeTransform, PatternedLevenshteinDistance, PatternedLevenshteinString, QuoteSummarizeTransform};
@@ -68,6 +70,43 @@ impl Display for ParseVariableTokenErr {
         })
     }
 }
+
+impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for VariableToken<ASSIGNMENT, SEPARATOR> {
+    fn to_asm(&self, generator: &mut Stack) -> Result<String, crate::core::code_generator::Error> {
+        let mut target = String::new();
+
+        if generator.variables.contains_key(&self.name_token.name) {
+            return Err(crate::core::code_generator::Error::VariableAlreadyUsed { name: self.name_token.name.clone() });
+        }
+
+        generator.variables.insert(self.name_token.name.clone(), generator.stack_position);
+
+        target.push_str(&format!("    ; {}\n", self));
+
+        match &self.assignable {
+            AssignableToken::IntegerToken(token) => {
+                target.push_str(&format!("    mov rax, {}\n{}", token.value, generator.push_stack("rax")));
+            }
+            AssignableToken::Variable(variable) => {
+                if let Some(stack_location) = generator.variables.get(variable.name.as_str()) {
+                    target.push_str(&generator.push_stack(&format!("QWORD [rsp + {}]\n", (generator.stack_position - stack_location - 1) * 8)));
+                } else {
+                    return Err(crate::core::code_generator::Error::UnresolvedReference { name: variable.name.to_string() });
+                }
+            }
+            AssignableToken::String(_) => {}
+            AssignableToken::DoubleToken(_) => {}
+            AssignableToken::BooleanToken(_) => {}
+            AssignableToken::MethodCallToken(_) => {}
+            AssignableToken::Object(_) => {}
+            AssignableToken::ArithmeticEquation(_) => {}
+            AssignableToken::BooleanEquation(_) => {}
+        }
+
+        return Ok(target);
+    }
+}
+
 
 impl<const ASSIGNMENT: char, const SEPARATOR: char> TryParse for VariableToken<ASSIGNMENT, SEPARATOR> {
     type Output = VariableToken<ASSIGNMENT, SEPARATOR>;
