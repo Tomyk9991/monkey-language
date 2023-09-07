@@ -20,7 +20,7 @@ fn main() -> anyhow::Result<()> {
     println!("=>{:<12} Done lexing", " ");
     println!("{}", top_level_scope);
 
-    let source_code = r#"a = ((8 + 5) * 3 + 1) / 20;"#;
+    let source_code = r#"b = 4 * 8; a = ((8 + b) * 3 + 1) / 20;"#;
     let basic_scope = Lexer::from(MonkeyFile::read_from_str(source_code))
         .tokenize()?;
 

@@ -2,7 +2,7 @@ use crate::core::io::code_line::CodeLine;
 
 static IGNORED_LEVENSHTEIN_CASE: &str = "LEVENSHTEIN_IGNORE";
 
-// https://i.imgur.com/AI56ag7.png
+/// https://i.imgur.com/AI56ag7.png
 ///```rust
 /// let value1 = "kitten".to_string();
 /// let value2 = "sitting".to_string();

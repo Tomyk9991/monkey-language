@@ -31,17 +31,17 @@ impl Debug for Expression {
         let mut debug_struct_formatter = f.debug_struct("Expression");
         
         if let Some(lhs) = &self.lhs {
-            debug_struct_formatter.field("lhs", &self.lhs);
+            debug_struct_formatter.field("lhs", lhs);
         }
         
         debug_struct_formatter.field("operator", &self.operator);
         
         if let Some(rhs) = &self.rhs {
-            debug_struct_formatter.field("rhs", &self.rhs);
+            debug_struct_formatter.field("rhs", rhs);
         }
         
         if let Some(value) = &self.value {
-            debug_struct_formatter.field("value", &self.value);
+            debug_struct_formatter.field("value", value);
         }
         
         debug_struct_formatter.field("positive", &self.positive);

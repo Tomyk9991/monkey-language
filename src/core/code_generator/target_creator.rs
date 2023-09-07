@@ -79,10 +79,6 @@ impl TargetCreator {
         let mut file = File::create(format!("{}/{}", self.path_to_target_directory, file_name))?;
         return file.write_all(content.as_bytes());
     }
-
-    pub fn path_to(&self, file_name: &str) -> String {
-        format!("{}/{}", self.path_to_target_directory, file_name)
-    }
 }
 
 impl TryFrom<&str> for TargetCreator {

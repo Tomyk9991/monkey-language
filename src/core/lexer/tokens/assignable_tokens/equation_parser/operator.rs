@@ -21,11 +21,11 @@ impl Display for Operator {
 impl ToASM for Operator {
     fn to_asm(&self, _: &mut Stack) -> Result<String, Error> {
         Ok(match self {
-            Operator::Noop => format!("    noop"),
-            Operator::Add => format!("    add rax, rbx"),
-            Operator::Sub => format!("    sub rax, rbx"),
-            Operator::Mul => format!("    mul rbx"),
-            Operator::Div => format!("    div rbx"),
+            Operator::Noop =>"    noop".to_string(),
+            Operator::Add => "    add rax, rbx".to_string(),
+            Operator::Sub => "    sub rax, rbx".to_string(),
+            Operator::Mul => "    mul rbx".to_string(),
+            Operator::Div => "    div rbx".to_string(),
         })
     }
 }
