@@ -3,6 +3,8 @@ use std::fmt::{Display, Formatter};
 use std::iter::Peekable;
 use std::slice::Iter;
 use std::str::FromStr;
+use crate::core::code_generator::ToASM;
+use crate::core::code_generator::generator::Stack;
 
 use crate::core::constants::{ELSE_KEYWORD, CLOSING_SCOPE, IF_KEYWORD};
 use crate::core::constants::OPENING_SCOPE;
@@ -146,6 +148,28 @@ impl TryParse for IfDefinition {
         Err(IfDefinitionErr::PatternNotMatched {
             target_value: if_header.line.to_string()
         })
+    }
+}
+
+
+impl ToASM for IfDefinition {
+    fn to_asm(&self, stack: &mut Stack) -> Result<String, crate::core::code_generator::Error> {
+        let mut target = String::new();
+
+        target.push_str(&self.condition.to_asm(stack)?);
+        target.push_str(&stack.pop_stack("rax"));
+
+        let label = stack.create_label();
+
+        target.push_str(&format!("    ;{} == 0\n", self.condition));
+        target.push_str("    test rax, rax\n");
+        target.push_str(&format!("    jz {}\n", label));
+
+        target.push_str(&stack.generate_scope(&self.if_stack)?);
+
+        target.push_str(&format!("{}: ;{}\n", label, self));
+
+        return Ok(target);
     }
 }
 

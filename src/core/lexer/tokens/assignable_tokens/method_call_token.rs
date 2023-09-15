@@ -1,14 +1,16 @@
 use std::cmp::Ordering;
-use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::iter::Peekable;
 use std::slice::Iter;
 use std::str::FromStr;
+use crate::core::code_generator::generator::Stack;
+use crate::core::code_generator::ToASM;
 use crate::core::lexer::tokens::assignable_token::{AssignableToken, AssignableTokenErr};
 use crate::core::lexer::tokens::name_token::{NameToken, NameTokenErr};
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::errors::EmptyIteratorErr;
 use crate::core::lexer::levenshtein_distance::{ArgumentsIgnoreSummarizeTransform, EmptyParenthesesExpand, PatternedLevenshteinDistance, PatternedLevenshteinString, QuoteSummarizeTransform};
+use crate::core::lexer::token::Token;
 use crate::core::lexer::TryParse;
 
 #[derive(Debug, PartialEq, Clone)]
@@ -36,7 +38,7 @@ pub enum MethodCallTokenErr {
     EmptyIterator(EmptyIteratorErr)
 }
 
-impl Error for MethodCallTokenErr {}
+impl std::error::Error for MethodCallTokenErr {}
 
 impl From<NameTokenErr> for MethodCallTokenErr {
     fn from(value: NameTokenErr) -> Self { MethodCallTokenErr::NameTokenErr(value) }
@@ -124,6 +126,33 @@ impl MethodCallToken {
         } else {
             Err(MethodCallTokenErr::PatternNotMatched { target_value: code_line.line.to_string() })
         }
+    }
+}
+
+impl ToASM for MethodCallToken {
+    fn to_asm(&self, stack: &mut Stack) -> Result<String, crate::core::code_generator::Error> {
+        // TODO finish properly. For Now just a method "exit" is supported to early return
+        if self.name.name == "exit" {
+            let mut result = String::new();
+
+            result.push_str(&format!("    ; Exit call wird aufgerufen\n"));
+
+            let parsed_argument = &format!("{}", &self.arguments[0].to_asm(stack)?);
+            result.push_str(parsed_argument);
+            result.push_str(&stack.pop_stack("rax"));
+
+            result.push_str(&format!("    ; {}\n", self));
+            result.push_str(&stack.push_stack("rax"));
+            result.push_str("    mov rax, 60\n");
+            result.push_str(&stack.pop_stack("rdi"));
+            result.push_str("    syscall\n");
+
+            return Ok(result);
+        }
+
+
+        let method_call_token = Token::MethodCall(self.clone());
+        return Err(crate::core::code_generator::Error::NotImplemented { token: format!("{}", method_call_token) });
     }
 }
 

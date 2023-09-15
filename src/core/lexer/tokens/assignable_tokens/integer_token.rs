@@ -63,6 +63,6 @@ impl FromStr for IntegerToken {
 
 impl ToASM for IntegerToken {
     fn to_asm(&self, stack: &mut Stack) -> Result<String, crate::core::code_generator::Error> {
-        Ok(format!("    mov rax, {}\n{}", self.value, stack.push_stack("rax")))
+        Ok(format!("    ; {}\n    mov rax, {}\n{}", self, self.value, stack.push_stack("rax")))
     }
 }

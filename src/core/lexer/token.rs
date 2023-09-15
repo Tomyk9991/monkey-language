@@ -21,8 +21,9 @@ impl ToASM for Token {
     fn to_asm(&self, stack: &mut Stack) -> Result<String, Error> {
         match self {
             Token::Variable(variable) => variable.to_asm(stack),
-            _ => Ok(String::new())
-            // Token::MethodCall(_) => {}
+            Token::MethodCall(method_call_token) => method_call_token.to_asm(stack),
+            Token::IfDefinition(if_definition) => if_definition.to_asm(stack),
+            rest => Err(Error::NotImplemented { token: format!("{}", rest) }),
             // Token::MethodDefinition(_) => {}
             // Token::ScopeClosing(_) => {}
             // Token::IfDefinition(_) => {}

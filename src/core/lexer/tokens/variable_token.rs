@@ -6,7 +6,7 @@ use std::str::FromStr;
 
 use anyhow::Context;
 
-use crate::core::code_generator::generator::Stack;
+use crate::core::code_generator::generator::{Stack, StackLocation};
 use crate::core::code_generator::ToASM;
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::errors::EmptyIteratorErr;
@@ -77,11 +77,11 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for VariableToken<ASSI
     fn to_asm(&self, stack: &mut Stack) -> Result<String, crate::core::code_generator::Error> {
         let mut target = String::new();
 
-        if stack.variables.contains_key(&self.name_token.name) {
+        if stack.variables.iter().filter(|&variable| variable.name.name == self.name_token.name).count() > 0 {
             return Err(crate::core::code_generator::Error::VariableAlreadyUsed { name: self.name_token.name.clone() });
         }
 
-        stack.variables.insert(self.name_token.name.clone(), stack.stack_position);
+        stack.variables.push(StackLocation { position: stack.stack_position, name: self.name_token.clone() });
 
         target.push_str(&format!("    ; {}\n", self));
         target.push_str(&self.assignable.to_asm(stack)?);

@@ -83,19 +83,26 @@ impl ToASM for Expression {
             return value.to_asm(stack);
         }
 
+        let mut comment = String::new();
+
         let mut target = String::new();
         if let Some(rhs) = &self.rhs {
             target.push_str(&rhs.to_asm(stack)?);
+            comment.push_str(&format!("{} ", rhs));
         }
+
+        comment.push_str(&format!("{} ", self.operator));
 
         if let Some(lhs) = &self.lhs {
             target.push_str(&lhs.to_asm(stack)?);
+            comment.push_str(&format!("{}", lhs));
         }
 
 
         target.push_str(&stack.pop_stack("rax"));
         target.push_str(&stack.pop_stack("rbx"));
 
+        target.push_str(&format!("    ; {}\n", comment));
         target.push_str(&format!("{}\n", self.operator.to_asm(stack)?));
         target.push_str(&stack.push_stack("rax"));
 

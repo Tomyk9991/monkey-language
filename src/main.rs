@@ -12,15 +12,30 @@ mod utils;
 fn main() -> anyhow::Result<()> {
     let args = ProgramArgs::parse();
 
-    let main_file = args.input.clone();
-    let file: MonkeyFile = MonkeyFile::read(main_file)?;
+    // let main_file = args.input.clone();
+    // let file: MonkeyFile = MonkeyFile::read(main_file)?;
+    //
+    // let top_level_scope = Lexer::from(file).tokenize()?;
 
-    let top_level_scope = Lexer::from(file).tokenize()?;
+    // println!("=>{:<12} Done lexing", " ");
+    // println!("{}", top_level_scope);
 
-    println!("=>{:<12} Done lexing", " ");
-    println!("{}", top_level_scope);
+    let source_code = r#"b = 32;
+    a = b * 0;
 
-    let source_code = r#"b = 4 * 8; a = ((8 + b) * 3 + 1) / 20;"#;
+    if (a) {
+        b1 = 5;
+        b2 = 5;
+        b3 = 5;
+        b4 = 5;
+
+        exit(a);
+    } else {
+        exit(b);
+    }
+
+    exit(13);
+    "#;
     let basic_scope = Lexer::from(MonkeyFile::read_from_str(source_code))
         .tokenize()?;
 
@@ -29,7 +44,6 @@ fn main() -> anyhow::Result<()> {
     let target_creator = TargetCreator::try_from(args.input.as_str())?;
     let asm_result = code_generator.generate()?;
 
-    println!("{asm_result}");
     target_creator.write_to("main.asm", &asm_result)?;
 
     let s = std::env::current_dir()?;

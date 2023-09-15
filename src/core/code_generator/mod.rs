@@ -11,16 +11,17 @@ pub mod target_creator;
 pub enum Error {
     VariableAlreadyUsed { name: String },
     UnresolvedReference { name: String },
-    TokenNotParsable { assignable_token: AssignableToken}
+    TokenNotParsable { assignable_token: AssignableToken},
+    NotImplemented { token: String, }
 }
 
-impl Display for Error {
+impl<'a> Display for Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?}", self)
     }
 }
 
-impl std::error::Error for Error {
+impl<'a> std::error::Error for Error {
 
 }
 
