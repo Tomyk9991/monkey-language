@@ -24,17 +24,10 @@ fn main() -> anyhow::Result<()> {
     a = b * 0;
 
     if (a) {
-        b1 = 5;
-        b2 = 5;
-        b3 = 5;
-        b4 = 5;
-
         exit(a);
     } else {
         exit(b);
     }
-
-    exit(13);
     "#;
     let basic_scope = Lexer::from(MonkeyFile::read_from_str(source_code))
         .tokenize()?;

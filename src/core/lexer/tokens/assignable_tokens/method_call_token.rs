@@ -135,8 +135,6 @@ impl ToASM for MethodCallToken {
         if self.name.name == "exit" {
             let mut result = String::new();
 
-            result.push_str(&format!("    ; Exit call wird aufgerufen\n"));
-
             let parsed_argument = &format!("{}", &self.arguments[0].to_asm(stack)?);
             result.push_str(parsed_argument);
             result.push_str(&stack.pop_stack("rax"));

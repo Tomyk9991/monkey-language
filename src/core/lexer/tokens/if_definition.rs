@@ -159,16 +159,29 @@ impl ToASM for IfDefinition {
         target.push_str(&self.condition.to_asm(stack)?);
         target.push_str(&stack.pop_stack("rax"));
 
-        let label = stack.create_label();
+        let continue_label = stack.create_label();
 
-        target.push_str(&format!("    ;{} == 0\n", self.condition));
+        target.push_str(&format!("    ;is {} != 0\n", self.condition));
         target.push_str("    test rax, rax\n");
-        target.push_str(&format!("    jz {}\n", label));
 
+
+        target.push_str(&format!("    jz {}\n", continue_label));
+
+
+        target.push_str("    ; if branch\n");
         target.push_str(&stack.generate_scope(&self.if_stack)?);
+        target.push_str(&format!("    jmp {}\n", continue_label));
 
-        target.push_str(&format!("{}: ;{}\n", label, self));
 
+        if let Some(else_stack) = &self.else_stack {
+            let else_label = stack.create_label();
+            target.push_str(&format!("{}:\n", else_label));
+            target.push_str(&format!("    ;else branch \"{}\"\n", self));
+            target.push_str(&stack.generate_scope(else_stack)?);
+        }
+
+        target.push_str(&format!("{}:\n", continue_label));
+        target.push_str(&format!("    ; Continue after \"{}\"", self));
         return Ok(target);
     }
 }
