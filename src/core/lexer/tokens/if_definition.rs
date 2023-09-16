@@ -156,33 +156,39 @@ impl ToASM for IfDefinition {
     fn to_asm(&self, stack: &mut Stack) -> Result<String, crate::core::code_generator::Error> {
         let mut target = String::new();
 
+        target.push_str(&format!("    ; if condition ({})\n", self.condition));
         target.push_str(&self.condition.to_asm(stack)?);
         target.push_str(&stack.pop_stack("rax"));
 
         let continue_label = stack.create_label();
+        let else_label = stack.create_label();
 
-        target.push_str(&format!("    ;is {} != 0\n", self.condition));
+        let jump_label: &str = if self.else_stack.is_some() {
+            &else_label
+        } else {
+            &continue_label
+        };
+
+        target.push_str(&format!("    ; if {} > 0 => run if stack: \n", self.condition));
         target.push_str("    test rax, rax\n");
 
 
-        target.push_str(&format!("    jz {}\n", continue_label));
+        target.push_str(&format!("    jz {}\n", jump_label));
 
 
         target.push_str("    ; if branch\n");
         target.push_str(&stack.generate_scope(&self.if_stack)?);
-        target.push_str(&format!("    jmp {}\n", continue_label)); // breaking stuff. idk
-        // error code 11???? without else branch stuff working
+        target.push_str(&format!("    jmp {}\n", continue_label));
 
 
         if let Some(else_stack) = &self.else_stack {
-            let else_label = stack.create_label();
             target.push_str(&format!("{}:\n", else_label));
-            target.push_str(&format!("    ;else branch \"{}\"\n", self));
+            target.push_str(&format!("    ; else branch \"{}\"\n", self));
             target.push_str(&stack.generate_scope(else_stack)?);
         }
 
         target.push_str(&format!("{}:\n", continue_label));
-        target.push_str(&format!("    ; Continue after \"{}\"", self));
+        target.push_str(&format!("    ; Continue after \"{}\"\n", self));
         return Ok(target);
     }
 }

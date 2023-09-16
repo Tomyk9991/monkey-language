@@ -96,7 +96,7 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for VariableToken<ASSI
 
         stack.variables.push(StackLocation { position: stack.stack_position, name: self.name_token.clone() });
 
-        target.push_str(&format!("    ; {}\n", self));
+        target.push_str(&format!("    ; Pushing onto stack: {}\n", self));
         target.push_str(&self.assignable.to_asm(stack)?);
 
         Ok(target)
