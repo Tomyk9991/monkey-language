@@ -20,14 +20,13 @@ fn main() -> anyhow::Result<()> {
     // println!("=>{:<12} Done lexing", " ");
     // println!("{}", top_level_scope);
 
-    let source_code = r#"b = 32;
-    a = b * 0;
-
-    if (a) {
-        exit(a);
-    } else {
-        exit(b);
-    }
+    let source_code = r#"a = 3;
+    a = 8;
+    b = 13;
+    a = 9;
+    b = 13;
+    a = 56;
+    exit(a);
     "#;
     let basic_scope = Lexer::from(MonkeyFile::read_from_str(source_code))
         .tokenize()?;

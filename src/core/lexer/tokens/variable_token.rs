@@ -77,9 +77,22 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for VariableToken<ASSI
     fn to_asm(&self, stack: &mut Stack) -> Result<String, crate::core::code_generator::Error> {
         let mut target = String::new();
 
-        if stack.variables.iter().filter(|&variable| variable.name.name == self.name_token.name).count() > 0 {
-            return Err(crate::core::code_generator::Error::VariableAlreadyUsed { name: self.name_token.name.clone() });
+        let mut i = 0;
+        while i < stack.variables.len() {
+            if stack.variables[i].name.name == self.name_token.name {
+                target.push_str(&format!("    ; Re-assign {}\n", self));
+                target.push_str(&self.assignable.to_asm(stack)?);
+                target.push_str(&stack.pop_stack("rax"));
+                target.push_str(&format!("    mov QWORD [rsp + {}], rax\n", (stack.stack_position - stack.variables[i].position - 1) * 8));
+
+                return Ok(target);
+            }
+            i += 1;
         }
+
+        // if stack.variables.iter().filter(|&variable| variable.name.name == self.name_token.name).count() > 0 {
+        //     return Err(crate::core::code_generator::Error::VariableAlreadyUsed { name: self.name_token.name.clone() });
+        // }
 
         stack.variables.push(StackLocation { position: stack.stack_position, name: self.name_token.clone() });
 

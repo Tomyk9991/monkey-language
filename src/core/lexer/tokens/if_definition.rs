@@ -170,7 +170,8 @@ impl ToASM for IfDefinition {
 
         target.push_str("    ; if branch\n");
         target.push_str(&stack.generate_scope(&self.if_stack)?);
-        target.push_str(&format!("    jmp {}\n", continue_label));
+        target.push_str(&format!("    jmp {}\n", continue_label)); // breaking stuff. idk
+        // error code 11???? without else branch stuff working
 
 
         if let Some(else_stack) = &self.else_stack {

@@ -92,7 +92,6 @@ impl Generator {
         }
 
 
-
         if let Some(last) = self.top_level_scope.tokens.last() {
             if let Token::MethodCall(method_call_token) = last {
                 if method_call_token.name.name == "exit" {
