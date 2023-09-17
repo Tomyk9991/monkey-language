@@ -4,6 +4,7 @@ use std::iter::Peekable;
 use std::slice::Iter;
 use std::str::FromStr;
 use crate::core::code_generator::generator::Stack;
+use crate::core::code_generator::target_os::TargetOS;
 use crate::core::code_generator::ToASM;
 use crate::core::lexer::tokens::assignable_token::{AssignableToken, AssignableTokenErr};
 use crate::core::lexer::tokens::name_token::{NameToken, NameTokenErr};
@@ -130,27 +131,37 @@ impl MethodCallToken {
 }
 
 impl ToASM for MethodCallToken {
-    fn to_asm(&self, stack: &mut Stack) -> Result<String, crate::core::code_generator::Error> {
+    fn to_asm(&self, stack: &mut Stack, target_os: &TargetOS) -> Result<String, crate::core::code_generator::Error> {
         // TODO finish properly. For Now just a method "exit" is supported to early return
         if self.name.name == "exit" {
             let mut result = String::new();
 
-            let parsed_argument = &format!("{}", &self.arguments[0].to_asm(stack)?);
+            let parsed_argument = &self.arguments[0].to_asm(stack, target_os)?.to_string();
             result.push_str(parsed_argument);
             result.push_str(&stack.pop_stack("rax"));
-
             result.push_str(&format!("    ; {}\n", self));
+
             result.push_str(&stack.push_stack("rax"));
-            result.push_str("    mov rax, 60\n");
-            result.push_str(&stack.pop_stack("rdi"));
-            result.push_str("    syscall\n");
+
+
+            match target_os {
+                TargetOS::WindowsSubsystemLinux | TargetOS::Linux => {
+                    result.push_str("    mov rax, 60\n");
+                    result.push_str(&stack.pop_stack("rdi"));
+                    result.push_str("    syscall\n");
+                }
+                TargetOS::Windows => {
+                    result.push_str("    mov rcx, rax\n");
+                    result.push_str("    call ExitProcess\n");
+                }
+            }
 
             return Ok(result);
         }
 
 
         let method_call_token = Token::MethodCall(self.clone());
-        return Err(crate::core::code_generator::Error::NotImplemented { token: format!("{}", method_call_token) });
+        Err(crate::core::code_generator::Error::NotImplemented { token: format!("{}", method_call_token) })
     }
 }
 

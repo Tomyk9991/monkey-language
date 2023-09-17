@@ -2,6 +2,7 @@ use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
 use crate::core::code_generator::generator::Stack;
+use crate::core::code_generator::target_os::TargetOS;
 use crate::core::code_generator::ToASM;
 
 use crate::core::lexer::tokens::assignable_tokens::boolean_token::BooleanToken;
@@ -68,11 +69,11 @@ impl Display for AssignableTokenErr {
 }
 
 impl ToASM for AssignableToken {
-    fn to_asm(&self, stack: &mut Stack) -> Result<String, crate::core::code_generator::Error> {
+    fn to_asm(&self, stack: &mut Stack, target_os: &TargetOS) -> Result<String, crate::core::code_generator::Error> {
         match &self {
-            AssignableToken::IntegerToken(token) => Ok(token.to_asm(stack)?),
-            AssignableToken::Variable(variable) => Ok(variable.to_asm(stack)?),
-            AssignableToken::ArithmeticEquation(expression) => Ok(expression.to_asm(stack)?),
+            AssignableToken::IntegerToken(token) => Ok(token.to_asm(stack, target_os)?),
+            AssignableToken::Variable(variable) => Ok(variable.to_asm(stack, target_os)?),
+            AssignableToken::ArithmeticEquation(expression) => Ok(expression.to_asm(stack, target_os)?),
             token => Err(crate::core::code_generator::Error::TokenNotParsable { assignable_token: (*token).clone() })
 
             // AssignableToken::String(_) => {}

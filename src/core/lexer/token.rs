@@ -1,6 +1,7 @@
 use std::fmt::{Debug, Display, Formatter};
 use crate::core::code_generator::generator::{Stack};
 use crate::core::code_generator::{Error, ToASM};
+use crate::core::code_generator::target_os::TargetOS;
 use crate::core::lexer::tokens::scope_ending::ScopeEnding;
 use crate::core::lexer::tokens::method_definition::MethodDefinition;
 use crate::core::lexer::tokens::assignable_tokens::method_call_token::MethodCallToken;
@@ -18,11 +19,11 @@ pub enum Token {
 }
 
 impl ToASM for Token {
-    fn to_asm(&self, stack: &mut Stack) -> Result<String, Error> {
+    fn to_asm(&self, stack: &mut Stack, target_os: &TargetOS) -> Result<String, Error> {
         match self {
-            Token::Variable(variable) => variable.to_asm(stack),
-            Token::MethodCall(method_call_token) => method_call_token.to_asm(stack),
-            Token::IfDefinition(if_definition) => if_definition.to_asm(stack),
+            Token::Variable(variable) => variable.to_asm(stack, target_os),
+            Token::MethodCall(method_call_token) => method_call_token.to_asm(stack, target_os),
+            Token::IfDefinition(if_definition) => if_definition.to_asm(stack, target_os),
             rest => Err(Error::NotImplemented { token: format!("{}", rest) }),
             // Token::MethodDefinition(_) => {}
             // Token::ScopeClosing(_) => {}

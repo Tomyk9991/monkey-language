@@ -2,9 +2,8 @@ use std::fmt::{Display, Formatter};
 use std::fs::File;
 use std::io::Write;
 use std::path::Path;
-use std::process::Command;
+use crate::core::code_generator::target_os::TargetOS;
 
-use colored::Colorize;
 
 #[derive(Debug)]
 pub enum Error {
@@ -24,50 +23,13 @@ pub struct TargetCreator {
 }
 
 impl TargetCreator {
-    pub fn compile_and_execute(&self, wsl: bool) -> i32 {
-        println!("Compiling...");
-
-        if let Ok(output) = Command::new("cmd").output() {
-            if !output.stderr.is_empty() {
-                let stderr = String::from_utf8_lossy(&output.stderr);
-                eprintln!("Error: \n{}", stderr);
-
-                return 1;
-            }
-        }
-
-
-        println!("{} `{}`...", "Running".green(), self.path_to_target_directory);
-        if let Ok(output) = if wsl {
-            Command::new("wsl").args(vec!["nasm", "-felf64", "main.asm", "&&", "ld", "-o", "main", "main.o", ";", "./main"])
-                .output()
-        } else {
-            Command::new("nasm").args(vec!["-felf64", "main.asm", "&&", "ld", "-o", "main", "main.o", ";", "./main"])
-                .output()
-        } {
-            if !output.stdout.is_empty() {
-                let stdout = String::from_utf8_lossy(&output.stdout);
-                println!("{}", stdout);
-            }
-
-            let status = Some(output.status);
-
-
-            if !output.stderr.is_empty() {
-                let stderr = String::from_utf8_lossy(&output.stderr);
-                eprintln!("Error: \n{}", stderr);
-            }
-
-            if let Some(status) = status {
-                if let Some(code) = status.code() {
-                    return code;
-                }
-            }
-        }
-
-
-        1
+    pub fn compile_and_execute(&self, target_os: TargetOS) -> i32 {
+        target_os.compile_and_execute(self)
     }
+}
+
+pub trait CompileAndExecute {
+    fn compile_and_execute(&self, target_creator: &TargetCreator) -> i32;
 }
 
 impl TargetCreator {

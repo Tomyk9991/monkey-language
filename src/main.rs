@@ -1,6 +1,6 @@
 use clap::Parser;
 use crate::cli::program_args::ProgramArgs;
-use crate::core::code_generator::generator::Generator;
+use crate::core::code_generator::generator::{SourceCodeGenerator};
 use crate::core::code_generator::target_creator::TargetCreator;
 use crate::core::io::monkey_file::MonkeyFile;
 use crate::core::lexer::tokenizer::Lexer;
@@ -12,15 +12,14 @@ mod utils;
 fn main() -> anyhow::Result<()> {
     let args = ProgramArgs::parse();
 
-    // let main_file = args.input.clone();
-    // let file: MonkeyFile = MonkeyFile::read(main_file)?;
-    //
-    // let top_level_scope = Lexer::from(file).tokenize()?;
+    let main_file = args.input.clone();
+    let file: MonkeyFile = MonkeyFile::read(main_file)?;
 
-    // println!("=>{:<12} Done lexing", " ");
-    // println!("{}", top_level_scope);
+    let top_level_scope = Lexer::from(file).tokenize()?;
 
-    let source_code = r#"a = 0;
+    println!("{}", top_level_scope);
+
+    let source_code = r#"a = 10;
     if (a) {
         a = 1;
 
@@ -43,7 +42,7 @@ fn main() -> anyhow::Result<()> {
     let basic_scope = Lexer::from(MonkeyFile::read_from_str(source_code))
         .tokenize()?;
 
-    let mut code_generator = Generator::from(basic_scope);
+    let mut code_generator = SourceCodeGenerator::from((basic_scope, args.target_os.clone()));
 
     let target_creator = TargetCreator::try_from(args.input.as_str())?;
     let asm_result = code_generator.generate()?;
@@ -53,7 +52,7 @@ fn main() -> anyhow::Result<()> {
     let s = std::env::current_dir()?;
 
     std::env::set_current_dir(target_creator.path_to_target_directory.as_str())?;
-    let status = target_creator.compile_and_execute(args.wsl);
+    let status = target_creator.compile_and_execute(args.target_os);
     std::env::set_current_dir(s)?;
 
     println!("Process finished with exit code {}", status);

@@ -1,6 +1,7 @@
 use std::fmt::{Debug, Display, Formatter};
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::{Error, ToASM};
+use crate::core::code_generator::target_os::TargetOS;
 use crate::core::lexer::tokens::assignable_token::AssignableToken;
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::operator::Operator;
 
@@ -78,23 +79,23 @@ impl From<Option<Box<AssignableToken>>> for Expression {
 }
 
 impl ToASM for Expression {
-    fn to_asm(&self, stack: &mut Stack) -> Result<String, Error> {
+    fn to_asm(&self, stack: &mut Stack, target_os: &TargetOS) -> Result<String, Error> {
         if let Some(value) = &self.value { // this means, no children are provided. this is the actual value
-            return value.to_asm(stack);
+            return value.to_asm(stack, target_os);
         }
 
         let mut comment = String::new();
 
         let mut target = String::new();
         if let Some(rhs) = &self.rhs {
-            target.push_str(&rhs.to_asm(stack)?);
+            target.push_str(&rhs.to_asm(stack, target_os)?);
             comment.push_str(&format!("{} ", rhs));
         }
 
         comment.push_str(&format!("{} ", self.operator));
 
         if let Some(lhs) = &self.lhs {
-            target.push_str(&lhs.to_asm(stack)?);
+            target.push_str(&lhs.to_asm(stack, target_os)?);
             comment.push_str(&format!("{}", lhs));
         }
 
@@ -103,7 +104,7 @@ impl ToASM for Expression {
         target.push_str(&stack.pop_stack("rbx"));
 
         target.push_str(&format!("    ; {}\n", comment));
-        target.push_str(&format!("{}\n", self.operator.to_asm(stack)?));
+        target.push_str(&format!("{}\n", self.operator.to_asm(stack, target_os)?));
         target.push_str(&stack.push_stack("rax"));
 
         Ok(target)

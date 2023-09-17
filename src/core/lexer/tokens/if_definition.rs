@@ -5,6 +5,7 @@ use std::slice::Iter;
 use std::str::FromStr;
 use crate::core::code_generator::ToASM;
 use crate::core::code_generator::generator::Stack;
+use crate::core::code_generator::target_os::TargetOS;
 
 use crate::core::constants::{ELSE_KEYWORD, CLOSING_SCOPE, IF_KEYWORD};
 use crate::core::constants::OPENING_SCOPE;
@@ -153,11 +154,11 @@ impl TryParse for IfDefinition {
 
 
 impl ToASM for IfDefinition {
-    fn to_asm(&self, stack: &mut Stack) -> Result<String, crate::core::code_generator::Error> {
+    fn to_asm(&self, stack: &mut Stack, target_os: &TargetOS) -> Result<String, crate::core::code_generator::Error> {
         let mut target = String::new();
 
         target.push_str(&format!("    ; if condition ({})\n", self.condition));
-        target.push_str(&self.condition.to_asm(stack)?);
+        target.push_str(&self.condition.to_asm(stack, target_os)?);
         target.push_str(&stack.pop_stack("rax"));
 
         let continue_label = stack.create_label();
@@ -177,19 +178,19 @@ impl ToASM for IfDefinition {
 
 
         target.push_str("    ; if branch\n");
-        target.push_str(&stack.generate_scope(&self.if_stack)?);
+        target.push_str(&stack.generate_scope(&self.if_stack, target_os)?);
         target.push_str(&format!("    jmp {}\n", continue_label));
 
 
         if let Some(else_stack) = &self.else_stack {
             target.push_str(&format!("{}:\n", else_label));
             target.push_str(&format!("    ; else branch \"{}\"\n", self));
-            target.push_str(&stack.generate_scope(else_stack)?);
+            target.push_str(&stack.generate_scope(else_stack, target_os)?);
         }
 
         target.push_str(&format!("{}:\n", continue_label));
         target.push_str(&format!("    ; Continue after \"{}\"\n", self));
-        return Ok(target);
+        Ok(target)
     }
 }
 
