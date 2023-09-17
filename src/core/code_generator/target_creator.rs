@@ -43,16 +43,16 @@ impl TargetCreator {
     }
 }
 
-impl TryFrom<&str> for TargetCreator {
+impl TryFrom<(&str, &TargetOS)> for TargetCreator {
     type Error = Error;
 
     /// Creates a `TargetCreator` instance from the main file in the same directory
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
+    fn try_from((value, target_os): (&str, &TargetOS)) -> Result<Self, Self::Error> {
         let path = Path::new(value);
 
         if let Some(parent_path) = path.parent() {
             return Ok(TargetCreator {
-                path_to_target_directory: parent_path.display().to_string() + "/target"
+                path_to_target_directory: parent_path.display().to_string() + "/target/" + &format!("{:?}", target_os)
             });
         }
 

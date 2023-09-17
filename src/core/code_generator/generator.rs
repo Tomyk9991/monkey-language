@@ -75,13 +75,13 @@ impl Stack {
     }
 }
 
-pub struct SourceCodeGenerator {
+pub struct ASMGenerator {
     top_level_scope: Scope,
     pub stack: Stack,
     target_os: TargetOS,
 }
 
-impl SourceCodeGenerator {
+impl ASMGenerator {
     pub fn generate(&mut self) -> Result<String, Error> {
         let mut result = String::new();
         result += &format!("; This assembly is targeted for the {} Operating System\n", self.target_os);
@@ -123,9 +123,9 @@ impl SourceCodeGenerator {
     }
 }
 
-impl From<(Scope, TargetOS)> for SourceCodeGenerator {
+impl From<(Scope, TargetOS)> for ASMGenerator {
     fn from(value: (Scope, TargetOS)) -> Self {
-        SourceCodeGenerator {
+        ASMGenerator {
             top_level_scope: value.0,
             stack: Stack {
                 stack_position: 0,
