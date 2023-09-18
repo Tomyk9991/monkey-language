@@ -11,7 +11,7 @@ pub mod target_os;
 
 #[derive(Debug)]
 pub enum Error {
-    _VariableAlreadyUsed { name: String },
+    VariableAlreadyUsed { name: String },
     UnresolvedReference { name: String },
     TokenNotParsable { assignable_token: AssignableToken},
     NotImplemented { token: String, }

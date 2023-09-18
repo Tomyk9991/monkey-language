@@ -12,10 +12,10 @@ use monkey_language::core::lexer::tokens::variable_token::VariableToken;
 #[test]
 fn variable_test() -> anyhow::Result<()> {
     let variables = r#"
-    fisch = "Fische sind wirklich wirklich toll";
-    hallo = "Thomas"; tschuess = 5;
-    mallo = "";
-    michi =
+    let fisch = "Fische sind wirklich wirklich toll";
+    let hallo = "Thomas"; let tschuess = 5;
+    let mallo = "";
+    let michi =
     {
         guten: "Hallo",
         ciau: 5,
@@ -32,42 +32,50 @@ fn variable_test() -> anyhow::Result<()> {
         Token::Variable(
             VariableToken {
                 name_token: NameToken { name: "fisch".to_string() },
+                define: true,
                 assignable: AssignableToken::String(StringToken { value: "\"Fische sind wirklich wirklich toll\"".to_string() }),
             }
         ),
         Token::Variable(
             VariableToken {
                 name_token: NameToken { name: "hallo".to_string() },
+                define: true,
                 assignable: AssignableToken::String(StringToken { value: "\"Thomas\"".to_string() }),
             }
         ),
         Token::Variable(
             VariableToken {
                 name_token: NameToken { name: "tschuess".to_string() },
+                define: true,
                 assignable: AssignableToken::IntegerToken(IntegerToken { value: 5 }),
             }
         ),
         Token::Variable(
             VariableToken {
                 name_token: NameToken { name: "mallo".to_string() },
+                define: true,
                 assignable: AssignableToken::String(StringToken { value: "\"\"".to_string() }),
             }
         ),
         Token::Variable(
             VariableToken {
                 name_token: NameToken { name: "michi".to_string() },
+                define: true,
                 assignable: AssignableToken::Object(ObjectToken {
                     variables: vec![
                         VariableToken {
                             name_token: NameToken { name: "guten".to_string() },
+                            define: false,
                             assignable: AssignableToken::String(StringToken { value: "\"Hallo\"".to_string() }),
                         },
                         VariableToken {
                             name_token: NameToken { name: "ciau".to_string() },
+                            define: false,
                             assignable: AssignableToken::IntegerToken(IntegerToken { value: 5 }),
                         },
                         VariableToken {
                             name_token: NameToken { name: "rofl".to_string() },
+                            define: false,
                             assignable: AssignableToken::MethodCallToken(
                                 MethodCallToken {
                                     name: NameToken { name: "name".to_string() },
@@ -76,6 +84,7 @@ fn variable_test() -> anyhow::Result<()> {
                             ),
                         }, VariableToken {
                             name_token: NameToken { name: "mofl".to_string() },
+                            define: false,
                             assignable: AssignableToken::MethodCallToken(MethodCallToken {
                                 name: NameToken { name: "name".to_string() },
                                 arguments: vec![

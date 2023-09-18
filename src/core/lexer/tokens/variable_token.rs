@@ -23,12 +23,14 @@ use crate::core::lexer::TryParse;
 #[derive(Debug, PartialEq, Clone)]
 pub struct VariableToken<const ASSIGNMENT: char, const SEPARATOR: char> {
     pub name_token: NameToken,
+    /// flag defining if the variable is a new definition or a re-assignment
+    pub define: bool,
     pub assignable: AssignableToken,
 }
 
 impl<const ASSIGNMENT: char, const SEPARATOR: char> Display for VariableToken<ASSIGNMENT, SEPARATOR> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:<30} {} {}", self.name_token, ASSIGNMENT, self.assignable)
+        write!(f, "{}{:<30} {} {}", if self.define { "let " } else { "" }, self.name_token, ASSIGNMENT, self.assignable)
     }
 }
 
@@ -81,19 +83,19 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for VariableToken<ASSI
         let mut i = 0;
         while i < stack.variables.len() {
             if stack.variables[i].name.name == self.name_token.name {
-                target.push_str(&format!("    ; Re-assign {}\n", self));
-                target.push_str(&self.assignable.to_asm(stack, target_os)?);
-                target.push_str(&stack.pop_stack("rax"));
-                target.push_str(&format!("    mov QWORD [rsp + {}], rax\n", (stack.stack_position - stack.variables[i].position - 1) * 8));
+                return if !self.define {
+                    target.push_str(&format!("    ; Re-assign {}\n", self));
+                    target.push_str(&self.assignable.to_asm(stack, target_os)?);
+                    target.push_str(&stack.pop_stack("rax"));
+                    target.push_str(&format!("    mov QWORD [rsp + {}], rax\n", (stack.stack_position - stack.variables[i].position - 1) * 8));
 
-                return Ok(target);
+                    Ok(target)
+                } else {
+                    Err(crate::core::code_generator::Error::VariableAlreadyUsed { name: self.name_token.name.clone() })
+                }
             }
             i += 1;
         }
-
-        // if stack.variables.iter().filter(|&variable| variable.name.name == self.name_token.name).count() > 0 {
-        //     return Err(crate::core::code_generator::Error::VariableAlreadyUsed { name: self.name_token.name.clone() });
-        // }
 
         stack.variables.push(StackLocation { position: stack.stack_position, name: self.name_token.clone() });
 
@@ -125,12 +127,20 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> VariableToken<ASSIGNMENT, SE
         let separator = SEPARATOR.to_string();
 
         match &split[..] {
+            ["let", name, assignment_token, middle @ .., separator_token] if assignment_token == &assignment && separator_token == &separator => {
+                Ok(VariableToken {
+                    name_token: NameToken::from_str(name, false)?,
+                    define: true,
+                    assignable: AssignableToken::from_str(middle.join(" ").as_str()).context(code_line.line.clone())?,
+                })
+            },
             [name, assignment_token, middle @ .., separator_token] if assignment_token == &assignment && separator_token == &separator => {
                 Ok(VariableToken {
                     name_token: NameToken::from_str(name, false)?,
+                    define: false,
                     assignable: AssignableToken::from_str(middle.join(" ").as_str()).context(code_line.line.clone())?,
                 })
-            }
+            },
             _ => Err(ParseVariableTokenErr::PatternNotMatched { target_value: code_line.line.to_string() })
         }
     }
