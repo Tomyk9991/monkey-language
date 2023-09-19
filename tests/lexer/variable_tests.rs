@@ -32,6 +32,8 @@ fn variable_test() -> anyhow::Result<()> {
         Token::Variable(
             VariableToken {
                 name_token: NameToken { name: "fisch".to_string() },
+                mutability: false,
+                ty: NameToken { name: "string".to_string() },
                 define: true,
                 assignable: AssignableToken::String(StringToken { value: "\"Fische sind wirklich wirklich toll\"".to_string() }),
             }
@@ -39,6 +41,8 @@ fn variable_test() -> anyhow::Result<()> {
         Token::Variable(
             VariableToken {
                 name_token: NameToken { name: "hallo".to_string() },
+                mutability: false,
+                ty: NameToken { name: "string".to_string() },
                 define: true,
                 assignable: AssignableToken::String(StringToken { value: "\"Thomas\"".to_string() }),
             }
@@ -46,6 +50,8 @@ fn variable_test() -> anyhow::Result<()> {
         Token::Variable(
             VariableToken {
                 name_token: NameToken { name: "tschuess".to_string() },
+                mutability: false,
+                ty: NameToken { name: "i32".to_string() },
                 define: true,
                 assignable: AssignableToken::IntegerToken(IntegerToken { value: 5 }),
             }
@@ -53,6 +59,8 @@ fn variable_test() -> anyhow::Result<()> {
         Token::Variable(
             VariableToken {
                 name_token: NameToken { name: "mallo".to_string() },
+                mutability: false,
+                ty: NameToken { name: "string".to_string() },
                 define: true,
                 assignable: AssignableToken::String(StringToken { value: "\"\"".to_string() }),
             }
@@ -60,21 +68,29 @@ fn variable_test() -> anyhow::Result<()> {
         Token::Variable(
             VariableToken {
                 name_token: NameToken { name: "michi".to_string() },
+                mutability: false,
+                ty: NameToken { name: "object".to_string() },
                 define: true,
                 assignable: AssignableToken::Object(ObjectToken {
                     variables: vec![
                         VariableToken {
                             name_token: NameToken { name: "guten".to_string() },
+                            mutability: false,
+                            ty: NameToken { name: "string".to_string() },
                             define: false,
                             assignable: AssignableToken::String(StringToken { value: "\"Hallo\"".to_string() }),
                         },
                         VariableToken {
                             name_token: NameToken { name: "ciau".to_string() },
+                            mutability: false,
+                            ty: NameToken { name: "i32".to_string() },
                             define: false,
                             assignable: AssignableToken::IntegerToken(IntegerToken { value: 5 }),
                         },
                         VariableToken {
                             name_token: NameToken { name: "rofl".to_string() },
+                            mutability: false,
+                            ty: NameToken { name: "method_call".to_string() },
                             define: false,
                             assignable: AssignableToken::MethodCallToken(
                                 MethodCallToken {
@@ -82,8 +98,11 @@ fn variable_test() -> anyhow::Result<()> {
                                     arguments: vec![],
                                 }
                             ),
-                        }, VariableToken {
+                        },
+                        VariableToken {
                             name_token: NameToken { name: "mofl".to_string() },
+                            mutability: false,
+                            ty: NameToken { name: "method_call".to_string() },
                             define: false,
                             assignable: AssignableToken::MethodCallToken(MethodCallToken {
                                 name: NameToken { name: "name".to_string() },
@@ -109,6 +128,25 @@ fn variable_test() -> anyhow::Result<()> {
 
     assert_eq!(expected, top_level_scope.tokens);
 
+
+    let variables = r#"
+    let fisch: string = "Fische sind wirklich wirklich toll";
+    let hallo: string = "Thomas"; let tschuess: i32 = 5;
+    let mallo: string = "";
+    let kekwa: string = 123;
+    "#;
+
+    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(variables);
+    let mut lexer = Lexer::from(monkey_file);
+    let top_level_scope = lexer.tokenize();
+
+
+    if let Err(err) = top_level_scope {
+        println!("{}", err);
+        assert!(true);
+    } else {
+        assert!(false);
+    }
 
     Ok(())
 }

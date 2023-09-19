@@ -14,7 +14,7 @@ use crate::core::lexer::tokens::assignable_tokens::integer_token::IntegerToken;
 use crate::core::lexer::tokens::assignable_tokens::method_call_token::{MethodCallToken, MethodCallTokenErr};
 use crate::core::lexer::tokens::assignable_tokens::object_token::ObjectToken;
 use crate::core::lexer::tokens::assignable_tokens::string_token::{StringToken};
-use crate::core::lexer::tokens::name_token::NameToken;
+use crate::core::lexer::tokens::name_token::{NameToken, NameTokenErr};
 
 /// Token for assignable tokens. Numbers, strings, methodcalls, other variables, objects, and arithmetic / boolean equations.
 #[derive(Debug, PartialEq, Clone)]
@@ -33,6 +33,24 @@ pub enum AssignableToken {
 #[derive(Debug)]
 pub enum AssignableTokenErr {
     PatternNotMatched { target_value: String }
+}
+
+impl AssignableToken {
+    pub fn infer_type(&self) -> Result<NameToken, NameTokenErr> {
+        return Ok(
+            match self {
+                AssignableToken::String(_) => NameToken::from_str("string", false)?,
+                AssignableToken::IntegerToken(_) => NameToken::from_str("i32", false)?,
+                AssignableToken::DoubleToken(_) => NameToken::from_str("f32", false)?,
+                AssignableToken::BooleanToken(_) => NameToken::from_str("bool", false)?,
+                AssignableToken::MethodCallToken(_) => NameToken::from_str("method_call", false)?, // todo
+                AssignableToken::Variable(_) => NameToken::from_str("variable", false)?, // todo
+                AssignableToken::Object(_) => NameToken::from_str("object", false)?, // todo
+                AssignableToken::ArithmeticEquation(_) => NameToken::from_str("f32", false)?,
+                AssignableToken::BooleanEquation(_) => NameToken::from_str("bool", false)?
+            }
+        )
+    }
 }
 
 impl Default for AssignableToken {

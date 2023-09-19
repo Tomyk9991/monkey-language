@@ -1,5 +1,5 @@
-pub static KEYWORDS: [&str; 10] = [
-    "int", "void", "writeln", "while", "return", "#", "fn", "if", "else", "let"
+pub static KEYWORDS: [&str; 9] = [
+    "void", "writeln", "while", "return", "#", "fn", "if", "else", "let"
 ];
 
 pub static OPENING_SCOPE: char = '{';
