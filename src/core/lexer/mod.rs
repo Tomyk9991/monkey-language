@@ -9,6 +9,8 @@ pub mod tokens;
 pub mod levenshtein_distance;
 pub mod errors;
 
+pub mod type_token;
+
 pub trait TryParse {
     type Output;
     type Err;

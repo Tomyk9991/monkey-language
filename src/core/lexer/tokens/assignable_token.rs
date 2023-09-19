@@ -14,7 +14,8 @@ use crate::core::lexer::tokens::assignable_tokens::integer_token::IntegerToken;
 use crate::core::lexer::tokens::assignable_tokens::method_call_token::{MethodCallToken, MethodCallTokenErr};
 use crate::core::lexer::tokens::assignable_tokens::object_token::ObjectToken;
 use crate::core::lexer::tokens::assignable_tokens::string_token::{StringToken};
-use crate::core::lexer::tokens::name_token::{NameToken, NameTokenErr};
+use crate::core::lexer::tokens::name_token::NameToken;
+use crate::core::lexer::type_token::{InferTypeError, TypeToken};
 
 /// Token for assignable tokens. Numbers, strings, methodcalls, other variables, objects, and arithmetic / boolean equations.
 #[derive(Debug, PartialEq, Clone)]
@@ -36,18 +37,18 @@ pub enum AssignableTokenErr {
 }
 
 impl AssignableToken {
-    pub fn infer_type(&self) -> Result<NameToken, NameTokenErr> {
+    pub fn infer_type(&self) -> Result<TypeToken, InferTypeError> {
         return Ok(
             match self {
-                AssignableToken::String(_) => NameToken::from_str("string", false)?,
-                AssignableToken::IntegerToken(_) => NameToken::from_str("i32", false)?,
-                AssignableToken::DoubleToken(_) => NameToken::from_str("f32", false)?,
-                AssignableToken::BooleanToken(_) => NameToken::from_str("bool", false)?,
-                AssignableToken::MethodCallToken(_) => NameToken::from_str("method_call", false)?, // todo
-                AssignableToken::Variable(_) => NameToken::from_str("variable", false)?, // todo
-                AssignableToken::Object(_) => NameToken::from_str("object", false)?, // todo
-                AssignableToken::ArithmeticEquation(_) => NameToken::from_str("f32", false)?,
-                AssignableToken::BooleanEquation(_) => NameToken::from_str("bool", false)?
+                AssignableToken::String(_) => TypeToken::String,
+                AssignableToken::IntegerToken(_) => TypeToken::I32,
+                AssignableToken::DoubleToken(_) => TypeToken::F32,
+                AssignableToken::BooleanToken(_) => TypeToken::Bool,
+                AssignableToken::MethodCallToken(_) => TypeToken::MethodCallTODO, // todo
+                AssignableToken::Variable(_) => TypeToken::VariableTODO, // todo
+                AssignableToken::Object(_) => TypeToken::ObjectTODO, // todo
+                AssignableToken::ArithmeticEquation(arithmetic_expression) => arithmetic_expression.traverse_type()?,
+                AssignableToken::BooleanEquation(boolean_expression) => boolean_expression.traverse_type()?,
             }
         )
     }

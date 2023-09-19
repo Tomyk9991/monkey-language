@@ -17,7 +17,7 @@ fn main() -> anyhow::Result<()> {
 
     let top_level_scope = Lexer::from(money_file).tokenize()?;
 
-    println!("{}", top_level_scope);
+    println!("{:?}", top_level_scope);
 
     let mut code_generator = ASMGenerator::from((top_level_scope, args.target_os.clone()));
 

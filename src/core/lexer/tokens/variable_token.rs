@@ -10,11 +10,12 @@ use crate::core::code_generator::generator::{Stack, StackLocation};
 use crate::core::code_generator::target_os::TargetOS;
 use crate::core::code_generator::ToASM;
 use crate::core::io::code_line::CodeLine;
-use crate::core::lexer::errors::EmptyIteratorErr;
+use crate::core::lexer::errors::{EmptyIteratorErr};
 use crate::core::lexer::levenshtein_distance::{MethodCallSummarizeTransform, PatternedLevenshteinDistance, PatternedLevenshteinString, QuoteSummarizeTransform};
 use crate::core::lexer::tokens::assignable_token::{AssignableToken, AssignableTokenErr};
 use crate::core::lexer::tokens::name_token::{NameToken, NameTokenErr};
 use crate::core::lexer::TryParse;
+use crate::core::lexer::type_token::{InferTypeError, TypeToken};
 
 /// Token for a variable. Pattern is defined as: name <Assignment> assignment <Separator>
 /// # Examples
@@ -26,7 +27,7 @@ pub struct VariableToken<const ASSIGNMENT: char, const SEPARATOR: char> {
     // flag defining if the variable is mutable or not
     pub mutability: bool,
     // type of the variable
-    pub ty: NameToken,
+    pub ty: TypeToken,
     /// flag defining if the variable is a new definition or a re-assignment
     pub define: bool,
     pub assignable: AssignableToken,
@@ -43,12 +44,18 @@ pub enum ParseVariableTokenErr {
     PatternNotMatched { target_value: String },
     NameTokenErr(NameTokenErr),
     AssignableTokenErr(AssignableTokenErr),
-    TypesNotMatching{ expected_type: NameToken, actual_assignment: NameToken },
+    InferType(InferTypeError),
+    TypesNotMatching{ expected_type: TypeToken, actual_assignment: TypeToken },
     EmptyIterator(EmptyIteratorErr),
 }
 
 impl Error for ParseVariableTokenErr {}
 
+impl From<InferTypeError> for ParseVariableTokenErr {
+    fn from(value: InferTypeError) -> Self {
+        ParseVariableTokenErr::InferType(value)
+    }
+}
 impl From<NameTokenErr> for ParseVariableTokenErr {
     fn from(a: NameTokenErr) -> Self { ParseVariableTokenErr::NameTokenErr(a) }
 }
@@ -79,6 +86,7 @@ impl Display for ParseVariableTokenErr {
             ParseVariableTokenErr::TypesNotMatching { expected_type, actual_assignment } =>
                 format!("`{expected_type}` was expected but you're assigning an l-value of type `{actual_assignment}`"),
             ParseVariableTokenErr::EmptyIterator(e) => e.to_string(),
+            ParseVariableTokenErr::InferType(err) => format!("{err}")
         })
     }
 }
@@ -138,7 +146,7 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> VariableToken<ASSIGNMENT, SE
 
         let final_variable_name: &str;
         let assignable: AssignableToken;
-        let type_token: NameToken;
+        let type_token: TypeToken;
 
         match &split[..] {
             // [let] [mut] name[: i32] = 5;
@@ -154,7 +162,7 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> VariableToken<ASSIGNMENT, SE
             ["let", name, ":", type_str, assignment_token, middle @ .., separator_token] if assignment_token == &assignment && separator_token == &separator => {
                 final_variable_name = name;
                 assignable = AssignableToken::from_str(middle.join(" ").as_str()).context(code_line.line.clone())?;
-                type_token = NameToken::from_str(type_str, false)?;
+                type_token = TypeToken::from_str(type_str)?;
 
                 let assigned_type = assignable.infer_type()?;
 
@@ -180,7 +188,7 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> VariableToken<ASSIGNMENT, SE
             ["let", "mut", name, ":", type_str, assignment_token, middle @ .., separator_token] if assignment_token == &assignment && separator_token == &separator => {
                 final_variable_name = name;
                 assignable = AssignableToken::from_str(middle.join(" ").as_str()).context(code_line.line.clone())?;
-                type_token = NameToken::from_str(type_str, false)?;
+                type_token = TypeToken::from_str(type_str)?;
 
                 let assigned_type = assignable.infer_type()?;
 

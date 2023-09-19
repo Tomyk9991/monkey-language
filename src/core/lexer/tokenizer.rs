@@ -33,6 +33,7 @@ impl Lexer {
             scope.tokens.push(token);
         }
 
+
         Ok(scope)
     }
 }

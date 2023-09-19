@@ -7,7 +7,7 @@ use crate::core::constants::KEYWORDS;
 
 /// Token for a name. Basically a string that can be used as a variable name.
 /// Everything is allowed except for reserved keywords and special characters in the beginning
-#[derive(Debug, Eq, PartialEq, Clone)]
+#[derive(Debug, Eq, PartialEq, Clone, Hash)]
 pub struct NameToken {
     pub name: String,
 }

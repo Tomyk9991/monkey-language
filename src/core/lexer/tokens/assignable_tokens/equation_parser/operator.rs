@@ -4,7 +4,7 @@ use crate::core::code_generator::{Error, ToASM};
 use crate::core::code_generator::target_os::TargetOS;
 
 #[allow(unused)]
-#[derive(PartialEq, Clone, Debug)]
+#[derive(PartialEq, Clone, Debug, Eq, Hash)]
 pub enum Operator {
     Noop,
     Add,
