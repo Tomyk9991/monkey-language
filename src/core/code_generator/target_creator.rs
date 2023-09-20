@@ -23,13 +23,18 @@ pub struct TargetCreator {
 }
 
 impl TargetCreator {
-    pub fn compile_and_execute(&self, target_os: TargetOS) -> i32 {
-        target_os.compile_and_execute(self)
+    pub fn compile(&self, target_os: TargetOS) -> i32 {
+        target_os.compile(self)
+    }
+    
+    pub fn execute(&self, target_os: TargetOS) -> i32 {
+        target_os.execute(self)
     }
 }
 
 pub trait CompileAndExecute {
-    fn compile_and_execute(&self, target_creator: &TargetCreator) -> i32;
+    fn compile(&self, target_creator: &TargetCreator) -> i32;
+    fn execute(&self, target_creator: &TargetCreator) -> i32;
 }
 
 impl TargetCreator {

@@ -48,7 +48,7 @@ impl TargetOS {
         None
     }
 
-    fn run_generic_commands(program: &str, args: Vec<&str>) -> i32 {
+    fn run_generic_commands(program: &str, args: Vec<&str>, suppress_error: bool) -> i32 {
         if let Ok(output) = Command::new(program).args(args)
             .output() {
             if !output.stdout.is_empty() {
@@ -60,8 +60,10 @@ impl TargetOS {
 
 
             if !output.stderr.is_empty() {
-                let stderr = String::from_utf8_lossy(&output.stderr);
-                eprintln!("Error: \n{}", stderr);
+                if !suppress_error {
+                    let stderr = String::from_utf8_lossy(&output.stderr);
+                    eprintln!("Error: \n{}", stderr);
+                }
             }
 
             if let Some(status) = status {
@@ -75,10 +77,8 @@ impl TargetOS {
 
         -1
     }
-}
-
-impl CompileAndExecute for TargetOS {
-    fn compile_and_execute(&self, target_creator: &TargetCreator) -> i32 {
+    
+    fn compile_and_execute(&self, target_creator: &TargetCreator, build: bool, execute: bool) -> i32 {
         println!("Compiling...");
 
         if self == &TargetOS::Windows || self == &TargetOS::WindowsSubsystemLinux {
@@ -86,22 +86,54 @@ impl CompileAndExecute for TargetOS {
                 return return_value;
             }
         }
-
-        println!("{} `{}`...", "Running".green(), target_creator.path_to_target_directory);
-
+        
+        if execute {
+            println!("{} `{}`...", "Running".green(), target_creator.path_to_target_directory);
+        }
+        
         match self {
             TargetOS::Windows => {
                 // nasm -f win64 main.asm ; gcc main.obj -o main ; .\main.exe ; echo $LASTEXITCODE
-                TargetOS::run_generic_commands("nasm", vec!["-f", "win64", "main.asm"]);
-                TargetOS::run_generic_commands("gcc", vec!["main.obj", "-o", "main"]);
-                TargetOS::run_generic_commands("./main.exe", vec![])
+                if build {
+                    TargetOS::run_generic_commands("nasm", vec!["-f", "win64", "main.asm"], false);
+                    TargetOS::run_generic_commands("gcc", vec!["main.obj", "-o", "main"], false);
+                }
+                if execute {
+                    TargetOS::run_generic_commands("./main.exe", vec![], false)
+                } else {
+                    0
+                }
             }
             TargetOS::Linux => {
-                TargetOS::run_generic_commands("nasm", vec!["-felf64", "main.asm", "&&", "ld", "-o", "main", "main.o", ";", "./main"])
+                if build {
+                    TargetOS::run_generic_commands("nasm", vec!["-felf64", "main.asm"], false);
+                    TargetOS::run_generic_commands("ld", vec!["-o", "main", "main.o"], true);
+                }
+                if execute {
+                    TargetOS::run_generic_commands("./main", vec![], false)
+                } else {
+                    0
+                }
             }
             TargetOS::WindowsSubsystemLinux => {
-                TargetOS::run_generic_commands("wsl", vec!["nasm", "-felf64", "main.asm", "&&", "ld", "-o", "main", "main.o", ";", "./main"])
+                if build {
+                    TargetOS::run_generic_commands("wsl", vec!["nasm", "-felf64", "main.asm", "&&", "ld", "-o", "main", "main.o"], false);
+                }
+                if execute {
+                    TargetOS::run_generic_commands("./main", vec![], false)
+                } else {
+                    0
+                }
             }
         }
+    }
+}
+
+impl CompileAndExecute for TargetOS {
+    fn compile(&self, target_creator: &TargetCreator) -> i32 {
+        self.compile_and_execute(target_creator, true, false)
+    }
+    fn execute(&self, target_creator: &TargetCreator) -> i32 {
+        self.compile_and_execute(target_creator, false, true)
     }
 }

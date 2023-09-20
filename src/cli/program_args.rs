@@ -9,5 +9,8 @@ pub struct ProgramArgs {
     pub input: String,
     /// Target OS (Supported Linux, Windows, WSL)
     #[arg(short, long)]
-    pub target_os: TargetOS
+    pub target_os: TargetOS,
+    #[arg(long, default_value_t = false)]
+    /// build the project without running it
+    pub build: bool,
 }

@@ -1,4 +1,5 @@
 use clap::Parser;
+use colored::Colorize;
 use crate::cli::program_args::ProgramArgs;
 use crate::core::code_generator::generator::{ASMGenerator};
 use crate::core::code_generator::target_creator::TargetCreator;
@@ -18,6 +19,8 @@ fn main() -> anyhow::Result<()> {
     let top_level_scope = Lexer::from(money_file).tokenize()?;
 
     println!("{:?}", top_level_scope);
+    
+    // let type_information = StaticTypeChecker::from(top_level_scope).check()?;
 
     let mut code_generator = ASMGenerator::from((top_level_scope, args.target_os.clone()));
 
@@ -29,9 +32,21 @@ fn main() -> anyhow::Result<()> {
     let s = std::env::current_dir()?;
 
     std::env::set_current_dir(target_creator.path_to_target_directory.as_str())?;
-    let status = target_creator.compile_and_execute(args.target_os);
+
+    {
+        let build_status = target_creator.compile(args.target_os.clone());
+        println!("Completing build. Status: {build_status} {}", match build_status {
+            0 => "Successful".green(),
+            _ => "Failed".red(),
+        });
+        
+        if !args.build {
+            let status = target_creator.execute(args.target_os);
+            println!("Process finished with exit code {}", status);
+        }
+    }
+    
     std::env::set_current_dir(s)?;
 
-    println!("Process finished with exit code {}", status);
     Ok(())
 }
