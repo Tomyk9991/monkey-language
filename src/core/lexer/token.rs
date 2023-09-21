@@ -9,13 +9,13 @@ use crate::core::lexer::tokens::if_definition::IfDefinition;
 use crate::core::lexer::tokens::variable_token::VariableToken;
 
 /// A token is a piece of code that is used to represent atomic elements of a program.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Token {
     Variable(VariableToken<'=', ';'>),
     MethodCall(MethodCallToken),
     MethodDefinition(MethodDefinition),
     ScopeClosing(ScopeEnding),
-    IfDefinition(IfDefinition)
+    IfDefinition(IfDefinition),
 }
 
 impl ToASM for Token {
@@ -27,7 +27,6 @@ impl ToASM for Token {
             rest => Err(Error::NotImplemented { token: format!("{}", rest) }),
             // Token::MethodDefinition(_) => {}
             // Token::ScopeClosing(_) => {}
-            // Token::IfDefinition(_) => {}
         }
     }
 }

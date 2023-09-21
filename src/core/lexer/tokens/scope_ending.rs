@@ -8,7 +8,7 @@ use crate::core::lexer::levenshtein_distance::{PatternedLevenshteinDistance, Pat
 use crate::core::lexer::TryParse;
 
 /// Token for scope ending. Basically it checks if the codeline is `}`.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct ScopeEnding;
 
 #[derive(Debug)]

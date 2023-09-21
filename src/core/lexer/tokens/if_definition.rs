@@ -22,11 +22,12 @@ use crate::core::lexer::TryParse;
 /// # Pattern
 /// - `if (condition) {Body}`
 /// - `if (condition) {Body} else {Body}`
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct IfDefinition {
     pub condition: AssignableToken,
     pub if_stack: Vec<Token>,
     pub else_stack: Option<Vec<Token>>,
+    pub code_line: CodeLine
 }
 
 #[derive(Debug)]
@@ -142,6 +143,7 @@ impl TryParse for IfDefinition {
                 condition,
                 if_stack,
                 else_stack,
+                code_line: if_header.clone(),
             });
         }
 

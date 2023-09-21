@@ -3,6 +3,7 @@ use std::fmt::{Debug, Display, Formatter};
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::{Error, ToASM};
 use crate::core::code_generator::target_os::TargetOS;
+use crate::core::lexer::tokenizer::StaticTypeContext;
 use crate::core::lexer::tokens::assignable_token::AssignableToken;
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::operator::Operator;
 use crate::core::lexer::type_token::{InferTypeError, TypeToken};
@@ -125,15 +126,68 @@ impl Expression {
         }
     }
 
-    pub fn traverse_type(&self) -> Result<TypeToken, InferTypeError> {
+    pub fn traverse_type(&self) -> Option<TypeToken> {
         if let Some(value) = &self.value {
             return value.infer_type();
         }
 
         if let Some(lhs) = &self.lhs {
             if let Some(rhs) = &self.rhs {
-                let lhs_type = lhs.traverse_type()?;
-                let rhs_type = rhs.traverse_type()?;
+                let lhs_type = lhs.traverse_type();
+                let rhs_type = rhs.traverse_type();
+
+                let mut base_type_matrix: HashMap<(TypeToken, Operator, TypeToken), TypeToken> = HashMap::new();
+                base_type_matrix.insert((TypeToken::String, Operator::Add, TypeToken::String), TypeToken::String);
+
+                base_type_matrix.insert((TypeToken::I32, Operator::Add, TypeToken::I32), TypeToken::I32);
+                base_type_matrix.insert((TypeToken::I32, Operator::Sub, TypeToken::I32), TypeToken::I32);
+                base_type_matrix.insert((TypeToken::I32, Operator::Mul, TypeToken::I32), TypeToken::I32);
+                base_type_matrix.insert((TypeToken::I32, Operator::Div, TypeToken::I32), TypeToken::F32);
+
+                base_type_matrix.insert((TypeToken::F32, Operator::Add, TypeToken::F32), TypeToken::F32);
+                base_type_matrix.insert((TypeToken::F32, Operator::Sub, TypeToken::F32), TypeToken::F32);
+                base_type_matrix.insert((TypeToken::F32, Operator::Mul, TypeToken::F32), TypeToken::F32);
+                base_type_matrix.insert((TypeToken::F32, Operator::Div, TypeToken::F32), TypeToken::F32);
+
+                base_type_matrix.insert((TypeToken::F32, Operator::Add, TypeToken::I32), TypeToken::F32);
+                base_type_matrix.insert((TypeToken::F32, Operator::Sub, TypeToken::I32), TypeToken::F32);
+                base_type_matrix.insert((TypeToken::F32, Operator::Mul, TypeToken::I32), TypeToken::F32);
+                base_type_matrix.insert((TypeToken::F32, Operator::Div, TypeToken::I32), TypeToken::F32);
+
+                base_type_matrix.insert((TypeToken::I32, Operator::Add, TypeToken::F32), TypeToken::F32);
+                base_type_matrix.insert((TypeToken::I32, Operator::Sub, TypeToken::F32), TypeToken::F32);
+                base_type_matrix.insert((TypeToken::I32, Operator::Mul, TypeToken::F32), TypeToken::F32);
+                base_type_matrix.insert((TypeToken::I32, Operator::Div, TypeToken::F32), TypeToken::F32);
+
+                base_type_matrix.insert((TypeToken::Bool, Operator::Add, TypeToken::Bool), TypeToken::Bool);
+                base_type_matrix.insert((TypeToken::Bool, Operator::Sub, TypeToken::Bool), TypeToken::Bool);
+                base_type_matrix.insert((TypeToken::Bool, Operator::Mul, TypeToken::Bool), TypeToken::Bool);
+                base_type_matrix.insert((TypeToken::Bool, Operator::Div, TypeToken::Bool), TypeToken::Bool);
+
+                if let Some(lhs_type) = lhs_type {
+                    if let Some(rhs_type) = rhs_type {
+                        if let Some(result_type) = base_type_matrix.get(&(lhs_type.clone(), self.operator.clone(), rhs_type.clone())) {
+                            return Some(result_type.clone());
+                        }
+                    }
+                }
+
+                return None;
+            }
+        }
+
+        return None;
+    }
+
+    pub fn traverse_type_resulted(&self, context: &StaticTypeContext) -> Result<TypeToken, InferTypeError> {
+        if let Some(value) = &self.value {
+            return value.infer_type_with_context(context);
+        }
+
+        if let Some(lhs) = &self.lhs {
+            if let Some(rhs) = &self.rhs {
+                let lhs_type = lhs.traverse_type_resulted(context)?;
+                let rhs_type = rhs.traverse_type_resulted(context)?;
 
                 let mut base_type_matrix: HashMap<(TypeToken, Operator, TypeToken), TypeToken> = HashMap::new();
                 base_type_matrix.insert((TypeToken::String, Operator::Add, TypeToken::String), TypeToken::String);
@@ -167,13 +221,11 @@ impl Expression {
                     return Ok(result_type.clone());
                 }
 
-
                 return Err(InferTypeError::TypesNotCalculable(lhs_type, self.operator.clone(), rhs_type));
             }
         }
 
-
-        return Err(InferTypeError::TypeNotInferred("Parsing error".to_string()))
+        return Err(InferTypeError::TypeNotInferrable(self.to_string()));
     }
 
     pub fn set(&mut self, lhs: Option<Box<Expression>>, operation: Operator, rhs: Option<Box<Expression>>, value: Option<Box<AssignableToken>>) {

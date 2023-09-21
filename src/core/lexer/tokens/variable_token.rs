@@ -10,8 +10,9 @@ use crate::core::code_generator::generator::{Stack, StackLocation};
 use crate::core::code_generator::target_os::TargetOS;
 use crate::core::code_generator::ToASM;
 use crate::core::io::code_line::CodeLine;
-use crate::core::lexer::errors::{EmptyIteratorErr};
+use crate::core::lexer::errors::EmptyIteratorErr;
 use crate::core::lexer::levenshtein_distance::{MethodCallSummarizeTransform, PatternedLevenshteinDistance, PatternedLevenshteinString, QuoteSummarizeTransform};
+use crate::core::lexer::tokenizer::StaticTypeContext;
 use crate::core::lexer::tokens::assignable_token::{AssignableToken, AssignableTokenErr};
 use crate::core::lexer::tokens::name_token::{NameToken, NameTokenErr};
 use crate::core::lexer::TryParse;
@@ -26,16 +27,45 @@ pub struct VariableToken<const ASSIGNMENT: char, const SEPARATOR: char> {
     pub name_token: NameToken,
     // flag defining if the variable is mutable or not
     pub mutability: bool,
-    // type of the variable
-    pub ty: TypeToken,
+    /// type of the variable. It's None, when the type is unknown
+    pub ty: Option<TypeToken>,
     /// flag defining if the variable is a new definition or a re-assignment
     pub define: bool,
     pub assignable: AssignableToken,
+    pub code_line: CodeLine
+}
+
+impl<const ASSIGNMENT: char, const SEPARATOR: char> VariableToken<ASSIGNMENT, SEPARATOR> {
+    pub fn infer_type(&mut self, type_context: &mut StaticTypeContext) -> Result<TypeToken, InferTypeError> {
+        return match &self.ty {
+            // validity check. is the assignment really the type the programmer used
+            // example: let a: i32 = "Hallo"; is not valid since you're assigning a string to an integer
+
+            // if type is present. check, if the type matches the assignment
+            // else infer the type with a context
+            Some(ty) => {
+                let inferred_type = self.assignable.infer_type_with_context(&type_context)?;
+
+                if ty != &inferred_type {
+                    return Err(InferTypeError::MismatchedTypes { expected: ty.clone(), actual: inferred_type.clone() }.into())
+                }
+
+                Ok(ty.clone())
+            }
+            None => {
+                let ty = self.infer_with_context(&type_context)?;
+                self.ty = Some(ty.clone());
+                type_context.push((self.name_token.clone(), ty.clone()));
+
+                Ok(ty)
+            }
+        }
+    }
 }
 
 impl<const ASSIGNMENT: char, const SEPARATOR: char> Display for VariableToken<ASSIGNMENT, SEPARATOR> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}{:<30} {} {}", if self.define { "let " } else { "" }, self.name_token, ASSIGNMENT, self.assignable)
+        write!(f, "{}{:<30}:{:?} {} {}", if self.define { "let " } else { "" }, self.name_token, self.ty, ASSIGNMENT, self.assignable)
     }
 }
 
@@ -45,7 +75,6 @@ pub enum ParseVariableTokenErr {
     NameTokenErr(NameTokenErr),
     AssignableTokenErr(AssignableTokenErr),
     InferType(InferTypeError),
-    TypesNotMatching{ expected_type: TypeToken, actual_assignment: TypeToken },
     EmptyIterator(EmptyIteratorErr),
 }
 
@@ -56,6 +85,7 @@ impl From<InferTypeError> for ParseVariableTokenErr {
         ParseVariableTokenErr::InferType(value)
     }
 }
+
 impl From<NameTokenErr> for ParseVariableTokenErr {
     fn from(a: NameTokenErr) -> Self { ParseVariableTokenErr::NameTokenErr(a) }
 }
@@ -83,8 +113,6 @@ impl Display for ParseVariableTokenErr {
             ParseVariableTokenErr::PatternNotMatched { target_value } => format!("`{target_value}`\n\tThe pattern for a variable is defined as: name = assignment;"),
             ParseVariableTokenErr::NameTokenErr(a) => a.to_string(),
             ParseVariableTokenErr::AssignableTokenErr(a) => a.to_string(),
-            ParseVariableTokenErr::TypesNotMatching { expected_type, actual_assignment } =>
-                format!("`{expected_type}` was expected but you're assigning an l-value of type `{actual_assignment}`"),
             ParseVariableTokenErr::EmptyIterator(e) => e.to_string(),
             ParseVariableTokenErr::InferType(err) => format!("{err}")
         })
@@ -98,18 +126,27 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for VariableToken<ASSI
         let mut i = 0;
         while i < stack.variables.len() {
             if stack.variables[i].name.name == self.name_token.name {
-                return if !self.define {
+                if !self.define {
                     target.push_str(&format!("    ; Re-assign {}\n", self));
                     target.push_str(&self.assignable.to_asm(stack, target_os)?);
                     target.push_str(&stack.pop_stack("rax"));
                     target.push_str(&format!("    mov QWORD [rsp + {}], rax\n", (stack.stack_position - stack.variables[i].position - 1) * 8));
 
-                    Ok(target)
-                } else {
-                    Err(crate::core::code_generator::Error::VariableAlreadyUsed { name: self.name_token.name.clone() })
+                    return Ok(target);
                 }
+                // else {
+                //     Err(crate::core::code_generator::Error::VariableAlreadyUsed { name: self.name_token.name.clone() })
+                // };
             }
             i += 1;
+        }
+
+        // at this point a line has the structure
+        // a = 5
+        // this is not valid, since its not a definition, its an assignment on a variable with the name
+        // a but a not found in the scope
+        if !self.define {
+            return Err(crate::core::code_generator::Error::UnresolvedReference { name: self.name_token.name.clone() });
         }
 
         stack.variables.push(StackLocation { position: stack.stack_position, name: self.name_token.clone() });
@@ -120,7 +157,6 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for VariableToken<ASSI
         Ok(target)
     }
 }
-
 
 impl<const ASSIGNMENT: char, const SEPARATOR: char> TryParse for VariableToken<ASSIGNMENT, SEPARATOR> {
     type Output = VariableToken<ASSIGNMENT, SEPARATOR>;
@@ -146,7 +182,7 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> VariableToken<ASSIGNMENT, SE
 
         let final_variable_name: &str;
         let assignable: AssignableToken;
-        let type_token: TypeToken;
+        let type_token: Option<TypeToken>;
 
         match &split[..] {
             // [let] [mut] name[: i32] = 5;
@@ -154,62 +190,44 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> VariableToken<ASSIGNMENT, SE
                 final_variable_name = name;
                 assignable = AssignableToken::from_str(middle.join(" ").as_str()).context(code_line.line.clone())?;
                 // type token is not specified by the programmer, so it must be inferred
-                type_token = assignable.infer_type()?;
+                type_token = assignable.infer_type();
 
                 let_used = true;
                 mut_used = false;
-            },
+            }
             ["let", name, ":", type_str, assignment_token, middle @ .., separator_token] if assignment_token == &assignment && separator_token == &separator => {
                 final_variable_name = name;
                 assignable = AssignableToken::from_str(middle.join(" ").as_str()).context(code_line.line.clone())?;
-                type_token = TypeToken::from_str(type_str)?;
-
-                let assigned_type = assignable.infer_type()?;
-
-                if assigned_type != type_token {
-                    return Err(ParseVariableTokenErr::TypesNotMatching {
-                        expected_type: type_token,
-                        actual_assignment: assigned_type
-                    });
-                }
+                type_token = Some(TypeToken::from_str(type_str)?);
 
                 let_used = true;
                 mut_used = false;
-            },
+            }
             ["let", "mut", name, assignment_token, middle @ .., separator_token] if assignment_token == &assignment && separator_token == &separator => {
                 final_variable_name = name;
                 assignable = AssignableToken::from_str(middle.join(" ").as_str()).context(code_line.line.clone())?;
                 // type token is not specified by the programmer, so it must be inferred
-                type_token = assignable.infer_type()?;
+                type_token = assignable.infer_type();
 
                 let_used = true;
                 mut_used = true;
-            },
+            }
             ["let", "mut", name, ":", type_str, assignment_token, middle @ .., separator_token] if assignment_token == &assignment && separator_token == &separator => {
                 final_variable_name = name;
                 assignable = AssignableToken::from_str(middle.join(" ").as_str()).context(code_line.line.clone())?;
-                type_token = TypeToken::from_str(type_str)?;
-
-                let assigned_type = assignable.infer_type()?;
-
-                if assigned_type != type_token {
-                    return Err(ParseVariableTokenErr::TypesNotMatching {
-                        expected_type: type_token,
-                        actual_assignment: assigned_type
-                    });
-                }
+                type_token = Some(TypeToken::from_str(type_str)?);
 
                 let_used = true;
                 mut_used = true;
-            },
+            }
             [name, assignment_token, middle @ .., separator_token] if assignment_token == &assignment && separator_token == &separator => {
                 final_variable_name = name;
                 assignable = AssignableToken::from_str(middle.join(" ").as_str()).context(code_line.line.clone())?;
-                type_token = assignable.infer_type()?;
+                type_token = assignable.infer_type();
 
                 let_used = false;
                 mut_used = false;
-            },
+            }
             _ => {
                 return Err(ParseVariableTokenErr::PatternNotMatched { target_value: code_line.line.to_string() });
             }
@@ -221,7 +239,39 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> VariableToken<ASSIGNMENT, SE
             ty: type_token,
             define: let_used,
             assignable,
+            code_line: code_line.clone(),
         })
+    }
+
+    pub fn infer_with_context(&self, context: &StaticTypeContext) -> Result<TypeToken, InferTypeError> {
+        // context
+
+        match &self.assignable {
+            AssignableToken::MethodCallToken(method_call) => {
+                if let Some((_, ty)) = context.iter().find(|(context_name, _)| {
+                    context_name == &method_call.name
+                }) {
+                    return Ok(ty.clone());
+
+                }
+            }
+            AssignableToken::Variable(variable) => {
+                if let Some((_, ty)) = context.iter().rfind(|(context_name, _)| {
+                    context_name == variable
+                }) {
+                    return Ok(ty.clone());
+                }
+            },
+            AssignableToken::ArithmeticEquation(expression) => {
+                return expression.traverse_type_resulted(&context)
+            },
+            AssignableToken::BooleanEquation(expression) => {
+                return expression.traverse_type_resulted(&context)
+            }
+            a => unreachable!("{}", format!("The type {a} should have been inferred or directly parsed. Something went wrong"))
+        }
+
+        return Err(InferTypeError::TypeNotInferrable(self.assignable.to_string()))
     }
 }
 

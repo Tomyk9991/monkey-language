@@ -12,12 +12,14 @@ use crate::core::lexer::tokens::method_definition::MethodDefinition;
 use crate::core::lexer::tokens::scope_ending::ScopeEnding;
 use crate::core::lexer::tokens::variable_token::VariableToken;
 use crate::core::lexer::TryParse;
+use crate::core::lexer::type_token::InferTypeError;
 
 pub struct Scope {
     pub tokens: Vec<Token>,
 }
 pub enum ScopeError {
     ParsingError { message: String },
+    InferredError(InferTypeError),
     EmptyIterator(EmptyIteratorErr)
 }
 
@@ -31,7 +33,8 @@ impl Display for ScopeError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", match self {
             ScopeError::ParsingError { message } => message.to_string(),
-            ScopeError::EmptyIterator(e) => e.to_string()
+            ScopeError::EmptyIterator(e) => e.to_string(),
+            ScopeError::InferredError(e) => e.to_string()
         })
     }
 }
@@ -72,6 +75,12 @@ impl Display for Scope {
         write!(f, "Scope: [\n{}]", self.tokens
             .iter()
             .map(|token| format!("\t{}\n", token)).collect::<String>())
+    }
+}
+
+impl From<InferTypeError> for ScopeError {
+    fn from(value: InferTypeError) -> Self {
+        return ScopeError::InferredError(value)
     }
 }
 

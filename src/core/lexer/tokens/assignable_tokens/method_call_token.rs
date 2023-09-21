@@ -18,6 +18,7 @@ use crate::core::lexer::TryParse;
 pub struct MethodCallToken {
     pub name: NameToken,
     pub arguments: Vec<AssignableToken>,
+    pub code_line: CodeLine
 }
 
 impl Display for MethodCallToken {
@@ -110,6 +111,7 @@ impl MethodCallToken {
             Ok(MethodCallToken {
                 name: NameToken::from_str(name, false)?,
                 arguments: vec![],
+                code_line: code_line.clone(),
             })
         } else if let [name, "(", argument_segments @ .., ")", ";"] = &split[..] {
             let joined = &argument_segments.join(" ");
@@ -123,6 +125,7 @@ impl MethodCallToken {
             Ok(MethodCallToken {
                 name: NameToken::from_str(name, false)?,
                 arguments,
+                code_line: code_line.clone()
             })
         } else {
             Err(MethodCallTokenErr::PatternNotMatched { target_value: code_line.line.to_string() })

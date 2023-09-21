@@ -3,18 +3,18 @@ use std::str::FromStr;
 use crate::core::lexer::tokens::assignable_tokens::integer_token::NumberTokenErr;
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct DoubleToken {
+pub struct FloatToken {
     pub value: f64
 }
 
-impl Display for DoubleToken {
+impl Display for FloatToken {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.value)
     }
 }
 
 
-impl FromStr for DoubleToken {
+impl FromStr for FloatToken {
     type Err = NumberTokenErr;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -22,7 +22,7 @@ impl FromStr for DoubleToken {
             return Err(NumberTokenErr::UnmatchedRegex);
         }
         
-        Ok(DoubleToken {
+        Ok(FloatToken {
             value: s.parse::<f64>()?,
         })
     }

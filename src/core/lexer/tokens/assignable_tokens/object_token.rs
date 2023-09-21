@@ -5,12 +5,14 @@ use std::str::FromStr;
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::tokens::assignable_token::AssignableTokenErr;
 use crate::core::lexer::tokens::assignable_tokens::method_call_token::{dyck_language, DyckError};
-use crate::core::lexer::tokens::name_token::NameTokenErr;
+use crate::core::lexer::tokens::name_token::{NameToken, NameTokenErr};
 use crate::core::lexer::tokens::variable_token::{ParseVariableTokenErr, VariableToken};
+use crate::core::lexer::type_token::TypeToken;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct ObjectToken {
-    pub variables: Vec<VariableToken<':', ','>>
+    pub variables: Vec<VariableToken<':', ','>>,
+    pub ty: TypeToken
 }
 
 impl Display for ObjectToken {
@@ -90,8 +92,8 @@ impl ObjectToken {
     pub fn try_parse(code_line: &CodeLine) -> anyhow::Result<Self, ObjectTokenErr> {
         let split_alloc = code_line.split(vec![' ', ';']);
         let split = split_alloc.iter().map(|a| a.as_str()).collect::<Vec<_>>();
-        
-        return if let ["{", arguments_segments @ .., "}", ";"] = &split[..] {
+
+        return if let [object_type, "{", arguments_segments @ .., "}", ";"] = &split[..] {
             let mut argument_strings = dyck_language(&arguments_segments.join(" "),[vec!['{', '('], vec![','], vec!['}', ')']])?;
             argument_strings.iter_mut().for_each(|s|
                 if !s.ends_with(',') {
@@ -103,9 +105,12 @@ impl ObjectToken {
                 .iter()
                 .map(|s| VariableToken::try_parse(&CodeLine::imaginary(s)))
                 .collect::<Result<Vec<_>, _>>()?;
+
+            let type_token = TypeToken::Custom(NameToken::from_str(object_type, false)?);
             
             Ok(ObjectToken {
                 variables: arguments,
+                ty: type_token,
             })
         } else {
             Err(ObjectTokenErr::PatternNotMatched { target_value: code_line.line.to_string() })

@@ -1,8 +1,9 @@
 use std::str::FromStr;
+use monkey_language::core::io::code_line::CodeLine;
 
 use monkey_language::core::lexer::tokens::assignable_token::AssignableToken;
 use monkey_language::core::lexer::tokens::assignable_tokens::boolean_token::BooleanToken;
-use monkey_language::core::lexer::tokens::assignable_tokens::double_token::DoubleToken;
+use monkey_language::core::lexer::tokens::assignable_tokens::double_token::FloatToken;
 use monkey_language::core::lexer::tokens::assignable_tokens::equation_parser::equation_token_options::{ArithmeticEquationOptions, BooleanEquationOptions};
 use monkey_language::core::lexer::tokens::assignable_tokens::equation_parser::EquationToken;
 use monkey_language::core::lexer::tokens::assignable_tokens::equation_parser::expression::Expression;
@@ -87,7 +88,7 @@ fn assignable_double() -> anyhow::Result<()> {
     ];
 
     for (expected_result, value) in &values {
-        let token = DoubleToken::from_str(value);
+        let token = FloatToken::from_str(value);
         if !*expected_result {
             println!("{}", token.err().unwrap());
         } else {
@@ -101,23 +102,23 @@ fn assignable_double() -> anyhow::Result<()> {
 #[test]
 fn assignable_object() -> anyhow::Result<()> {
     let values: Vec<(bool, String)> = vec![
-        (true, "{ key1 : \"value1\" , key2 : 1 }".to_string()),
-        (false, "{ 'key1' : \"value2\" , 'key2' : 2 }".to_string()),
-        (true, "{ }".to_string()),
-        (false, "{ :\"key1\" , \"key3\" }".to_string()),
-        (false, "{ \"key1\" , key4 : }".to_string()),
-        (false, "{ key1\"' : \"value5' , key2 : 3 }".to_string()),
+        (true, "Data { key1 : \"value1\" , key2 : 1 }".to_string()),
+        (false, "Data { 'key1' : \"value2\" , 'key2' : 2 }".to_string()),
+        (true, "Data { }".to_string()),
+        (false, "Data { :\"key1\" , \"key3\" }".to_string()),
+        (false, "Data { \"key1\" , key4 : }".to_string()),
+        (false, "Data { key1\"' : \"value5' , key2 : 3 }".to_string()),
         (false, "[ key1 : \"value6\" , key2\" : 4 }".to_string()),
-        (true, "{ key1 : { inner_key1 : \"value1\", inner_key2 : 5 }, key2 : 1 }".to_string()),
-        (true, "{ key1 : { inner_key1 : { inner_inner_key : \"value\" } }, key2 : 2 }".to_string()),
-        (false, "{ key1 : { 'inner_key1' : \"value2\", 'inner_key2' : 2 }, key2 : 2 }".to_string()),
-        (false, "{ key1 : { inner_key1 : \"value3\", : 3 }, key2 : 3 }".to_string()),
-        (true, "{ key1 : func1 ( param1, param2 ) , key2 : 1 }".to_string()),
-        (false, "{ key1 : 'func2 ( param1, param2 )' , key2 : 2 }".to_string()),
-        (true, "{ key1 : func3 ( func4 ( param1, param2 ), param3 ) , key2 : 1 }".to_string()),
-        (true, "{ key1 : { inner_key1 : func5 ( param1, param2 ), inner_key2 : 5 }, key2 : 1 }".to_string()),
-        (false, "{ key1 : { inner_key1 : 'func6 ( param1, param2 )', inner_key2 : 2 }, key2 : 2 }".to_string()),
-        (true, "{ key1 : { inner_key1 : { inner_inner_key : func7 ( param1 ) } }, key2 : 2 }".to_string()),
+        (true, "Data { key1 : Data { inner_key1 : \"value1\", inner_key2 : 5 }, key2 : 1 }".to_string()),
+        (true, "Data { key1 : Data { inner_key1 : Data { inner_inner_key : \"value\" } }, key2 : 2 }".to_string()),
+        (false, "Data { key1 : Data { 'inner_key1' : \"value2\", 'inner_key2' : 2 }, key2 : 2 }".to_string()),
+        (false, "Data { key1 : Data { inner_key1 : \"value3\", : 3 }, key2 : 3 }".to_string()),
+        (true, "Data { key1 : func1 ( param1, param2 ) , key2 : 1 }".to_string()),
+        (false, "Data { key1 : 'func2 ( param1, param2 )' , key2 : 2 }".to_string()),
+        (true, "Data { key1 : func3 ( func4 ( param1, param2 ), param3 ) , key2 : 1 }".to_string()),
+        (true, "Data { key1 : Data { inner_key1 : func5 ( param1, param2 ), inner_key2 : 5 }, key2 : 1 }".to_string()),
+        (false, "Data { key1 : Data { inner_key1 : 'func6 ( param1, param2 )', inner_key2 : 2 }, key2 : 2 }".to_string()),
+        (true, "Data { key1 : Data { inner_key1 : Data { inner_inner_key : func7 ( param1 ) } }, key2 : 2 }".to_string()),
     ];
 
     for (expected_result, value) in &values {
@@ -154,12 +155,12 @@ fn assignable_imaginary_fn_calls() -> anyhow::Result<()> {
         (true, "imaginary_fn15 ( -3.14 )".to_string()),
         (true, "imaginary_fn16 ( 123 )".to_string()),
         (true, "imaginary_fn17 ( 31.4, test )".to_string()),
-        (true, "imaginary_fn18 ( { key1 : \"value1\" , key2 : 1 } )".to_string()),
-        (false, "imaginary_fn19 ( { 'key1' : \"value2\" , 'key2' : 2 } )".to_string()),
-        (true, "imaginary_fn20 ( { } )".to_string()),
-        (false, "imaginary_fn21 ( { key1 : { inner_key1 : 'func6 ( param1, param2 )', inner_key2 : 2 }, key2 : 2 } )".to_string()),
-        (true, "imaginary_fn21 ( { key1 : { inner_key1 : { inner_inner_key : func7 ( param1 ) } }, key2 : 2 } )".to_string()),
-        (true, "imaginary_fn22 ( { a : imaginary ( b ) } , imaginary ( { } ) ) ".to_string()),
+        (true, "imaginary_fn18 ( Data { key1 : \"value1\" , key2 : 1 } )".to_string()),
+        (false, "imaginary_fn19 ( Data { 'key1' : \"value2\" , 'key2' : 2 } )".to_string()),
+        (true, "imaginary_fn20 ( Data { } )".to_string()),
+        (false, "imaginary_fn21 ( Data { key1 : Data { inner_key1 : 'func6 ( param1, param2 )', inner_key2 : 2 }, key2 : 2 } )".to_string()),
+        (true, "imaginary_fn21 ( Data { key1 : Data { inner_key1 : Data { inner_inner_key : func7 ( param1 ) } }, key2 : 2 } )".to_string()),
+        (true, "imaginary_fn22 ( Data { a : imaginary ( b ) } , imaginary ( Data { } ) ) ".to_string()),
     ];
 
     for (expected_result, value) in &values {
@@ -621,6 +622,7 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                                                 },
                                             ),
                                         ],
+                                        code_line: CodeLine { line: "sqrt ( 3*3+4*4 ) ;".to_string(), actual_line_number: 0..0, virtual_line_number: 0},
                                     },
                                 ),
                             )),
@@ -717,15 +719,19 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                                                                     },
                                                                 ),
                                                             ],
+                                                            code_line: CodeLine { line: "d ( e*f ) ;".to_string(), actual_line_number: 0..0, virtual_line_number: 0 },
                                                         },
                                                     ),
                                                 ],
+                                                code_line: CodeLine { line: "c ( d ( e*f ) ) ;".to_string(), actual_line_number: 0..0, virtual_line_number: 0},
                                             },
                                         ),
                                     ],
+                                    code_line: CodeLine { line: "b ( c ( d ( e*f ) ) ) ;".to_string(), actual_line_number: 0..0, virtual_line_number: 0},
                                 },
                             ),
                         ],
+                        code_line: CodeLine { line: "a ( b ( c ( d ( e*f )  )  )  ) ;".to_string(), actual_line_number: 0..0, virtual_line_number: 0},
                     },
                 ),
             )),

@@ -14,20 +14,23 @@ use crate::core::lexer::errors::EmptyIteratorErr;
 use crate::core::lexer::tokens::scope_ending::ScopeEnding;
 use crate::core::lexer::levenshtein_distance::PatternedLevenshteinDistance;
 use crate::core::lexer::levenshtein_distance::{ArgumentsIgnoreSummarizeTransform, EmptyParenthesesExpand, PatternedLevenshteinString, QuoteSummarizeTransform};
+use crate::core::lexer::type_token::{InferTypeError, TypeToken};
 
 /// Token for method definition. Pattern is `fn function_name(argument1, ..., argumentN): returnType { }`
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct MethodDefinition {
     pub name: NameToken,
-    pub return_type: NameToken,
+    pub return_type: TypeToken,
     pub arguments: Vec<AssignableToken>,
     pub stack: Vec<Token>,
+    pub code_line: CodeLine
 }
 
 #[derive(Debug)]
 pub enum MethodDefinitionErr {
     PatternNotMatched { target_value: String },
     NameTokenErr(NameTokenErr),
+    ReturnTokenErr(InferTypeError),
     AssignableTokenErr(AssignableTokenErr),
     ScopeErrorErr(ScopeError),
     EmptyIterator(EmptyIteratorErr),
@@ -42,6 +45,12 @@ impl From<AssignableTokenErr> for MethodDefinitionErr {
 impl From<NameTokenErr> for MethodDefinitionErr {
     fn from(value: NameTokenErr) -> Self {
         MethodDefinitionErr::NameTokenErr(value)
+    }
+}
+
+impl From<InferTypeError> for MethodDefinitionErr {
+    fn from(value: InferTypeError) -> Self {
+        MethodDefinitionErr::ReturnTokenErr(value)
     }
 }
 
@@ -69,8 +78,9 @@ impl Display for MethodDefinitionErr {
             => format!("Pattern not matched for: `{target_value}`\n\t fn function_name(argument1, ..., argumentN): returnType {{ }}"),
             MethodDefinitionErr::AssignableTokenErr(a) => a.to_string(),
             MethodDefinitionErr::NameTokenErr(a) => a.to_string(),
+            MethodDefinitionErr::ReturnTokenErr(a) => a.to_string(),
             MethodDefinitionErr::EmptyIterator(e) => e.to_string(),
-            MethodDefinitionErr::ScopeErrorErr(a) => a.to_string()
+            MethodDefinitionErr::ScopeErrorErr(a) => a.to_string(),
         })
     }
 }
@@ -115,9 +125,10 @@ impl TryParse for MethodDefinition {
 
             return Ok(MethodDefinition {
                 name: NameToken::from_str(name, false)?,
-                return_type: NameToken::from_str(return_type, true)?,
+                return_type: TypeToken::from_str(return_type)?,
                 arguments: assignable_arguments,
                 stack: tokens,
+                code_line: method_header.clone(),
             });
         }
 

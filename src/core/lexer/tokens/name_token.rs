@@ -60,7 +60,7 @@ impl ToASM for NameToken {
     fn to_asm(&self, stack: &mut Stack, _target_os: &TargetOS) -> Result<String, crate::core::code_generator::Error> {
         let mut target = String::new();
 
-        if let Some(stack_location) = stack.variables.iter().find(|&variable| variable.name.name == self.name.as_str()) {
+        if let Some(stack_location) = stack.variables.iter().rfind(|&variable| variable.name.name == self.name.as_str()) {
             target.push_str(&format!("    ; {}\n", self));
             target.push_str(&stack.push_stack(&format!("QWORD [rsp + {}]", (stack.stack_position - stack_location.position - 1) * 8)));
 

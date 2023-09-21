@@ -1,19 +1,20 @@
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
+
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::target_os::TargetOS;
 use crate::core::code_generator::ToASM;
-
+use crate::core::lexer::tokenizer::StaticTypeContext;
 use crate::core::lexer::tokens::assignable_tokens::boolean_token::BooleanToken;
-use crate::core::lexer::tokens::assignable_tokens::double_token::DoubleToken;
-use crate::core::lexer::tokens::assignable_tokens::equation_parser::EquationToken;
+use crate::core::lexer::tokens::assignable_tokens::double_token::FloatToken;
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::equation_token_options::{ArithmeticEquationOptions, BooleanEquationOptions};
+use crate::core::lexer::tokens::assignable_tokens::equation_parser::EquationToken;
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::expression::Expression;
 use crate::core::lexer::tokens::assignable_tokens::integer_token::IntegerToken;
 use crate::core::lexer::tokens::assignable_tokens::method_call_token::{MethodCallToken, MethodCallTokenErr};
 use crate::core::lexer::tokens::assignable_tokens::object_token::ObjectToken;
-use crate::core::lexer::tokens::assignable_tokens::string_token::{StringToken};
+use crate::core::lexer::tokens::assignable_tokens::string_token::StringToken;
 use crate::core::lexer::tokens::name_token::NameToken;
 use crate::core::lexer::type_token::{InferTypeError, TypeToken};
 
@@ -22,7 +23,7 @@ use crate::core::lexer::type_token::{InferTypeError, TypeToken};
 pub enum AssignableToken {
     String(StringToken),
     IntegerToken(IntegerToken),
-    DoubleToken(DoubleToken),
+    FloatToken(FloatToken),
     BooleanToken(BooleanToken),
     MethodCallToken(MethodCallToken),
     Variable(NameToken),
@@ -37,20 +38,38 @@ pub enum AssignableTokenErr {
 }
 
 impl AssignableToken {
-    pub fn infer_type(&self) -> Result<TypeToken, InferTypeError> {
-        return Ok(
-            match self {
-                AssignableToken::String(_) => TypeToken::String,
-                AssignableToken::IntegerToken(_) => TypeToken::I32,
-                AssignableToken::DoubleToken(_) => TypeToken::F32,
-                AssignableToken::BooleanToken(_) => TypeToken::Bool,
-                AssignableToken::MethodCallToken(_) => TypeToken::MethodCallTODO, // todo
-                AssignableToken::Variable(_) => TypeToken::VariableTODO, // todo
-                AssignableToken::Object(_) => TypeToken::ObjectTODO, // todo
-                AssignableToken::ArithmeticEquation(arithmetic_expression) => arithmetic_expression.traverse_type()?,
-                AssignableToken::BooleanEquation(boolean_expression) => boolean_expression.traverse_type()?,
-            }
-        )
+    pub fn infer_type(&self) -> Option<TypeToken> {
+        self.infer_type_with_context(&StaticTypeContext::default()).ok()
+    }
+
+    pub fn infer_type_with_context(&self, context: &StaticTypeContext) -> Result<TypeToken, InferTypeError> {
+        return match self {
+            AssignableToken::String(_) => Ok(TypeToken::String),
+            AssignableToken::IntegerToken(_) => Ok(TypeToken::I32),
+            AssignableToken::FloatToken(_) => Ok(TypeToken::F32),
+            AssignableToken::BooleanToken(_) => Ok(TypeToken::Bool),
+            AssignableToken::Object(object) => Ok(TypeToken::Custom(NameToken { name: object.ty.to_string() })),
+            AssignableToken::ArithmeticEquation(arithmetic_expression) => Ok(arithmetic_expression.traverse_type_resulted(context)?),
+            AssignableToken::BooleanEquation(boolean_expression) => Ok(boolean_expression.traverse_type_resulted(context)?),
+            AssignableToken::MethodCallToken(method_call) => {
+                if let Some((_, ty)) = context.iter().find(|(context_name, _)| {
+                    context_name == &method_call.name
+                }) {
+                    return Ok(ty.clone());
+                } else {
+                    Err(InferTypeError::TypeNotInferrable(self.to_string()))
+                }
+            },
+            AssignableToken::Variable(var) => {
+                if let Some((_, ty)) = context.iter().rfind(|(context_name, _)| {
+                    context_name == var
+                }) {
+                    return Ok(ty.clone());
+                } else {
+                    Err(InferTypeError::TypeNotInferrable(self.to_string()))
+                }
+            },
+        };
     }
 }
 
@@ -65,7 +84,7 @@ impl Display for AssignableToken {
         write!(f, "{}", match self {
             AssignableToken::String(token) => format!("{}", token),
             AssignableToken::IntegerToken(token) => format!("{}", token),
-            AssignableToken::DoubleToken(token) => format!("{}", token),
+            AssignableToken::FloatToken(token) => format!("{}", token),
             AssignableToken::BooleanToken(token) => format!("{}", token),
             AssignableToken::MethodCallToken(token) => format!("{}", token),
             AssignableToken::Variable(token) => format!("{}", token),
@@ -93,7 +112,7 @@ impl ToASM for AssignableToken {
             AssignableToken::IntegerToken(token) => Ok(token.to_asm(stack, target_os)?),
             AssignableToken::Variable(variable) => Ok(variable.to_asm(stack, target_os)?),
             AssignableToken::ArithmeticEquation(expression) => Ok(expression.to_asm(stack, target_os)?),
-            token => Err(crate::core::code_generator::Error::TokenNotParsable { assignable_token: (*token).clone() })
+            token => Err(crate::core::code_generator::Error::TokenNotBuildable { assignable_token: (*token).clone() })
 
             // AssignableToken::String(_) => {}
             // AssignableToken::DoubleToken(_) => {}
@@ -113,8 +132,8 @@ impl FromStr for AssignableToken {
             return Ok(AssignableToken::String(string_token));
         } else if let Ok(integer_token) = IntegerToken::from_str(line) {
             return Ok(AssignableToken::IntegerToken(integer_token));
-        } else if let Ok(double_token) = DoubleToken::from_str(line) {
-            return Ok(AssignableToken::DoubleToken(double_token));
+        } else if let Ok(double_token) = FloatToken::from_str(line) {
+            return Ok(AssignableToken::FloatToken(double_token));
         } else if let Ok(boolean_token) = BooleanToken::from_str(line) {
             return Ok(AssignableToken::BooleanToken(boolean_token));
         }
@@ -125,7 +144,7 @@ impl FromStr for AssignableToken {
                 // this counts as a not recoverable error and should return immediately
 
                 if let MethodCallTokenErr::AssignableTokenErr(_) = err {
-                    return Err(AssignableTokenErr::PatternNotMatched { target_value: line.to_string() })
+                    return Err(AssignableTokenErr::PatternNotMatched { target_value: line.to_string() });
                 }
             }
         }

@@ -5,6 +5,7 @@ use crate::core::code_generator::generator::{ASMGenerator};
 use crate::core::code_generator::target_creator::TargetCreator;
 use crate::core::io::monkey_file::MonkeyFile;
 use crate::core::lexer::tokenizer::Lexer;
+use crate::core::type_checker::static_type_checker::static_type_check;
 
 mod core;
 mod cli;
@@ -16,12 +17,14 @@ fn main() -> anyhow::Result<()> {
     let entry_point_file = args.input.clone();
     let money_file: MonkeyFile = MonkeyFile::read(entry_point_file)?;
 
+// 1) Build AST
     let top_level_scope = Lexer::from(money_file).tokenize()?;
-
     println!("{:?}", top_level_scope);
-    
-    // let type_information = StaticTypeChecker::from(top_level_scope).check()?;
 
+// 2) Static Type Checking
+    static_type_check(&top_level_scope)?;
+
+// 3) Building
     let mut code_generator = ASMGenerator::from((top_level_scope, args.target_os.clone()));
 
     let target_creator = TargetCreator::try_from((args.input.as_str(), &args.target_os))?;
@@ -39,13 +42,14 @@ fn main() -> anyhow::Result<()> {
             0 => "Successful".green(),
             _ => "Failed".red(),
         });
-        
+
+// 4) Running
         if !args.build {
             let status = target_creator.execute(args.target_os);
             println!("Process finished with exit code {}", status);
         }
     }
-    
+
     std::env::set_current_dir(s)?;
 
     Ok(())

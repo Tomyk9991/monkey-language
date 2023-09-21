@@ -11,10 +11,10 @@ pub mod target_os;
 
 #[derive(Debug)]
 pub enum Error {
-    VariableAlreadyUsed { name: String },
+    _VariableAlreadyUsed { name: String },
     UnresolvedReference { name: String },
-    TokenNotParsable { assignable_token: AssignableToken},
-    NotImplemented { token: String, }
+    TokenNotBuildable { assignable_token: AssignableToken},
+    NotImplemented { token: String, },
 }
 
 impl Display for Error {
@@ -26,6 +26,6 @@ impl Display for Error {
 impl std::error::Error for Error { }
 
 pub trait ToASM {
-    // todo: ultimately target_os as a parameter should not be relevant. this is a temporary solution until a proper syscalls implementation is done
+    // todo: ultimately target_os as a parameter should not be relevant. this is a temporary solution until a proper sys-calls implementation is done
     fn to_asm(&self, stack: &mut Stack, target_os: &TargetOS) -> Result<String, Error>;
 }

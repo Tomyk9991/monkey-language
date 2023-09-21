@@ -1,3 +1,4 @@
+use crate::core::lexer::tokens::method_definition::MethodDefinition;
 use crate::core::code_generator::ToASM;
 use crate::core::lexer::scope::Scope;
 use crate::core::code_generator::{Error};
@@ -20,6 +21,7 @@ pub struct Stack {
     pub variables: Vec<StackLocation>,
     /// to create labels and avoid collisions in naming, a label count is used
     label_count: usize,
+    pub methods: Vec<MethodDefinition>
 }
 
 impl Stack {
@@ -125,6 +127,12 @@ impl ASMGenerator {
 
 impl From<(Scope, TargetOS)> for ASMGenerator {
     fn from(value: (Scope, TargetOS)) -> Self {
+        let mut methods = Vec::new();
+        for token in &value.0.tokens {
+            if let Token::MethodDefinition(method_def) = token {
+                methods.push(method_def.clone());
+            }
+        }
         ASMGenerator {
             top_level_scope: value.0,
             stack: Stack {
@@ -132,6 +140,7 @@ impl From<(Scope, TargetOS)> for ASMGenerator {
                 scopes: vec![],
                 variables: Default::default(),
                 label_count: 0,
+                methods,
             },
             target_os: value.1
         }
