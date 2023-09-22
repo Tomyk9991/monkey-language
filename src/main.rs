@@ -35,7 +35,6 @@ fn main() -> anyhow::Result<()> {
     let s = std::env::current_dir()?;
 
     std::env::set_current_dir(target_creator.path_to_target_directory.as_str())?;
-
     {
         let build_status = target_creator.compile(args.target_os.clone());
         println!("Completing build. Status: {build_status} {}", match build_status {
@@ -49,7 +48,6 @@ fn main() -> anyhow::Result<()> {
             println!("Process finished with exit code {}", status);
         }
     }
-
     std::env::set_current_dir(s)?;
 
     Ok(())
