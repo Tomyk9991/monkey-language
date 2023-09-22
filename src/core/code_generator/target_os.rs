@@ -59,11 +59,9 @@ impl TargetOS {
             let status = Some(output.status);
 
 
-            if !output.stderr.is_empty() {
-                if !suppress_error {
-                    let stderr = String::from_utf8_lossy(&output.stderr);
-                    eprintln!("Error: \n{}", stderr);
-                }
+            if !output.stderr.is_empty() && !suppress_error {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                eprintln!("Error: \n{}", stderr);
             }
 
             if let Some(status) = status {

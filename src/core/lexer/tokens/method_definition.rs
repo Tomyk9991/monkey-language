@@ -11,7 +11,6 @@ use std::slice::Iter;
 use std::str::FromStr;
 use crate::core::constants::FUNCTION_KEYWORD;
 use crate::core::lexer::errors::EmptyIteratorErr;
-use crate::core::lexer::tokens::scope_ending::ScopeEnding;
 use crate::core::lexer::levenshtein_distance::PatternedLevenshteinDistance;
 use crate::core::lexer::levenshtein_distance::{ArgumentsIgnoreSummarizeTransform, EmptyParenthesesExpand, PatternedLevenshteinString, QuoteSummarizeTransform};
 use crate::core::lexer::type_token::{InferTypeError, TypeToken};
@@ -116,7 +115,7 @@ impl TryParse for MethodDefinition {
                 let token = Scope::try_parse(code_lines_iterator)
                     .map_err(MethodDefinitionErr::ScopeErrorErr)?;
 
-                if token == Token::ScopeClosing(ScopeEnding) {
+                if let Token::ScopeClosing(_) = token {
                     break;
                 }
 

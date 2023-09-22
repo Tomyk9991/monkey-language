@@ -3,6 +3,7 @@ use std::fmt::{Display, Formatter};
 use std::iter::Peekable;
 use std::slice::Iter;
 use std::str::FromStr;
+use crate::core::code_generator::MetaInfo;
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::target_os::TargetOS;
 use crate::core::code_generator::ToASM;
@@ -134,12 +135,12 @@ impl MethodCallToken {
 }
 
 impl ToASM for MethodCallToken {
-    fn to_asm(&self, stack: &mut Stack, target_os: &TargetOS) -> Result<String, crate::core::code_generator::Error> {
+    fn to_asm(&self, stack: &mut Stack, meta: &MetaInfo) -> Result<String, crate::core::code_generator::ASMGenerateError> {
         // TODO finish properly. For Now just a method "exit" is supported to early return
         if self.name.name == "exit" {
             let mut result = String::new();
 
-            let parsed_argument = &self.arguments[0].to_asm(stack, target_os)?.to_string();
+            let parsed_argument = &self.arguments[0].to_asm(stack, meta)?.to_string();
             result.push_str(parsed_argument);
             result.push_str(&stack.pop_stack("rax"));
             result.push_str(&format!("    ; {}\n", self));
@@ -147,7 +148,7 @@ impl ToASM for MethodCallToken {
             result.push_str(&stack.push_stack("rax"));
 
 
-            match target_os {
+            match meta.target_os {
                 TargetOS::WindowsSubsystemLinux | TargetOS::Linux => {
                     result.push_str("    mov rax, 60\n");
                     result.push_str(&stack.pop_stack("rdi"));
@@ -164,7 +165,7 @@ impl ToASM for MethodCallToken {
 
 
         let method_call_token = Token::MethodCall(self.clone());
-        Err(crate::core::code_generator::Error::NotImplemented { token: format!("{}", method_call_token) })
+        Err(crate::core::code_generator::ASMGenerateError::NotImplemented { token: format!("{}", method_call_token) })
     }
 }
 

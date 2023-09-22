@@ -1,6 +1,7 @@
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
+use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::operator::Operator;
 use crate::core::lexer::tokens::name_token::{NameToken, NameTokenErr};
 
@@ -16,31 +17,34 @@ pub enum TypeToken {
 
 #[derive(Debug)]
 pub enum InferTypeError {
-    TypesNotCalculable(TypeToken, Operator, TypeToken),
-    TypeNotInferred(NameTokenErr),
-    TypeNotInferrable(String),
-    NameCollision(String),
-    MismatchedTypes {expected: TypeToken, actual: TypeToken }
+    TypesNotCalculable(TypeToken, Operator, TypeToken, CodeLine),
+    TypeNotInferred(NameTokenErr, CodeLine),
+    TypeNotInferrable(String, CodeLine),
+    NameCollision(String, CodeLine),
+    MismatchedTypes {expected: TypeToken, actual: TypeToken, code_line: CodeLine }
 }
 
 impl Error for InferTypeError { }
 
 impl From<NameTokenErr> for InferTypeError {
     fn from(value: NameTokenErr) -> Self {
-        return InferTypeError::TypeNotInferred(value)
+        InferTypeError::TypeNotInferred(value, CodeLine {
+            line: "Minus 1".to_string(),
+            ..Default::default()
+        })
     }
 }
 
 impl Display for InferTypeError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            InferTypeError::TypesNotCalculable(a, o, b) => {
-                write!(f, "Cannot {} between types {} and {}", o, a, b)
+            InferTypeError::TypesNotCalculable(a, o, b, code_line) => {
+                write!(f, "Line: {}: \tCannot {} between types {} and {}", code_line.line, o, a, b)
             }
-            InferTypeError::TypeNotInferred(s) => write!(f, "Cannot infer type: {s}"),
-            InferTypeError::TypeNotInferrable(s) => write!(f, "Cannot infer type: {s}"),
-            InferTypeError::MismatchedTypes { expected, actual } => write!(f, "Mismatched types: Expected `{expected}` but found `{actual}`"),
-            InferTypeError::NameCollision(name) => write!(f, "A variable and a method cannot have the same name: `{name}`")
+            InferTypeError::TypeNotInferred(s, code_line) => write!(f, "Line: {:?}: \tCannot infer type: {s}", code_line.actual_line_number),
+            InferTypeError::TypeNotInferrable(s, code_line) => write!(f, "Line: {:?}: \tCannot infer type: {s}", code_line.actual_line_number),
+            InferTypeError::MismatchedTypes { expected, actual, code_line } => write!(f, "Line: {:?}: \tMismatched types: Expected `{expected}` but found `{actual}`", code_line.actual_line_number),
+            InferTypeError::NameCollision(name, code_line) => write!(f, "Line: {:?}: \tA variable and a method cannot have the same name: `{name}`", code_line.actual_line_number)
         }
     }
 }

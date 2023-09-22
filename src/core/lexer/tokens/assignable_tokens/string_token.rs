@@ -4,7 +4,7 @@ use std::str::FromStr;
 
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub struct StringToken {
-    pub value: String
+    pub value: String,
 }
 
 impl Display for StringToken {

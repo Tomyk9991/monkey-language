@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};
 use crate::core::code_generator::generator::Stack;
-use crate::core::code_generator::{Error, ToASM};
-use crate::core::code_generator::target_os::TargetOS;
+use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
+use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::tokenizer::StaticTypeContext;
 use crate::core::lexer::tokens::assignable_token::AssignableToken;
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::operator::Operator;
@@ -82,23 +82,23 @@ impl From<Option<Box<AssignableToken>>> for Expression {
 }
 
 impl ToASM for Expression {
-    fn to_asm(&self, stack: &mut Stack, target_os: &TargetOS) -> Result<String, Error> {
+    fn to_asm(&self, stack: &mut Stack, meta: &MetaInfo) -> Result<String, ASMGenerateError> {
         if let Some(value) = &self.value { // this means, no children are provided. this is the actual value
-            return value.to_asm(stack, target_os);
+            return value.to_asm(stack, meta);
         }
 
         let mut comment = String::new();
 
         let mut target = String::new();
         if let Some(rhs) = &self.rhs {
-            target.push_str(&rhs.to_asm(stack, target_os)?);
+            target.push_str(&rhs.to_asm(stack, meta)?);
             comment.push_str(&format!("{} ", rhs));
         }
 
         comment.push_str(&format!("{} ", self.operator));
 
         if let Some(lhs) = &self.lhs {
-            target.push_str(&lhs.to_asm(stack, target_os)?);
+            target.push_str(&lhs.to_asm(stack, meta)?);
             comment.push_str(&format!("{}", lhs));
         }
 
@@ -107,7 +107,7 @@ impl ToASM for Expression {
         target.push_str(&stack.pop_stack("rbx"));
 
         target.push_str(&format!("    ; {}\n", comment));
-        target.push_str(&format!("{}\n", self.operator.to_asm(stack, target_os)?));
+        target.push_str(&format!("{}\n", self.operator.to_asm(stack, meta)?));
         target.push_str(&stack.push_stack("rax"));
 
         Ok(target)
@@ -126,15 +126,15 @@ impl Expression {
         }
     }
 
-    pub fn traverse_type(&self) -> Option<TypeToken> {
+    pub fn traverse_type(&self, code_line: &CodeLine) -> Option<TypeToken> {
         if let Some(value) = &self.value {
-            return value.infer_type();
+            return value.infer_type(code_line);
         }
 
         if let Some(lhs) = &self.lhs {
             if let Some(rhs) = &self.rhs {
-                let lhs_type = lhs.traverse_type();
-                let rhs_type = rhs.traverse_type();
+                let lhs_type = lhs.traverse_type(code_line);
+                let rhs_type = rhs.traverse_type(code_line);
 
                 let mut base_type_matrix: HashMap<(TypeToken, Operator, TypeToken), TypeToken> = HashMap::new();
                 base_type_matrix.insert((TypeToken::String, Operator::Add, TypeToken::String), TypeToken::String);
@@ -176,18 +176,18 @@ impl Expression {
             }
         }
 
-        return None;
+        None
     }
 
-    pub fn traverse_type_resulted(&self, context: &StaticTypeContext) -> Result<TypeToken, InferTypeError> {
+    pub fn traverse_type_resulted(&self, context: &StaticTypeContext, code_line: &CodeLine) -> Result<TypeToken, InferTypeError> {
         if let Some(value) = &self.value {
-            return value.infer_type_with_context(context);
+            return value.infer_type_with_context(context, code_line);
         }
 
         if let Some(lhs) = &self.lhs {
             if let Some(rhs) = &self.rhs {
-                let lhs_type = lhs.traverse_type_resulted(context)?;
-                let rhs_type = rhs.traverse_type_resulted(context)?;
+                let lhs_type = lhs.traverse_type_resulted(context, code_line)?;
+                let rhs_type = rhs.traverse_type_resulted(context, code_line)?;
 
                 let mut base_type_matrix: HashMap<(TypeToken, Operator, TypeToken), TypeToken> = HashMap::new();
                 base_type_matrix.insert((TypeToken::String, Operator::Add, TypeToken::String), TypeToken::String);
@@ -221,11 +221,11 @@ impl Expression {
                     return Ok(result_type.clone());
                 }
 
-                return Err(InferTypeError::TypesNotCalculable(lhs_type, self.operator.clone(), rhs_type));
+                return Err(InferTypeError::TypesNotCalculable(lhs_type, self.operator.clone(), rhs_type, code_line.clone()));
             }
         }
 
-        return Err(InferTypeError::TypeNotInferrable(self.to_string()));
+        Err(InferTypeError::TypeNotInferrable(self.to_string(), code_line.clone()))
     }
 
     pub fn set(&mut self, lhs: Option<Box<Expression>>, operation: Operator, rhs: Option<Box<Expression>>, value: Option<Box<AssignableToken>>) {

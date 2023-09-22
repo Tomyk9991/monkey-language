@@ -8,7 +8,7 @@ use crate::core::constants::CLOSING_SCOPE;
 use crate::core::model::scope_type::{ScopeSplitterIterator, ScopeType, ScopeTypeIterator};
 
 /// Represents a line of code
-#[derive(Debug, Default, Clone, PartialEq)]
+#[derive(Debug, Eq, Hash, Default, Clone, PartialEq)]
 pub struct CodeLine {
     pub line: String,
     /// The actual line number in the file

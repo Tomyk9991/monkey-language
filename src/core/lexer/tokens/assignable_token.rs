@@ -3,8 +3,8 @@ use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
 
 use crate::core::code_generator::generator::Stack;
-use crate::core::code_generator::target_os::TargetOS;
-use crate::core::code_generator::ToASM;
+use crate::core::code_generator::{MetaInfo, ToASM};
+use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::tokenizer::StaticTypeContext;
 use crate::core::lexer::tokens::assignable_tokens::boolean_token::BooleanToken;
 use crate::core::lexer::tokens::assignable_tokens::double_token::FloatToken;
@@ -38,26 +38,26 @@ pub enum AssignableTokenErr {
 }
 
 impl AssignableToken {
-    pub fn infer_type(&self) -> Option<TypeToken> {
-        self.infer_type_with_context(&StaticTypeContext::default()).ok()
+    pub fn infer_type(&self, code_line: &CodeLine) -> Option<TypeToken> {
+        self.infer_type_with_context(&StaticTypeContext::default(), code_line).ok()
     }
 
-    pub fn infer_type_with_context(&self, context: &StaticTypeContext) -> Result<TypeToken, InferTypeError> {
+    pub fn infer_type_with_context(&self, context: &StaticTypeContext, code_line: &CodeLine) -> Result<TypeToken, InferTypeError> {
         return match self {
             AssignableToken::String(_) => Ok(TypeToken::String),
             AssignableToken::IntegerToken(_) => Ok(TypeToken::I32),
             AssignableToken::FloatToken(_) => Ok(TypeToken::F32),
             AssignableToken::BooleanToken(_) => Ok(TypeToken::Bool),
             AssignableToken::Object(object) => Ok(TypeToken::Custom(NameToken { name: object.ty.to_string() })),
-            AssignableToken::ArithmeticEquation(arithmetic_expression) => Ok(arithmetic_expression.traverse_type_resulted(context)?),
-            AssignableToken::BooleanEquation(boolean_expression) => Ok(boolean_expression.traverse_type_resulted(context)?),
+            AssignableToken::ArithmeticEquation(arithmetic_expression) => Ok(arithmetic_expression.traverse_type_resulted(context, code_line)?),
+            AssignableToken::BooleanEquation(boolean_expression) => Ok(boolean_expression.traverse_type_resulted(context, code_line)?),
             AssignableToken::MethodCallToken(method_call) => {
                 if let Some((_, ty)) = context.iter().find(|(context_name, _)| {
                     context_name == &method_call.name
                 }) {
                     return Ok(ty.clone());
                 } else {
-                    Err(InferTypeError::TypeNotInferrable(self.to_string()))
+                    Err(InferTypeError::TypeNotInferrable(self.to_string(), code_line.clone()))
                 }
             },
             AssignableToken::Variable(var) => {
@@ -66,7 +66,7 @@ impl AssignableToken {
                 }) {
                     return Ok(ty.clone());
                 } else {
-                    Err(InferTypeError::TypeNotInferrable(self.to_string()))
+                    Err(InferTypeError::TypeNotInferrable(self.to_string(), code_line.clone()))
                 }
             },
         };
@@ -107,12 +107,12 @@ impl Display for AssignableTokenErr {
 }
 
 impl ToASM for AssignableToken {
-    fn to_asm(&self, stack: &mut Stack, target_os: &TargetOS) -> Result<String, crate::core::code_generator::Error> {
+    fn to_asm(&self, stack: &mut Stack, meta: &MetaInfo) -> Result<String, crate::core::code_generator::ASMGenerateError> {
         match &self {
-            AssignableToken::IntegerToken(token) => Ok(token.to_asm(stack, target_os)?),
-            AssignableToken::Variable(variable) => Ok(variable.to_asm(stack, target_os)?),
-            AssignableToken::ArithmeticEquation(expression) => Ok(expression.to_asm(stack, target_os)?),
-            token => Err(crate::core::code_generator::Error::TokenNotBuildable { assignable_token: (*token).clone() })
+            AssignableToken::IntegerToken(token) => Ok(token.to_asm(stack, meta)?),
+            AssignableToken::Variable(variable) => Ok(variable.to_asm(stack, meta)?),
+            AssignableToken::ArithmeticEquation(expression) => Ok(expression.to_asm(stack, meta)?),
+            token => Err(crate::core::code_generator::ASMGenerateError::TokenNotBuildable { assignable_token: (*token).clone() })
 
             // AssignableToken::String(_) => {}
             // AssignableToken::DoubleToken(_) => {}

@@ -9,7 +9,9 @@ use crate::core::lexer::TryParse;
 
 /// Token for scope ending. Basically it checks if the codeline is `}`.
 #[derive(Debug, PartialEq, Clone)]
-pub struct ScopeEnding;
+pub struct ScopeEnding {
+    pub code_line: CodeLine
+}
 
 #[derive(Debug)]
 pub enum ScopeEndingErr {
@@ -48,7 +50,7 @@ impl TryParse for ScopeEnding {
 impl ScopeEnding {
     pub fn try_parse(code_line: &CodeLine) -> anyhow::Result<Self, ScopeEndingErr> {
         if code_line.line == "}" {
-            Ok(Self)
+            Ok(Self { code_line: code_line.clone() })
         } else {
             Err(ScopeEndingErr::PatternNotMatched { target_value: code_line.line.to_string() })
         }

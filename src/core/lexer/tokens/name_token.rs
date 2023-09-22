@@ -1,8 +1,7 @@
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use crate::core::code_generator::generator::Stack;
-use crate::core::code_generator::target_os::TargetOS;
-use crate::core::code_generator::ToASM;
+use crate::core::code_generator::{MetaInfo, ToASM};
 use crate::core::constants::KEYWORDS;
 
 /// Token for a name. Basically a string that can be used as a variable name.
@@ -57,7 +56,7 @@ impl NameToken {
 }
 
 impl ToASM for NameToken {
-    fn to_asm(&self, stack: &mut Stack, _target_os: &TargetOS) -> Result<String, crate::core::code_generator::Error> {
+    fn to_asm(&self, stack: &mut Stack, meta: &MetaInfo) -> Result<String, crate::core::code_generator::ASMGenerateError> {
         let mut target = String::new();
 
         if let Some(stack_location) = stack.variables.iter().rfind(|&variable| variable.name.name == self.name.as_str()) {
@@ -66,7 +65,7 @@ impl ToASM for NameToken {
 
             Ok(target)
         } else {
-            Err(crate::core::code_generator::Error::UnresolvedReference { name: self.name.to_string() })
+            Err(crate::core::code_generator::ASMGenerateError::UnresolvedReference { name: self.name.to_string(), code_line: meta.code_line.clone() })
         }
     }
 }

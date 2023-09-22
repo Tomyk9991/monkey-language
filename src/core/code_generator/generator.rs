@@ -1,7 +1,7 @@
 use crate::core::lexer::tokens::method_definition::MethodDefinition;
-use crate::core::code_generator::ToASM;
+use crate::core::code_generator::{MetaInfo, ToASM};
 use crate::core::lexer::scope::Scope;
-use crate::core::code_generator::{Error};
+use crate::core::code_generator::{ASMGenerateError};
 use crate::core::code_generator::target_os::TargetOS;
 use crate::core::lexer::token::Token;
 use crate::core::lexer::tokens::name_token::NameToken;
@@ -41,13 +41,13 @@ impl Stack {
         value
     }
 
-    pub fn generate_scope(&mut self, tokens: &Vec<Token>, target_os: &TargetOS) -> Result<String, crate::core::code_generator::Error> {
+    pub fn generate_scope(&mut self, tokens: &Vec<Token>, meta: &MetaInfo) -> Result<String, crate::core::code_generator::ASMGenerateError> {
         let mut target = String::new();
 
         self.begin_scope();
 
         for token in tokens {
-            target.push_str(&token.to_asm(self, target_os)?);
+            target.push_str(&token.to_asm(self, meta)?);
         }
 
         target.push_str(&self.end_scope());
@@ -84,7 +84,7 @@ pub struct ASMGenerator {
 }
 
 impl ASMGenerator {
-    pub fn generate(&mut self) -> Result<String, Error> {
+    pub fn generate(&mut self) -> Result<String, ASMGenerateError> {
         let mut result = String::new();
         result += &format!("; This assembly is targeted for the {} Operating System\n", self.target_os);
 
@@ -105,7 +105,12 @@ impl ASMGenerator {
 
 
         for token in &self.top_level_scope.tokens {
-            let generated_asm = token.to_asm(&mut self.stack, &self.target_os)?;
+            let meta = MetaInfo {
+                code_line: token.code_line(),
+                target_os: self.target_os.clone()
+            };
+
+            let generated_asm = token.to_asm(&mut self.stack, &meta)?;
             result.push_str(&generated_asm);
         }
 

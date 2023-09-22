@@ -6,9 +6,11 @@ use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::errors::EmptyIteratorErr;
 use crate::core::lexer::levenshtein_distance::PatternedLevenshteinDistance;
 use crate::core::lexer::token::Token;
+use crate::core::lexer::tokenizer::{Lexer, StaticTypeContext};
 use crate::core::lexer::tokens::assignable_tokens::method_call_token::MethodCallToken;
 use crate::core::lexer::tokens::if_definition::IfDefinition;
 use crate::core::lexer::tokens::method_definition::MethodDefinition;
+use crate::core::lexer::tokens::name_token::NameToken;
 use crate::core::lexer::tokens::scope_ending::ScopeEnding;
 use crate::core::lexer::tokens::variable_token::VariableToken;
 use crate::core::lexer::TryParse;
@@ -17,6 +19,26 @@ use crate::core::lexer::type_token::InferTypeError;
 pub struct Scope {
     pub tokens: Vec<Token>,
 }
+
+impl Scope {
+    pub fn infer_type(stack: &mut Vec<Token>, type_context: &mut StaticTypeContext, method_names: &[NameToken]) -> Result<(), InferTypeError> {
+        let variables_len = type_context.len();
+
+        let scoped_checker = StaticTypeContext::type_context(stack);
+        type_context.merge(scoped_checker);
+
+        Lexer::infer_types(stack, type_context, method_names)?;
+
+        let amount_pop = type_context.len() - variables_len;
+
+        for _ in 0..amount_pop {
+            let _ = type_context.pop();
+        }
+
+        Ok(())
+    }
+}
+
 pub enum ScopeError {
     ParsingError { message: String },
     InferredError(InferTypeError),
@@ -80,7 +102,7 @@ impl Display for Scope {
 
 impl From<InferTypeError> for ScopeError {
     fn from(value: InferTypeError) -> Self {
-        return ScopeError::InferredError(value)
+        ScopeError::InferredError(value)
     }
 }
 

@@ -3,9 +3,8 @@ use std::fmt::{Display, Formatter};
 use std::iter::Peekable;
 use std::slice::Iter;
 use std::str::FromStr;
-use crate::core::code_generator::ToASM;
+use crate::core::code_generator::{MetaInfo, ToASM};
 use crate::core::code_generator::generator::Stack;
-use crate::core::code_generator::target_os::TargetOS;
 
 use crate::core::constants::{ELSE_KEYWORD, CLOSING_SCOPE, IF_KEYWORD};
 use crate::core::constants::OPENING_SCOPE;
@@ -14,9 +13,12 @@ use crate::core::lexer::errors::EmptyIteratorErr;
 use crate::core::lexer::levenshtein_distance::{ArgumentsIgnoreSummarizeTransform, EmptyParenthesesExpand, PatternedLevenshteinDistance, PatternedLevenshteinString, QuoteSummarizeTransform};
 use crate::core::lexer::scope::{Scope, ScopeError};
 use crate::core::lexer::token::Token;
+use crate::core::lexer::tokenizer::StaticTypeContext;
 use crate::core::lexer::tokens::assignable_token::{AssignableToken, AssignableTokenErr};
-use crate::core::lexer::tokens::scope_ending::ScopeEnding;
+use crate::core::lexer::tokens::name_token::NameToken;
 use crate::core::lexer::TryParse;
+use crate::core::lexer::type_token::InferTypeError;
+use crate::core::type_checker::InferType;
 
 /// Token for if definition.
 /// # Pattern
@@ -28,6 +30,18 @@ pub struct IfDefinition {
     pub if_stack: Vec<Token>,
     pub else_stack: Option<Vec<Token>>,
     pub code_line: CodeLine
+}
+
+impl InferType for IfDefinition {
+    fn infer_type(&mut self, type_context: &mut StaticTypeContext, method_names: &[NameToken]) -> Result<(), InferTypeError> {
+        Scope::infer_type(&mut self.if_stack, type_context, method_names)?;
+
+        if let Some(else_stack) = &mut self.else_stack {
+            Scope::infer_type(else_stack, type_context, method_names)?;
+        }
+
+        Ok(())
+    }
 }
 
 #[derive(Debug)]
@@ -113,7 +127,7 @@ impl TryParse for IfDefinition {
                             let token = Scope::try_parse(code_lines_iterator)
                                 .map_err(IfDefinitionErr::ScopeErrorErr)?;
 
-                            if token == Token::ScopeClosing(ScopeEnding) {
+                            if let Token::ScopeClosing(_) = token {
                                 break 'outer;
                             }
 
@@ -156,11 +170,11 @@ impl TryParse for IfDefinition {
 
 
 impl ToASM for IfDefinition {
-    fn to_asm(&self, stack: &mut Stack, target_os: &TargetOS) -> Result<String, crate::core::code_generator::Error> {
+    fn to_asm(&self, stack: &mut Stack, meta: &MetaInfo) -> Result<String, crate::core::code_generator::ASMGenerateError> {
         let mut target = String::new();
 
         target.push_str(&format!("    ; if condition ({})\n", self.condition));
-        target.push_str(&self.condition.to_asm(stack, target_os)?);
+        target.push_str(&self.condition.to_asm(stack, meta)?);
         target.push_str(&stack.pop_stack("rax"));
 
         let continue_label = stack.create_label();
@@ -180,14 +194,14 @@ impl ToASM for IfDefinition {
 
 
         target.push_str("    ; if branch\n");
-        target.push_str(&stack.generate_scope(&self.if_stack, target_os)?);
+        target.push_str(&stack.generate_scope(&self.if_stack, meta)?);
         target.push_str(&format!("    jmp {}\n", continue_label));
 
 
         if let Some(else_stack) = &self.else_stack {
             target.push_str(&format!("{}:\n", else_label));
             target.push_str(&format!("    ; else branch \"{}\"\n", self));
-            target.push_str(&stack.generate_scope(else_stack, target_os)?);
+            target.push_str(&stack.generate_scope(else_stack, meta)?);
         }
 
         target.push_str(&format!("{}:\n", continue_label));

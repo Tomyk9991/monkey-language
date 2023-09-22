@@ -3,8 +3,7 @@ use std::fmt::{Display, Formatter};
 use std::num::{ParseFloatError, ParseIntError};
 use std::str::FromStr;
 use crate::core::code_generator::generator::Stack;
-use crate::core::code_generator::target_os::TargetOS;
-use crate::core::code_generator::ToASM;
+use crate::core::code_generator::{MetaInfo, ToASM};
 
 #[derive(Default, Debug, Eq, PartialEq, Clone)]
 pub struct IntegerToken {
@@ -63,7 +62,7 @@ impl FromStr for IntegerToken {
 }
 
 impl ToASM for IntegerToken {
-    fn to_asm(&self, stack: &mut Stack, _target_os: &TargetOS) -> Result<String, crate::core::code_generator::Error> {
+    fn to_asm(&self, stack: &mut Stack, _meta: &MetaInfo) -> Result<String, crate::core::code_generator::ASMGenerateError> {
         Ok(format!("    ; {}\n    mov rax, {}\n{}", self, self.value, stack.push_stack("rax")))
     }
 }

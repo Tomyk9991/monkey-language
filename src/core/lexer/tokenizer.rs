@@ -30,7 +30,7 @@ impl Deref for StaticTypeContext {
 
 impl DerefMut for StaticTypeContext {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        return &mut self.context
+        &mut self.context
     }
 }
 
@@ -94,13 +94,13 @@ impl Lexer {
             scope.tokens.push(token);
         }
 
-        // top level type context. all methods are visible
+        // top level type context. top level variables and all methods are visible
         let mut type_context: StaticTypeContext = StaticTypeContext::type_context(&scope.tokens);
         let mut methods: Vec<*mut MethodDefinition> = Vec::new();
 
         for token in &mut scope.tokens {
-            if let Token::MethodDefinition(method_def) = token {
-                methods.push(method_def);
+            if let Token::MethodDefinition(method_ref) = token {
+                methods.push(method_ref);
             }
         }
 
@@ -110,71 +110,16 @@ impl Lexer {
 
         Self::infer_types(&mut scope.tokens, &mut type_context, &method_names)?;
 
-
         for method in methods.iter_mut() {
-            let variables_len = type_context.len();
-
-            let scoped_checker = StaticTypeContext::type_context(unsafe { &(*(*method)).stack });
-            type_context.merge(scoped_checker);
-
-            Self::infer_types(unsafe { &mut (*(*method)).stack }, &mut type_context, &method_names)?;
-
-            let amount_pop = type_context.len() - variables_len;
-
-            for _ in 0..amount_pop {
-                let _ = type_context.pop();
-            }
+            Scope::infer_type(unsafe { &mut (*(*method)).stack }, &mut type_context, &method_names)?;
         }
 
         Ok(scope)
     }
 
-    fn infer_types(scope: &mut Vec<Token>, type_context: &mut StaticTypeContext, method_names: &Vec<NameToken>) -> Result<(), ScopeError> {
+    pub fn infer_types(scope: &mut Vec<Token>, type_context: &mut StaticTypeContext, method_names: &[NameToken]) -> Result<(), InferTypeError> {
         for token in scope {
-            match token {
-                Token::Variable(variable) => {
-                    if method_names.iter().filter(|a| a == &&variable.name_token).count() > 0 {
-                        return Err(InferTypeError::NameCollision(variable.name_token.name.clone()).into());
-                    }
-
-                    if !variable.define {
-                        continue;
-                    }
-
-                    let _ = variable.infer_type(type_context)?;
-                }
-                Token::IfDefinition(if_definition) => {
-                    let variables_len = type_context.len();
-
-                    let scoped_checker = StaticTypeContext::type_context(&if_definition.if_stack);
-                    type_context.merge(scoped_checker);
-
-                    Self::infer_types(&mut if_definition.if_stack, type_context, method_names)?;
-
-                    let amount_pop = type_context.len() - variables_len;
-
-                    for _ in 0..amount_pop {
-                        let _ = type_context.pop();
-                    }
-
-                    if let Some(else_stack) = &mut if_definition.else_stack {
-                        let variables_len = type_context.len();
-
-                        let scoped_checker = StaticTypeContext::type_context(else_stack);
-                        type_context.merge(scoped_checker);
-
-                        Self::infer_types(else_stack, type_context, method_names)?;
-
-                        let amount_pop = type_context.len() - variables_len;
-
-                        for _ in 0..amount_pop {
-                            let _ = type_context.pop();
-                        }
-                    }
-                }
-                Token::MethodDefinition(_) | Token::MethodCall(_) | Token::ScopeClosing(_) => {}
-            }
-
+            token.infer_type(type_context, method_names)?;
         }
 
         Ok(())
