@@ -127,56 +127,7 @@ impl Expression {
     }
 
     pub fn traverse_type(&self, code_line: &CodeLine) -> Option<TypeToken> {
-        if let Some(value) = &self.value {
-            return value.infer_type(code_line);
-        }
-
-        if let Some(lhs) = &self.lhs {
-            if let Some(rhs) = &self.rhs {
-                let lhs_type = lhs.traverse_type(code_line);
-                let rhs_type = rhs.traverse_type(code_line);
-
-                let mut base_type_matrix: HashMap<(TypeToken, Operator, TypeToken), TypeToken> = HashMap::new();
-                base_type_matrix.insert((TypeToken::String, Operator::Add, TypeToken::String), TypeToken::String);
-
-                base_type_matrix.insert((TypeToken::I32, Operator::Add, TypeToken::I32), TypeToken::I32);
-                base_type_matrix.insert((TypeToken::I32, Operator::Sub, TypeToken::I32), TypeToken::I32);
-                base_type_matrix.insert((TypeToken::I32, Operator::Mul, TypeToken::I32), TypeToken::I32);
-                base_type_matrix.insert((TypeToken::I32, Operator::Div, TypeToken::I32), TypeToken::F32);
-
-                base_type_matrix.insert((TypeToken::F32, Operator::Add, TypeToken::F32), TypeToken::F32);
-                base_type_matrix.insert((TypeToken::F32, Operator::Sub, TypeToken::F32), TypeToken::F32);
-                base_type_matrix.insert((TypeToken::F32, Operator::Mul, TypeToken::F32), TypeToken::F32);
-                base_type_matrix.insert((TypeToken::F32, Operator::Div, TypeToken::F32), TypeToken::F32);
-
-                base_type_matrix.insert((TypeToken::F32, Operator::Add, TypeToken::I32), TypeToken::F32);
-                base_type_matrix.insert((TypeToken::F32, Operator::Sub, TypeToken::I32), TypeToken::F32);
-                base_type_matrix.insert((TypeToken::F32, Operator::Mul, TypeToken::I32), TypeToken::F32);
-                base_type_matrix.insert((TypeToken::F32, Operator::Div, TypeToken::I32), TypeToken::F32);
-
-                base_type_matrix.insert((TypeToken::I32, Operator::Add, TypeToken::F32), TypeToken::F32);
-                base_type_matrix.insert((TypeToken::I32, Operator::Sub, TypeToken::F32), TypeToken::F32);
-                base_type_matrix.insert((TypeToken::I32, Operator::Mul, TypeToken::F32), TypeToken::F32);
-                base_type_matrix.insert((TypeToken::I32, Operator::Div, TypeToken::F32), TypeToken::F32);
-
-                base_type_matrix.insert((TypeToken::Bool, Operator::Add, TypeToken::Bool), TypeToken::Bool);
-                base_type_matrix.insert((TypeToken::Bool, Operator::Sub, TypeToken::Bool), TypeToken::Bool);
-                base_type_matrix.insert((TypeToken::Bool, Operator::Mul, TypeToken::Bool), TypeToken::Bool);
-                base_type_matrix.insert((TypeToken::Bool, Operator::Div, TypeToken::Bool), TypeToken::Bool);
-
-                if let Some(lhs_type) = lhs_type {
-                    if let Some(rhs_type) = rhs_type {
-                        if let Some(result_type) = base_type_matrix.get(&(lhs_type.clone(), self.operator.clone(), rhs_type.clone())) {
-                            return Some(result_type.clone());
-                        }
-                    }
-                }
-
-                return None;
-            }
-        }
-
-        None
+        self.traverse_type_resulted(&StaticTypeContext::default(), code_line).ok()
     }
 
     pub fn traverse_type_resulted(&self, context: &StaticTypeContext, code_line: &CodeLine) -> Result<TypeToken, InferTypeError> {
