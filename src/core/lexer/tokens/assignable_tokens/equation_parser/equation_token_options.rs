@@ -6,12 +6,6 @@ pub trait EquationTokenOptions {
     fn inverse_multiplicative() -> Option<char>;
 
     fn negate() -> Option<char>;
-
-    // fn add_operation(value: Box<Expression>, other: Box<Expression>) -> Result<Box<Expression>, Error>;
-    // fn inverse_add_operation(value: Box<Expression>, other: Box<Expression>) -> Result<Box<Expression>, Error>;
-    //
-    // fn mul_operation(value: Box<Expression>, other: Box<Expression>) -> Result<Box<Expression>, Error>;
-    // fn inverse_mul_operation(value: Box<Expression>, other: Box<Expression>) -> Result<Box<Expression>, Error>;
 }
 
 #[derive(Clone)]
