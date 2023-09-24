@@ -140,22 +140,25 @@ impl ToASM for MethodCallToken {
         if self.name.name == "exit" {
             let mut result = String::new();
 
-            let parsed_argument = &self.arguments[0].to_asm(stack, meta)?.to_string();
-            result.push_str(parsed_argument);
-            result.push_str(&stack.pop_stack("rax"));
-            result.push_str(&format!("    ; {}\n", self));
-
-            result.push_str(&stack.push_stack("rax"));
-
+            let parsed_argument = match &self.arguments[0] {
+                AssignableToken::ArithmeticEquation(_) | AssignableToken::BooleanEquation(_) => {
+                    result += &self.arguments[0].to_asm(stack, meta)?;
+                    String::from("rax")
+                }
+                _ => {
+                    result.push_str(&format!("    ; {}\n", self));
+                    self.arguments[0].to_asm(stack, meta)?.to_string()
+                }
+            };
 
             match meta.target_os {
                 TargetOS::WindowsSubsystemLinux | TargetOS::Linux => {
                     result.push_str("    mov rax, 60\n");
-                    result.push_str(&stack.pop_stack("rdi"));
+                    result.push_str(&format!("    mov rdi, {}\n", parsed_argument.replace("DWORD", "QWORD")));
                     result.push_str("    syscall\n");
                 }
                 TargetOS::Windows => {
-                    result.push_str("    mov rcx, rax\n");
+                    result.push_str(&format!("    mov rcx, {}\n", parsed_argument.replace("DWORD", "QWORD")));
                     result.push_str("    call ExitProcess\n");
                 }
             }
@@ -166,6 +169,10 @@ impl ToASM for MethodCallToken {
 
         let method_call_token = Token::MethodCall(self.clone());
         Err(crate::core::code_generator::ASMGenerateError::NotImplemented { token: format!("{}", method_call_token) })
+    }
+
+    fn is_stack_look_up(&self, stack: &mut Stack, meta: &MetaInfo) -> bool {
+        true
     }
 }
 

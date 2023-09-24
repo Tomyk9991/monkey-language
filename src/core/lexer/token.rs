@@ -61,6 +61,16 @@ impl ToASM for Token {
             // Token::ScopeClosing(_) => {}
         }
     }
+
+    fn is_stack_look_up(&self, _stack: &mut Stack, _meta: &MetaInfo) -> bool {
+        match self {
+            Token::Variable(_) => true,
+            Token::MethodCall(_) => true,
+            Token::MethodDefinition(_) => true,
+            Token::ScopeClosing(_) => false,
+            Token::IfDefinition(_) => true,
+        }
+    }
 }
 
 impl Display for Token {

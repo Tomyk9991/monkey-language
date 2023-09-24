@@ -57,15 +57,14 @@ impl NameToken {
 
 impl ToASM for NameToken {
     fn to_asm(&self, stack: &mut Stack, meta: &MetaInfo) -> Result<String, crate::core::code_generator::ASMGenerateError> {
-        let mut target = String::new();
-
-        if let Some(stack_location) = stack.variables.iter().rfind(|&variable| variable.name.name == self.name.as_str()) {
-            target.push_str(&format!("    ; {}\n", self));
-            target.push_str(&stack.push_stack(&format!("QWORD [rsp + {}]", (stack.stack_position - stack_location.position - 1) * 8)));
-
-            Ok(target)
+        return if let Some(stack_location) = stack.variables.iter().rfind(|&variable| variable.name.name == self.name.as_str()) {
+            Ok(format!("DWORD [rbp - {}]", stack_location.position + 4))
         } else {
             Err(crate::core::code_generator::ASMGenerateError::UnresolvedReference { name: self.name.to_string(), code_line: meta.code_line.clone() })
         }
+    }
+
+    fn is_stack_look_up(&self, stack: &mut Stack, meta: &MetaInfo) -> bool {
+        true
     }
 }

@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};
-use crate::core::code_generator::generator::Stack;
+
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
+use crate::core::code_generator::generator::Stack;
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::tokenizer::StaticTypeContext;
 use crate::core::lexer::tokens::assignable_token::AssignableToken;
@@ -15,7 +16,7 @@ pub struct Expression {
     pub rhs: Option<Box<Expression>>,
     pub operator: Operator,
     pub value: Option<Box<AssignableToken>>,
-    pub positive: bool
+    pub positive: bool,
 }
 
 impl Default for Expression {
@@ -25,7 +26,7 @@ impl Default for Expression {
             rhs: None,
             operator: Operator::Noop,
             value: None,
-            positive: true
+            positive: true,
         }
     }
 }
@@ -33,23 +34,23 @@ impl Default for Expression {
 impl Debug for Expression {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let mut debug_struct_formatter = f.debug_struct("Expression");
-        
+
         if let Some(lhs) = &self.lhs {
             debug_struct_formatter.field("lhs", lhs);
         }
-        
+
         debug_struct_formatter.field("operator", &self.operator);
-        
+
         if let Some(rhs) = &self.rhs {
             debug_struct_formatter.field("rhs", rhs);
         }
-        
+
         if let Some(value) = &self.value {
             debug_struct_formatter.field("value", value);
         }
-        
+
         debug_struct_formatter.field("positive", &self.positive);
-        
+
         debug_struct_formatter.finish()
     }
 }
@@ -83,34 +84,49 @@ impl From<Option<Box<AssignableToken>>> for Expression {
 
 impl ToASM for Expression {
     fn to_asm(&self, stack: &mut Stack, meta: &MetaInfo) -> Result<String, ASMGenerateError> {
+
         if let Some(value) = &self.value { // this means, no children are provided. this is the actual value
             return value.to_asm(stack, meta);
         }
 
-        let mut comment = String::new();
-
         let mut target = String::new();
-        if let Some(rhs) = &self.rhs {
-            target.push_str(&rhs.to_asm(stack, meta)?);
-            comment.push_str(&format!("{} ", rhs));
+        target += &format!("    ; {}\n", self);
+
+        match (&self.rhs, &self.lhs) {
+            (Some(lhs), Some(rhs)) => {
+                match (&lhs.value, &rhs.value) {
+                    (Some(_), Some(_)) => {
+                        target += &format!("    mov eax, {}\n", rhs.to_asm(stack, meta)?);
+                        target += &format!("    {} eax, {}\n", self.operator.to_asm(stack, meta)?, lhs.to_asm(stack, meta)?);
+                        target += &format!("    mov {}, eax\n", stack.register_to_use);
+                    }
+                    (None, Some(_)) => {
+                        target += &format!("{}\n", lhs.to_asm(stack, meta)?);
+                        target += &format!("    {} eax, {}\n", self.operator.to_asm(stack, meta)?, rhs.to_asm(stack, meta)?);
+                    }
+                    (Some(_), None) => {
+                        target += &format!("{}\n", rhs.to_asm(stack, meta)?);
+                        target += &format!("    {} edx, {}\n", self.operator.to_asm(stack, meta)?, lhs.to_asm(stack, meta)?);
+                    }
+                    (None, None) => {
+                        stack.register_to_use = String::from("edx");
+                        target += &format!("{}\n", rhs.to_asm(stack, meta)?);
+                        stack.register_to_use = String::from("eax");
+                        target += &format!("{}\n", lhs.to_asm(stack, meta)?);
+                        stack.register_to_use = String::from("");
+
+                        target += &format!("    {} eax, edx\n", self.operator.to_asm(stack, meta)?);
+                    }
+                }
+            }
+            (_, _) => return Err(ASMGenerateError::NotImplemented { token: "Something went wrong. Neither rhs nor lhs are valid".to_string() })
         }
-
-        comment.push_str(&format!("{} ", self.operator));
-
-        if let Some(lhs) = &self.lhs {
-            target.push_str(&lhs.to_asm(stack, meta)?);
-            comment.push_str(&format!("{}", lhs));
-        }
-
-
-        target.push_str(&stack.pop_stack("rax"));
-        target.push_str(&stack.pop_stack("rbx"));
-
-        target.push_str(&format!("    ; {}\n", comment));
-        target.push_str(&format!("{}\n", self.operator.to_asm(stack, meta)?));
-        target.push_str(&stack.push_stack("rax"));
 
         Ok(target)
+    }
+
+    fn is_stack_look_up(&self, stack: &mut Stack, meta: &MetaInfo) -> bool {
+        true
     }
 }
 
@@ -122,7 +138,7 @@ impl Expression {
             rhs,
             operator,
             value,
-            positive: true
+            positive: true,
         }
     }
 

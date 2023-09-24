@@ -21,11 +21,15 @@ impl Display for Operator {
 impl ToASM for Operator {
     fn to_asm(&self, _: &mut Stack, _: &MetaInfo) -> Result<String, ASMGenerateError> {
         Ok(match self {
-            Operator::Noop =>"    noop".to_string(),
-            Operator::Add => "    add rax, rbx".to_string(),
-            Operator::Sub => "    sub rax, rbx".to_string(),
-            Operator::Mul => "    mul rbx".to_string(),
-            Operator::Div => "    div rbx".to_string(),
+            Operator::Noop =>"noop".to_string(),
+            Operator::Add => "add".to_string(),
+            Operator::Sub => "sub".to_string(),
+            Operator::Mul => "imul".to_string(),
+            Operator::Div => "div".to_string(),
         })
+    }
+
+    fn is_stack_look_up(&self, stack: &mut Stack, meta: &MetaInfo) -> bool {
+        false
     }
 }

@@ -21,17 +21,18 @@ pub struct Stack {
     pub variables: Vec<StackLocation>,
     /// to create labels and avoid collisions in naming, a label count is used
     label_count: usize,
-    pub methods: Vec<MethodDefinition>
+    pub methods: Vec<MethodDefinition>,
+    pub register_to_use: String,
 }
 
 impl Stack {
-    pub fn push_stack(&mut self, register: &str) -> String {
-        self.stack_position += 1;
+    pub fn push_stack(&mut self, register: &str, size: usize) -> String {
+        self.stack_position += size;
         format!("    push {register}\n")
     }
 
-    pub fn pop_stack(&mut self, register: &str) -> String {
-        self.stack_position -= 1;
+    pub fn pop_stack(&mut self, register: &str, size: usize) -> String {
+        self.stack_position -= size;
         format!("    pop {register}\n")
     }
 
@@ -146,6 +147,7 @@ impl From<(Scope, TargetOS)> for ASMGenerator {
                 variables: Default::default(),
                 label_count: 0,
                 methods,
+                register_to_use: String::from("eax")
             },
             target_os: value.1
         }

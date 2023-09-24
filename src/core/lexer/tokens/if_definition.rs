@@ -174,8 +174,6 @@ impl ToASM for IfDefinition {
         let mut target = String::new();
 
         target.push_str(&format!("    ; if condition ({})\n", self.condition));
-        target.push_str(&self.condition.to_asm(stack, meta)?);
-        target.push_str(&stack.pop_stack("rax"));
 
         let continue_label = stack.create_label();
         let else_label = stack.create_label();
@@ -187,10 +185,10 @@ impl ToASM for IfDefinition {
         };
 
         target.push_str(&format!("    ; if {} > 0 => run if stack: \n", self.condition));
-        target.push_str("    test rax, rax\n");
+        target.push_str(&format!("    cmp {}, 0\n", &self.condition.to_asm(stack, meta)?));
 
 
-        target.push_str(&format!("    jz {}\n", jump_label));
+        target.push_str(&format!("    je {}\n", jump_label));
 
 
         target.push_str("    ; if branch\n");
@@ -207,6 +205,10 @@ impl ToASM for IfDefinition {
         target.push_str(&format!("{}:\n", continue_label));
         target.push_str(&format!("    ; Continue after \"{}\"\n", self));
         Ok(target)
+    }
+
+    fn is_stack_look_up(&self, stack: &mut Stack, meta: &MetaInfo) -> bool {
+        true
     }
 }
 

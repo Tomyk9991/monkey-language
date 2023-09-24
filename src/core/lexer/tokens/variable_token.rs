@@ -6,8 +6,8 @@ use std::str::FromStr;
 
 use anyhow::Context;
 
-use crate::core::code_generator::generator::{Stack, StackLocation};
 use crate::core::code_generator::{MetaInfo, ToASM};
+use crate::core::code_generator::generator::{Stack, StackLocation};
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::errors::EmptyIteratorErr;
 use crate::core::lexer::levenshtein_distance::{MethodCallSummarizeTransform, PatternedLevenshteinDistance, PatternedLevenshteinString, QuoteSummarizeTransform};
@@ -32,7 +32,7 @@ pub struct VariableToken<const ASSIGNMENT: char, const SEPARATOR: char> {
     /// flag defining if the variable is a new definition or a re-assignment
     pub define: bool,
     pub assignable: AssignableToken,
-    pub code_line: CodeLine
+    pub code_line: CodeLine,
 }
 
 impl<const ASSIGNMENT: char, const SEPARATOR: char> InferType for VariableToken<ASSIGNMENT, SEPARATOR> {
@@ -42,7 +42,7 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> InferType for VariableToken<
         }
 
         if !self.define {
-            return Ok(())
+            return Ok(());
         }
 
         match &self.ty {
@@ -55,7 +55,7 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> InferType for VariableToken<
                 let inferred_type = self.assignable.infer_type_with_context(type_context, &self.code_line)?;
 
                 if ty != &inferred_type {
-                    return Err(InferTypeError::MismatchedTypes { expected: ty.clone(), actual: inferred_type.clone(), code_line: self.code_line.clone() })
+                    return Err(InferTypeError::MismatchedTypes { expected: ty.clone(), actual: inferred_type.clone(), code_line: self.code_line.clone() });
                 }
 
                 Ok(())
@@ -131,36 +131,41 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for VariableToken<ASSI
     fn to_asm(&self, stack: &mut Stack, meta: &MetaInfo) -> Result<String, crate::core::code_generator::ASMGenerateError> {
         let mut target = String::new();
 
-        let mut i = 0;
-        while i < stack.variables.len() {
-            if stack.variables[i].name.name == self.name_token.name && !self.define {
-                target.push_str(&format!("    ; Re-assign {}\n", self));
-                target.push_str(&self.assignable.to_asm(stack, meta)?);
-                target.push_str(&stack.pop_stack("rax"));
-                target.push_str(&format!("    mov QWORD [rsp + {}], rax\n", (stack.stack_position - stack.variables[i].position - 1) * 8));
+        let mov_target = if self.define {
+            stack.variables.push(StackLocation { position: stack.stack_position, name: self.name_token.clone() });
+            stack.stack_position += 4;
 
-                return Ok(target);
+            let offset = stack.stack_position;
+            format!("DWORD [rbp - {}]", offset)
+        } else {
+            self.name_token.to_asm(stack, meta)?
+        };
+
+        target += &format!("    ; {}\n", self);
+        if self.define && !self.assignable.is_stack_look_up(stack, meta) {
+            target += &format!("    mov {}, {}\n", mov_target, self.assignable.to_asm(stack, meta)?);
+        } else {
+            match &self.assignable {
+                AssignableToken::ArithmeticEquation(eq) => {
+                    target += &format!("{}", eq.to_asm(stack, meta)?);
+                }
+                AssignableToken::BooleanEquation(eq) => {
+                    target += &format!("{}", eq.to_asm(stack, meta)?);
+                }
+                _ => {
+                    target += &format!("    mov eax, {}\n", self.assignable.to_asm(stack, meta)?);
+                }
             }
-                // else {
-                //     Err(crate::core::code_generator::Error::VariableAlreadyUsed { name: self.name_token.name.clone() })
-                // };
-            i += 1;
+
+            target += &format!("    mov {}, eax\n", mov_target);
         }
 
-        // at this point a line has the structure
-        // a = 5
-        // this is not valid, since its not a definition, its an assignment on a variable with the name
-        // a but a not found in the scope
-        if !self.define {
-            return Err(crate::core::code_generator::ASMGenerateError::UnresolvedReference { name: self.name_token.name.clone(), code_line: self.code_line.clone() });
-        }
-
-        stack.variables.push(StackLocation { position: stack.stack_position, name: self.name_token.clone() });
-
-        target.push_str(&format!("    ; Pushing onto stack: {}\n", self));
-        target.push_str(&self.assignable.to_asm(stack, meta)?);
 
         Ok(target)
+    }
+
+    fn is_stack_look_up(&self, stack: &mut Stack, meta: &MetaInfo) -> bool {
+        self.assignable.is_stack_look_up(stack, meta)
     }
 }
 
@@ -258,21 +263,20 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> VariableToken<ASSIGNMENT, SE
                     context_name == &method_call.name
                 }) {
                     return Ok(ty.clone());
-
                 }
             }
-            AssignableToken::Variable(variable) => {
+            AssignableToken::NameToken(variable) => {
                 if let Some((_, ty)) = context.iter().rfind(|(context_name, _)| {
                     context_name == variable
                 }) {
                     return Ok(ty.clone());
                 }
-            },
+            }
             AssignableToken::ArithmeticEquation(expression) => {
-                return expression.traverse_type_resulted(context, code_line)
-            },
+                return expression.traverse_type_resulted(context, code_line);
+            }
             AssignableToken::BooleanEquation(expression) => {
-                return expression.traverse_type_resulted(context, code_line)
+                return expression.traverse_type_resulted(context, code_line);
             }
             a => unreachable!("{}", format!("The type {a} should have been inferred or directly parsed. Something went wrong"))
         }

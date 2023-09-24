@@ -62,7 +62,11 @@ impl FromStr for IntegerToken {
 }
 
 impl ToASM for IntegerToken {
-    fn to_asm(&self, stack: &mut Stack, _meta: &MetaInfo) -> Result<String, crate::core::code_generator::ASMGenerateError> {
-        Ok(format!("    ; {}\n    mov rax, {}\n{}", self, self.value, stack.push_stack("rax")))
+    fn to_asm(&self, _stack: &mut Stack, _meta: &MetaInfo) -> Result<String, crate::core::code_generator::ASMGenerateError> {
+        Ok(self.value.to_string())
+    }
+
+    fn is_stack_look_up(&self, _stack: &mut Stack, _meta: &MetaInfo) -> bool {
+        false
     }
 }

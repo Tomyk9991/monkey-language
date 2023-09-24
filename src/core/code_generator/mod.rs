@@ -40,4 +40,5 @@ pub struct MetaInfo {
 
 pub trait ToASM {
     fn to_asm(&self, stack: &mut Stack, meta: &MetaInfo) -> Result<String, ASMGenerateError>;
+    fn is_stack_look_up(&self, stack: &mut Stack, meta: &MetaInfo) -> bool;
 }

@@ -77,7 +77,9 @@ impl TargetOS {
     }
     
     fn compile_and_execute(&self, target_creator: &TargetCreator, build: bool, execute: bool) -> i32 {
-        println!("Compiling...");
+        if build {
+            println!("Compiling...");
+        }
 
         if self == &TargetOS::Windows || self == &TargetOS::WindowsSubsystemLinux {
             if let Some(return_value) = TargetOS::run_on_windows() {

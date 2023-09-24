@@ -26,7 +26,7 @@ pub enum AssignableToken {
     FloatToken(FloatToken),
     BooleanToken(BooleanToken),
     MethodCallToken(MethodCallToken),
-    Variable(NameToken),
+    NameToken(NameToken),
     Object(ObjectToken),
     ArithmeticEquation(Expression),
     BooleanEquation(Expression),
@@ -60,7 +60,7 @@ impl AssignableToken {
                     Err(InferTypeError::TypeNotInferrable(self.to_string(), code_line.clone()))
                 }
             },
-            AssignableToken::Variable(var) => {
+            AssignableToken::NameToken(var) => {
                 if let Some((_, ty)) = context.iter().rfind(|(context_name, _)| {
                     context_name == var
                 }) {
@@ -87,7 +87,7 @@ impl Display for AssignableToken {
             AssignableToken::FloatToken(token) => format!("{}", token),
             AssignableToken::BooleanToken(token) => format!("{}", token),
             AssignableToken::MethodCallToken(token) => format!("{}", token),
-            AssignableToken::Variable(token) => format!("{}", token),
+            AssignableToken::NameToken(token) => format!("{}", token),
             AssignableToken::Object(token) => format!("{}", token),
             AssignableToken::ArithmeticEquation(token) => format!("{}", token),
             AssignableToken::BooleanEquation(token) => format!("{}", token),
@@ -110,7 +110,7 @@ impl ToASM for AssignableToken {
     fn to_asm(&self, stack: &mut Stack, meta: &MetaInfo) -> Result<String, crate::core::code_generator::ASMGenerateError> {
         match &self {
             AssignableToken::IntegerToken(token) => Ok(token.to_asm(stack, meta)?),
-            AssignableToken::Variable(variable) => Ok(variable.to_asm(stack, meta)?),
+            AssignableToken::NameToken(variable) => Ok(variable.to_asm(stack, meta)?),
             AssignableToken::ArithmeticEquation(expression) => Ok(expression.to_asm(stack, meta)?),
             token => Err(crate::core::code_generator::ASMGenerateError::TokenNotBuildable { assignable_token: (*token).clone() })
 
@@ -120,6 +120,20 @@ impl ToASM for AssignableToken {
             // AssignableToken::MethodCallToken(_) => {}
             // AssignableToken::Object(_) => {}
             // AssignableToken::BooleanEquation(_) => {}
+        }
+    }
+
+    fn is_stack_look_up(&self, stack: &mut Stack, meta: &MetaInfo) -> bool {
+        match self {
+            AssignableToken::String(_) => false,
+            AssignableToken::IntegerToken(_) => false,
+            AssignableToken::FloatToken(_) => false,
+            AssignableToken::BooleanToken(_) => false,
+            AssignableToken::MethodCallToken(_) => true,
+            AssignableToken::NameToken(_) => true,
+            AssignableToken::Object(_) => false,
+            AssignableToken::ArithmeticEquation(_) => true,
+            AssignableToken::BooleanEquation(_) => true
         }
     }
 }
@@ -154,7 +168,7 @@ impl FromStr for AssignableToken {
         } else if let Ok(boolean_equation_token) = EquationToken::<BooleanEquationOptions>::from_str(line) {
             return Ok(AssignableToken::BooleanEquation(boolean_equation_token));
         } else if let Ok(variable_name) = NameToken::from_str(line, false) {
-            return Ok(AssignableToken::Variable(variable_name));
+            return Ok(AssignableToken::NameToken(variable_name));
         } else if let Ok(object_token) = ObjectToken::from_str(line) {
             return Ok(AssignableToken::Object(object_token));
         }
