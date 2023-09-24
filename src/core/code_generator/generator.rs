@@ -26,12 +26,12 @@ pub struct Stack {
 }
 
 impl Stack {
-    pub fn push_stack(&mut self, register: &str, size: usize) -> String {
+    pub fn _push_stack(&mut self, register: &str, size: usize) -> String {
         self.stack_position += size;
         format!("    push {register}\n")
     }
 
-    pub fn pop_stack(&mut self, register: &str, size: usize) -> String {
+    pub fn _pop_stack(&mut self, register: &str, size: usize) -> String {
         self.stack_position -= size;
         format!("    pop {register}\n")
     }

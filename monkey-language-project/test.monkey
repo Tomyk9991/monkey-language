@@ -6,4 +6,4 @@ let d: i32 = 4;
 let e = a + b;
 let f = c * d;
 
-exit(e * f);
+exit(0);

@@ -147,10 +147,10 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for VariableToken<ASSI
         } else {
             match &self.assignable {
                 AssignableToken::ArithmeticEquation(eq) => {
-                    target += &format!("{}", eq.to_asm(stack, meta)?);
+                    target += &eq.to_asm(stack, meta)?.to_string();
                 }
                 AssignableToken::BooleanEquation(eq) => {
-                    target += &format!("{}", eq.to_asm(stack, meta)?);
+                    target += &eq.to_asm(stack, meta)?.to_string();
                 }
                 _ => {
                     target += &format!("    mov eax, {}\n", self.assignable.to_asm(stack, meta)?);

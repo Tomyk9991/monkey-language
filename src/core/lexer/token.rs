@@ -62,13 +62,13 @@ impl ToASM for Token {
         }
     }
 
-    fn is_stack_look_up(&self, _stack: &mut Stack, _meta: &MetaInfo) -> bool {
+    fn is_stack_look_up(&self, stack: &mut Stack, meta: &MetaInfo) -> bool {
         match self {
-            Token::Variable(_) => true,
-            Token::MethodCall(_) => true,
+            Token::Variable(a) => a.is_stack_look_up(stack, meta),
+            Token::MethodCall(a) => a.is_stack_look_up(stack, meta),
+            Token::IfDefinition(a) => a.is_stack_look_up(stack, meta),
             Token::MethodDefinition(_) => true,
             Token::ScopeClosing(_) => false,
-            Token::IfDefinition(_) => true,
         }
     }
 }

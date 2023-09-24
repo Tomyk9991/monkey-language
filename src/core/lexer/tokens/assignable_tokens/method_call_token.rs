@@ -171,7 +171,7 @@ impl ToASM for MethodCallToken {
         Err(crate::core::code_generator::ASMGenerateError::NotImplemented { token: format!("{}", method_call_token) })
     }
 
-    fn is_stack_look_up(&self, stack: &mut Stack, meta: &MetaInfo) -> bool {
+    fn is_stack_look_up(&self, _stack: &mut Stack, _meta: &MetaInfo) -> bool {
         true
     }
 }

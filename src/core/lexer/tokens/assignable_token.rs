@@ -125,15 +125,15 @@ impl ToASM for AssignableToken {
 
     fn is_stack_look_up(&self, stack: &mut Stack, meta: &MetaInfo) -> bool {
         match self {
-            AssignableToken::String(_) => false,
+            AssignableToken::String(_) =>  false,
             AssignableToken::IntegerToken(_) => false,
             AssignableToken::FloatToken(_) => false,
             AssignableToken::BooleanToken(_) => false,
             AssignableToken::MethodCallToken(_) => true,
             AssignableToken::NameToken(_) => true,
             AssignableToken::Object(_) => false,
-            AssignableToken::ArithmeticEquation(_) => true,
-            AssignableToken::BooleanEquation(_) => true
+            AssignableToken::ArithmeticEquation(a) => a.is_stack_look_up(stack, meta),
+            AssignableToken::BooleanEquation(a) => a.is_stack_look_up(stack, meta)
         }
     }
 }

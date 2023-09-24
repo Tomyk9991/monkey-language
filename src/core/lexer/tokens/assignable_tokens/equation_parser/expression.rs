@@ -125,7 +125,7 @@ impl ToASM for Expression {
         Ok(target)
     }
 
-    fn is_stack_look_up(&self, stack: &mut Stack, meta: &MetaInfo) -> bool {
+    fn is_stack_look_up(&self, _stack: &mut Stack, _meta: &MetaInfo) -> bool {
         true
     }
 }
