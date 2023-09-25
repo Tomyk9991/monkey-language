@@ -22,6 +22,7 @@ pub struct MethodDefinition {
     pub return_type: TypeToken,
     pub arguments: Vec<AssignableToken>,
     pub stack: Vec<Token>,
+    pub is_extern: bool,
     pub code_line: CodeLine
 }
 
@@ -96,6 +97,27 @@ impl TryParse for MethodDefinition {
         let split_alloc = method_header.split(vec![' ']);
         let split_ref = split_alloc.iter().map(|a| a.as_str()).collect::<Vec<_>>();
 
+        if let ["extern", "fn", name, "(", arguments @ .., ")", ":", return_type, ";"] = &split_ref[..] {
+            let arguments_string = arguments.join("");
+            let arguments = arguments_string.split(',').filter(|a| !a.is_empty()).collect::<Vec<_>>();
+            let mut assignable_arguments = vec![];
+
+            for argument in arguments {
+                assignable_arguments.push(AssignableToken::from_str(argument)?);
+            }
+
+            let _ = code_lines_iterator.next();
+
+            return Ok(MethodDefinition {
+                name: NameToken::from_str(name, false)?,
+                return_type: TypeToken::from_str(return_type)?,
+                arguments: assignable_arguments,
+                stack: vec![],
+                is_extern: true,
+                code_line: method_header.clone(),
+            });
+        }
+
         if let ["fn", name, "(", arguments @ .., ")", ":", return_type, "{"] = &split_ref[..] {
             let arguments_string = arguments.join("");
             let arguments = arguments_string.split(',').filter(|a| !a.is_empty()).collect::<Vec<_>>();
@@ -127,6 +149,7 @@ impl TryParse for MethodDefinition {
                 return_type: TypeToken::from_str(return_type)?,
                 arguments: assignable_arguments,
                 stack: tokens,
+                is_extern: false,
                 code_line: method_header.clone(),
             });
         }

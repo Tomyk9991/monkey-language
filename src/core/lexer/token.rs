@@ -59,6 +59,7 @@ impl ToASM for Token {
             Token::Variable(variable) => variable.to_asm(stack, meta),
             Token::MethodCall(method_call_token) => method_call_token.to_asm(stack, meta),
             Token::IfDefinition(if_definition) => if_definition.to_asm(stack, meta),
+            Token::Import(import) => import.to_asm(stack, meta),
             rest => Err(ASMGenerateError::NotImplemented { token: format!("{}", rest) }),
             // Token::MethodDefinition(_) => {}
             // Token::ScopeClosing(_) => {}

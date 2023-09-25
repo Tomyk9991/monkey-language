@@ -1,0 +1,1 @@
+extern fn printf(format, value): void;

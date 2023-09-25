@@ -99,8 +99,14 @@ impl ASMGenerator {
         result.push_str(&format!("global {}\n\n", entry_point_label));
 
         if self.target_os == TargetOS::Windows {
-            result.push_str("extern ExitProcess\n\n");
+            result.push_str("extern ExitProcess\n");
         }
+
+        for extern_method in &self.top_level_scope.extern_methods {
+            result += &format!("extern {}\n", extern_method.name);
+        }
+
+        result += "\n";
 
         result.push_str(&format!("{}:\n", entry_point_label));
 

@@ -85,13 +85,30 @@ impl Lexer {
     pub fn tokenize(&mut self) -> Result<Scope, ScopeError> {
         let mut scope = Scope {
             tokens: vec![],
+            extern_methods: vec![],
         };
 
         let mut iterator = self.current_file.lines.iter().peekable();
 
         while iterator.peek().is_some() {
             let token = Scope::try_parse(&mut iterator)?;
-            scope.tokens.push(token);
+
+            match token {
+                Token::MethodDefinition(method_def) if method_def.is_extern => scope.extern_methods.push(method_def),
+                Token::Import(imported_monkey_file) => {
+                    let inner_scope = Lexer::from(imported_monkey_file.monkey_file.clone()).tokenize()?;
+                    for t in inner_scope.tokens {
+                        scope.tokens.push(t);
+                    }
+
+                    for extern_method in inner_scope.extern_methods {
+                        scope.extern_methods.push(extern_method);
+                    }
+
+                    scope.tokens.push(Token::Import(imported_monkey_file));
+                }
+                a => scope.tokens.push(a)
+            }
         }
 
         // top level type context. top level variables and all methods are visible
