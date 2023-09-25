@@ -1,4 +1,5 @@
 use std::fmt::{Debug, Display, Formatter};
+use crate::core::lexer::tokens::import::ImportToken;
 use crate::core::code_generator::generator::{Stack};
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::io::code_line::CodeLine;
@@ -18,6 +19,7 @@ pub enum Token {
     Variable(VariableToken<'=', ';'>),
     MethodCall(MethodCallToken),
     MethodDefinition(MethodDefinition),
+    Import(ImportToken),
     ScopeClosing(ScopeEnding),
     IfDefinition(IfDefinition),
 }
@@ -30,6 +32,7 @@ impl Token {
             Token::MethodDefinition(a) => a.code_line.clone(),
             Token::ScopeClosing(a) => a.code_line.clone(),
             Token::IfDefinition(a) => a.code_line.clone(),
+            Token::Import(a) => a.code_line.clone()
         }
     }
 }
@@ -43,7 +46,7 @@ impl Token {
             Token::IfDefinition(if_definition) => {
                 if_definition.infer_type(type_context, method_names)?;
             }
-            Token::MethodDefinition(_) | Token::MethodCall(_) | Token::ScopeClosing(_) => {}
+            Token::MethodDefinition(_) | Token::MethodCall(_) | Token::ScopeClosing(_) | Token::Import(_) => {}
         }
 
         Ok(())
@@ -67,6 +70,7 @@ impl ToASM for Token {
             Token::Variable(a) => a.is_stack_look_up(stack, meta),
             Token::MethodCall(a) => a.is_stack_look_up(stack, meta),
             Token::IfDefinition(a) => a.is_stack_look_up(stack, meta),
+            Token::Import(a) => a.is_stack_look_up(stack, meta),
             Token::MethodDefinition(_) => true,
             Token::ScopeClosing(_) => false,
         }
@@ -80,7 +84,8 @@ impl Display for Token {
             Token::MethodCall(m) => format!("{}", m),
             Token::MethodDefinition(m) => format!("{}", m),
             Token::ScopeClosing(m) => format!("{}", m),
-            Token::IfDefinition(m) => format!("{}", m)
+            Token::IfDefinition(m) => format!("{}", m),
+            Token::Import(m) => format!("{}", m),
         })
     }
 }

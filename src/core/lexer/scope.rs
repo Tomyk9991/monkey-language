@@ -15,6 +15,7 @@ use crate::core::lexer::tokens::scope_ending::ScopeEnding;
 use crate::core::lexer::tokens::variable_token::VariableToken;
 use crate::core::lexer::TryParse;
 use crate::core::lexer::type_token::InferTypeError;
+use crate::core::lexer::tokens::import::ImportToken;
 
 pub struct Scope {
     pub tokens: Vec<Token>,
@@ -120,6 +121,7 @@ impl TryParse for Scope {
         let code_line = *code_lines_iterator.peek().ok_or(ScopeError::EmptyIterator(EmptyIteratorErr))?;
 
         token_expand!(code_lines_iterator, pattern_distances,
+            (ImportToken,               Import,             true),
             (VariableToken::<'=', ';'>, Variable,           true),
             (MethodCallToken,           MethodCall,         true),
             (ScopeEnding,               ScopeClosing,       true),

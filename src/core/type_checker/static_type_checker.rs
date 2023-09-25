@@ -99,7 +99,7 @@ fn static_type_check_rec(scope: &Vec<Token>, visible_variables: &mut Vec<Variabl
                     let _ = visible_variables.pop();
                 }
             }
-            Token::MethodCall(_) | Token::Variable(_) | Token::ScopeClosing(_) => {}
+            Token::MethodCall(_) | Token::Variable(_) | Token::ScopeClosing(_) | Token::Import(_) => {}
         }
     }
 

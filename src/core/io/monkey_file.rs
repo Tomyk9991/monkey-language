@@ -9,7 +9,7 @@ use crate::core::constants::{CLOSING_SCOPE, OPENING_SCOPE};
 use crate::core::io::code_line::{CodeLine, Normalizable};
 use crate::core::model::scope_type::{ScopeType, ScopeTypeIterator};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct MonkeyFile {
     pub path: PathBuf,
     pub lines: Vec<CodeLine>,

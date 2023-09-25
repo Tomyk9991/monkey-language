@@ -5,3 +5,5 @@ pub mod assignable_tokens;
 pub mod method_definition;
 pub mod scope_ending;
 pub mod if_definition;
+
+pub mod import;

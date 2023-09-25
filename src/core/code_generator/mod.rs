@@ -24,7 +24,7 @@ impl Display for ASMGenerateError {
             ASMGenerateError::_VariableAlreadyUsed { name, code_line } => write!(f, "Line:{:?}:\tVariable already in use: {}", code_line.actual_line_number, name),
             ASMGenerateError::UnresolvedReference { name, code_line } => write!(f, "Line:{:?}:\tCannot resolve variable: {}", code_line.actual_line_number, name),
             ASMGenerateError::TokenNotBuildable { assignable_token } => write!(f, "Token not buildable: {}", assignable_token),
-            ASMGenerateError::NotImplemented { token } => write!(f, "ASM cannot build this token: {}", token),
+            ASMGenerateError::NotImplemented { token } => write!(f, "Cannot build ASM from this token: {}", token),
         }
     }
 }
@@ -39,6 +39,8 @@ pub struct MetaInfo {
 }
 
 pub trait ToASM {
+    /// Generates a String that represents the token in assembler language
     fn to_asm(&self, stack: &mut Stack, meta: &MetaInfo) -> Result<String, ASMGenerateError>;
+    /// returns a bool, if the current implementor needs to look up it's state in the stack
     fn is_stack_look_up(&self, stack: &mut Stack, meta: &MetaInfo) -> bool;
 }

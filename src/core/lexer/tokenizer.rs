@@ -57,7 +57,7 @@ impl StaticTypeContext {
                 Token::MethodDefinition(method_definition) => {
                     context.push((method_definition.name.clone(), method_definition.return_type.clone()));
                 }
-                Token::ScopeClosing(_) | Token::MethodCall(_) | Token::IfDefinition(_) => {}
+                Token::ScopeClosing(_) | Token::MethodCall(_) | Token::IfDefinition(_) | Token::Import(_) => {}
             }
         }
     }
