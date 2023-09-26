@@ -18,33 +18,32 @@ pub enum TypeToken {
 #[derive(Debug)]
 pub enum InferTypeError {
     TypesNotCalculable(TypeToken, Operator, TypeToken, CodeLine),
-    TypeNotInferred(NameTokenErr, CodeLine),
-    TypeNotInferrable(String, CodeLine),
+    UnresolvedReference(String, CodeLine),
+    TypeNotAllowed(NameTokenErr),
+    MethodCallArgumentAmountMismatch { expected: usize, actual: usize, code_line: CodeLine },
+    MethodCallArgumentTypeMismatch { expected: TypeToken, actual: TypeToken, nth_parameter: usize, code_line: CodeLine },
     NameCollision(String, CodeLine),
     MismatchedTypes {expected: TypeToken, actual: TypeToken, code_line: CodeLine }
 }
 
-impl Error for InferTypeError { }
-
 impl From<NameTokenErr> for InferTypeError {
     fn from(value: NameTokenErr) -> Self {
-        InferTypeError::TypeNotInferred(value, CodeLine {
-            line: "Minus 1".to_string(),
-            ..Default::default()
-        })
+        InferTypeError::TypeNotAllowed(value)
     }
 }
+
+impl Error for InferTypeError { }
 
 impl Display for InferTypeError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            InferTypeError::TypesNotCalculable(a, o, b, code_line) => {
-                write!(f, "Line: {}: \tCannot {} between types {} and {}", code_line.line, o, a, b)
-            }
-            InferTypeError::TypeNotInferred(s, code_line) => write!(f, "Line: {:?}: \tCannot infer type: {s}", code_line.actual_line_number),
-            InferTypeError::TypeNotInferrable(s, code_line) => write!(f, "Line: {:?}: \tCannot infer type: {s}", code_line.actual_line_number),
+            InferTypeError::TypesNotCalculable(a, o, b, code_line) => write!(f, "Line: {}: \tCannot {} between types {} and {}", code_line.line, o, a, b),
+            InferTypeError::UnresolvedReference(s, code_line) => write!(f, "Line: {:?}: \tUnresolved reference: {s}", code_line.actual_line_number),
             InferTypeError::MismatchedTypes { expected, actual, code_line } => write!(f, "Line: {:?}: \tMismatched types: Expected `{expected}` but found `{actual}`", code_line.actual_line_number),
-            InferTypeError::NameCollision(name, code_line) => write!(f, "Line: {:?}: \tA variable and a method cannot have the same name: `{name}`", code_line.actual_line_number)
+            InferTypeError::NameCollision(name, code_line) => write!(f, "Line: {:?}: \tA variable and a method cannot have the same name: `{name}`", code_line.actual_line_number),
+            InferTypeError::TypeNotAllowed(ty) => write!(f, "This type is not allowed due to: {}", ty.to_string()),
+            InferTypeError::MethodCallArgumentAmountMismatch { expected, actual, code_line } => write!(f, "Line: {:?}: \tThe method expects {} parameter, but {} are provided", code_line.actual_line_number, expected, actual),
+            InferTypeError::MethodCallArgumentTypeMismatch { expected, actual, nth_parameter, code_line } => write!(f, "Line: {:?}: \t The {}. argument should be of type: `{}` but `{}` is provided", code_line.actual_line_number, nth_parameter, expected, actual)
         }
     }
 }
@@ -72,7 +71,7 @@ impl FromStr for TypeToken {
             "bool" =>   TypeToken::Bool,
             "void" =>   TypeToken::Void,
             "f32" =>    TypeToken::F32,
-            fallback => TypeToken::Custom(NameToken::from_str(fallback, false)?)
+            custom => TypeToken::Custom(NameToken::from_str(custom, false)?)
         })
     }
 }

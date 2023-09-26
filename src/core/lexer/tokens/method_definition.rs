@@ -1,7 +1,7 @@
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::scope::{Scope, ScopeError};
 use crate::core::lexer::token::Token;
-use crate::core::lexer::tokens::assignable_token::{AssignableToken, AssignableTokenErr};
+use crate::core::lexer::tokens::assignable_token::AssignableTokenErr;
 use crate::core::lexer::tokens::name_token::{NameToken, NameTokenErr};
 use crate::core::lexer::TryParse;
 use std::error::Error;
@@ -20,7 +20,7 @@ use crate::core::lexer::type_token::{InferTypeError, TypeToken};
 pub struct MethodDefinition {
     pub name: NameToken,
     pub return_type: TypeToken,
-    pub arguments: Vec<AssignableToken>,
+    pub arguments: Vec<(NameToken, TypeToken)>,
     pub stack: Vec<Token>,
     pub is_extern: bool,
     pub code_line: CodeLine
@@ -58,13 +58,16 @@ impl Display for MethodDefinition {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "fn {}({}): {{Body}}",
+            "{}fn {}({}): {}{}",
+            if self.is_extern { "extern " } else { "" },
             self.name,
             self.arguments
                 .iter()
-                .map(|ass| format!("{}", ass))
+                .map(|(name, ty)| format!("{}: {}", name, ty))
                 .collect::<Vec<String>>()
-                .join(", ")
+                .join(", "),
+            self.return_type,
+            if self.is_extern { ";" } else { " {{Body}}" }
         )
     }
 }
@@ -100,10 +103,14 @@ impl TryParse for MethodDefinition {
         if let ["extern", "fn", name, "(", arguments @ .., ")", ":", return_type, ";"] = &split_ref[..] {
             let arguments_string = arguments.join("");
             let arguments = arguments_string.split(',').filter(|a| !a.is_empty()).collect::<Vec<_>>();
-            let mut assignable_arguments = vec![];
+            let mut type_arguments = vec![];
 
             for argument in arguments {
-                assignable_arguments.push(AssignableToken::from_str(argument)?);
+                if let [name, ty] = &argument.split(":").collect::<Vec<&str>>()[..] {
+                    type_arguments.push((NameToken::from_str(name, false)?, TypeToken::from_str(ty)?));
+                } else {
+                    return Err(MethodDefinitionErr::PatternNotMatched { target_value: method_header.line.clone() })
+                }
             }
 
             let _ = code_lines_iterator.next();
@@ -111,7 +118,7 @@ impl TryParse for MethodDefinition {
             return Ok(MethodDefinition {
                 name: NameToken::from_str(name, false)?,
                 return_type: TypeToken::from_str(return_type)?,
-                arguments: assignable_arguments,
+                arguments: type_arguments,
                 stack: vec![],
                 is_extern: true,
                 code_line: method_header.clone(),
@@ -121,10 +128,14 @@ impl TryParse for MethodDefinition {
         if let ["fn", name, "(", arguments @ .., ")", ":", return_type, "{"] = &split_ref[..] {
             let arguments_string = arguments.join("");
             let arguments = arguments_string.split(',').filter(|a| !a.is_empty()).collect::<Vec<_>>();
-            let mut assignable_arguments = vec![];
+            let mut type_arguments = vec![];
 
             for argument in arguments {
-                assignable_arguments.push(AssignableToken::from_str(argument)?);
+                if let [name, ty] = &argument.split(":").collect::<Vec<&str>>()[..] {
+                    type_arguments.push((NameToken::from_str(name, false)?, TypeToken::from_str(ty)?));
+                } else {
+                    return Err(MethodDefinitionErr::PatternNotMatched { target_value: method_header.line.clone() })
+                }
             }
 
             let mut tokens = vec![];
@@ -147,7 +158,7 @@ impl TryParse for MethodDefinition {
             return Ok(MethodDefinition {
                 name: NameToken::from_str(name, false)?,
                 return_type: TypeToken::from_str(return_type)?,
-                arguments: assignable_arguments,
+                arguments: type_arguments,
                 stack: tokens,
                 is_extern: false,
                 code_line: method_header.clone(),

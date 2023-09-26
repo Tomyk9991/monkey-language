@@ -20,7 +20,7 @@ use crate::core::lexer::tokens::import::ImportToken;
 /// Tokens inside scope
 pub struct Scope {
     pub tokens: Vec<Token>,
-    pub extern_methods: Vec<MethodDefinition>
+    // pub extern_methods: Vec<MethodDefinition>
 }
 
 impl Scope {
@@ -89,12 +89,12 @@ macro_rules! token_expand {
 
 impl Debug for Scope {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Scope: [\n{}]\n Extern Methods: [\n{}]", self.tokens
+        write!(f, "Scope: [\n{}]", self.tokens
             .iter()
             .map(|token| format!("\t{:?}\n", token)).collect::<String>(),
-            self.extern_methods
-                .iter()
-                .map(|token| format!("\t{:?}\n", token)).collect::<String>()
+            // self.extern_methods
+            //     .iter()
+            //     .map(|token| format!("\t{:?}\n", token)).collect::<String>()
         )
     }
 }

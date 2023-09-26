@@ -205,9 +205,9 @@ fn assignable_booleans() -> anyhow::Result<()> {
 fn assignable_arithmetic_equation() -> anyhow::Result<()> {
     let values: Vec<(bool, String, Option<Expression>)> = vec![
         (true, "a*b".to_string(), Some(Expression {
-            lhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, value: Some(Box::new(AssignableToken::Variable(NameToken { name: String::from("a") }))), positive: true })),
+            lhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, value: Some(Box::new(AssignableToken::NameToken(NameToken { name: String::from("a") }))), positive: true })),
             operator: Operator::Mul,
-            rhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, value: Some(Box::new(AssignableToken::Variable(NameToken { name: String::from("b") }))), positive: true })),
+            rhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, value: Some(Box::new(AssignableToken::NameToken(NameToken { name: String::from("b") }))), positive: true })),
             value: None,
             positive: true,
         })),
@@ -216,11 +216,11 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
         (false, "sqrt(b*c)/".to_string(), None),
         (false, "a*sqrt(b**c)".to_string(), None),
         (true, "a+b*b".to_string(), Some(Expression {
-            lhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, value: Some(Box::new(AssignableToken::Variable(NameToken { name: String::from("a") }))), positive: true })),
+            lhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, value: Some(Box::new(AssignableToken::NameToken(NameToken { name: String::from("a") }))), positive: true })),
             operator: Operator::Add,
             rhs: Some(Box::new(Expression {
-                lhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, value: Some(Box::new(AssignableToken::Variable(NameToken { name: String::from("b") }))), positive: true })),
-                rhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, value: Some(Box::new(AssignableToken::Variable(NameToken { name: String::from("b") }))), positive: true })),
+                lhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, value: Some(Box::new(AssignableToken::NameToken(NameToken { name: String::from("b") }))), positive: true })),
+                rhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, value: Some(Box::new(AssignableToken::NameToken(NameToken { name: String::from("b") }))), positive: true })),
                 operator: Operator::Mul,
                 value: None,
                 positive: true,
@@ -426,7 +426,7 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                 rhs: Some(Box::new(Expression {
                     lhs: None,
                     operator: Operator::Noop,
-                    value: Some(Box::new(AssignableToken::Variable(NameToken { name: String::from("sqrt")}))),
+                    value: Some(Box::new(AssignableToken::NameToken(NameToken { name: String::from("sqrt")}))),
                     rhs: None,
                     positive: false,
                 })),
@@ -689,7 +689,7 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                                                                                 operator: Operator::Noop,
                                                                                 rhs: None,
                                                                                 value: Some(Box::new(
-                                                                                    AssignableToken::Variable(
+                                                                                    AssignableToken::NameToken(
                                                                                         NameToken {
                                                                                             name: String::from("e"),
                                                                                         },
@@ -705,7 +705,7 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                                                                                 operator: Operator::Noop,
                                                                                 rhs: None,
                                                                                 value: Some(Box::new(
-                                                                                    AssignableToken::Variable(
+                                                                                    AssignableToken::NameToken(
                                                                                         NameToken {
                                                                                             name: String::from("f"),
                                                                                         },

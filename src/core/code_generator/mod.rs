@@ -6,8 +6,8 @@ use crate::core::lexer::tokens::assignable_token::AssignableToken;
 
 pub mod generator;
 pub mod target_creator;
-
 pub mod target_os;
+pub mod asm_builder;
 
 
 #[derive(Debug)]

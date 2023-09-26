@@ -46,7 +46,7 @@ fn infer_type_assignment() -> anyhow::Result<()> {
             mutability: false,
             ty: Some(TypeToken::I32),
             define: true,
-            assignable: AssignableToken::Variable(NameToken { name: "a".to_string() }),
+            assignable: AssignableToken::NameToken(NameToken { name: "a".to_string() }),
             code_line: CodeLine {
                 line: "let c = a ;".to_string(),
                 actual_line_number: 3..3,
@@ -96,7 +96,7 @@ fn infer_type_assignment_in_scope() -> anyhow::Result<()> {
                     mutability: false,
                     ty: Some(TypeToken::I32),
                     define: true,
-                    assignable: AssignableToken::Variable(NameToken { name: "a".to_string() }),
+                    assignable: AssignableToken::NameToken(NameToken { name: "a".to_string() }),
                     code_line: CodeLine {
                         line: "let c = a ;".to_string(),
                         actual_line_number: 4..4,
@@ -137,6 +137,7 @@ fn infer_type_assignment_in_scope_complex() -> anyhow::Result<()> {
             return_type: TypeToken::I32,
             arguments: vec![],
             stack: vec![],
+            is_extern: false,
             code_line: CodeLine { line: "fn constant_1 (  )  :  i32 {".to_string(), actual_line_number: 2..2, virtual_line_number: 1 },
         }),
         Token::Variable(VariableToken {
@@ -168,7 +169,7 @@ fn infer_type_assignment_in_scope_complex() -> anyhow::Result<()> {
                             lhs: None,
                             rhs: None,
                             operator: Operator::Noop,
-                            value: Some(Box::new(AssignableToken::Variable(NameToken { name: "a".to_string() }))),
+                            value: Some(Box::new(AssignableToken::NameToken(NameToken { name: "a".to_string() }))),
                             positive: true,
                         })),
                         rhs: Some(Box::new(Expression {
@@ -196,7 +197,7 @@ fn infer_type_assignment_in_scope_complex() -> anyhow::Result<()> {
                     mutability: false,
                     ty: Some(TypeToken::F32),
                     define: true,
-                    assignable: AssignableToken::Variable(NameToken { name: "a".to_string() }),
+                    assignable: AssignableToken::NameToken(NameToken { name: "a".to_string() }),
                     code_line: CodeLine {
                         line: "let c = a ;".to_string(),
                         actual_line_number: 6..6,
@@ -242,6 +243,7 @@ fn infer_type_assignment_in_scope_complex_in_method() -> anyhow::Result<()> {
             return_type: TypeToken::I32,
             arguments: vec![],
             stack: vec![],
+            is_extern: false,
             code_line: CodeLine { line: "fn constant_1 (  )  :  i32 {".to_string(), actual_line_number: 2..2, virtual_line_number: 1 },
         }),
         Token::MethodDefinition(MethodDefinition {
@@ -267,7 +269,7 @@ fn infer_type_assignment_in_scope_complex_in_method() -> anyhow::Result<()> {
                                     lhs: None,
                                     rhs: None,
                                     operator: Operator::Noop,
-                                    value: Some(Box::new(AssignableToken::Variable(NameToken { name: "a".to_string() }))),
+                                    value: Some(Box::new(AssignableToken::NameToken(NameToken { name: "a".to_string() }))),
                                     positive: true,
                                 })),
                                 rhs: Some(Box::new(Expression {
@@ -295,7 +297,7 @@ fn infer_type_assignment_in_scope_complex_in_method() -> anyhow::Result<()> {
                             mutability: false,
                             ty: Some(TypeToken::F32),
                             define: true,
-                            assignable: AssignableToken::Variable(NameToken { name: "a".to_string() }),
+                            assignable: AssignableToken::NameToken(NameToken { name: "a".to_string() }),
                             code_line: CodeLine {
                                 line: "let c = a ;".to_string(),
                                 actual_line_number: 6..6,
@@ -307,6 +309,7 @@ fn infer_type_assignment_in_scope_complex_in_method() -> anyhow::Result<()> {
                     code_line: CodeLine { line: "if  ( 1 )  {".to_string(), actual_line_number: 4..4, virtual_line_number: 4 },
                 })
             ],
+            is_extern: false,
             code_line: CodeLine {
                 line: "fn test (  )  :  i32 {".to_string(),
                 actual_line_number: 3..3,

@@ -60,6 +60,7 @@ impl ToASM for Token {
             Token::MethodCall(method_call_token) => method_call_token.to_asm(stack, meta),
             Token::IfDefinition(if_definition) => if_definition.to_asm(stack, meta),
             Token::Import(import) => import.to_asm(stack, meta),
+            Token::MethodDefinition(md) if md.is_extern => Ok(String::new()),
             rest => Err(ASMGenerateError::NotImplemented { token: format!("{}", rest) }),
             // Token::MethodDefinition(_) => {}
             // Token::ScopeClosing(_) => {}

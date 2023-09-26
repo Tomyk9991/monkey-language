@@ -7,6 +7,7 @@ use std::str::FromStr;
 use anyhow::Context;
 
 use crate::core::code_generator::{MetaInfo, ToASM};
+use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::generator::{Stack, StackLocation};
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::errors::EmptyIteratorErr;
@@ -141,9 +142,10 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for VariableToken<ASSI
             self.name_token.to_asm(stack, meta)?
         };
 
-        target += &format!("    ; {}\n", self);
+        target += &ASMBuilder::ident(&ASMBuilder::comment_line(&format!("{}", self)));
+
         if self.define && !self.assignable.is_stack_look_up(stack, meta) {
-            target += &format!("    mov {}, {}\n", mov_target, self.assignable.to_asm(stack, meta)?);
+            target += &ASMBuilder::line_ident(&format!("mov {}, {}", mov_target, self.assignable.to_asm(stack, meta)?));
         } else {
             match &self.assignable {
                 AssignableToken::ArithmeticEquation(eq) => {
@@ -153,11 +155,11 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for VariableToken<ASSI
                     target += &eq.to_asm(stack, meta)?.to_string();
                 }
                 _ => {
-                    target += &format!("    mov eax, {}\n", self.assignable.to_asm(stack, meta)?);
+                    target += &ASMBuilder::line_ident(&format!("mov eax, {}", self.assignable.to_asm(stack, meta)?));
                 }
             }
 
-            target += &format!("    mov {}, eax\n", mov_target);
+            target += &ASMBuilder::line_ident(&format!("mov {}, eax", mov_target));
         }
 
 
@@ -281,7 +283,7 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> VariableToken<ASSIGNMENT, SE
             a => unreachable!("{}", format!("The type {a} should have been inferred or directly parsed. Something went wrong"))
         }
 
-        Err(InferTypeError::TypeNotInferrable(self.assignable.to_string(), self.code_line.clone()))
+        Err(InferTypeError::UnresolvedReference(self.assignable.to_string(), self.code_line.clone()))
     }
 }
 

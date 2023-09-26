@@ -55,9 +55,10 @@ impl AssignableToken {
                 if let Some((_, ty)) = context.iter().find(|(context_name, _)| {
                     context_name == &method_call.name
                 }) {
+                    method_call.type_check(context, code_line)?;
                     return Ok(ty.clone());
                 } else {
-                    Err(InferTypeError::TypeNotInferrable(self.to_string(), code_line.clone()))
+                    Err(InferTypeError::UnresolvedReference(self.to_string(), code_line.clone()))
                 }
             },
             AssignableToken::NameToken(var) => {
@@ -66,7 +67,7 @@ impl AssignableToken {
                 }) {
                     return Ok(ty.clone());
                 } else {
-                    Err(InferTypeError::TypeNotInferrable(self.to_string(), code_line.clone()))
+                    Err(InferTypeError::UnresolvedReference(self.to_string(), code_line.clone()))
                 }
             },
         };

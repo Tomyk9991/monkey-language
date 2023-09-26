@@ -1,14 +1,14 @@
-use crate::core::lexer::tokens::method_definition::MethodDefinition;
 use crate::core::code_generator::{MetaInfo, ToASM};
-use crate::core::lexer::scope::Scope;
-use crate::core::code_generator::{ASMGenerateError};
+use crate::core::code_generator::ASMGenerateError;
+use crate::core::code_generator::asm_builder::{ASMBuilder};
 use crate::core::code_generator::target_os::TargetOS;
+use crate::core::lexer::scope::Scope;
 use crate::core::lexer::token::Token;
 use crate::core::lexer::tokens::name_token::NameToken;
 
 pub struct StackLocation {
     pub position: usize,
-    pub name: NameToken
+    pub name: NameToken,
 }
 
 /// a struct representing the current stack pointer and variables in the stack
@@ -21,7 +21,6 @@ pub struct Stack {
     pub variables: Vec<StackLocation>,
     /// to create labels and avoid collisions in naming, a label count is used
     label_count: usize,
-    pub methods: Vec<MethodDefinition>,
     pub register_to_use: String,
 }
 
@@ -37,12 +36,12 @@ impl Stack {
     }
 
     pub fn create_label(&mut self) -> String {
-        let value = format!("label{}", self.label_count);
+        let value = format!(".label{}", self.label_count);
         self.label_count += 1;
         value
     }
 
-    pub fn generate_scope(&mut self, tokens: &Vec<Token>, meta: &MetaInfo) -> Result<String, crate::core::code_generator::ASMGenerateError> {
+    pub fn generate_scope(&mut self, tokens: &Vec<Token>, meta: &MetaInfo) -> Result<String, ASMGenerateError> {
         let mut target = String::new();
 
         self.begin_scope();
@@ -86,65 +85,60 @@ pub struct ASMGenerator {
 
 impl ASMGenerator {
     pub fn generate(&mut self) -> Result<String, ASMGenerateError> {
-        let mut result = String::new();
-        result += &format!("; This assembly is targeted for the {} Operating System\n", self.target_os);
+        let mut asb = String::new();
+        asb += &ASMBuilder::line(&format!("; This assembly is targeted for the {} Operating System", self.target_os));
 
         let entry_point_label = if self.target_os == TargetOS::Windows {
-            result.push_str("segment .text\n");
+            asb += &ASMBuilder::line("segment .text");
+
             String::from("main")
         } else {
             String::from("_start")
         };
 
-        result.push_str(&format!("global {}\n\n", entry_point_label));
+        asb += &ASMBuilder::line(&format!("global {}", entry_point_label));
 
         if self.target_os == TargetOS::Windows {
-            result.push_str("extern ExitProcess\n");
+            asb += &ASMBuilder::line("extern ExitProcess");
         }
 
-        for extern_method in &self.top_level_scope.extern_methods {
-            result += &format!("extern {}\n", extern_method.name);
-        }
+        self.top_level_scope.tokens.iter().for_each(|a|
+            if let Token::MethodDefinition(method_def) = a {
+                if method_def.is_extern {
+                    asb += &ASMBuilder::line(&format!("extern {}", &method_def.name.name));
+                }
+            }
+        );
 
-        result += "\n";
-
-        result.push_str(&format!("{}:\n", entry_point_label));
-
+        asb += &ASMBuilder::line(&format!("{entry_point_label}:"));
 
         for token in &self.top_level_scope.tokens {
             let meta = MetaInfo {
                 code_line: token.code_line(),
-                target_os: self.target_os.clone()
+                target_os: self.target_os.clone(),
             };
 
-            let generated_asm = token.to_asm(&mut self.stack, &meta)?;
-            result.push_str(&generated_asm);
+            asb += &ASMBuilder::push(&token.to_asm(&mut self.stack, &meta)?);
         }
 
 
         if let Some(Token::MethodCall(method_call_token)) = self.top_level_scope.tokens.last() {
             if method_call_token.name.name == "exit" {
-                return Ok(result.to_string());
+                return Ok(format!("{}", asb));
             }
         }
 
-        result.push_str("    ; exit(last variable)\n");
-        result.push_str("    mov rax, 60\n");
-        result.push_str("    pop rdi\n");
-        result.push_str("    syscall");
+        asb += &ASMBuilder::line_ident("exit (last variable)");
+        asb += &ASMBuilder::line_ident(" mov rax, 60");
+        asb += &ASMBuilder::line_ident(" pop rdi");
+        asb += &ASMBuilder::line_ident(" syscall");
 
-        Ok(result.to_string())
+        Ok(format!("{}", asb))
     }
 }
 
 impl From<(Scope, TargetOS)> for ASMGenerator {
     fn from(value: (Scope, TargetOS)) -> Self {
-        let mut methods = Vec::new();
-        for token in &value.0.tokens {
-            if let Token::MethodDefinition(method_def) = token {
-                methods.push(method_def.clone());
-            }
-        }
         ASMGenerator {
             top_level_scope: value.0,
             stack: Stack {
@@ -152,10 +146,9 @@ impl From<(Scope, TargetOS)> for ASMGenerator {
                 scopes: vec![],
                 variables: Default::default(),
                 label_count: 0,
-                methods,
-                register_to_use: String::from("eax")
+                register_to_use: String::from("eax"),
             },
-            target_os: value.1
+            target_os: value.1,
         }
     }
 }

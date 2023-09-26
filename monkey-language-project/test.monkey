@@ -1,11 +1,15 @@
 module monkey-language-project/std.monkey;
 
-let a: i32 = 5;
-let b: i32 = 8;
+fn kekwa(a: i32): void {
+
+}
+
+let a: i32 = 2;
+let b: i32 = 5;
+kekwa(2);
 let c: i32 = 9;
 let d: i32 = 4;
 
-let e = a + b;
-let f = c * d;
+let e = a + b + c * d;
 
-exit(0);
+ExitProcess(a);

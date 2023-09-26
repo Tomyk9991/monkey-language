@@ -42,7 +42,6 @@ pub fn static_type_check(scope: &Scope) -> Result<(), StaticTypeCheckError> {
 
 fn static_type_check_rec(scope: &Vec<Token>, visible_variables: &mut Vec<VariableToken<'=', ';'>>, type_context: &mut StaticTypeContext) -> Result<(), StaticTypeCheckError> {
     for token in scope {
-
         match token {
             Token::Variable(variable) if variable.define => {
                 visible_variables.push(variable.clone());
@@ -58,7 +57,7 @@ fn static_type_check_rec(scope: &Vec<Token>, visible_variables: &mut Vec<Variabl
                                 return Err(InferTypeError::MismatchedTypes { expected: ty.clone(), actual: inferred_type.clone(), code_line: variable.code_line.clone() }.into())
                             }
                         }
-                        None => return Err(InferTypeError::TypeNotInferrable(found_variable.name_token.name.clone(), variable.code_line.clone()).into())
+                        None => return Err(InferTypeError::UnresolvedReference(found_variable.name_token.name.clone(), variable.code_line.clone()).into())
                     }
                 } else {
                     return Err(StaticTypeCheckError::UnresolvedReference { name: variable.name_token.clone(), code_line: variable.code_line.clone() })
@@ -99,7 +98,10 @@ fn static_type_check_rec(scope: &Vec<Token>, visible_variables: &mut Vec<Variabl
                     let _ = visible_variables.pop();
                 }
             }
-            Token::MethodCall(_) | Token::Variable(_) | Token::ScopeClosing(_) | Token::Import(_) => {}
+            Token::MethodCall(method_call) => {
+                method_call.type_check(type_context, &method_call.code_line)?
+            },
+            Token::Variable(_) | Token::ScopeClosing(_) | Token::Import(_) => {}
         }
     }
 

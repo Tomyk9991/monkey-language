@@ -98,7 +98,7 @@ impl ToASM for Expression {
                     (Some(_), Some(_)) => {
                         target += &format!("    mov eax, {}\n", rhs.to_asm(stack, meta)?);
                         target += &format!("    {} eax, {}\n", self.operator.to_asm(stack, meta)?, lhs.to_asm(stack, meta)?);
-                        target += &format!("    mov {}, eax\n", stack.register_to_use);
+                        target += &format!("    mov {}, eax", stack.register_to_use);
                     }
                     (None, Some(_)) => {
                         target += &format!("{}\n", lhs.to_asm(stack, meta)?);
@@ -192,7 +192,7 @@ impl Expression {
             }
         }
 
-        Err(InferTypeError::TypeNotInferrable(self.to_string(), code_line.clone()))
+        Err(InferTypeError::UnresolvedReference(self.to_string(), code_line.clone()))
     }
 
     pub fn set(&mut self, lhs: Option<Box<Expression>>, operation: Operator, rhs: Option<Box<Expression>>, value: Option<Box<AssignableToken>>) {

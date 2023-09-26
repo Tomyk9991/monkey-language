@@ -13,7 +13,9 @@ use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::errors::EmptyIteratorErr;
 use crate::core::lexer::levenshtein_distance::{ArgumentsIgnoreSummarizeTransform, EmptyParenthesesExpand, PatternedLevenshteinDistance, PatternedLevenshteinString, QuoteSummarizeTransform};
 use crate::core::lexer::token::Token;
+use crate::core::lexer::tokenizer::StaticTypeContext;
 use crate::core::lexer::TryParse;
+use crate::core::lexer::type_token::InferTypeError;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct MethodCallToken {
@@ -131,6 +133,41 @@ impl MethodCallToken {
         } else {
             Err(MethodCallTokenErr::PatternNotMatched { target_value: code_line.line.to_string() })
         }
+    }
+
+    pub fn type_check(&self, context: &StaticTypeContext, code_line: &CodeLine) -> Result<(), InferTypeError> {
+        if let Some(method_def) = context.methods.iter().find(|m| m.name == self.name) {
+            if method_def.arguments.len() != self.arguments.len() {
+                return Err(InferTypeError::MethodCallArgumentAmountMismatch {
+                    expected: method_def.arguments.len(),
+                    actual: self.arguments.len(),
+                    code_line: self.code_line.clone()
+                })
+            }
+
+            let zipped = method_def.arguments
+                .iter()
+                .zip(&self.arguments);
+
+            for (index, (argument_def, argument_call)) in zipped.enumerate() {
+                let def_type = argument_def.1.clone();
+                let call_type = argument_call.infer_type_with_context(context, code_line)?;
+
+                if def_type != call_type {
+                    return Err(InferTypeError::MethodCallArgumentTypeMismatch {
+                        expected: def_type,
+                        actual: call_type,
+                        nth_parameter: index + 1,
+                        code_line: code_line.clone()
+                    })
+                }
+            }
+
+
+            return Ok(())
+        }
+
+        Err(InferTypeError::UnresolvedReference(self.name.name.clone(), code_line.clone()))
     }
 }
 

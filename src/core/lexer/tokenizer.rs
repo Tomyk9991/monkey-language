@@ -9,7 +9,8 @@ use crate::core::lexer::type_token::{InferTypeError, TypeToken};
 
 #[derive(Debug, Default)]
 pub struct StaticTypeContext {
-    pub context: Vec<(NameToken, TypeToken)>
+    pub context: Vec<(NameToken, TypeToken)>,
+    pub methods: Vec<MethodDefinition>
 }
 
 impl StaticTypeContext {
@@ -37,16 +38,17 @@ impl DerefMut for StaticTypeContext {
 impl StaticTypeContext {
     /// Constructs a hashmap containing all type information the ast can infer. This is especially useful to infer further types, that could not be inferred before like function calls and variable assignments
     pub fn type_context(scope: &Vec<Token>) -> StaticTypeContext {
-        let mut context = Vec::new();
-
-        Self::build_type_context_rec(scope, &mut context);
+        let (context, methods) = Self::build_type_context_rec(scope);
 
         Self {
-            context
+            context,
+            methods
         }
     }
 
-    fn build_type_context_rec(scope: &Vec<Token>, context: &mut Vec<(NameToken, TypeToken)>) {
+    fn build_type_context_rec(scope: &Vec<Token>) -> (Vec<(NameToken, TypeToken)>, Vec<MethodDefinition>) {
+        let mut context = Vec::new();
+        let mut methods = Vec::new();
         for token in scope {
             match token {
                 Token::Variable(variable) => {
@@ -56,10 +58,14 @@ impl StaticTypeContext {
                 }
                 Token::MethodDefinition(method_definition) => {
                     context.push((method_definition.name.clone(), method_definition.return_type.clone()));
+                    methods.push(method_definition.clone());
                 }
                 Token::ScopeClosing(_) | Token::MethodCall(_) | Token::IfDefinition(_) | Token::Import(_) => {}
             }
         }
+
+
+        (context, methods)
     }
 }
 
@@ -85,7 +91,7 @@ impl Lexer {
     pub fn tokenize(&mut self) -> Result<Scope, ScopeError> {
         let mut scope = Scope {
             tokens: vec![],
-            extern_methods: vec![],
+            // extern_methods: vec![],
         };
 
         let mut iterator = self.current_file.lines.iter().peekable();
@@ -94,16 +100,19 @@ impl Lexer {
             let token = Scope::try_parse(&mut iterator)?;
 
             match token {
-                Token::MethodDefinition(method_def) if method_def.is_extern => scope.extern_methods.push(method_def),
+                // Token::MethodDefinition(method_def) if method_def.is_extern => scope.extern_methods.push(method_def),
                 Token::Import(imported_monkey_file) => {
                     let inner_scope = Lexer::from(imported_monkey_file.monkey_file.clone()).tokenize()?;
+                    // todo: this could result in collisions.
+
                     for t in inner_scope.tokens {
                         scope.tokens.push(t);
                     }
 
-                    for extern_method in inner_scope.extern_methods {
-                        scope.extern_methods.push(extern_method);
-                    }
+                    // for extern_method in inner_scope.extern_methods {
+                    //     scope.extern_methods.push(extern_method.clone());
+                    //     scope.tokens.push(Token::MethodDefinition(extern_method));
+                    // }
 
                     scope.tokens.push(Token::Import(imported_monkey_file));
                 }
@@ -120,6 +129,10 @@ impl Lexer {
                 methods.push(method_ref);
             }
         }
+
+        // for m in &mut scope.extern_methods {
+        //     methods.push(m);
+        // }
 
         let method_names = methods.iter()
             .map(|m| unsafe { (*(*m)).name.clone() })
