@@ -124,7 +124,7 @@ impl ASMGenerator {
 
         if let Some(Token::MethodCall(method_call_token)) = self.top_level_scope.tokens.last() {
             if method_call_token.name.name == "exit" {
-                return Ok(format!("{}", asb));
+                return Ok(asb.to_string());
             }
         }
 
@@ -133,7 +133,7 @@ impl ASMGenerator {
         asb += &ASMBuilder::line_ident(" pop rdi");
         asb += &ASMBuilder::line_ident(" syscall");
 
-        Ok(format!("{}", asb))
+        Ok(asb.to_string())
     }
 }
 

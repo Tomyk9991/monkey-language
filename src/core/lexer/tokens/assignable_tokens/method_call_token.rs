@@ -15,7 +15,7 @@ use crate::core::lexer::levenshtein_distance::{ArgumentsIgnoreSummarizeTransform
 use crate::core::lexer::token::Token;
 use crate::core::lexer::tokenizer::StaticTypeContext;
 use crate::core::lexer::TryParse;
-use crate::core::lexer::type_token::InferTypeError;
+use crate::core::lexer::type_token::{InferTypeError, MethodCallArgumentTypeMismatch};
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct MethodCallToken {
@@ -155,10 +155,12 @@ impl MethodCallToken {
 
                 if def_type != call_type {
                     return Err(InferTypeError::MethodCallArgumentTypeMismatch {
-                        expected: def_type,
-                        actual: call_type,
-                        nth_parameter: index + 1,
-                        code_line: code_line.clone()
+                        info: Box::new(MethodCallArgumentTypeMismatch {
+                            expected: def_type,
+                            actual: call_type,
+                            nth_parameter: index + 1,
+                            code_line: code_line.clone()
+                        })
                     })
                 }
             }

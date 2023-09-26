@@ -21,9 +21,17 @@ pub enum InferTypeError {
     UnresolvedReference(String, CodeLine),
     TypeNotAllowed(NameTokenErr),
     MethodCallArgumentAmountMismatch { expected: usize, actual: usize, code_line: CodeLine },
-    MethodCallArgumentTypeMismatch { expected: TypeToken, actual: TypeToken, nth_parameter: usize, code_line: CodeLine },
+    MethodCallArgumentTypeMismatch { info: Box<MethodCallArgumentTypeMismatch> },
     NameCollision(String, CodeLine),
     MismatchedTypes {expected: TypeToken, actual: TypeToken, code_line: CodeLine }
+}
+
+#[derive(Debug)]
+pub struct MethodCallArgumentTypeMismatch {
+    pub expected: TypeToken,
+    pub actual: TypeToken,
+    pub nth_parameter: usize,
+    pub code_line: CodeLine
 }
 
 impl From<NameTokenErr> for InferTypeError {
@@ -41,9 +49,9 @@ impl Display for InferTypeError {
             InferTypeError::UnresolvedReference(s, code_line) => write!(f, "Line: {:?}: \tUnresolved reference: {s}", code_line.actual_line_number),
             InferTypeError::MismatchedTypes { expected, actual, code_line } => write!(f, "Line: {:?}: \tMismatched types: Expected `{expected}` but found `{actual}`", code_line.actual_line_number),
             InferTypeError::NameCollision(name, code_line) => write!(f, "Line: {:?}: \tA variable and a method cannot have the same name: `{name}`", code_line.actual_line_number),
-            InferTypeError::TypeNotAllowed(ty) => write!(f, "This type is not allowed due to: {}", ty.to_string()),
+            InferTypeError::TypeNotAllowed(ty) => write!(f, "This type is not allowed due to: {}", ty),
             InferTypeError::MethodCallArgumentAmountMismatch { expected, actual, code_line } => write!(f, "Line: {:?}: \tThe method expects {} parameter, but {} are provided", code_line.actual_line_number, expected, actual),
-            InferTypeError::MethodCallArgumentTypeMismatch { expected, actual, nth_parameter, code_line } => write!(f, "Line: {:?}: \t The {}. argument should be of type: `{}` but `{}` is provided", code_line.actual_line_number, nth_parameter, expected, actual)
+            InferTypeError::MethodCallArgumentTypeMismatch { info } => write!(f, "Line: {:?}: \t The {}. argument should be of type: `{}` but `{}` is provided", info.code_line.actual_line_number, info.nth_parameter, info.expected, info.actual)
         }
     }
 }

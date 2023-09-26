@@ -4,7 +4,7 @@ pub struct ASMBuilder;
 impl ASMBuilder {
 
     pub fn push(argument: &str) -> String {
-        format!("{}", argument)
+        argument.to_string()
     }
     pub fn comment_line(argument: &str) -> String {
         format!("; {}\n", argument)

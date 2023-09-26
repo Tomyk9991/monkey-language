@@ -100,13 +100,14 @@ impl TryParse for MethodDefinition {
         let split_alloc = method_header.split(vec![' ']);
         let split_ref = split_alloc.iter().map(|a| a.as_str()).collect::<Vec<_>>();
 
+        // todo: check if parameter names are duplicates
         if let ["extern", "fn", name, "(", arguments @ .., ")", ":", return_type, ";"] = &split_ref[..] {
             let arguments_string = arguments.join("");
             let arguments = arguments_string.split(',').filter(|a| !a.is_empty()).collect::<Vec<_>>();
             let mut type_arguments = vec![];
 
             for argument in arguments {
-                if let [name, ty] = &argument.split(":").collect::<Vec<&str>>()[..] {
+                if let [name, ty] = &argument.split(':').collect::<Vec<&str>>()[..] {
                     type_arguments.push((NameToken::from_str(name, false)?, TypeToken::from_str(ty)?));
                 } else {
                     return Err(MethodDefinitionErr::PatternNotMatched { target_value: method_header.line.clone() })
@@ -131,7 +132,7 @@ impl TryParse for MethodDefinition {
             let mut type_arguments = vec![];
 
             for argument in arguments {
-                if let [name, ty] = &argument.split(":").collect::<Vec<&str>>()[..] {
+                if let [name, ty] = &argument.split(':').collect::<Vec<&str>>()[..] {
                     type_arguments.push((NameToken::from_str(name, false)?, TypeToken::from_str(ty)?));
                 } else {
                     return Err(MethodDefinitionErr::PatternNotMatched { target_value: method_header.line.clone() })
