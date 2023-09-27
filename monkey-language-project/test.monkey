@@ -12,4 +12,4 @@ let d: i32 = 4;
 
 let e = a + b + c * d;
 
-ExitProcess(a);
+ExitProcess(0);
