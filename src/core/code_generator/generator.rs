@@ -4,10 +4,12 @@ use crate::core::code_generator::asm_builder::{ASMBuilder};
 use crate::core::code_generator::target_os::TargetOS;
 use crate::core::lexer::scope::Scope;
 use crate::core::lexer::token::Token;
+use crate::core::lexer::tokenizer::StaticTypeContext;
 use crate::core::lexer::tokens::name_token::NameToken;
 
 pub struct StackLocation {
     pub position: usize,
+    pub size: usize,
     pub name: NameToken,
 }
 
@@ -41,7 +43,11 @@ impl Stack {
         value
     }
 
-    pub fn generate_scope(&mut self, tokens: &Vec<Token>, meta: &MetaInfo) -> Result<String, ASMGenerateError> {
+    pub fn get_latest_label(&self) -> String {
+        format!(".label{}", self.label_count - 1)
+    }
+
+    pub fn generate_scope(&mut self, tokens: &Vec<Token>, meta: &mut MetaInfo) -> Result<String, ASMGenerateError> {
         let mut target = String::new();
 
         self.begin_scope();
@@ -85,55 +91,68 @@ pub struct ASMGenerator {
 
 impl ASMGenerator {
     pub fn generate(&mut self) -> Result<String, ASMGenerateError> {
-        let mut asb = String::new();
-        asb += &ASMBuilder::line(&format!("; This assembly is targeted for the {} Operating System", self.target_os));
+        let mut boiler_plate = String::new();
+        boiler_plate += &ASMBuilder::line(&format!("; This assembly is targeted for the {} Operating System", self.target_os));
 
         let entry_point_label = if self.target_os == TargetOS::Windows {
-            asb += &ASMBuilder::line("segment .text");
+            boiler_plate += &ASMBuilder::line("segment .text");
 
             String::from("main")
         } else {
             String::from("_start")
         };
 
-        asb += &ASMBuilder::line(&format!("global {}", entry_point_label));
-
-        if self.target_os == TargetOS::Windows {
-            asb += &ASMBuilder::line("extern ExitProcess");
-        }
+        boiler_plate += &ASMBuilder::line(&format!("global {}", entry_point_label));
+        boiler_plate += &ASMBuilder::line("");
 
         self.top_level_scope.tokens.iter().for_each(|a|
             if let Token::MethodDefinition(method_def) = a {
                 if method_def.is_extern {
-                    asb += &ASMBuilder::line(&format!("extern {}", &method_def.name.name));
+                    boiler_plate += &ASMBuilder::line(&format!("extern {}", &method_def.name.name));
                 }
             }
         );
 
-        asb += &ASMBuilder::line(&format!("{entry_point_label}:"));
+        boiler_plate += &ASMBuilder::line("");
+
+        let mut prefix = String::new();
+
+        let mut label_header: String = String::new();
+
+        label_header += &ASMBuilder::line(&format!("{entry_point_label}:"));
+        label_header += &ASMBuilder::ident_line("push rbp");
+        label_header += &ASMBuilder::ident_line("mov rbp, rsp");
+
+        label_header += &ASMBuilder::ident(&ASMBuilder::comment_line("Reserve stack space as MS convention. Shadow stacking"));
+
+        let mut stack_allocation = 32; // per default microsoft convention requires 32 byte as a shadow stack
+        let mut method_scope: String = String::new();
+
 
         for token in &self.top_level_scope.tokens {
-            let meta = MetaInfo {
+            let mut meta = MetaInfo {
                 code_line: token.code_line(),
                 target_os: self.target_os.clone(),
+                static_type_information: StaticTypeContext::type_context(&self.top_level_scope.tokens),
             };
 
-            asb += &ASMBuilder::push(&token.to_asm(&mut self.stack, &meta)?);
-        }
 
+            stack_allocation += token.byte_size(&mut meta);
+            method_scope += &ASMBuilder::push(&token.to_asm(&mut self.stack, &mut meta)?);
 
-        if let Some(Token::MethodCall(method_call_token)) = self.top_level_scope.tokens.last() {
-            if method_call_token.name.name == "exit" {
-                return Ok(asb.to_string());
+            if let Some(prefix_asm) = token.before_label(&mut self.stack, &mut meta) {
+                prefix += &ASMBuilder::push(&(prefix_asm?));
             }
         }
 
-        asb += &ASMBuilder::line_ident("exit (last variable)");
-        asb += &ASMBuilder::line_ident(" mov rax, 60");
-        asb += &ASMBuilder::line_ident(" pop rdi");
-        asb += &ASMBuilder::line_ident(" syscall");
+        if !method_scope.trim_end().ends_with("call ProcessExit") {
+            method_scope += &ASMBuilder::ident_line("leave");
+            method_scope += &ASMBuilder::ident_line("ret");
+        }
 
-        Ok(asb.to_string())
+        let stack_allocation_asm = ASMBuilder::ident_line(&format!("sub rsp, {}", stack_allocation));
+
+        Ok(format!("{}{}{}{}{}", boiler_plate, prefix, label_header, stack_allocation_asm, method_scope))
     }
 }
 

@@ -14,7 +14,7 @@ impl ASMBuilder {
         format!("{}{}\n", " ".repeat(0), argument)
     }
 
-    pub fn line_ident(argument: &str) -> String {
+    pub fn ident_line(argument: &str) -> String {
         format!("{}{}\n", " ".repeat(4), argument)
     }
 

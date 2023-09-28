@@ -19,7 +19,7 @@ impl Display for Operator {
 }
 
 impl ToASM for Operator {
-    fn to_asm(&self, _: &mut Stack, _: &MetaInfo) -> Result<String, ASMGenerateError> {
+    fn to_asm(&self, _: &mut Stack, _: &mut MetaInfo) -> Result<String, ASMGenerateError> {
         Ok(match self {
             Operator::Noop =>"noop".to_string(),
             Operator::Add => "add".to_string(),
@@ -31,5 +31,13 @@ impl ToASM for Operator {
 
     fn is_stack_look_up(&self, _stack: &mut Stack, _meta: &MetaInfo) -> bool {
         false
+    }
+
+    fn byte_size(&self, _meta: &mut MetaInfo) -> usize {
+        0
+    }
+
+    fn before_label(&self, _stack: &mut Stack, _meta: &mut MetaInfo) -> Option<Result<String, ASMGenerateError>> {
+        None
     }
 }

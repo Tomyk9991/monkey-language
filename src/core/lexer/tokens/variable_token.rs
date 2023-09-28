@@ -6,7 +6,7 @@ use std::str::FromStr;
 
 use anyhow::Context;
 
-use crate::core::code_generator::{MetaInfo, ToASM};
+use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::generator::{Stack, StackLocation};
 use crate::core::io::code_line::CodeLine;
@@ -37,8 +37,8 @@ pub struct VariableToken<const ASSIGNMENT: char, const SEPARATOR: char> {
 }
 
 impl<const ASSIGNMENT: char, const SEPARATOR: char> InferType for VariableToken<ASSIGNMENT, SEPARATOR> {
-    fn infer_type(&mut self, type_context: &mut StaticTypeContext, method_names: &[NameToken]) -> Result<(), InferTypeError> {
-        if method_names.iter().filter(|a| a == &&self.name_token).count() > 0 {
+    fn infer_type(&mut self, type_context: &mut StaticTypeContext) -> Result<(), InferTypeError> {
+        if type_context.methods.iter().filter(|a| a.name == self.name_token).count() > 0 {
             return Err(InferTypeError::NameCollision(self.name_token.name.clone(), self.code_line.clone()));
         }
 
@@ -129,15 +129,20 @@ impl Display for ParseVariableTokenErr {
 }
 
 impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for VariableToken<ASSIGNMENT, SEPARATOR> {
-    fn to_asm(&self, stack: &mut Stack, meta: &MetaInfo) -> Result<String, crate::core::code_generator::ASMGenerateError> {
+    fn to_asm(&self, stack: &mut Stack, meta: &mut MetaInfo) -> Result<String, crate::core::code_generator::ASMGenerateError> {
         let mut target = String::new();
 
         let mov_target = if self.define {
-            stack.variables.push(StackLocation { position: stack.stack_position, name: self.name_token.clone() });
-            stack.stack_position += 4;
+            let byte_size = self.assignable.byte_size(meta);
+
+            stack.variables.push(StackLocation { position: stack.stack_position, name: self.name_token.clone(), size: byte_size });
+            stack.stack_position += byte_size;
 
             let offset = stack.stack_position;
-            format!("DWORD [rbp - {}]", offset)
+            format!("{}WORD [rbp - {}]", match byte_size {
+                4 => "D",
+                _ => "Q"
+            }, offset)
         } else {
             self.name_token.to_asm(stack, meta)?
         };
@@ -145,7 +150,7 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for VariableToken<ASSI
         target += &ASMBuilder::ident(&ASMBuilder::comment_line(&format!("{}", self)));
 
         if self.define && !self.assignable.is_stack_look_up(stack, meta) {
-            target += &ASMBuilder::line_ident(&format!("mov {}, {}", mov_target, self.assignable.to_asm(stack, meta)?));
+            target += &ASMBuilder::ident_line(&format!("mov {}, {}", mov_target, self.assignable.to_asm(stack, meta)?));
         } else {
             match &self.assignable {
                 AssignableToken::ArithmeticEquation(eq) => {
@@ -155,11 +160,11 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for VariableToken<ASSI
                     target += &eq.to_asm(stack, meta)?.to_string();
                 }
                 _ => {
-                    target += &ASMBuilder::line_ident(&format!("mov eax, {}", self.assignable.to_asm(stack, meta)?));
+                    target += &ASMBuilder::ident_line(&format!("mov eax, {}", self.assignable.to_asm(stack, meta)?));
                 }
             }
 
-            target += &ASMBuilder::line_ident(&format!("mov {}, eax", mov_target));
+            target += &ASMBuilder::ident_line(&format!("mov {}, eax", mov_target));
         }
 
 
@@ -168,6 +173,18 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for VariableToken<ASSI
 
     fn is_stack_look_up(&self, stack: &mut Stack, meta: &MetaInfo) -> bool {
         self.assignable.is_stack_look_up(stack, meta)
+    }
+
+    fn byte_size(&self, _meta: &mut MetaInfo) -> usize {
+        if let Some(ty) = &self.ty {
+            return ty.byte_size()
+        } else {
+            0
+        }
+    }
+
+    fn before_label(&self, stack: &mut Stack, meta: &mut MetaInfo) -> Option<Result<String, ASMGenerateError>> {
+        self.assignable.before_label(stack, meta)
     }
 }
 

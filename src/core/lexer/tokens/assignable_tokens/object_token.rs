@@ -2,6 +2,8 @@ use std::cmp::Ordering;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
+use crate::core::code_generator::generator::Stack;
+use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::tokens::assignable_token::AssignableTokenErr;
 use crate::core::lexer::tokens::assignable_tokens::method_call_token::{dyck_language, DyckError};
@@ -85,6 +87,24 @@ impl FromStr for ObjectToken {
         }
         
         ObjectToken::try_parse(&code_line)
+    }
+}
+
+impl ToASM for ObjectToken {
+    fn to_asm(&self, _stack: &mut Stack, _meta: &mut MetaInfo) -> Result<String, ASMGenerateError> {
+        todo!()
+    }
+
+    fn is_stack_look_up(&self, _stack: &mut Stack, _meta: &MetaInfo) -> bool {
+        todo!()
+    }
+
+    fn byte_size(&self, _meta: &mut MetaInfo) -> usize {
+        0
+    }
+
+    fn before_label(&self, _stack: &mut Stack, _meta: &mut MetaInfo) -> Option<Result<String, ASMGenerateError>> {
+        None
     }
 }
 

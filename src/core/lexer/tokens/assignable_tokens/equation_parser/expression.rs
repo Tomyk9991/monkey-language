@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};
 
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
+use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::generator::Stack;
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::tokenizer::StaticTypeContext;
@@ -83,39 +84,39 @@ impl From<Option<Box<AssignableToken>>> for Expression {
 }
 
 impl ToASM for Expression {
-    fn to_asm(&self, stack: &mut Stack, meta: &MetaInfo) -> Result<String, ASMGenerateError> {
+    fn to_asm(&self, stack: &mut Stack, meta: &mut MetaInfo) -> Result<String, ASMGenerateError> {
 
         if let Some(value) = &self.value { // this means, no children are provided. this is the actual value
             return value.to_asm(stack, meta);
         }
 
         let mut target = String::new();
-        target += &format!("    ; {}\n", self);
+        target += &ASMBuilder::ident(&ASMBuilder::comment_line(&format!("{}", self)));
 
         match (&self.rhs, &self.lhs) {
             (Some(lhs), Some(rhs)) => {
                 match (&lhs.value, &rhs.value) {
                     (Some(_), Some(_)) => {
-                        target += &format!("    mov eax, {}\n", rhs.to_asm(stack, meta)?);
-                        target += &format!("    {} eax, {}\n", self.operator.to_asm(stack, meta)?, lhs.to_asm(stack, meta)?);
-                        target += &format!("    mov {}, eax", stack.register_to_use);
+                        target += &ASMBuilder::ident_line(&format!("mov eax, {}", rhs.to_asm(stack, meta)?));
+                        target += &ASMBuilder::ident_line(&format!("{} eax, {}", self.operator.to_asm(stack, meta)?, lhs.to_asm(stack, meta)?));
+                        target += &ASMBuilder::ident_line(&format!("mov {}, eax", stack.register_to_use));
                     }
                     (None, Some(_)) => {
-                        target += &format!("{}\n", lhs.to_asm(stack, meta)?);
-                        target += &format!("    {} eax, {}\n", self.operator.to_asm(stack, meta)?, rhs.to_asm(stack, meta)?);
+                        target += &ASMBuilder::push(&format!("{}", lhs.to_asm(stack, meta)?));
+                        target += &ASMBuilder::ident_line(&format!("{} eax, {}\n", self.operator.to_asm(stack, meta)?, rhs.to_asm(stack, meta)?));
                     }
                     (Some(_), None) => {
-                        target += &format!("{}\n", rhs.to_asm(stack, meta)?);
-                        target += &format!("    {} edx, {}\n", self.operator.to_asm(stack, meta)?, lhs.to_asm(stack, meta)?);
+                        target += &ASMBuilder::push(&format!("{}", rhs.to_asm(stack, meta)?));
+                        target += &ASMBuilder::ident_line(&format!("{} edx, {}", self.operator.to_asm(stack, meta)?, lhs.to_asm(stack, meta)?));
                     }
                     (None, None) => {
                         stack.register_to_use = String::from("edx");
-                        target += &format!("{}\n", rhs.to_asm(stack, meta)?);
+                        target += &ASMBuilder::push(&format!("{}", rhs.to_asm(stack, meta)?));
                         stack.register_to_use = String::from("eax");
-                        target += &format!("{}\n", lhs.to_asm(stack, meta)?);
+                        target += &ASMBuilder::push(&format!("{}", lhs.to_asm(stack, meta)?));
                         stack.register_to_use = String::from("");
 
-                        target += &format!("    {} eax, edx\n", self.operator.to_asm(stack, meta)?);
+                        target += &ASMBuilder::ident_line(&format!("{} eax, edx", self.operator.to_asm(stack, meta)?));
                     }
                 }
             }
@@ -127,6 +128,18 @@ impl ToASM for Expression {
 
     fn is_stack_look_up(&self, _stack: &mut Stack, _meta: &MetaInfo) -> bool {
         true
+    }
+
+    fn byte_size(&self, meta: &mut MetaInfo) -> usize {
+        if let Some(ty) = self.traverse_type(&meta.code_line) {
+            return ty.byte_size();
+        }
+
+        0
+    }
+
+    fn before_label(&self, _stack: &mut Stack, _meta: &mut MetaInfo) -> Option<Result<String, ASMGenerateError>> {
+        None
     }
 }
 

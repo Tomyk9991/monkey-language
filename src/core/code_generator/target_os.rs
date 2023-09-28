@@ -11,6 +11,7 @@ pub enum TargetOS {
     WindowsSubsystemLinux
 }
 
+
 impl Display for TargetOS {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", match self {

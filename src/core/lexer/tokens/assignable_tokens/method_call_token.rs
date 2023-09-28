@@ -3,7 +3,9 @@ use std::fmt::{Display, Formatter};
 use std::iter::Peekable;
 use std::slice::Iter;
 use std::str::FromStr;
-use crate::core::code_generator::MetaInfo;
+use crate::core::code_generator::{ASMGenerateError, conventions, MetaInfo};
+use crate::core::code_generator::asm_builder::ASMBuilder;
+use crate::core::code_generator::conventions::CallingRegister;
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::target_os::TargetOS;
 use crate::core::code_generator::ToASM;
@@ -12,7 +14,6 @@ use crate::core::lexer::tokens::name_token::{NameToken, NameTokenErr};
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::errors::EmptyIteratorErr;
 use crate::core::lexer::levenshtein_distance::{ArgumentsIgnoreSummarizeTransform, EmptyParenthesesExpand, PatternedLevenshteinDistance, PatternedLevenshteinString, QuoteSummarizeTransform};
-use crate::core::lexer::token::Token;
 use crate::core::lexer::tokenizer::StaticTypeContext;
 use crate::core::lexer::TryParse;
 use crate::core::lexer::type_token::{InferTypeError, MethodCallArgumentTypeMismatch};
@@ -174,44 +175,73 @@ impl MethodCallToken {
 }
 
 impl ToASM for MethodCallToken {
-    fn to_asm(&self, stack: &mut Stack, meta: &MetaInfo) -> Result<String, crate::core::code_generator::ASMGenerateError> {
-        // TODO finish properly. For Now just a method "exit" is supported to early return
-        if self.name.name == "exit" {
-            let mut result = String::new();
+    fn to_asm(&self, stack: &mut Stack, meta: &mut MetaInfo) -> Result<String, crate::core::code_generator::ASMGenerateError> {
+        let calling_convention = conventions::calling_convention(meta, &self.arguments)?;
 
-            let parsed_argument = match &self.arguments[0] {
+        let mut result = String::new();
+
+        let zipped = calling_convention.iter().zip(&self.arguments);
+        for (convention, argument) in zipped {
+            let parsed_argument = match argument {
                 AssignableToken::ArithmeticEquation(_) | AssignableToken::BooleanEquation(_) => {
-                    result += &self.arguments[0].to_asm(stack, meta)?;
+                    result += &ASMBuilder::push(&argument.to_asm(stack, meta)?);
                     String::from("rax")
                 }
                 _ => {
-                    result.push_str(&format!("    ; {}\n", self));
-                    self.arguments[0].to_asm(stack, meta)?.to_string()
+                    argument.to_asm(stack, meta)?.to_string()
                 }
             };
 
             match meta.target_os {
-                TargetOS::WindowsSubsystemLinux | TargetOS::Linux => {
-                    result.push_str("    mov rax, 60\n");
-                    result.push_str(&format!("    mov rdi, {}\n", parsed_argument.replace("DWORD", "QWORD")));
-                    result.push_str("    syscall\n");
-                }
                 TargetOS::Windows => {
-                    result.push_str(&format!("    mov rcx, {}\n", parsed_argument.replace("DWORD", "QWORD")));
-                    result.push_str("    call ExitProcess\n");
+                    match convention {
+                        CallingRegister::Register(register) =>
+                            result += &ASMBuilder::ident(&format!("mov {}, {}", register, parsed_argument.replace("DWORD", "QWORD"))),
+                        CallingRegister::Stack =>
+                            result += &ASMBuilder::ident(&format!("push {}", parsed_argument.replace("DWORD", "QWORD")))
+                    }
+                    result += &ASMBuilder::push(" ");
+                    result += &ASMBuilder::comment_line(&format!("Parameter ({})", argument));
+                }
+                TargetOS::WindowsSubsystemLinux | TargetOS::Linux => {
+                    unimplemented!("Not implemented for linux yet");
                 }
             }
-
-            return Ok(result);
         }
+        result += &ASMBuilder::ident(&ASMBuilder::comment_line(&self.to_string()));
+        result += &ASMBuilder::ident_line(&format!("call {}", self.name));
 
-
-        let method_call_token = Token::MethodCall(self.clone());
-        Err(crate::core::code_generator::ASMGenerateError::NotImplemented { token: format!("{}", method_call_token) })
+        return Ok(result);
     }
 
     fn is_stack_look_up(&self, _stack: &mut Stack, _meta: &MetaInfo) -> bool {
         true
+    }
+
+    fn byte_size(&self, meta: &mut MetaInfo) -> usize {
+        return if let Some(method_def) = meta.static_type_information.methods.iter().find(|m| m.name == self.name) {
+            method_def.return_type.byte_size()
+        } else {
+            0
+        }
+    }
+
+    fn before_label(&self, stack: &mut Stack, meta: &mut MetaInfo) -> Option<Result<String, ASMGenerateError>> {
+        let mut asb = String::new();
+        let mut has_before_label_asm = false;
+        for argument in &self.arguments {
+            if let Some(before_label) = argument.before_label(stack, meta) {
+                match before_label {
+                    Ok(before_label) => {
+                        asb += &ASMBuilder::line(&(before_label));
+                        has_before_label_asm = true;
+                    },
+                    Err(err) => return Some(Err(err))
+                }
+            }
+        }
+
+        return if has_before_label_asm { Some(Ok(asb)) } else { None }
     }
 }
 

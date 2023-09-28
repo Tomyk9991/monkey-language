@@ -1,6 +1,8 @@
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::str::{FromStr, ParseBoolError};
+use crate::core::code_generator::generator::Stack;
+use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct BooleanToken {
@@ -30,6 +32,24 @@ impl Error for BooleanTokenErr { }
 
 impl Display for BooleanToken {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result { write!(f, "{}", self.value) }
+}
+
+impl ToASM for BooleanToken {
+    fn to_asm(&self, _stack: &mut Stack, _meta: &mut MetaInfo) -> Result<String, ASMGenerateError> {
+        todo!()
+    }
+
+    fn is_stack_look_up(&self, _stack: &mut Stack, _meta: &MetaInfo) -> bool {
+        todo!()
+    }
+
+    fn byte_size(&self, _meta: &mut MetaInfo) -> usize {
+        4
+    }
+
+    fn before_label(&self, _stack: &mut Stack, _meta: &mut MetaInfo) -> Option<Result<String, ASMGenerateError>> {
+        None
+    }
 }
 
 impl FromStr for BooleanToken {

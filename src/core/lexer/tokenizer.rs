@@ -130,26 +130,18 @@ impl Lexer {
             }
         }
 
-        // for m in &mut scope.extern_methods {
-        //     methods.push(m);
-        // }
-
-        let method_names = methods.iter()
-            .map(|m| unsafe { (*(*m)).name.clone() })
-            .collect::<Vec<NameToken>>();
-
-        Self::infer_types(&mut scope.tokens, &mut type_context, &method_names)?;
+        Self::infer_types(&mut scope.tokens, &mut type_context)?;
 
         for method in methods.iter_mut() {
-            Scope::infer_type(unsafe { &mut (*(*method)).stack }, &mut type_context, &method_names)?;
+            Scope::infer_type(unsafe { &mut (*(*method)).stack }, &mut type_context)?;
         }
 
         Ok(scope)
     }
 
-    pub fn infer_types(scope: &mut Vec<Token>, type_context: &mut StaticTypeContext, method_names: &[NameToken]) -> Result<(), InferTypeError> {
+    pub fn infer_types(scope: &mut Vec<Token>, type_context: &mut StaticTypeContext) -> Result<(), InferTypeError> {
         for token in scope {
-            token.infer_type(type_context, method_names)?;
+            token.infer_type(type_context)?;
         }
 
         Ok(())

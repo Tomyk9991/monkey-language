@@ -83,3 +83,16 @@ impl FromStr for TypeToken {
         })
     }
 }
+
+impl TypeToken {
+    pub fn byte_size(&self) -> usize {
+        match self {
+            TypeToken::I32 => 4,
+            TypeToken::String => 8,
+            TypeToken::Bool => 4,
+            TypeToken::Void => 0,
+            TypeToken::F32 => 4,
+            TypeToken::Custom(_) => 0 // todo calculate custom data types recursively
+        }
+    }
+}

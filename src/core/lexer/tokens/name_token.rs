@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use crate::core::code_generator::generator::Stack;
-use crate::core::code_generator::{MetaInfo, ToASM};
+use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::constants::KEYWORDS;
 
 /// Token for a name. Basically a string that can be used as a variable name.
@@ -56,9 +56,9 @@ impl NameToken {
 }
 
 impl ToASM for NameToken {
-    fn to_asm(&self, stack: &mut Stack, meta: &MetaInfo) -> Result<String, crate::core::code_generator::ASMGenerateError> {
+    fn to_asm(&self, stack: &mut Stack, meta: &mut MetaInfo) -> Result<String, crate::core::code_generator::ASMGenerateError> {
         return if let Some(stack_location) = stack.variables.iter().rfind(|&variable| variable.name.name == self.name.as_str()) {
-            Ok(format!("DWORD [rbp - {}]", stack_location.position + 4))
+            Ok(format!("DWORD [rbp - {}]", stack_location.position + stack_location.size))
         } else {
             Err(crate::core::code_generator::ASMGenerateError::UnresolvedReference { name: self.name.to_string(), code_line: meta.code_line.clone() })
         }
@@ -66,5 +66,17 @@ impl ToASM for NameToken {
 
     fn is_stack_look_up(&self, _stack: &mut Stack, _meta: &MetaInfo) -> bool {
         true
+    }
+
+    fn byte_size(&self, meta: &mut MetaInfo) -> usize {
+        if let Some((_, ty)) = meta.static_type_information.iter().rfind(|(name, _)| name.name == self.name) {
+            ty.byte_size()
+        } else {
+            0
+        }
+    }
+
+    fn before_label(&self, _stack: &mut Stack, _meta: &mut MetaInfo) -> Option<Result<String, ASMGenerateError>> {
+        None
     }
 }

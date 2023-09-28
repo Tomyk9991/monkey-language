@@ -3,7 +3,7 @@ use std::fmt::{Display, Formatter};
 use std::iter::Peekable;
 use std::slice::Iter;
 use std::str::FromStr;
-use crate::core::code_generator::{MetaInfo, ToASM};
+use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::code_generator::generator::Stack;
 
 use crate::core::constants::{ELSE_KEYWORD, CLOSING_SCOPE, IF_KEYWORD};
@@ -15,7 +15,6 @@ use crate::core::lexer::scope::{Scope, ScopeError};
 use crate::core::lexer::token::Token;
 use crate::core::lexer::tokenizer::StaticTypeContext;
 use crate::core::lexer::tokens::assignable_token::{AssignableToken, AssignableTokenErr};
-use crate::core::lexer::tokens::name_token::NameToken;
 use crate::core::lexer::TryParse;
 use crate::core::lexer::type_token::InferTypeError;
 use crate::core::type_checker::InferType;
@@ -33,11 +32,11 @@ pub struct IfDefinition {
 }
 
 impl InferType for IfDefinition {
-    fn infer_type(&mut self, type_context: &mut StaticTypeContext, method_names: &[NameToken]) -> Result<(), InferTypeError> {
-        Scope::infer_type(&mut self.if_stack, type_context, method_names)?;
+    fn infer_type(&mut self, type_context: &mut StaticTypeContext) -> Result<(), InferTypeError> {
+        Scope::infer_type(&mut self.if_stack, type_context)?;
 
         if let Some(else_stack) = &mut self.else_stack {
-            Scope::infer_type(else_stack, type_context, method_names)?;
+            Scope::infer_type(else_stack, type_context)?;
         }
 
         Ok(())
@@ -170,7 +169,7 @@ impl TryParse for IfDefinition {
 
 
 impl ToASM for IfDefinition {
-    fn to_asm(&self, stack: &mut Stack, meta: &MetaInfo) -> Result<String, crate::core::code_generator::ASMGenerateError> {
+    fn to_asm(&self, stack: &mut Stack, meta: &mut MetaInfo) -> Result<String, crate::core::code_generator::ASMGenerateError> {
         let mut target = String::new();
 
         target.push_str(&format!("    ; if condition ({})\n", self.condition));
@@ -209,6 +208,14 @@ impl ToASM for IfDefinition {
 
     fn is_stack_look_up(&self, _stack: &mut Stack, _meta: &MetaInfo) -> bool {
         true
+    }
+
+    fn byte_size(&self, _meta: &mut MetaInfo) -> usize {
+        0
+    }
+
+    fn before_label(&self, _stack: &mut Stack, _meta: &mut MetaInfo) -> Option<Result<String, ASMGenerateError>> {
+        None
     }
 }
 

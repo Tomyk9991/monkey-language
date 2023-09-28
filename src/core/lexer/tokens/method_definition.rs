@@ -9,6 +9,8 @@ use std::fmt::{Display, Formatter};
 use std::iter::Peekable;
 use std::slice::Iter;
 use std::str::FromStr;
+use crate::core::code_generator::generator::Stack;
+use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::constants::FUNCTION_KEYWORD;
 use crate::core::lexer::errors::EmptyIteratorErr;
 use crate::core::lexer::levenshtein_distance::PatternedLevenshteinDistance;
@@ -169,6 +171,24 @@ impl TryParse for MethodDefinition {
         Err(MethodDefinitionErr::PatternNotMatched {
             target_value: method_header.line.to_string()
         })
+    }
+}
+
+impl ToASM for MethodDefinition {
+    fn to_asm(&self, _stack: &mut Stack, _meta: &mut MetaInfo) -> Result<String, ASMGenerateError> {
+        todo!()
+    }
+
+    fn is_stack_look_up(&self, _stack: &mut Stack, _meta: &MetaInfo) -> bool {
+        todo!()
+    }
+
+    fn byte_size(&self, _meta: &mut MetaInfo) -> usize {
+        0
+    }
+
+    fn before_label(&self, _stack: &mut Stack, _meta: &mut MetaInfo) -> Option<Result<String, ASMGenerateError>> {
+        None
     }
 }
 

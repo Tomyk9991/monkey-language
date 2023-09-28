@@ -94,11 +94,19 @@ impl PatternedLevenshteinDistance for ImportToken {
 }
 
 impl ToASM for ImportToken {
-    fn to_asm(&self, _stack: &mut Stack, _meta: &MetaInfo) -> Result<String, ASMGenerateError> {
+    fn to_asm(&self, _stack: &mut Stack, _meta: &mut MetaInfo) -> Result<String, ASMGenerateError> {
         Ok(String::new())
     }
 
     fn is_stack_look_up(&self, _stack: &mut Stack, _meta: &MetaInfo) -> bool {
         false
+    }
+
+    fn byte_size(&self, _meta: &mut MetaInfo) -> usize {
+        0
+    }
+
+    fn before_label(&self, _stack: &mut Stack, _meta: &mut MetaInfo) -> Option<Result<String, ASMGenerateError>> {
+        None
     }
 }

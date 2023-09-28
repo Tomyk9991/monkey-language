@@ -3,7 +3,7 @@ use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
 
 use crate::core::code_generator::generator::Stack;
-use crate::core::code_generator::{MetaInfo, ToASM};
+use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::tokenizer::StaticTypeContext;
 use crate::core::lexer::tokens::assignable_tokens::boolean_token::BooleanToken;
@@ -108,17 +108,16 @@ impl Display for AssignableTokenErr {
 }
 
 impl ToASM for AssignableToken {
-    fn to_asm(&self, stack: &mut Stack, meta: &MetaInfo) -> Result<String, crate::core::code_generator::ASMGenerateError> {
+    fn to_asm(&self, stack: &mut Stack, meta: &mut MetaInfo) -> Result<String, crate::core::code_generator::ASMGenerateError> {
         match &self {
             AssignableToken::IntegerToken(token) => Ok(token.to_asm(stack, meta)?),
             AssignableToken::NameToken(variable) => Ok(variable.to_asm(stack, meta)?),
             AssignableToken::ArithmeticEquation(expression) => Ok(expression.to_asm(stack, meta)?),
-            token => Err(crate::core::code_generator::ASMGenerateError::TokenNotBuildable { assignable_token: (*token).clone() })
-
-            // AssignableToken::String(_) => {}
+            AssignableToken::String(string) => Ok(string.to_asm(stack, meta)?),
+            AssignableToken::MethodCallToken(method_call) => Ok(method_call.to_asm(stack, meta)?),
+            token => Err(crate::core::code_generator::ASMGenerateError::AssignmentNotImplemented { assignable_token: (*token).clone() })
             // AssignableToken::DoubleToken(_) => {}
             // AssignableToken::BooleanToken(_) => {}
-            // AssignableToken::MethodCallToken(_) => {}
             // AssignableToken::Object(_) => {}
             // AssignableToken::BooleanEquation(_) => {}
         }
@@ -135,6 +134,34 @@ impl ToASM for AssignableToken {
             AssignableToken::Object(_) => false,
             AssignableToken::ArithmeticEquation(a) => a.is_stack_look_up(stack, meta),
             AssignableToken::BooleanEquation(a) => a.is_stack_look_up(stack, meta)
+        }
+    }
+
+    fn byte_size(&self, meta: &mut MetaInfo) -> usize {
+        match self {
+            AssignableToken::String(a) => a.byte_size(meta),
+            AssignableToken::IntegerToken(a) => a.byte_size(meta),
+            AssignableToken::FloatToken(a) => a.byte_size(meta),
+            AssignableToken::BooleanToken(a) => a.byte_size(meta),
+            AssignableToken::MethodCallToken(a) => a.byte_size(meta),
+            AssignableToken::NameToken(a) => a.byte_size(meta),
+            AssignableToken::Object(a) => a.byte_size(meta),
+            AssignableToken::ArithmeticEquation(a) => a.byte_size(meta),
+            AssignableToken::BooleanEquation(a) => a.byte_size(meta),
+        }
+    }
+
+    fn before_label(&self, stack: &mut Stack, meta: &mut MetaInfo) -> Option<Result<String, ASMGenerateError>> {
+        match &self {
+            AssignableToken::String(v) => v.before_label(stack, meta),
+            AssignableToken::IntegerToken(v) => v.before_label(stack, meta),
+            AssignableToken::FloatToken(v) => v.before_label(stack, meta),
+            AssignableToken::BooleanToken(v) => v.before_label(stack, meta),
+            AssignableToken::MethodCallToken(v) => v.before_label(stack, meta),
+            AssignableToken::NameToken(v) => v.before_label(stack, meta),
+            AssignableToken::Object(v) => v.before_label(stack, meta),
+            AssignableToken::ArithmeticEquation(v) => v.before_label(stack, meta),
+            AssignableToken::BooleanEquation(v) => v.before_label(stack, meta),
         }
     }
 }

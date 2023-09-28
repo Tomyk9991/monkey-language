@@ -35,9 +35,6 @@ pub fn static_type_check(scope: &Scope) -> Result<(), StaticTypeCheckError> {
     // a = 5;
     let mut type_context: StaticTypeContext = StaticTypeContext::type_context(&scope.tokens);
     static_type_check_rec(&scope.tokens, &mut vec![], &mut type_context)
-
-
-    //todo: are methods calls correct?
 }
 
 fn static_type_check_rec(scope: &Vec<Token>, visible_variables: &mut Vec<VariableToken<'=', ';'>>, type_context: &mut StaticTypeContext) -> Result<(), StaticTypeCheckError> {
