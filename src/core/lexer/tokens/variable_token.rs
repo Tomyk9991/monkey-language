@@ -6,7 +6,7 @@ use std::str::FromStr;
 
 use anyhow::Context;
 
-use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
+use crate::core::code_generator::{ASMGenerateError, MetaInfo, register_destination, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::generator::{Stack, StackLocation};
 use crate::core::io::code_line::CodeLine;
@@ -81,14 +81,16 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> InferType for VariableToken<
 
 impl<const ASSIGNMENT: char, const SEPARATOR: char> Display for VariableToken<ASSIGNMENT, SEPARATOR> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let t = self.ty.as_ref().map_or(String::new(), |ty| format!(": {ty}"));
+
         write!(
             f,
             "{}{}{} {} {}",
-            if self.define { "let " } else { "" },    // definition
-            self.name_token,                          // name
-            self.ty.as_ref().map_or("", |_| ": {ty}"),// type
-            ASSIGNMENT,                               // assignment token
-            self.assignable                           // assignment
+            if self.define { "let " } else { "" },      // definition
+            self.name_token,                            // name
+            &t,                                         // type
+            ASSIGNMENT,                                 // assignment token
+            self.assignable                             // assignment
         )
     }
 }
@@ -144,7 +146,7 @@ impl Display for ParseVariableTokenErr {
 }
 
 impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for VariableToken<ASSIGNMENT, SEPARATOR> {
-    fn to_asm(&self, stack: &mut Stack, meta: &mut MetaInfo) -> Result<String, crate::core::code_generator::ASMGenerateError> {
+    fn to_asm(&self, stack: &mut Stack, meta: &mut MetaInfo) -> Result<String, ASMGenerateError> {
         let mut target = String::new();
 
         let mov_target = if self.define {
@@ -175,11 +177,15 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for VariableToken<ASSI
                     target += &eq.to_asm(stack, meta)?.to_string();
                 }
                 _ => {
-                    target += &ASMBuilder::ident_line(&format!("mov eax, {}", self.assignable.to_asm(stack, meta)?));
+                    let destination = register_destination::from_byte_size(self.assignable.byte_size(meta));
+
+
+                    target += &ASMBuilder::ident_line(&format!("mov {destination}, {}", self.assignable.to_asm(stack, meta)?));
                 }
             }
 
-            target += &ASMBuilder::ident_line(&format!("mov {}, eax", mov_target));
+            let destination = register_destination::from_byte_size(self.assignable.byte_size(meta));
+            target += &ASMBuilder::ident_line(&format!("mov {}, {}", mov_target, destination));
         }
 
 

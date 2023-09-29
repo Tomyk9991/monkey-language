@@ -44,7 +44,7 @@ impl AssignableToken {
 
     pub fn infer_type_with_context(&self, context: &StaticTypeContext, code_line: &CodeLine) -> Result<TypeToken, InferTypeError> {
         match self {
-            AssignableToken::String(_) => Ok(TypeToken::String),
+            AssignableToken::String(_) => Ok(TypeToken::Custom(NameToken { name: "*string".to_string() })),
             AssignableToken::IntegerToken(_) => Ok(TypeToken::I32),
             AssignableToken::FloatToken(_) => Ok(TypeToken::F32),
             AssignableToken::BooleanToken(_) => Ok(TypeToken::Bool),

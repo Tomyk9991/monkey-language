@@ -46,7 +46,7 @@ impl NameToken {
             return Err(NameTokenErr::KeywordReserved(s.to_string()));
         }
 
-        if !lazy_regex::regex_is_match!("^[a-zA-Z_$][a-zA-Z_$0-9$]*$", s) {
+        if !lazy_regex::regex_is_match!(r"^[\*&]*[a-zA-Z_$][a-zA-Z_$0-9]*$", s) {
             return Err(NameTokenErr::UnmatchedRegex {
                 target_value: s.to_string(),
             });
@@ -75,6 +75,13 @@ impl NameToken {
 impl ToASM for NameToken {
     fn to_asm(&self, stack: &mut Stack, meta: &mut MetaInfo) -> Result<String, crate::core::code_generator::ASMGenerateError> {
         return if let Some(stack_location) = stack.variables.iter().rfind(|&variable| variable.name.name == self.name.as_str()) {
+            if let Some(found_variable) = meta.static_type_information.context.iter().rfind(|v| v.name_token == *self) {
+                if let Some(ty) = &found_variable.ty {
+                    if ty.byte_size() == 8 {
+                        return Ok(format!("QWORD [rbp - {}]", stack_location.position + stack_location.size))
+                    }
+                }
+            }
             Ok(format!("DWORD [rbp - {}]", stack_location.position + stack_location.size))
         } else {
             Err(crate::core::code_generator::ASMGenerateError::UnresolvedReference { name: self.name.to_string(), code_line: meta.code_line.clone() })

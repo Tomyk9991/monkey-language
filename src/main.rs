@@ -19,7 +19,7 @@ fn main() -> anyhow::Result<()> {
 
 // 1) Build AST
     let top_level_scope = Lexer::from(money_file).tokenize()?;
-    // println!("{:?}", top_level_scope);
+    println!("{:?}", top_level_scope);
 
 // 2) Static Type Checking
     static_type_check(&top_level_scope)?;

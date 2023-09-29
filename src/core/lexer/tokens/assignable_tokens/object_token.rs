@@ -100,7 +100,7 @@ impl ToASM for ObjectToken {
     }
 
     fn byte_size(&self, _meta: &mut MetaInfo) -> usize {
-        0
+        8
     }
 
     fn before_label(&self, _stack: &mut Stack, _meta: &mut MetaInfo) -> Option<Result<String, ASMGenerateError>> {

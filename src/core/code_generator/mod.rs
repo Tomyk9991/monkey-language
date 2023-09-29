@@ -11,6 +11,7 @@ pub mod target_creator;
 pub mod target_os;
 pub mod asm_builder;
 pub mod conventions;
+pub mod register_destination;
 
 
 #[derive(Debug)]

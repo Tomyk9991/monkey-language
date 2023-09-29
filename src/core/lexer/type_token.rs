@@ -8,7 +8,6 @@ use crate::core::lexer::tokens::name_token::{NameToken, NameTokenErr};
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub enum TypeToken {
     I32,
-    String,
     Bool,
     Void,
     F32,
@@ -62,7 +61,6 @@ impl Display for TypeToken {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", match self {
             TypeToken::I32 => "i32".to_string(),
-            TypeToken::String => "string".to_string(),
             TypeToken::Bool => "bool".to_string(),
             TypeToken::Void => "void".to_string(),
             TypeToken::F32 => "f32".to_string(),
@@ -77,7 +75,6 @@ impl FromStr for TypeToken {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(match s {
             "i32" =>    TypeToken::I32,
-            "string" => TypeToken::String,
             "bool" =>   TypeToken::Bool,
             "void" =>   TypeToken::Void,
             "f32" =>    TypeToken::F32,
@@ -90,11 +87,10 @@ impl TypeToken {
     pub fn byte_size(&self) -> usize {
         match self {
             TypeToken::I32 => 4,
-            TypeToken::String => 8,
             TypeToken::Bool => 4,
             TypeToken::Void => 0,
             TypeToken::F32 => 4,
-            TypeToken::Custom(_) => 0 // todo calculate custom data types recursively
+            TypeToken::Custom(_) => 8 // todo calculate custom data types recursively
         }
     }
 }

@@ -28,7 +28,7 @@ fn windows_calling_convention(meta: &MetaInfo, calling_arguments: &[AssignableTo
         let calling_ty: TypeToken = calling_argument.infer_type_with_context(&meta.static_type_information, &meta.code_line)?;
 
         match calling_ty {
-            TypeToken::I32 | TypeToken::Bool | TypeToken::String | TypeToken::Custom(_) => {
+            TypeToken::I32 | TypeToken::Bool | TypeToken::Custom(_) => {
                 if index < 4 {
                     result.push(POINTER_ORDER[index].clone());
                 } else {

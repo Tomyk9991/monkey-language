@@ -8,6 +8,7 @@ use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::static_type_context::StaticTypeContext;
 use crate::core::lexer::tokens::assignable_token::AssignableToken;
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::operator::Operator;
+use crate::core::lexer::tokens::name_token::NameToken;
 use crate::core::lexer::type_token::{InferTypeError, TypeToken};
 
 #[derive(Clone, PartialEq)]
@@ -170,7 +171,7 @@ impl Expression {
                 let rhs_type = rhs.traverse_type_resulted(context, code_line)?;
 
                 let mut base_type_matrix: HashMap<(TypeToken, Operator, TypeToken), TypeToken> = HashMap::new();
-                base_type_matrix.insert((TypeToken::String, Operator::Add, TypeToken::String), TypeToken::String);
+                base_type_matrix.insert((TypeToken::Custom(NameToken { name: "string".to_string() }), Operator::Add, TypeToken::Custom(NameToken { name: "string".to_string() })), TypeToken::Custom(NameToken { name: "string".to_string() }));
 
                 base_type_matrix.insert((TypeToken::I32, Operator::Add, TypeToken::I32), TypeToken::I32);
                 base_type_matrix.insert((TypeToken::I32, Operator::Sub, TypeToken::I32), TypeToken::I32);
