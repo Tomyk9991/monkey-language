@@ -8,8 +8,8 @@ pub mod token;
 pub mod tokens;
 pub mod levenshtein_distance;
 pub mod errors;
-
 pub mod type_token;
+pub mod static_type_context;
 
 pub trait TryParse {
     type Output;

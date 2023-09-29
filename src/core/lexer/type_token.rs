@@ -20,6 +20,7 @@ pub enum InferTypeError {
     TypesNotCalculable(TypeToken, Operator, TypeToken, CodeLine),
     UnresolvedReference(String, CodeLine),
     TypeNotAllowed(NameTokenErr),
+    NoTypePresent(NameToken, CodeLine),
     MethodCallArgumentAmountMismatch { expected: usize, actual: usize, code_line: CodeLine },
     MethodCallArgumentTypeMismatch { info: Box<MethodCallArgumentTypeMismatch> },
     NameCollision(String, CodeLine),
@@ -51,7 +52,8 @@ impl Display for InferTypeError {
             InferTypeError::NameCollision(name, code_line) => write!(f, "Line: {:?}: \tA variable and a method cannot have the same name: `{name}`", code_line.actual_line_number),
             InferTypeError::TypeNotAllowed(ty) => write!(f, "This type is not allowed due to: {}", ty),
             InferTypeError::MethodCallArgumentAmountMismatch { expected, actual, code_line } => write!(f, "Line: {:?}: \tThe method expects {} parameter, but {} are provided", code_line.actual_line_number, expected, actual),
-            InferTypeError::MethodCallArgumentTypeMismatch { info } => write!(f, "Line: {:?}: \t The {}. argument should be of type: `{}` but `{}` is provided", info.code_line.actual_line_number, info.nth_parameter, info.expected, info.actual)
+            InferTypeError::MethodCallArgumentTypeMismatch { info } => write!(f, "Line: {:?}: \t The {}. argument should be of type: `{}` but `{}` is provided", info.code_line.actual_line_number, info.nth_parameter, info.expected, info.actual),
+            InferTypeError::NoTypePresent(name, code_line) => write!(f, "Line: {:?}\tType not inferred: `{name}`", code_line.actual_line_number)
         }
     }
 }

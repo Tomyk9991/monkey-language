@@ -14,9 +14,9 @@ use crate::core::lexer::tokens::name_token::{NameToken, NameTokenErr};
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::errors::EmptyIteratorErr;
 use crate::core::lexer::levenshtein_distance::{ArgumentsIgnoreSummarizeTransform, EmptyParenthesesExpand, PatternedLevenshteinDistance, PatternedLevenshteinString, QuoteSummarizeTransform};
-use crate::core::lexer::tokenizer::StaticTypeContext;
+use crate::core::lexer::static_type_context::StaticTypeContext;
 use crate::core::lexer::TryParse;
-use crate::core::lexer::type_token::{InferTypeError, MethodCallArgumentTypeMismatch};
+use crate::core::lexer::type_token::{InferTypeError, MethodCallArgumentTypeMismatch, TypeToken};
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct MethodCallToken {
@@ -136,6 +136,18 @@ impl MethodCallToken {
         }
     }
 
+    pub fn infer_type_with_context(&self, context: &StaticTypeContext, code_line: &CodeLine) -> Result<TypeToken, InferTypeError> {
+        if let Some(method_def) = context.methods.iter().find(|method_def| {
+            method_def.name == self.name
+        }) {
+            self.type_check(context, code_line)?;
+            return Ok(method_def.return_type.clone());
+        }
+
+        Err(InferTypeError::UnresolvedReference(self.to_string(), code_line.clone()))
+    }
+
+    /// Type checks the symbol calling, by checking if the passed parameters are expected by the method definition
     pub fn type_check(&self, context: &StaticTypeContext, code_line: &CodeLine) -> Result<(), InferTypeError> {
         if let Some(method_def) = context.methods.iter().find(|m| m.name == self.name) {
             if method_def.arguments.len() != self.arguments.len() {
@@ -211,7 +223,7 @@ impl ToASM for MethodCallToken {
         result += &ASMBuilder::ident(&ASMBuilder::comment_line(&self.to_string()));
         result += &ASMBuilder::ident_line(&format!("call {}", self.name));
 
-        return Ok(result);
+        Ok(result)
     }
 
     fn is_stack_look_up(&self, _stack: &mut Stack, _meta: &MetaInfo) -> bool {
@@ -241,7 +253,7 @@ impl ToASM for MethodCallToken {
             }
         }
 
-        return if has_before_label_asm { Some(Ok(asb)) } else { None }
+        if has_before_label_asm { Some(Ok(asb)) } else { None }
     }
 }
 

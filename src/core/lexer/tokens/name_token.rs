@@ -3,6 +3,9 @@ use std::fmt::{Display, Formatter};
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::constants::KEYWORDS;
+use crate::core::io::code_line::CodeLine;
+use crate::core::lexer::static_type_context::StaticTypeContext;
+use crate::core::lexer::type_token::{InferTypeError, TypeToken};
 
 /// Token for a name. Basically a string that can be used as a variable name.
 /// Everything is allowed except for reserved keywords and special characters in the beginning
@@ -53,6 +56,20 @@ impl NameToken {
             name: s.to_string()
         })
     }
+
+    pub fn infer_type_with_context(&self, context: &StaticTypeContext, code_line: &CodeLine) -> Result<TypeToken, InferTypeError> {
+        if let Some(v) = context.iter().rfind(|v| {
+            v.name_token == *self
+        }) {
+            return if let Some(ty) = &v.ty {
+                Ok(ty.clone())
+            } else {
+                Err(InferTypeError::NoTypePresent(v.name_token.clone(), v.code_line.clone()))
+            }
+        }
+
+        Err(InferTypeError::UnresolvedReference(self.to_string(), code_line.clone()))
+    }
 }
 
 impl ToASM for NameToken {
@@ -69,11 +86,13 @@ impl ToASM for NameToken {
     }
 
     fn byte_size(&self, meta: &mut MetaInfo) -> usize {
-        if let Some((_, ty)) = meta.static_type_information.iter().rfind(|(name, _)| name.name == self.name) {
-            ty.byte_size()
-        } else {
-            0
+        if let Some(v) = meta.static_type_information.iter().rfind(|v| v.name_token == *self) {
+            if let Some(ty) = &v.ty {
+                return ty.byte_size();
+            }
         }
+
+        0
     }
 
     fn before_label(&self, _stack: &mut Stack, _meta: &mut MetaInfo) -> Option<Result<String, ASMGenerateError>> {

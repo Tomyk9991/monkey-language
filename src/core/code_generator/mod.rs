@@ -2,7 +2,7 @@ use std::fmt::{Display, Formatter};
 use crate::core::io::code_line::CodeLine;
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::target_os::TargetOS;
-use crate::core::lexer::tokenizer::StaticTypeContext;
+use crate::core::lexer::static_type_context::StaticTypeContext;
 use crate::core::lexer::tokens::assignable_token::AssignableToken;
 use crate::core::lexer::type_token::InferTypeError;
 
@@ -24,7 +24,7 @@ pub enum ASMGenerateError {
 
 impl From<InferTypeError> for ASMGenerateError {
     fn from(value: InferTypeError) -> Self {
-        return ASMGenerateError::TypeNotInferrable(value)
+        ASMGenerateError::TypeNotInferrable(value)
     }
 }
 
@@ -35,7 +35,7 @@ impl Display for ASMGenerateError {
             ASMGenerateError::UnresolvedReference { name, code_line } => write!(f, "Line:{:?}:\tCannot resolve variable: {}", code_line.actual_line_number, name),
             ASMGenerateError::AssignmentNotImplemented { assignable_token } => write!(f, "ASM implementation for this Assignment is missing: {}", assignable_token),
             ASMGenerateError::NotImplemented { token } => write!(f, "Cannot build ASM from this token: {}", token),
-            ASMGenerateError::TypeNotInferrable(infer) => write!(f, "{}", infer.to_string()),
+            ASMGenerateError::TypeNotInferrable(infer) => write!(f, "{}", infer),
         }
     }
 }

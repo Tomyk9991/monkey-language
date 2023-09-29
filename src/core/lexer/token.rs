@@ -3,7 +3,7 @@ use crate::core::lexer::tokens::import::ImportToken;
 use crate::core::code_generator::generator::{Stack};
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::io::code_line::CodeLine;
-use crate::core::lexer::tokenizer::{StaticTypeContext};
+use crate::core::lexer::static_type_context::StaticTypeContext;
 use crate::core::lexer::tokens::scope_ending::ScopeEnding;
 use crate::core::lexer::tokens::method_definition::MethodDefinition;
 use crate::core::lexer::tokens::assignable_tokens::method_call_token::MethodCallToken;
@@ -72,7 +72,7 @@ impl ToASM for Token {
         };
 
         for scope in scopes {
-            let scoped_checker = StaticTypeContext::type_context(scope);
+            let scoped_checker = StaticTypeContext::new(scope);
             meta.static_type_information.merge(scoped_checker);
 
             let amount_pop = meta.static_type_information.len() - variables_len;
@@ -106,7 +106,7 @@ impl ToASM for Token {
     }
 
     fn byte_size(&self, meta: &mut MetaInfo) -> usize {
-        return match self {
+        match self {
             Token::Variable(a) => a.byte_size(meta),
             Token::MethodCall(a) => a.byte_size(meta),
             Token::MethodDefinition(a) => a.byte_size(meta),

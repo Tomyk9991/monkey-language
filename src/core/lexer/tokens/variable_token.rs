@@ -12,7 +12,7 @@ use crate::core::code_generator::generator::{Stack, StackLocation};
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::errors::EmptyIteratorErr;
 use crate::core::lexer::levenshtein_distance::{MethodCallSummarizeTransform, PatternedLevenshteinDistance, PatternedLevenshteinString, QuoteSummarizeTransform};
-use crate::core::lexer::tokenizer::StaticTypeContext;
+use crate::core::lexer::static_type_context::{StaticTypeContext};
 use crate::core::lexer::tokens::assignable_token::{AssignableToken, AssignableTokenErr};
 use crate::core::lexer::tokens::name_token::{NameToken, NameTokenErr};
 use crate::core::lexer::TryParse;
@@ -64,7 +64,14 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> InferType for VariableToken<
             None => {
                 let ty = self.infer_with_context(type_context, &self.code_line)?;
                 self.ty = Some(ty.clone());
-                type_context.push((self.name_token.clone(), ty.clone()));
+                type_context.push(VariableToken {
+                    name_token: self.name_token.clone(),
+                    ty: Some(ty.clone()),
+                    define: self.define,
+                    assignable: self.assignable.clone(),
+                    mutability: self.mutability,
+                    code_line: self.code_line.clone()
+                });
 
                 Ok(())
             }
@@ -74,7 +81,15 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> InferType for VariableToken<
 
 impl<const ASSIGNMENT: char, const SEPARATOR: char> Display for VariableToken<ASSIGNMENT, SEPARATOR> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}{:<30}:{:?} {} {}", if self.define { "let " } else { "" }, self.name_token, self.ty, ASSIGNMENT, self.assignable)
+        write!(
+            f,
+            "{}{}{} {} {}",
+            if self.define { "let " } else { "" },    // definition
+            self.name_token,                          // name
+            self.ty.as_ref().map_or("", |_| ": {ty}"),// type
+            ASSIGNMENT,                               // assignment token
+            self.assignable                           // assignment
+        )
     }
 }
 
@@ -177,7 +192,7 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for VariableToken<ASSI
 
     fn byte_size(&self, _meta: &mut MetaInfo) -> usize {
         if let Some(ty) = &self.ty {
-            return ty.byte_size()
+            ty.byte_size()
         } else {
             0
         }
@@ -274,21 +289,23 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> VariableToken<ASSIGNMENT, SE
     }
 
     pub fn infer_with_context(&self, context: &StaticTypeContext, code_line: &CodeLine) -> Result<TypeToken, InferTypeError> {
-        // context
-
         match &self.assignable {
             AssignableToken::MethodCallToken(method_call) => {
-                if let Some((_, ty)) = context.iter().find(|(context_name, _)| {
-                    context_name == &method_call.name
+                if let Some(method_def) = context.methods.iter().find(|method_def| {
+                    method_def.name == method_call.name
                 }) {
-                    return Ok(ty.clone());
+                    return Ok(method_def.return_type.clone());
                 }
             }
             AssignableToken::NameToken(variable) => {
-                if let Some((_, ty)) = context.iter().rfind(|(context_name, _)| {
-                    context_name == variable
+                if let Some(v) = context.iter().rfind(|v| {
+                    v.name_token == *variable
                 }) {
-                    return Ok(ty.clone());
+                    return if let Some(ty) = &v.ty {
+                        Ok(ty.clone())
+                    } else {
+                        Err(InferTypeError::NoTypePresent(v.name_token.clone(), self.code_line.clone()))
+                    }
                 }
             }
             AssignableToken::ArithmeticEquation(expression) => {

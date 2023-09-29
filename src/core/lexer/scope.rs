@@ -5,8 +5,9 @@ use std::slice::Iter;
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::errors::EmptyIteratorErr;
 use crate::core::lexer::levenshtein_distance::PatternedLevenshteinDistance;
+use crate::core::lexer::static_type_context::StaticTypeContext;
 use crate::core::lexer::token::Token;
-use crate::core::lexer::tokenizer::{Lexer, StaticTypeContext};
+use crate::core::lexer::tokenizer::{Lexer};
 use crate::core::lexer::tokens::assignable_tokens::method_call_token::MethodCallToken;
 use crate::core::lexer::tokens::if_definition::IfDefinition;
 use crate::core::lexer::tokens::method_definition::MethodDefinition;
@@ -18,15 +19,14 @@ use crate::core::lexer::tokens::import::ImportToken;
 
 /// Tokens inside scope
 pub struct Scope {
-    pub tokens: Vec<Token>,
-    // pub extern_methods: Vec<MethodDefinition>
+    pub tokens: Vec<Token>
 }
 
 impl Scope {
     pub fn infer_type(stack: &mut Vec<Token>, type_context: &mut StaticTypeContext) -> Result<(), InferTypeError> {
         let variables_len = type_context.len();
 
-        let scoped_checker = StaticTypeContext::type_context(stack);
+        let scoped_checker = StaticTypeContext::new(stack);
         type_context.merge(scoped_checker);
 
         Lexer::infer_types(stack, type_context)?;

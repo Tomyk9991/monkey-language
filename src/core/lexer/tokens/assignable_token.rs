@@ -5,7 +5,7 @@ use std::str::FromStr;
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::io::code_line::CodeLine;
-use crate::core::lexer::tokenizer::StaticTypeContext;
+use crate::core::lexer::static_type_context::StaticTypeContext;
 use crate::core::lexer::tokens::assignable_tokens::boolean_token::BooleanToken;
 use crate::core::lexer::tokens::assignable_tokens::double_token::FloatToken;
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::equation_token_options::{ArithmeticEquationOptions, BooleanEquationOptions};
@@ -43,7 +43,7 @@ impl AssignableToken {
     }
 
     pub fn infer_type_with_context(&self, context: &StaticTypeContext, code_line: &CodeLine) -> Result<TypeToken, InferTypeError> {
-        return match self {
+        match self {
             AssignableToken::String(_) => Ok(TypeToken::String),
             AssignableToken::IntegerToken(_) => Ok(TypeToken::I32),
             AssignableToken::FloatToken(_) => Ok(TypeToken::F32),
@@ -51,26 +51,9 @@ impl AssignableToken {
             AssignableToken::Object(object) => Ok(TypeToken::Custom(NameToken { name: object.ty.to_string() })),
             AssignableToken::ArithmeticEquation(arithmetic_expression) => Ok(arithmetic_expression.traverse_type_resulted(context, code_line)?),
             AssignableToken::BooleanEquation(boolean_expression) => Ok(boolean_expression.traverse_type_resulted(context, code_line)?),
-            AssignableToken::MethodCallToken(method_call) => {
-                if let Some((_, ty)) = context.iter().find(|(context_name, _)| {
-                    context_name == &method_call.name
-                }) {
-                    method_call.type_check(context, code_line)?;
-                    return Ok(ty.clone());
-                } else {
-                    Err(InferTypeError::UnresolvedReference(self.to_string(), code_line.clone()))
-                }
-            },
-            AssignableToken::NameToken(var) => {
-                if let Some((_, ty)) = context.iter().rfind(|(context_name, _)| {
-                    context_name == var
-                }) {
-                    return Ok(ty.clone());
-                } else {
-                    Err(InferTypeError::UnresolvedReference(self.to_string(), code_line.clone()))
-                }
-            },
-        };
+            AssignableToken::MethodCallToken(method_call) => Ok(method_call.infer_type_with_context(context, code_line)?),
+            AssignableToken::NameToken(var) => Ok(var.infer_type_with_context(context, code_line)?),
+        }
     }
 }
 

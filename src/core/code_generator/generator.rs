@@ -3,8 +3,8 @@ use crate::core::code_generator::ASMGenerateError;
 use crate::core::code_generator::asm_builder::{ASMBuilder};
 use crate::core::code_generator::target_os::TargetOS;
 use crate::core::lexer::scope::Scope;
+use crate::core::lexer::static_type_context::StaticTypeContext;
 use crate::core::lexer::token::Token;
-use crate::core::lexer::tokenizer::StaticTypeContext;
 use crate::core::lexer::tokens::name_token::NameToken;
 
 pub struct StackLocation {
@@ -133,7 +133,7 @@ impl ASMGenerator {
             let mut meta = MetaInfo {
                 code_line: token.code_line(),
                 target_os: self.target_os.clone(),
-                static_type_information: StaticTypeContext::type_context(&self.top_level_scope.tokens),
+                static_type_information: StaticTypeContext::new(&self.top_level_scope.tokens),
             };
 
 

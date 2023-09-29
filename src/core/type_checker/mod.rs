@@ -1,4 +1,4 @@
-use crate::core::lexer::tokenizer::StaticTypeContext;
+use crate::core::lexer::static_type_context::StaticTypeContext;
 use crate::core::lexer::type_token::InferTypeError;
 
 pub mod static_type_checker;

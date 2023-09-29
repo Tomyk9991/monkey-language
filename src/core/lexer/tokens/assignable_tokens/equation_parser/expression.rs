@@ -5,7 +5,7 @@ use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::generator::Stack;
 use crate::core::io::code_line::CodeLine;
-use crate::core::lexer::tokenizer::StaticTypeContext;
+use crate::core::lexer::static_type_context::StaticTypeContext;
 use crate::core::lexer::tokens::assignable_token::AssignableToken;
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::operator::Operator;
 use crate::core::lexer::type_token::{InferTypeError, TypeToken};
@@ -102,18 +102,18 @@ impl ToASM for Expression {
                         target += &ASMBuilder::ident_line(&format!("mov {}, eax", stack.register_to_use));
                     }
                     (None, Some(_)) => {
-                        target += &ASMBuilder::push(&format!("{}", lhs.to_asm(stack, meta)?));
+                        target += &ASMBuilder::push(&lhs.to_asm(stack, meta)?.to_string());
                         target += &ASMBuilder::ident_line(&format!("{} eax, {}\n", self.operator.to_asm(stack, meta)?, rhs.to_asm(stack, meta)?));
                     }
                     (Some(_), None) => {
-                        target += &ASMBuilder::push(&format!("{}", rhs.to_asm(stack, meta)?));
+                        target += &ASMBuilder::push(&rhs.to_asm(stack, meta)?.to_string());
                         target += &ASMBuilder::ident_line(&format!("{} edx, {}", self.operator.to_asm(stack, meta)?, lhs.to_asm(stack, meta)?));
                     }
                     (None, None) => {
                         stack.register_to_use = String::from("edx");
-                        target += &ASMBuilder::push(&format!("{}", rhs.to_asm(stack, meta)?));
+                        target += &ASMBuilder::push(&rhs.to_asm(stack, meta)?.to_string());
                         stack.register_to_use = String::from("eax");
-                        target += &ASMBuilder::push(&format!("{}", lhs.to_asm(stack, meta)?));
+                        target += &ASMBuilder::push(&lhs.to_asm(stack, meta)?.to_string());
                         stack.register_to_use = String::from("");
 
                         target += &ASMBuilder::ident_line(&format!("{} eax, edx", self.operator.to_asm(stack, meta)?));
