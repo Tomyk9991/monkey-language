@@ -170,13 +170,13 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for VariableToken<ASSI
 
             match &self.assignable {
                 AssignableToken::ArithmeticEquation(eq) => {
-                    if let None = eq.value {
+                    if eq.value.is_none() {
                         target += &eq.to_asm(stack, meta)?.to_string();
                         wrote_expression_to_target = true;
                     }
                 }
                 AssignableToken::BooleanEquation(eq) => {
-                    if let None = eq.value {
+                    if eq.value.is_none() {
                         target += &eq.to_asm(stack, meta)?.to_string();
                         wrote_expression_to_target = true;
                     }
@@ -190,7 +190,6 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for VariableToken<ASSI
                 target += &ASMBuilder::ident_line(&format!("mov {destination}, {}", self.assignable.to_asm(stack, meta)?));
             }
 
-            println!("move target: {}", mov_target);
             target += &ASMBuilder::ident_line(&format!("mov {}, {}", mov_target, destination));
         }
 

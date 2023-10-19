@@ -69,20 +69,6 @@ impl std::error::Error for Error {}
 impl<T: EquationTokenOptions> EquationToken<T> {
 
     pub fn from_str(string: &str) -> Result<Expression, Error> {
-        // let operator_chars = vec![T::additive(), T::inverse_additive(), T::multiplicative(), T::inverse_multiplicative()]
-        //     .iter()
-        //     .filter_map(|&f| f)
-        //     .collect::<Vec<_>>();
-        //
-        // static ALWAYS_ALLOWED_CHARACTERS: [char; 1] = ['*'];
-
-        // let contains_always_allowed_character = string.chars().any(|char| ALWAYS_ALLOWED_CHARACTERS.contains(&char));
-        // let contains_corresponding_operator = string.chars().any(|char| operator_chars.contains(&char));
-        //
-        // if (!contains_always_allowed_character && !contains_corresponding_operator) || !contains_corresponding_operator  {
-        //     return Err(Error::CannotParse);
-        // }
-
         let mut s: EquationToken<T> = EquationToken::new(string);
         let f = s.parse()?.clone();
         Ok(f)
