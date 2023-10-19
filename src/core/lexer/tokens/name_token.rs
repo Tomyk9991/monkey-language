@@ -46,7 +46,7 @@ impl NameToken {
             return Err(NameTokenErr::KeywordReserved(s.to_string()));
         }
 
-        if !lazy_regex::regex_is_match!(r"^[\*&]*[a-zA-Z_$][a-zA-Z_$0-9]*$", s) {
+        if !lazy_regex::regex_is_match!(r"^[a-zA-Z_$][a-zA-Z_$0-9]*$", s) {
             return Err(NameTokenErr::UnmatchedRegex {
                 target_value: s.to_string(),
             });
