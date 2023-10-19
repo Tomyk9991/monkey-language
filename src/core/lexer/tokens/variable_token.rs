@@ -166,22 +166,31 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for VariableToken<ASSI
         if self.define && !self.assignable.is_stack_look_up(stack, meta) {
             target += &ASMBuilder::ident_line(&format!("mov {}, {}", mov_target, self.assignable.to_asm(stack, meta)?));
         } else {
+            let mut wrote_expression_to_target = false;
+
             match &self.assignable {
                 AssignableToken::ArithmeticEquation(eq) => {
-                    target += &eq.to_asm(stack, meta)?.to_string();
+                    if let None = eq.value {
+                        target += &eq.to_asm(stack, meta)?.to_string();
+                        wrote_expression_to_target = true;
+                    }
                 }
                 AssignableToken::BooleanEquation(eq) => {
-                    target += &eq.to_asm(stack, meta)?.to_string();
+                    if let None = eq.value {
+                        target += &eq.to_asm(stack, meta)?.to_string();
+                        wrote_expression_to_target = true;
+                    }
                 }
-                _ => {
-                    let destination = register_destination::from_byte_size(self.assignable.byte_size(meta));
-
-
-                    target += &ASMBuilder::ident_line(&format!("mov {destination}, {}", self.assignable.to_asm(stack, meta)?));
-                }
+                _ => { }
             }
 
             let destination = register_destination::from_byte_size(self.assignable.byte_size(meta));
+
+            if !wrote_expression_to_target {
+                target += &ASMBuilder::ident_line(&format!("mov {destination}, {}", self.assignable.to_asm(stack, meta)?));
+            }
+
+            println!("move target: {}", mov_target);
             target += &ASMBuilder::ident_line(&format!("mov {}, {}", mov_target, destination));
         }
 

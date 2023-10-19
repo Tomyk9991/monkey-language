@@ -56,9 +56,125 @@ fn string_assign() -> anyhow::Result<()> {
 }
 
 #[test]
-fn i32_assign() -> anyhow::Result<()> {
+fn expression_assign() -> anyhow::Result<()> {
+//     let code = r#"
+//     let a: i32 = 5 + 3;
+//     "#;
+//
+//     let asm_result = asm_from_assign_code(&code)?;
+//
+//
+//     let expected = r#"
+// ; let a: i32 = (5 Add 3)
+//     ; (5 Add 3)
+//     mov eax, 5
+//     add eax, 3
+//     mov eax, eax
+//     mov DWORD [rbp - 4], eax
+//     "#;
+//
+//     assert_eq!(expected.trim(), asm_result.trim());
+//
+//     let code = r#"
+//     let a: i32 = (5 + 2) + 8;
+//     "#;
+//
+//     let asm_result = asm_from_assign_code(&code)?;
+//
+//
+//     let expected = r#"
+// ; let a: i32 = ((5 Add 2) Add 8)
+//     ; ((5 Add 2) Add 8)
+//     ; (5 Add 2)
+//     mov eax, 5
+//     add eax, 2
+//     mov eax, eax
+//     add edx, 8
+//     mov DWORD [rbp - 4], eax
+//     "#;
+//
+//     assert_eq!(expected.trim(), asm_result.trim());
+//
+//     let code = r#"
+//     let a: i32 = 5 + (2 + 8);
+//     "#;
+//
+//     let asm_result = asm_from_assign_code(&code)?;
+//
+//
+//     let expected = r#"
+//     ; let a: i32 = (5 Add (2 Add 8))
+//     ; (5 Add (2 Add 8))
+//     ; (2 Add 8)
+//     mov eax, 2
+//     add eax, 8
+//     mov eax, eax
+//     add eax, 5
+//     mov DWORD [rbp - 4], eax
+//     "#;
+//
+//     assert_eq!(expected.trim(), asm_result.trim());
+//
+//     let code = r#"
+//     let a: i32 = (5 + 3) + (2 + 8);
+//     "#;
+//
+//     let asm_result = asm_from_assign_code(&code)?;
+//
+//
+//     let expected = r#"
+//     ; let a: i32 = ((5 Add 3) Add (2 Add 8))
+//     ; ((5 Add 3) Add (2 Add 8))
+//     ; (5 Add 3)
+//     mov eax, 5
+//     add eax, 3
+//     mov edx, eax
+//     ; (2 Add 8)
+//     mov eax, 2
+//     add eax, 8
+//     mov eax, eax
+//     add eax, edx
+//     mov DWORD [rbp - 4], eax
+//     "#;
+//
+//     assert_eq!(expected.trim(), asm_result.trim());
+//
+//     let code = r#"
+//     let a: i32 = 6;
+//     "#;
+//
+//     let asm_result = asm_from_assign_code(&code)?;
+//
+//
+//     let expected = r#"
+//     ; let a: i32 = 6
+//     mov DWORD [rbp - 4], 6
+//     "#;
+//
+//     assert_eq!(expected.trim(), asm_result.trim());
+
     let code = r#"
-    let a: i32 = 512;
+    let a: i32 = (6);
+    "#;
+
+    let asm_result = asm_from_assign_code(&code)?;
+
+
+    let expected = r#"
+    ; let a: i32 = 6
+    mov eax, 6
+    mov DWORD [rbp - 4], eax
+    "#;
+
+    assert_eq!(expected.trim(), asm_result.trim());
+    Ok(())
+}
+
+#[test]
+fn single_expression_test() -> anyhow::Result<()> {
+    let code = r#"
+    let a: i32 = 5;
+    let b: i32 = a;
     "#;
 
     let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
@@ -67,19 +183,60 @@ fn i32_assign() -> anyhow::Result<()> {
 
     static_type_check(&top_level_scope)?;
 
-    let mut asm_result = String::new();
+    let mut code_generator = ASMGenerator::from((top_level_scope, TargetOS::Windows));
+    let asm_result = code_generator.generate()?;
 
-    if let [token] = &top_level_scope.tokens[..] {
-        let mut stack = Stack::default();
-        let mut meta = MetaInfo {
-            code_line: Default::default(),
-            target_os: TargetOS::Windows,
-            static_type_information: Default::default(),
-        };
 
-        let asm = token.to_asm(&mut stack, &mut meta)?;
-        asm_result += &asm;
-    }
+    let expected = r#"
+; This assembly is targeted for the Windows Operating System
+segment .text
+global main
+
+
+main:
+    push rbp
+    mov rbp, rsp
+    ; Reserve stack space as MS convention. Shadow stacking
+    sub rsp, 40
+    ; let a: i32 = 5
+    mov DWORD [rbp - 4], 5
+    ; let b: i32 = a
+    mov eax, DWORD [rbp - 4]
+    mov DWORD [rbp - 8], eax
+    leave
+    ret
+    "#;
+
+
+    assert_eq!(expected.trim(), asm_result.trim());
+
+    let code = r#"
+    let a: i32 = 5;
+    let b: i32 = (a);
+    "#;
+
+    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
+    let mut lexer = Lexer::from(monkey_file);
+    let top_level_scope = lexer.tokenize()?;
+
+    static_type_check(&top_level_scope)?;
+
+    let mut code_generator = ASMGenerator::from((top_level_scope, TargetOS::Windows));
+
+    let asm_result = code_generator.generate()?;
+
+    assert_eq!(expected.trim(), asm_result.trim());
+
+    Ok(())
+}
+
+#[test]
+fn i32_assign() -> anyhow::Result<()> {
+    let code = r#"
+    let a: i32 = 512;
+    "#;
+
+    let asm_result = asm_from_assign_code(&code)?;
 
     let expected = r#"
 ; let a: i32 = 512
@@ -133,4 +290,39 @@ main:
     assert_eq!(expected, asm_result);
 
     Ok(())
+}
+
+fn asm_from_assign_code(code: &str) -> anyhow::Result<String> {
+    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
+    let mut lexer = Lexer::from(monkey_file);
+    let top_level_scope = lexer.tokenize()?;
+
+    static_type_check(&top_level_scope)?;
+
+    let mut asm_result = String::new();
+
+    if let [token] = &top_level_scope.tokens[..] {
+        let mut stack = Stack::default();
+        let mut meta = MetaInfo {
+            code_line: Default::default(),
+            target_os: TargetOS::Windows,
+            static_type_information: Default::default(),
+        };
+
+        if let Token::Variable(variable_token) = token {
+            let asm = token.to_asm(&mut stack, &mut meta)?;
+
+            if let AssignableToken::String(string) = &variable_token.assignable {
+                let s = string.before_label(&mut stack, &mut meta);
+                if let Some(s) = s {
+                    asm_result += &s?;
+                }
+            }
+
+            asm_result += &asm;
+        }
+    }
+
+
+    return Ok(asm_result);
 }

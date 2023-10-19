@@ -13,6 +13,7 @@ pub struct ArithmeticEquationOptions;
 #[derive(Clone)]
 pub struct BooleanEquationOptions;
 
+
 impl EquationTokenOptions for BooleanEquationOptions {
     fn additive() -> Option<char> { Some('|') }
 

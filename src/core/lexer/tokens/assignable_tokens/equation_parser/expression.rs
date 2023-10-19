@@ -11,12 +11,16 @@ use crate::core::lexer::tokens::assignable_tokens::equation_parser::operator::Op
 use crate::core::lexer::tokens::name_token::NameToken;
 use crate::core::lexer::type_token::{InferTypeError, TypeToken};
 
+pub enum _PointerArithmetic {
+    Asterics,
+}
 #[derive(Clone, PartialEq)]
 #[allow(unused)]
 pub struct Expression {
     pub lhs: Option<Box<Expression>>,
     pub rhs: Option<Box<Expression>>,
     pub operator: Operator,
+    // pub pointer_arithmetic: Vec<PointerArithmetic>,
     pub value: Option<Box<AssignableToken>>,
     pub positive: bool,
 }
@@ -97,20 +101,21 @@ impl ToASM for Expression {
         match (&self.rhs, &self.lhs) {
             (Some(lhs), Some(rhs)) => {
                 match (&lhs.value, &rhs.value) {
-                    (Some(_), Some(_)) => {
+                    (Some(_), Some(_)) => { // 2 + 3
                         target += &ASMBuilder::ident_line(&format!("mov eax, {}", rhs.to_asm(stack, meta)?));
                         target += &ASMBuilder::ident_line(&format!("{} eax, {}", self.operator.to_asm(stack, meta)?, lhs.to_asm(stack, meta)?));
                         target += &ASMBuilder::ident_line(&format!("mov {}, eax", stack.register_to_use));
                     }
-                    (None, Some(_)) => {
+                    (None, Some(_)) => { // (3 + 2) + 5
                         target += &ASMBuilder::push(&lhs.to_asm(stack, meta)?.to_string());
-                        target += &ASMBuilder::ident_line(&format!("{} eax, {}\n", self.operator.to_asm(stack, meta)?, rhs.to_asm(stack, meta)?));
+                        target += &ASMBuilder::ident_line(&format!("{} eax, {}", self.operator.to_asm(stack, meta)?, rhs.to_asm(stack, meta)?));
                     }
-                    (Some(_), None) => {
+                    (Some(_), None) => { // 5 + (3 + 2)
                         target += &ASMBuilder::push(&rhs.to_asm(stack, meta)?.to_string());
                         target += &ASMBuilder::ident_line(&format!("{} edx, {}", self.operator.to_asm(stack, meta)?, lhs.to_asm(stack, meta)?));
                     }
-                    (None, None) => {
+                    (None, None) => { // (5 + 3) + (9 + 8)
+                        println!("Running this");
                         stack.register_to_use = String::from("edx");
                         target += &ASMBuilder::push(&rhs.to_asm(stack, meta)?.to_string());
                         stack.register_to_use = String::from("eax");
@@ -132,7 +137,7 @@ impl ToASM for Expression {
     }
 
     fn byte_size(&self, meta: &mut MetaInfo) -> usize {
-        if let Some(ty) = self.traverse_type(&meta.code_line) {
+        if let Some(ty) = self.traverse_type(meta) {
             return ty.byte_size();
         }
 
@@ -156,8 +161,8 @@ impl Expression {
         }
     }
 
-    pub fn traverse_type(&self, code_line: &CodeLine) -> Option<TypeToken> {
-        self.traverse_type_resulted(&StaticTypeContext::default(), code_line).ok()
+    pub fn traverse_type(&self, meta: &MetaInfo) -> Option<TypeToken> {
+        self.traverse_type_resulted(&meta.static_type_information, &meta.code_line).ok()
     }
 
     pub fn traverse_type_resulted(&self, context: &StaticTypeContext, code_line: &CodeLine) -> Result<TypeToken, InferTypeError> {

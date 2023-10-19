@@ -42,6 +42,46 @@ impl AssignableToken {
         self.infer_type_with_context(&StaticTypeContext::default(), code_line).ok()
     }
 
+    pub fn from_str_ignore(line: &str, ignore_expression: bool) -> Result<Self, AssignableTokenErr> {
+        if let Ok(string_token) = StringToken::from_str(line) {
+            return Ok(AssignableToken::String(string_token));
+        } else if let Ok(integer_token) = IntegerToken::from_str(line) {
+            return Ok(AssignableToken::IntegerToken(integer_token));
+        } else if let Ok(double_token) = FloatToken::from_str(line) {
+            return Ok(AssignableToken::FloatToken(double_token));
+        } else if let Ok(boolean_token) = BooleanToken::from_str(line) {
+            return Ok(AssignableToken::BooleanToken(boolean_token));
+        }
+
+        match MethodCallToken::from_str(line) {
+            Ok(method_call_token) => return Ok(AssignableToken::MethodCallToken(method_call_token)),
+            Err(err) => {
+                // this counts as a not recoverable error and should return immediately
+                if let MethodCallTokenErr::AssignableTokenErr(_) = err {
+                    return Err(AssignableTokenErr::PatternNotMatched { target_value: line.to_string() });
+                }
+            }
+        }
+        if let Ok(variable_name) = NameToken::from_str(line, false) {
+            return Ok(AssignableToken::NameToken(variable_name));
+        }
+
+        if let Ok(object_token) = ObjectToken::from_str(line) {
+            return Ok(AssignableToken::Object(object_token));
+        }
+
+        if !ignore_expression {
+            if let Ok(arithmetic_equation_token) = EquationToken::<ArithmeticEquationOptions>::from_str(line) {
+                return Ok(AssignableToken::ArithmeticEquation(arithmetic_equation_token));
+            } else if let Ok(boolean_equation_token) = EquationToken::<BooleanEquationOptions>::from_str(line) {
+                return Ok(AssignableToken::BooleanEquation(boolean_equation_token));
+            }
+        }
+
+
+        Err(AssignableTokenErr::PatternNotMatched { target_value: line.to_string() })
+    }
+
     pub fn infer_type_with_context(&self, context: &StaticTypeContext, code_line: &CodeLine) -> Result<TypeToken, InferTypeError> {
         match self {
             AssignableToken::String(_) => Ok(TypeToken::Custom(NameToken { name: "*string".to_string() })),
@@ -95,7 +135,9 @@ impl ToASM for AssignableToken {
         match &self {
             AssignableToken::IntegerToken(token) => Ok(token.to_asm(stack, meta)?),
             AssignableToken::NameToken(variable) => Ok(variable.to_asm(stack, meta)?),
-            AssignableToken::ArithmeticEquation(expression) => Ok(expression.to_asm(stack, meta)?),
+            AssignableToken::ArithmeticEquation(expression) => {
+                Ok(expression.to_asm(stack, meta)?)
+            },
             AssignableToken::String(string) => Ok(string.to_asm(stack, meta)?),
             AssignableToken::MethodCallToken(method_call) => Ok(method_call.to_asm(stack, meta)?),
             token => Err(crate::core::code_generator::ASMGenerateError::AssignmentNotImplemented { assignable_token: (*token).clone() })
@@ -153,37 +195,6 @@ impl FromStr for AssignableToken {
     type Err = AssignableTokenErr;
 
     fn from_str(line: &str) -> Result<Self, Self::Err> {
-        if let Ok(string_token) = StringToken::from_str(line) {
-            return Ok(AssignableToken::String(string_token));
-        } else if let Ok(integer_token) = IntegerToken::from_str(line) {
-            return Ok(AssignableToken::IntegerToken(integer_token));
-        } else if let Ok(double_token) = FloatToken::from_str(line) {
-            return Ok(AssignableToken::FloatToken(double_token));
-        } else if let Ok(boolean_token) = BooleanToken::from_str(line) {
-            return Ok(AssignableToken::BooleanToken(boolean_token));
-        }
-
-        match MethodCallToken::from_str(line) {
-            Ok(method_call_token) => return Ok(AssignableToken::MethodCallToken(method_call_token)),
-            Err(err) => {
-                // this counts as a not recoverable error and should return immediately
-
-                if let MethodCallTokenErr::AssignableTokenErr(_) = err {
-                    return Err(AssignableTokenErr::PatternNotMatched { target_value: line.to_string() });
-                }
-            }
-        }
-
-        if let Ok(arithmetic_equation_token) = EquationToken::<ArithmeticEquationOptions>::from_str(line) {
-            return Ok(AssignableToken::ArithmeticEquation(arithmetic_equation_token));
-        } else if let Ok(boolean_equation_token) = EquationToken::<BooleanEquationOptions>::from_str(line) {
-            return Ok(AssignableToken::BooleanEquation(boolean_equation_token));
-        } else if let Ok(variable_name) = NameToken::from_str(line, false) {
-            return Ok(AssignableToken::NameToken(variable_name));
-        } else if let Ok(object_token) = ObjectToken::from_str(line) {
-            return Ok(AssignableToken::Object(object_token));
-        }
-
-        Err(AssignableTokenErr::PatternNotMatched { target_value: line.to_string() })
+        Self::from_str_ignore(line, false)
     }
 }

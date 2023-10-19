@@ -69,16 +69,19 @@ impl std::error::Error for Error {}
 impl<T: EquationTokenOptions> EquationToken<T> {
 
     pub fn from_str(string: &str) -> Result<Expression, Error> {
-        let operator_chars = vec![T::additive(), T::inverse_additive(), T::multiplicative(), T::inverse_multiplicative()]
-            .iter()
-            .filter_map(|&f| f)
-            .collect::<Vec<_>>();
+        // let operator_chars = vec![T::additive(), T::inverse_additive(), T::multiplicative(), T::inverse_multiplicative()]
+        //     .iter()
+        //     .filter_map(|&f| f)
+        //     .collect::<Vec<_>>();
+        //
+        // static ALWAYS_ALLOWED_CHARACTERS: [char; 1] = ['*'];
 
-        let contains_corresponding_operator = string.chars().any(|char| operator_chars.contains(&char));
-
-        if !contains_corresponding_operator {
-            return Err(Error::CannotParse);
-        }
+        // let contains_always_allowed_character = string.chars().any(|char| ALWAYS_ALLOWED_CHARACTERS.contains(&char));
+        // let contains_corresponding_operator = string.chars().any(|char| operator_chars.contains(&char));
+        //
+        // if (!contains_always_allowed_character && !contains_corresponding_operator) || !contains_corresponding_operator  {
+        //     return Err(Error::CannotParse);
+        // }
 
         let mut s: EquationToken<T> = EquationToken::new(string);
         let f = s.parse()?.clone();
@@ -86,7 +89,7 @@ impl<T: EquationTokenOptions> EquationToken<T> {
     }
 
     pub fn new(source_code: impl Into<String>) -> Self {
-        let s  =source_code.into();
+        let s = source_code.into();
         Self {
             source_code: s,
             syntax_tree: Box::default(),
@@ -231,7 +234,7 @@ impl<T: EquationTokenOptions> EquationToken<T> {
                 temp.normalize();
 
                 let sub_string = temp[0].line.to_string();
-                let assignable_token = AssignableToken::from_str(sub_string.as_str())?;
+                let assignable_token = AssignableToken::from_str_ignore(sub_string.as_str(), sub_string.len() == self.source_code.len())?;
 
                 let s = Expression::from(Some(Box::new(assignable_token)));
                 x = Box::new(s);
