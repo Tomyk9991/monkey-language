@@ -156,10 +156,7 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for VariableToken<ASSI
             stack.stack_position += byte_size;
 
             let offset = stack.stack_position;
-            format!("{}WORD [rbp - {}]", match byte_size {
-                4 => "D",
-                _ => "Q"
-            }, offset)
+            format!("{} [rbp - {}]", register_destination::word_from_byte_size(byte_size), offset)
         } else {
             self.name_token.to_asm(stack, meta)?
         };

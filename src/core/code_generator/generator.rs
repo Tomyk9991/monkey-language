@@ -26,6 +26,18 @@ pub struct Stack {
     pub register_to_use: String,
 }
 
+impl Default for Stack {
+    fn default() -> Self {
+        Stack {
+            stack_position: 0,
+            scopes: vec![],
+            variables: Default::default(),
+            label_count: 0,
+            register_to_use: String::from("eax"),
+        }
+    }
+}
+
 impl Stack {
     pub fn _push_stack(&mut self, register: &str, size: usize) -> String {
         self.stack_position += size;
@@ -160,13 +172,7 @@ impl From<(Scope, TargetOS)> for ASMGenerator {
     fn from(value: (Scope, TargetOS)) -> Self {
         ASMGenerator {
             top_level_scope: value.0,
-            stack: Stack {
-                stack_position: 0,
-                scopes: vec![],
-                variables: Default::default(),
-                label_count: 0,
-                register_to_use: String::from("eax"),
-            },
+            stack: Stack::default(),
             target_os: value.1,
         }
     }

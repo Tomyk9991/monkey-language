@@ -35,7 +35,7 @@ fn variable_test() -> anyhow::Result<()> {
             VariableToken {
                 name_token: NameToken { name: "fisch".to_string() },
                 mutability: false,
-                ty: Some(TypeToken::String),
+                ty: Some(TypeToken::Custom(NameToken { name: String::from("*string") })),
                 define: true,
                 assignable: AssignableToken::String(StringToken { value: "\"Fische sind wirklich wirklich toll\"".to_string() }),
                 code_line: CodeLine { line: "let fisch = \"Fische sind wirklich wirklich toll\" ;".to_string(), actual_line_number: 2..2, virtual_line_number: 1 },
@@ -45,7 +45,7 @@ fn variable_test() -> anyhow::Result<()> {
             VariableToken {
                 name_token: NameToken { name: "hallo".to_string() },
                 mutability: false,
-                ty: Some(TypeToken::String),
+                ty: Some(TypeToken::Custom(NameToken { name: String::from("*string") })),
                 define: true,
                 assignable: AssignableToken::String(StringToken { value: "\"Thomas\"".to_string() }),
                 code_line: CodeLine { line: "let hallo = \"Thomas\" ;".to_string(), actual_line_number: 3..3, virtual_line_number: 2 },
@@ -65,7 +65,7 @@ fn variable_test() -> anyhow::Result<()> {
             VariableToken {
                 name_token: NameToken { name: "mallo".to_string() },
                 mutability: false,
-                ty: Some(TypeToken::String),
+                ty: Some(TypeToken::Custom(NameToken { name: String::from("*string") })),
                 define: true,
                 assignable: AssignableToken::String(StringToken { value: "\"\"".to_string() }),
                 code_line: CodeLine { line: "let mallo = \"\" ;".to_string(), actual_line_number: 4..4, virtual_line_number: 4 },
@@ -82,7 +82,7 @@ fn variable_test() -> anyhow::Result<()> {
                         VariableToken {
                             name_token: NameToken { name: "guten".to_string() },
                             mutability: false,
-                            ty: Some(TypeToken::String),
+                            ty: Some(TypeToken::Custom(NameToken { name: String::from("*string") })),
                             define: false,
                             assignable: AssignableToken::String(StringToken { value: "\"Hallo\"".to_string() }),
                             code_line: CodeLine { line: "guten : \"Hallo\" ,".to_string(), actual_line_number: 0..0, virtual_line_number: 0 },

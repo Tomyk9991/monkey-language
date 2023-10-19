@@ -11,14 +11,15 @@ mod core;
 mod cli;
 mod utils;
 
+
 fn main() -> anyhow::Result<()> {
     let args = ProgramArgs::parse();
 
     let entry_point_file = args.input.clone();
-    let money_file: MonkeyFile = MonkeyFile::read(entry_point_file)?;
+    let monkey_file: MonkeyFile = MonkeyFile::read(entry_point_file)?;
 
 // 1) Build AST
-    let top_level_scope = Lexer::from(money_file).tokenize()?;
+    let top_level_scope = Lexer::from(monkey_file).tokenize()?;
     println!("{:?}", top_level_scope);
 
 // 2) Static Type Checking

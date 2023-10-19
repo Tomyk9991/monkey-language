@@ -3,6 +3,8 @@ use crate::core::code_generator::target_os::TargetOS;
 use crate::core::lexer::tokens::assignable_token::AssignableToken;
 use crate::core::lexer::type_token::{InferTypeError, TypeToken};
 
+/// An enum representing the destination register. If its a register it contains the register
+/// For floats its for example a "rcx" or "rdx" for windows calling convention
 #[derive(Clone)]
 pub enum CallingRegister {
     Register(&'static str),

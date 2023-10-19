@@ -246,13 +246,13 @@ fn function_in_function_test() -> anyhow::Result<()> {
                         Token::Variable(VariableToken { name_token: NameToken { name: "nested_if_stack_variable".to_string() }, mutability: false, ty: Some(TypeToken::I32), define: true, assignable: AssignableToken::IntegerToken(IntegerToken { value: 13 }), code_line: CodeLine { line: "let nested_if_stack_variable = 13 ;".to_string(), actual_line_number: 6..6, virtual_line_number: 4 } })
                     ],
                     else_stack: Some(vec![
-                        Token::Variable(VariableToken { name_token: NameToken { name: "nested_else_stack_variable".to_string() }, mutability: false, ty: Some(TypeToken::String), define: true, assignable: AssignableToken::String(StringToken { value: "\"nice\"".to_string() }), code_line: CodeLine { line: "let nested_else_stack_variable = \"nice\" ;".to_string(), actual_line_number: 7..7, virtual_line_number: 7 } })
+                        Token::Variable(VariableToken { name_token: NameToken { name: "nested_else_stack_variable".to_string() }, mutability: false, ty: Some(TypeToken::Custom(NameToken { name: String::from("*string") })), define: true, assignable: AssignableToken::String(StringToken { value: "\"nice\"".to_string() }), code_line: CodeLine { line: "let nested_else_stack_variable = \"nice\" ;".to_string(), actual_line_number: 7..7, virtual_line_number: 7 } })
                     ]),
                     code_line: CodeLine { line: "if  ( if_stack_variable )  {".to_string(), actual_line_number: 5..5, virtual_line_number: 3 },
                 })
             ],
             else_stack: Some(vec![
-                Token::Variable(VariableToken { name_token: NameToken { name: "else_stack_variable".to_string() }, mutability: false, ty: Some(TypeToken::String), define: true, assignable: AssignableToken::String(StringToken { value: "\"hallo\"".to_string() }), code_line: CodeLine { line: "let else_stack_variable = \"hallo\" ;".to_string(), actual_line_number: 9..9, virtual_line_number: 11 } })
+                Token::Variable(VariableToken { name_token: NameToken { name: "else_stack_variable".to_string() }, mutability: false, ty: Some(TypeToken::Custom(NameToken { name: String::from("*string") })), define: true, assignable: AssignableToken::String(StringToken { value: "\"hallo\"".to_string() }), code_line: CodeLine { line: "let else_stack_variable = \"hallo\" ;".to_string(), actual_line_number: 9..9, virtual_line_number: 11 } })
             ]),
             code_line: CodeLine { line: "if  ( hallo )  {".to_string(), actual_line_number: 2..2, virtual_line_number: 1 },
         })

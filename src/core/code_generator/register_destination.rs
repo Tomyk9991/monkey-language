@@ -14,3 +14,11 @@ pub fn from_byte_size(byte: usize) -> String {
         _ => "undefined byte"
     });
 }
+
+pub fn word_from_byte_size(byte: usize) -> String {
+    return format!("{}", match byte {
+        8 => "QWORD",
+        4 => "DWORD",
+        _ => ""
+    })
+}

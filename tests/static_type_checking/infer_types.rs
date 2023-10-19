@@ -72,7 +72,7 @@ fn infer_type() -> anyhow::Result<()> {
         Token::Variable(VariableToken {
             name_token: NameToken { name: "d".to_string() },
             mutability: false,
-            ty: Some(TypeToken::String),
+            ty: Some(TypeToken::Custom(NameToken { name: String::from("*string") })),
             define: true,
             assignable: AssignableToken::String(StringToken { value: "\"KEKW\"".to_string() }),
             code_line: CodeLine {
@@ -181,7 +181,7 @@ fn infer_type_in_scope() -> anyhow::Result<()> {
                 Token::Variable(VariableToken {
                     name_token: NameToken { name: "d".to_string() },
                     mutability: false,
-                    ty: Some(TypeToken::String),
+                    ty: Some(TypeToken::Custom(NameToken { name: String::from("*string") })),
                     define: true,
                     assignable: AssignableToken::String(StringToken { value: "\"KEKW\"".to_string() }),
                     code_line: CodeLine {
