@@ -6,7 +6,7 @@ use monkey_language::core::lexer::tokens::assignable_tokens::boolean_token::Bool
 use monkey_language::core::lexer::tokens::assignable_tokens::double_token::FloatToken;
 use monkey_language::core::lexer::tokens::assignable_tokens::equation_parser::equation_token_options::{ArithmeticEquationOptions, BooleanEquationOptions};
 use monkey_language::core::lexer::tokens::assignable_tokens::equation_parser::EquationToken;
-use monkey_language::core::lexer::tokens::assignable_tokens::equation_parser::expression::Expression;
+use monkey_language::core::lexer::tokens::assignable_tokens::equation_parser::expression::{Expression, PointerArithmetic};
 use monkey_language::core::lexer::tokens::assignable_tokens::equation_parser::operator::Operator;
 use monkey_language::core::lexer::tokens::assignable_tokens::integer_token::IntegerToken;
 use monkey_language::core::lexer::tokens::assignable_tokens::method_call_token::MethodCallToken;
@@ -139,7 +139,6 @@ fn assignable_imaginary_fn_calls() -> anyhow::Result<()> {
     let values: Vec<(bool, String)> = vec![
         (true, "imaginary_fn1 ( )".to_string()),
         (true, "imaginary_fn2 ( )".to_string()),
-        (false, "imaginary_fn2 ( a * * b )".to_string()),
         (true, "imaginary_fn3 ( param1, param2 )".to_string()),
         (true, "imaginary_fn4 ( param1, imaginary_fn2 ( param2 ) )".to_string()),
         (false, "imaginary_fn5 (, param2 )".to_string()),
@@ -205,49 +204,60 @@ fn assignable_booleans() -> anyhow::Result<()> {
 fn assignable_arithmetic_equation() -> anyhow::Result<()> {
     let values: Vec<(bool, String, Option<Expression>)> = vec![
         (true, "a*b".to_string(), Some(Expression {
-            lhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, value: Some(Box::new(AssignableToken::NameToken(NameToken { name: String::from("a") }))), positive: true })),
+            lhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, pointer_arithmetic: vec![], value: Some(Box::new(AssignableToken::NameToken(NameToken { name: String::from("a") }))), positive: true })),
             operator: Operator::Mul,
-            rhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, value: Some(Box::new(AssignableToken::NameToken(NameToken { name: String::from("b") }))), positive: true })),
+            rhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, pointer_arithmetic: vec![], value: Some(Box::new(AssignableToken::NameToken(NameToken { name: String::from("b") }))), positive: true })),
+            value: None,
+            positive: true,
+            pointer_arithmetic: vec![],
+        })),
+        (true, "a**b".to_string(), Some(Expression {
+            lhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, pointer_arithmetic: vec![], value: Some(Box::new(AssignableToken::NameToken(NameToken { name: String::from("a") }))), positive: true })),
+            operator: Operator::Mul,
+            rhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, pointer_arithmetic: vec![PointerArithmetic::Asterics], value: Some(Box::new(AssignableToken::NameToken(NameToken { name: String::from("b") }))), positive: true })),
+            pointer_arithmetic: vec![],
             value: None,
             positive: true,
         })),
-        (false, "a**b".to_string(), None),
-        (false, "sqrt(b**c)".to_string(), None),
         (false, "sqrt(b*c)/".to_string(), None),
-        (false, "a*sqrt(b**c)".to_string(), None),
         (true, "a+b*b".to_string(), Some(Expression {
-            lhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, value: Some(Box::new(AssignableToken::NameToken(NameToken { name: String::from("a") }))), positive: true })),
+            lhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, pointer_arithmetic: vec![], value: Some(Box::new(AssignableToken::NameToken(NameToken { name: String::from("a") }))), positive: true })),
             operator: Operator::Add,
             rhs: Some(Box::new(Expression {
-                lhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, value: Some(Box::new(AssignableToken::NameToken(NameToken { name: String::from("b") }))), positive: true })),
-                rhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, value: Some(Box::new(AssignableToken::NameToken(NameToken { name: String::from("b") }))), positive: true })),
+                lhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, pointer_arithmetic: vec![], value: Some(Box::new(AssignableToken::NameToken(NameToken { name: String::from("b") }))), positive: true })),
+                rhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, pointer_arithmetic: vec![], value: Some(Box::new(AssignableToken::NameToken(NameToken { name: String::from("b") }))), positive: true })),
                 operator: Operator::Mul,
+                pointer_arithmetic: vec![],
                 value: None,
                 positive: true,
             })),
             value: None,
             positive: true,
+            pointer_arithmetic: vec![],
         })),
         (true, "1--1".to_string(), Some(Expression {
-            lhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: 1 }))), positive: true })),
+            lhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, pointer_arithmetic: vec![], value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: 1 }))), positive: true })),
             operator: Operator::Sub,
-            rhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: 1 }))), positive: false })),
+            rhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, pointer_arithmetic: vec![], value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: 1 }))), positive: false })),
             value: None,
             positive: true,
+            pointer_arithmetic: vec![],
         })),
         (true, "1*-2".to_string(), Some(Expression {
-            lhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: 1 }))), positive: true })),
+            lhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, pointer_arithmetic: vec![], value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: 1 }))), positive: true })),
             operator: Operator::Mul,
-            rhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: 2 }))), positive: false })),
+            rhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, pointer_arithmetic: vec![], value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: 2 }))), positive: false })),
             value: None,
             positive: true,
+            pointer_arithmetic: vec![],
         })),
         (true, "-(-1+-3)".to_string(), Some(Expression {
-            lhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: 1 }))), positive: false })),
+            lhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, pointer_arithmetic: vec![], value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: 1 }))), positive: false })),
             operator: Operator::Add,
-            rhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: 3 }))), positive: false })),
+            rhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, pointer_arithmetic: vec![], value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: 3 }))), positive: false })),
             value: None,
             positive: false,
+            pointer_arithmetic: vec![],
         })),
         (true, "((4 - (2*3) * 5 + 1) * -(3*3+4*4)) / 2".to_string(), Some(Expression {
             lhs: Some(Box::new(Expression {
@@ -259,6 +269,7 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                             rhs: None,
                             positive: true,
                             value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: 4 }))),
+                            pointer_arithmetic: vec![],
                         })),
                         operator: Operator::Sub,
                         rhs: Some(Box::new(Expression {
@@ -269,6 +280,7 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                                     rhs: None,
                                     positive: true,
                                     value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: 2 }))),
+                                    pointer_arithmetic: vec![],
                                 })),
                                 operator: Operator::Mul,
                                 rhs: Some(Box::new(Expression {
@@ -277,9 +289,11 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                                     rhs: None,
                                     positive: true,
                                     value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: 3 }))),
+                                    pointer_arithmetic: vec![],
                                 })),
                                 value: None,
                                 positive: true,
+                                pointer_arithmetic: vec![],
                             })),
                             operator: Operator::Mul,
                             rhs: Some(Box::new(Expression {
@@ -288,12 +302,15 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                                 rhs: None,
                                 positive: true,
                                 value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: 5 }))),
+                                pointer_arithmetic: vec![],
                             })),
                             value: None,
                             positive: true,
+                            pointer_arithmetic: vec![],
                         })),
                         value: None,
                         positive: true,
+                        pointer_arithmetic: vec![],
                     })),
                     operator: Operator::Add,
                     rhs: Some(Box::new(Expression {
@@ -302,11 +319,14 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                         lhs: None,
                         rhs: None,
                         positive: true,
+                        pointer_arithmetic: vec![],
                     })),
                     value: None,
                     positive: true,
+                    pointer_arithmetic: vec![],
                 })),
                 operator: Operator::Mul,
+                pointer_arithmetic: vec![],
                 value: None,
                 rhs: Some(Box::new(Expression {
                     lhs: Some(Box::new(Expression {
@@ -316,8 +336,10 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                             rhs: None,
                             positive: true,
                             value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: 3 }))),
+                            pointer_arithmetic: vec![],
                         })),
                         operator: Operator::Mul,
+                        pointer_arithmetic: vec![],
                         value: None,
                         rhs: Some(Box::new(Expression {
                             operator: Operator::Noop,
@@ -325,10 +347,12 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                             rhs: None,
                             positive: true,
                             value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: 3 }))),
+                            pointer_arithmetic: vec![],
                         })),
                         positive: true,
                     })),
                     operator: Operator::Add,
+                    pointer_arithmetic: vec![],
                     value: None,
                     rhs: Some(Box::new(Expression {
                         lhs: Some(Box::new(Expression {
@@ -337,8 +361,10 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                             positive: true,
                             value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: 4 }))),
                             operator: Operator::Noop,
+                            pointer_arithmetic: vec![],
                         })),
                         operator: Operator::Mul,
+                        pointer_arithmetic: vec![],
                         value: None,
                         rhs: Some(Box::new(Expression {
                             lhs: None,
@@ -346,6 +372,7 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                             positive: true,
                             value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: 4 }))),
                             operator: Operator::Noop,
+                            pointer_arithmetic: vec![],
                         })),
                         positive: true,
                     })),
@@ -360,9 +387,11 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                 rhs: None,
                 positive: true,
                 value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: 2 }))),
+                pointer_arithmetic: vec![],
             })),
             value: None,
             positive: true,
+            pointer_arithmetic: vec![],
         })),
         (true, "((4 - (2*3) * 5 + 1) * -sqrt) / 2".to_string(), Some(Expression {
             lhs: Some(Box::new(Expression {
@@ -374,6 +403,7 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                             rhs: None,
                             positive: true,
                             value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: 4 }))),
+                            pointer_arithmetic: vec![],
                         })),
                         operator: Operator::Sub,
                         rhs: Some(Box::new(Expression {
@@ -384,6 +414,7 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                                     rhs: None,
                                     positive: true,
                                     value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: 2 }))),
+                                    pointer_arithmetic: vec![],
                                 })),
                                 operator: Operator::Mul,
                                 rhs: Some(Box::new(Expression {
@@ -392,9 +423,11 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                                     rhs: None,
                                     positive: true,
                                     value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: 3 }))),
+                                    pointer_arithmetic: vec![],
                                 })),
                                 value: None,
                                 positive: true,
+                                pointer_arithmetic: vec![],
                             })),
                             operator: Operator::Mul,
                             rhs: Some(Box::new(Expression {
@@ -403,12 +436,15 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                                 rhs: None,
                                 positive: true,
                                 value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: 5 }))),
+                                pointer_arithmetic: vec![],
                             })),
                             value: None,
                             positive: true,
+                            pointer_arithmetic: vec![],
                         })),
                         value: None,
                         positive: true,
+                        pointer_arithmetic: vec![],
                     })),
                     operator: Operator::Add,
                     rhs: Some(Box::new(Expression {
@@ -417,15 +453,19 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                         lhs: None,
                         rhs: None,
                         positive: true,
+                        pointer_arithmetic: vec![],
                     })),
                     value: None,
                     positive: true,
+                    pointer_arithmetic: vec![],
                 })),
                 operator: Operator::Mul,
+                pointer_arithmetic: vec![],
                 value: None,
                 rhs: Some(Box::new(Expression {
                     lhs: None,
                     operator: Operator::Noop,
+                    pointer_arithmetic: vec![],
                     value: Some(Box::new(AssignableToken::NameToken(NameToken { name: String::from("sqrt")}))),
                     rhs: None,
                     positive: false,
@@ -439,19 +479,18 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                 rhs: None,
                 positive: true,
                 value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: 2 }))),
+                pointer_arithmetic: vec![],
             })),
             value: None,
             positive: true,
+            pointer_arithmetic: vec![],
         })),
         (true, "((4 - 2 * 3 + 1) * -sqrt(3*3+4*4)) / 2".to_string(), Some(Expression {
-            lhs: Some(Box::new(
-                Expression {
-                    lhs: Some(Box::new(
-                        Expression {
+            lhs: Some(Box::new(Expression {
+                    lhs: Some(Box::new(Expression {
                             lhs: Some(Box::new(
                                 Expression {
-                                    lhs: Some(Box::new(
-                                        Expression {
+                                    lhs: Some(Box::new(Expression {
                                             lhs: None,
                                             operator: Operator::Noop,
                                             rhs: None,
@@ -463,11 +502,10 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                                                 ),
                                             )),
                                             positive: true,
-                                        },
-                                    )),
+                                            pointer_arithmetic: vec![],
+                                        },)),
                                     operator: Operator::Sub,
-                                    rhs: Some(Box::new(
-                                        Expression {
+                                    rhs: Some(Box::new(Expression {
                                             lhs: Some(Box::new(
                                                 Expression {
                                                     lhs: None,
@@ -481,6 +519,7 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                                                         ),
                                                     )),
                                                     positive: true,
+                                                    pointer_arithmetic: vec![],
                                                 },
                                             )),
                                             operator: Operator::Mul,
@@ -497,14 +536,16 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                                                         ),
                                                     )),
                                                     positive: true,
+                                                    pointer_arithmetic: vec![],
                                                 },
                                             )),
                                             value: None,
                                             positive: true,
-                                        },
-                                    )),
+                                        pointer_arithmetic: vec![],
+                                    },)),
                                     value: None,
                                     positive: true,
+                                    pointer_arithmetic: vec![],
                                 },
                             )),
                             operator: Operator::Add,
@@ -521,15 +562,15 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                                         )),
                                     ),
                                     positive: true,
+                                    pointer_arithmetic: vec![],
                                 },
                             )),
                             value: None,
                             positive: true,
-                        },
-                    )),
+                        pointer_arithmetic: vec![],
+                    },)),
                     operator: Operator::Mul,
-                    rhs: Some(Box::new(
-                        Expression {
+                    rhs: Some(Box::new(Expression {
                             lhs: None,
                             operator: Operator::Noop,
                             rhs: None,
@@ -542,8 +583,7 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                                         arguments: vec![
                                             AssignableToken::ArithmeticEquation(
                                                 Expression {
-                                                    lhs: Some(Box::new(
-                                                        Expression {
+                                                    lhs: Some(Box::new(Expression {
                                                             lhs: Some(Box::new(
                                                                 Expression {
                                                                     lhs: None,
@@ -557,6 +597,7 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                                                                         ),
                                                                     )),
                                                                     positive: true,
+                                                                    pointer_arithmetic: vec![],
                                                                 },
                                                             )),
                                                             operator: Operator::Mul,
@@ -573,12 +614,13 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                                                                         ),
                                                                     )),
                                                                     positive: true,
+                                                                    pointer_arithmetic: vec![],
                                                                 },
                                                             )),
                                                             value: None,
                                                             positive: true,
-                                                        },
-                                                    )),
+                                                        pointer_arithmetic: vec![],
+                                                    },)),
                                                     operator: Operator::Add,
                                                     rhs: Some(Box::new(
                                                         Expression {
@@ -595,6 +637,7 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                                                                         ),
                                                                     )),
                                                                     positive: true,
+                                                                    pointer_arithmetic: vec![],
                                                                 },
                                                             )),
                                                             operator: Operator::Mul,
@@ -611,14 +654,17 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                                                                         ),
                                                                     )),
                                                                     positive: true,
+                                                                    pointer_arithmetic: vec![],
                                                                 },
                                                             )),
                                                             value: None,
                                                             positive: true,
+                                                            pointer_arithmetic: vec![],
                                                         },
                                                     )),
                                                     value: None,
                                                     positive: true,
+                                                    pointer_arithmetic: vec![],
                                                 },
                                             ),
                                         ],
@@ -627,11 +673,12 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                                 ),
                             )),
                             positive: false,
-                        },
-                    )),
+                        pointer_arithmetic: vec![],
+                    },)),
                     value: None,
                     positive: true,
-                }),
+                pointer_arithmetic: vec![],
+            }),
             ),
             operator: Operator::Div,
             rhs: Some(Box::new(
@@ -647,10 +694,12 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                         )),
                     ),
                     positive: true,
+                    pointer_arithmetic: vec![],
                 },
             )),
             value: None,
             positive: true,
+            pointer_arithmetic: vec![],
         })),
         (true, "a(b(c(d(e*f)))))".to_string(), Some(Expression {
             lhs: None,
@@ -696,6 +745,7 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                                                                                     ),
                                                                                 )),
                                                                                 positive: true,
+                                                                                pointer_arithmetic: vec![],
                                                                             },
                                                                         )),
                                                                         operator: Operator::Mul,
@@ -712,10 +762,12 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                                                                                     ),
                                                                                 )),
                                                                                 positive: true,
+                                                                                pointer_arithmetic: vec![],
                                                                             },
                                                                         )),
                                                                         value: None,
                                                                         positive: true,
+                                                                        pointer_arithmetic: vec![],
                                                                     },
                                                                 ),
                                                             ],
@@ -736,6 +788,7 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                 ),
             )),
             positive: true,
+            pointer_arithmetic: vec![],
         }
         )),
         (false, "((4 - 2 * ) -sqrt(3*3+4*4)) / 2".to_string(), None),

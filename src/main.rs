@@ -1,8 +1,11 @@
+use std::os::windows;
 use clap::Parser;
 use colored::Colorize;
+use windows_core::{Error, HRESULT, HSTRING};
 use crate::cli::program_args::ProgramArgs;
 use crate::core::code_generator::generator::{ASMGenerator};
 use crate::core::code_generator::target_creator::TargetCreator;
+use crate::core::code_generator::target_os::TargetOS;
 use crate::core::io::monkey_file::MonkeyFile;
 use crate::core::lexer::tokenizer::Lexer;
 use crate::core::type_checker::static_type_checker::static_type_check;
@@ -46,8 +49,18 @@ fn main() -> anyhow::Result<()> {
 
 // 4) Running
         if !args.build {
-            let status = target_creator.execute(args.target_os);
+            let status = target_creator.execute(&args.target_os);
             println!("Process finished with exit code {}", status);
+
+            if args.target_os == TargetOS::Windows {
+                let status_code = HRESULT(status);
+
+                // https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-erref/596a1078-e883-4972-9bbc-49e60bebca55
+                if status_code.is_err() {
+                    let error = windows_core::Error::from(status_code);
+                    println!("Error: {error}");
+                }
+            }
         }
     }
     std::env::set_current_dir(s)?;

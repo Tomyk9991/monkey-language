@@ -149,7 +149,7 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for VariableToken<ASSI
     fn to_asm(&self, stack: &mut Stack, meta: &mut MetaInfo) -> Result<String, ASMGenerateError> {
         let mut target = String::new();
 
-        let mov_target = if self.define {
+        let destination = if self.define {
             let byte_size = self.assignable.byte_size(meta);
 
             stack.variables.push(StackLocation { position: stack.stack_position, name: self.name_token.clone(), size: byte_size });
@@ -164,7 +164,7 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for VariableToken<ASSI
         target += &ASMBuilder::ident(&ASMBuilder::comment_line(&format!("{}", self)));
 
         if self.define && !self.assignable.is_stack_look_up(stack, meta) {
-            target += &ASMBuilder::ident_line(&format!("mov {}, {}", mov_target, self.assignable.to_asm(stack, meta)?));
+            target += &ASMBuilder::ident_line(&format!("mov {}, {}", destination, self.assignable.to_asm(stack, meta)?));
         } else {
             let mut wrote_expression_to_target = false;
 
@@ -184,13 +184,17 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for VariableToken<ASSI
                 _ => { }
             }
 
-            let destination = register_destination::from_byte_size(self.assignable.byte_size(meta));
+            let register_destination = register_destination::from_byte_size(self.assignable.byte_size(meta));
 
             if !wrote_expression_to_target {
-                target += &ASMBuilder::ident_line(&format!("mov {destination}, {}", self.assignable.to_asm(stack, meta)?));
+                if self.assignable.pointer_arithmetic().len() > 0 {
+                    target += &ASMBuilder::push(&self.assignable.to_asm(stack, meta)?);
+                } else {
+                    target += &ASMBuilder::ident_line(&format!("mov {register_destination}, {}", self.assignable.to_asm(stack, meta)?));
+                };
             }
 
-            target += &ASMBuilder::ident_line(&format!("mov {}, {}", mov_target, destination));
+            target += &ASMBuilder::ident_line(&format!("mov {}, {}", destination, register_destination));
         }
 
 

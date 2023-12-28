@@ -187,7 +187,7 @@ impl MethodCallToken {
 }
 
 impl ToASM for MethodCallToken {
-    fn to_asm(&self, stack: &mut Stack, meta: &mut MetaInfo) -> Result<String, crate::core::code_generator::ASMGenerateError> {
+    fn to_asm(&self, stack: &mut Stack, meta: &mut MetaInfo) -> Result<String, ASMGenerateError> {
         let calling_convention = conventions::calling_convention(meta, &self.arguments)?;
 
         let mut result = String::new();
@@ -197,6 +197,7 @@ impl ToASM for MethodCallToken {
             let parsed_argument = match argument {
                 AssignableToken::ArithmeticEquation(_) | AssignableToken::BooleanEquation(_) => {
                     result += &ASMBuilder::push(&argument.to_asm(stack, meta)?);
+                    result += &ASMBuilder::ident_line(&"mov rax, QWORD [rax]".to_string());
                     String::from("rax")
                 }
                 _ => {
@@ -207,19 +208,23 @@ impl ToASM for MethodCallToken {
             match meta.target_os {
                 TargetOS::Windows => {
                     match convention {
-                        CallingRegister::Register(register) =>
-                            result += &ASMBuilder::ident(&format!("mov {}, {}", register, parsed_argument.replace("DWORD", "QWORD"))),
+                        CallingRegister::Register(register) => {
+                            result += &ASMBuilder::ident(&format!("mov {}, {}", register, parsed_argument.replace("DWORD", "QWORD")));
+                        }
                         CallingRegister::Stack =>
                             result += &ASMBuilder::ident(&format!("push {}", parsed_argument.replace("DWORD", "QWORD")))
                     }
                     result += &ASMBuilder::push(" ");
                     result += &ASMBuilder::comment_line(&format!("Parameter ({})", argument));
                 }
+
+
                 TargetOS::WindowsSubsystemLinux | TargetOS::Linux => {
                     unimplemented!("Not implemented for linux yet");
                 }
             }
         }
+        println!("----");
         result += &ASMBuilder::ident(&ASMBuilder::comment_line(&self.to_string()));
         result += &ASMBuilder::ident_line(&format!("call {}", self.name));
 

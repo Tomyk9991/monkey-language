@@ -27,7 +27,7 @@ impl TargetCreator {
         target_os.compile(self)
     }
     
-    pub fn execute(&self, target_os: TargetOS) -> i32 {
+    pub fn execute(&self, target_os: &TargetOS) -> i32 {
         target_os.execute(self)
     }
 }

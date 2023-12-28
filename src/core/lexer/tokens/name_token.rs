@@ -1,5 +1,6 @@
 use std::error::Error;
 use std::fmt::{Display, Formatter};
+use crate::core::code_generator::register_destination::word_from_byte_size;
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::constants::KEYWORDS;
@@ -77,14 +78,13 @@ impl ToASM for NameToken {
         return if let Some(stack_location) = stack.variables.iter().rfind(|&variable| variable.name.name == self.name.as_str()) {
             if let Some(found_variable) = meta.static_type_information.context.iter().rfind(|v| v.name_token == *self) {
                 if let Some(ty) = &found_variable.ty {
-                    if ty.byte_size() == 8 {
-                        return Ok(format!("QWORD [rbp - {}]", stack_location.position + stack_location.size))
-                    }
+                    let operand_hint = word_from_byte_size(ty.byte_size());
+                    return Ok(format!("{operand_hint} [rbp - {}]", stack_location.position + stack_location.size));
                 }
             }
             Ok(format!("DWORD [rbp - {}]", stack_location.position + stack_location.size))
         } else {
-            Err(crate::core::code_generator::ASMGenerateError::UnresolvedReference { name: self.name.to_string(), code_line: meta.code_line.clone() })
+            Err(ASMGenerateError::UnresolvedReference { name: self.name.to_string(), code_line: meta.code_line.clone() })
         }
     }
 

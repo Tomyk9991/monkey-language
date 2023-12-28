@@ -4,7 +4,7 @@ use std::str::FromStr;
 use crate::core::io::code_line::{CodeLine, Normalizable};
 use crate::core::lexer::tokens::assignable_token::{AssignableToken, AssignableTokenErr};
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::equation_token_options::EquationTokenOptions;
-use crate::core::lexer::tokens::assignable_tokens::equation_parser::expression::Expression;
+use crate::core::lexer::tokens::assignable_tokens::equation_parser::expression::{Expression, PointerArithmetic};
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::operator::Operator;
 use crate::core::lexer::tokens::name_token::NameTokenErr;
 
@@ -161,6 +161,20 @@ impl<T: EquationTokenOptions> EquationToken<T> {
         } else if self.eat(T::inverse_additive()) {
             x = self.parse_factor()?;
             x.as_mut().flip_value();
+            return Ok(x);
+        }
+
+        if self.eat(Some('*')) {
+            x = self.parse_factor()?;
+            x.pointer_arithmetic.push(PointerArithmetic::Asterics);
+
+            return Ok(x);
+        }
+
+        if self.eat(Some('&')) {
+            x = self.parse_factor()?;
+            x.pointer_arithmetic.push(PointerArithmetic::Ampersand);
+
             return Ok(x);
         }
 

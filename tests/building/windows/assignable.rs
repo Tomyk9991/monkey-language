@@ -57,101 +57,102 @@ fn string_assign() -> anyhow::Result<()> {
 
 #[test]
 fn expression_assign() -> anyhow::Result<()> {
-//     let code = r#"
-//     let a: i32 = 5 + 3;
-//     "#;
-//
-//     let asm_result = asm_from_assign_code(&code)?;
-//
-//
-//     let expected = r#"
-// ; let a: i32 = (5 Add 3)
-//     ; (5 Add 3)
-//     mov eax, 5
-//     add eax, 3
-//     mov eax, eax
-//     mov DWORD [rbp - 4], eax
-//     "#;
-//
-//     assert_eq!(expected.trim(), asm_result.trim());
-//
-//     let code = r#"
-//     let a: i32 = (5 + 2) + 8;
-//     "#;
-//
-//     let asm_result = asm_from_assign_code(&code)?;
-//
-//
-//     let expected = r#"
-// ; let a: i32 = ((5 Add 2) Add 8)
-//     ; ((5 Add 2) Add 8)
-//     ; (5 Add 2)
-//     mov eax, 5
-//     add eax, 2
-//     mov eax, eax
-//     add edx, 8
-//     mov DWORD [rbp - 4], eax
-//     "#;
-//
-//     assert_eq!(expected.trim(), asm_result.trim());
-//
-//     let code = r#"
-//     let a: i32 = 5 + (2 + 8);
-//     "#;
-//
-//     let asm_result = asm_from_assign_code(&code)?;
-//
-//
-//     let expected = r#"
-//     ; let a: i32 = (5 Add (2 Add 8))
-//     ; (5 Add (2 Add 8))
-//     ; (2 Add 8)
-//     mov eax, 2
-//     add eax, 8
-//     mov eax, eax
-//     add eax, 5
-//     mov DWORD [rbp - 4], eax
-//     "#;
-//
-//     assert_eq!(expected.trim(), asm_result.trim());
-//
-//     let code = r#"
-//     let a: i32 = (5 + 3) + (2 + 8);
-//     "#;
-//
-//     let asm_result = asm_from_assign_code(&code)?;
-//
-//
-//     let expected = r#"
-//     ; let a: i32 = ((5 Add 3) Add (2 Add 8))
-//     ; ((5 Add 3) Add (2 Add 8))
-//     ; (5 Add 3)
-//     mov eax, 5
-//     add eax, 3
-//     mov edx, eax
-//     ; (2 Add 8)
-//     mov eax, 2
-//     add eax, 8
-//     mov eax, eax
-//     add eax, edx
-//     mov DWORD [rbp - 4], eax
-//     "#;
-//
-//     assert_eq!(expected.trim(), asm_result.trim());
-//
-//     let code = r#"
-//     let a: i32 = 6;
-//     "#;
-//
-//     let asm_result = asm_from_assign_code(&code)?;
-//
-//
-//     let expected = r#"
-//     ; let a: i32 = 6
-//     mov DWORD [rbp - 4], 6
-//     "#;
-//
-//     assert_eq!(expected.trim(), asm_result.trim());
+    let code = r#"
+    let a: i32 = 5 + 3;
+    "#;
+
+    let asm_result = asm_from_assign_code(&code)?;
+
+
+    let expected = r#"
+; let a: i32 = (5 Add 3)
+    ; (5 Add 3)
+    mov eax, 5
+    add eax, 3
+    mov eax, eax
+    mov DWORD [rbp - 4], eax
+    "#;
+
+    assert_eq!(expected.trim(), asm_result.trim());
+
+    let code = r#"
+    let a: i32 = (5 + 2) + 8;
+    "#;
+
+    let asm_result = asm_from_assign_code(&code)?;
+
+
+    let expected = r#"
+; let a: i32 = ((5 Add 2) Add 8)
+    ; ((5 Add 2) Add 8)
+    ; (5 Add 2)
+    mov eax, 5
+    add eax, 2
+    mov eax, eax
+    add edx, 8
+    mov DWORD [rbp - 4], eax
+    "#;
+
+    assert_eq!(expected.trim(), asm_result.trim());
+
+    let code = r#"
+    let a: i32 = 5 + (2 + 8);
+    "#;
+
+    let asm_result = asm_from_assign_code(&code)?;
+
+
+    let expected = r#"
+    ; let a: i32 = (5 Add (2 Add 8))
+    ; (5 Add (2 Add 8))
+    ; (2 Add 8)
+    mov eax, 2
+    add eax, 8
+    mov eax, eax
+    add eax, 5
+    mov DWORD [rbp - 4], eax
+    "#;
+
+    assert_eq!(expected.trim(), asm_result.trim());
+
+    let code = r#"
+    let a: i32 = (5 + 3) + (2 + 8);
+    "#;
+
+    let asm_result = asm_from_assign_code(&code)?;
+
+
+    let expected = r#"
+    ; let a: i32 = ((5 Add 3) Add (2 Add 8))
+    ; ((5 Add 3) Add (2 Add 8))
+    ; (5 Add 3)
+    mov eax, 5
+    add eax, 3
+    mov edx, eax
+    ; (2 Add 8)
+    mov eax, 2
+    add eax, 8
+    mov eax, eax
+    add eax, edx
+    mov DWORD [rbp - 4], eax
+    "#;
+
+    println!("{}", asm_result);
+    assert_eq!(expected.trim(), asm_result.trim());
+
+    let code = r#"
+    let a: i32 = 6;
+    "#;
+
+    let asm_result = asm_from_assign_code(&code)?;
+
+
+    let expected = r#"
+    ; let a: i32 = 6
+    mov DWORD [rbp - 4], 6
+    "#;
+
+    assert_eq!(expected.trim(), asm_result.trim());
 
     let code = r#"
     let a: i32 = (6);
@@ -167,6 +168,29 @@ fn expression_assign() -> anyhow::Result<()> {
     "#;
 
     assert_eq!(expected.trim(), asm_result.trim());
+    Ok(())
+}
+
+#[test]
+fn pointer_assign_test() -> anyhow::Result<()> {
+//     let code = r#"
+//     let a: i32 = 5;
+//     let b: *i32 = &b;
+//     "#;
+//
+//     let asm_result = asm_from_assign_code(&code)?;
+//
+//
+//     let expected = r#"
+// ; let a: i32 = (5 Add 3)
+//     ; (5 Add 3)
+//     mov eax, 5
+//     add eax, 3
+//     mov eax, eax
+//     mov DWORD [rbp - 4], eax
+//     "#;
+//
+//     assert_eq!(expected.trim(), asm_result.trim());
     Ok(())
 }
 
@@ -206,7 +230,6 @@ main:
     leave
     ret
     "#;
-
 
     assert_eq!(expected.trim(), asm_result.trim());
 

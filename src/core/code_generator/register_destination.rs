@@ -19,6 +19,8 @@ pub fn word_from_byte_size(byte: usize) -> String {
     match byte {
         8 => "QWORD",
         4 => "DWORD",
+        2 => "WORD",
+        1 => "BYTE",
         _ => ""
     }.to_string()
 }
