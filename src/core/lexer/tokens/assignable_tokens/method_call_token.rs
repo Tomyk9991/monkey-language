@@ -224,7 +224,6 @@ impl ToASM for MethodCallToken {
                 }
             }
         }
-        println!("----");
         result += &ASMBuilder::ident(&ASMBuilder::comment_line(&self.to_string()));
         result += &ASMBuilder::ident_line(&format!("call {}", self.name));
 

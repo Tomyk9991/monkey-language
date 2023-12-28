@@ -113,7 +113,6 @@ impl ToASM for Expression {
             let mut pointed = false;
             let mut inner_source = value.to_asm(stack, meta)?;
             let mut target = String::new();
-            let register_destination = from_byte_size(value.byte_size(meta));
 
             for arithmetic in pointer_iter.iter().rev() {
                 pointed = true;
@@ -133,14 +132,8 @@ impl ToASM for Expression {
                 inner_source = "QWORD [rax]".to_string();
             }
 
-            // if pointer_iter.len() == 1 {
-            //     target += &ASMBuilder::ident_line(
-            //         &format!("mov rax, {inner_source}")
-            //     );
-            // }
-
             if !pointed {
-                target += &ASMBuilder::ident_line(&format!("mov {register_destination}, {}", value.to_asm(stack, meta)?));
+                target += &ASMBuilder::push(&format!("{}", value.to_asm(stack, meta)?));
             }
 
             return Ok(target)

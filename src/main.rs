@@ -1,7 +1,6 @@
-use std::os::windows;
 use clap::Parser;
 use colored::Colorize;
-use windows_core::{Error, HRESULT, HSTRING};
+use windows_core::{HRESULT};
 use crate::cli::program_args::ProgramArgs;
 use crate::core::code_generator::generator::{ASMGenerator};
 use crate::core::code_generator::target_creator::TargetCreator;

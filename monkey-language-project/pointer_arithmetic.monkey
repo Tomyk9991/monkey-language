@@ -13,4 +13,4 @@ let g: i32 = **c;
 let format: *string = "Das ist ein Test %d";
 printf(format, *b);
 
-ExitProcess(0);
+ExitProcess(*b);
