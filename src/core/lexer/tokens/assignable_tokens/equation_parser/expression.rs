@@ -3,7 +3,7 @@ use std::fmt::{Debug, Display, Formatter};
 
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
-use crate::core::code_generator::generator::{RegisterTransformation, Stack};
+use crate::core::code_generator::generator::{LastUnchecked, RegisterTransformation, Stack};
 use crate::core::code_generator::register_destination::from_byte_size;
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::static_type_context::StaticTypeContext;
@@ -17,8 +17,9 @@ pub enum PointerArithmetic {
     /// *
     Asterics,
     /// &
-    Ampersand
+    Ampersand,
 }
+
 #[derive(Clone, PartialEq)]
 #[allow(unused)]
 pub struct Expression {
@@ -75,7 +76,7 @@ impl Debug for Expression {
 
 impl Display for Expression {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let sign =  if self.positive { "".to_string() } else { "-".to_string() };
+        let sign = if self.positive { "".to_string() } else { "-".to_string() };
         let pointer_prefix = self.pointer_arithmetic.iter().rev().map(|a| match a {
             PointerArithmetic::Asterics => '*',
             PointerArithmetic::Ampersand => '&'
@@ -124,10 +125,10 @@ impl ToASM for Expression {
 
 
             for arithmetic in pointer_iter.iter().rev() {
-                let register_to_use = if !stack.register_to_use.is_64_bit_register() {
-                    stack.register_to_use.to_64_bit_register()
+                let register_to_use = if !stack.register_to_use.last_unchecked().is_64_bit_register() {
+                    stack.register_to_use.last_unchecked().to_64_bit_register()
                 } else {
-                    stack.register_to_use.to_string()
+                    stack.register_to_use.last_unchecked().to_string()
                 };
 
                 pointed = true;
@@ -148,10 +149,10 @@ impl ToASM for Expression {
             }
 
             if !pointed {
-                target += &ASMBuilder::push(&format!("{}", value.to_asm(stack, meta)?));
+                target += &ASMBuilder::push(&value.to_asm(stack, meta)?.to_string());
             }
 
-            return Ok(target)
+            return Ok(target);
         }
 
         let mut target = String::new();
@@ -159,6 +160,26 @@ impl ToASM for Expression {
 
         match (&self.lhs, &self.rhs) {
             (Some(lhs), Some(rhs)) => {
+                if let (Some(inner_lhs_l), Some(inner_lhs_r), Some(inner_rhs_l), Some(inner_rhs_r)) = (&lhs.lhs, &lhs.rhs, &rhs.lhs, &rhs.rhs) {
+                    if let (Some(_), Some(_), Some(_), Some(_)) = (
+                        &inner_lhs_l.value,
+                        &inner_lhs_r.value,
+                        &inner_rhs_l.value,
+                        &inner_rhs_r.value) {
+                        // two expressions containing two values
+                        stack.register_to_use.push("edi".to_string());
+                        target += &ASMBuilder::push(&lhs.to_asm(stack, meta)?.to_string());
+                        stack.register_to_use.pop();
+
+                        stack.register_to_use.push("eax".to_string());
+                        target += &ASMBuilder::push(&rhs.to_asm(stack, meta)?.to_string());
+                        stack.register_to_use.pop();
+
+                        target += &ASMBuilder::ident_line(&format!("{} eax, edi", self.operator.to_asm(stack, meta)?));
+
+                        return Ok(target);
+                    }
+                }
                 match (&lhs.value, &rhs.value) {
                     (Some(_), Some(_)) => { // 2 + 3
                         let register_to_use_rhs = from_byte_size(rhs.byte_size(meta));
@@ -169,7 +190,7 @@ impl ToASM for Expression {
 
                         let source = if lhs.is_pointer() {
                             target += &ASMBuilder::push(&lhs.to_asm(stack, meta)?);
-                            "DWORD [rax]".to_string()
+                            format!("DWORD [{}]", stack.register_to_use.last_unchecked().to_64_bit_register()).to_string()
                         } else {
                             lhs.to_asm(stack, meta)?
                         };
@@ -177,11 +198,9 @@ impl ToASM for Expression {
                         target += &ASMBuilder::ident_line(&format!("mov {}, {}", target_register, source));
 
                         let source = if rhs.is_pointer() {
-                            let prev_register = stack.register_to_use.clone();
-
-                            stack.register_to_use = "rdx".to_string();
+                            stack.register_to_use.push("rdx".to_string());
                             target += &ASMBuilder::push(&rhs.to_asm(stack, meta)?);
-                            stack.register_to_use = prev_register;
+                            stack.register_to_use.pop();
 
                             "DWORD [rdx]".to_string()
                         } else {
@@ -189,13 +208,14 @@ impl ToASM for Expression {
                         };
 
                         target += &ASMBuilder::ident_line(&format!("{} {}, {}", self.operator.to_asm(stack, meta)?, target_register, source));
-                        target += &ASMBuilder::ident_line(&format!("mov {}, {}", stack.register_to_use, target_register));
+                        target += &ASMBuilder::ident_line(&format!("mov {}, {}", stack.register_to_use.last_unchecked(), target_register));
                     }
                     (None, Some(_)) => { // (3 + 2) + 5
-                        stack.register_to_use = "eax".to_string();
+                        stack.register_to_use.push("eax".to_string());
                         target += &ASMBuilder::push(&lhs.to_asm(stack, meta)?.to_string());
+                        stack.register_to_use.pop();
 
-                        stack.register_to_use = "edx".to_string();
+                        stack.register_to_use.push("edx".to_string());
 
                         let source = if rhs.is_pointer() {
                             target += &ASMBuilder::push(&rhs.to_asm(stack, meta)?);
@@ -204,14 +224,16 @@ impl ToASM for Expression {
                             rhs.to_asm(stack, meta)?
                         };
 
-                        target += &ASMBuilder::ident_line(&format!("mov {}, {}", stack.register_to_use, source));
+                        target += &ASMBuilder::ident_line(&format!("mov {}, {}", stack.register_to_use.last_unchecked(), source));
+                        stack.register_to_use.pop();
                         target += &ASMBuilder::ident_line(&format!("{} eax, edx", self.operator.to_asm(stack, meta)?));
                     }
                     (Some(_), None) => { // 5 + (3 + 2)
-                        stack.register_to_use = "edx".to_string();
+                        stack.register_to_use.push("edx".to_string());
                         target += &ASMBuilder::push(&rhs.to_asm(stack, meta)?.to_string());
+                        stack.register_to_use.pop();
 
-                        stack.register_to_use = "eax".to_string();
+                        stack.register_to_use.push("eax".to_string());
 
                         let source = if lhs.is_pointer() {
                             target += &ASMBuilder::push(&lhs.to_asm(stack, meta)?);
@@ -220,17 +242,41 @@ impl ToASM for Expression {
                             lhs.to_asm(stack, meta)?
                         };
 
-                        target += &ASMBuilder::ident_line(&format!("mov {}, {}", stack.register_to_use, source));
+                        target += &ASMBuilder::ident_line(&format!("mov {}, {}", stack.register_to_use.last_unchecked(), source));
+                        stack.register_to_use.pop();
+
                         target += &ASMBuilder::ident_line(&format!("{} eax, edx", self.operator.to_asm(stack, meta)?));
                     }
                     (None, None) => { // (5 + 3) + (9 + 8)
-                        stack.register_to_use = "edi".to_string();
+                        stack.register_to_use.push("edi".to_string());
                         target += &ASMBuilder::push(&lhs.to_asm(stack, meta)?.to_string());
+                        stack.register_to_use.pop();
 
-                        stack.register_to_use = "eax".to_string();
+                        let register_to_push = if let Some(last_instruction) = extract_last_instruction(&target) {
+                            let mut r = String::from("rdi");
+                            if let Some(space_index) = last_instruction.chars().position(|a| a == ' ') {
+                                if let Some(comma_index) = last_instruction.chars().position(|a| a == ',') {
+                                    r = last_instruction[space_index + 1..comma_index].to_string()
+                                }
+                            }
+
+                            r
+                        } else {
+                            "rdi".to_string()
+                        }.to_64_bit_register();
+
+                        target += &ASMBuilder::ident_line(&format!("push {register_to_push}"));
+                        target += &ASMBuilder::ident_line(&format!("xor {register_to_push}, {register_to_push}"));
+
+                        stack.register_to_use.push("eax".to_string());
                         target += &ASMBuilder::push(&rhs.to_asm(stack, meta)?.to_string());
+                        stack.register_to_use.pop();
 
-                        stack.register_to_use = String::from("");
+                        target += &ASMBuilder::ident_line("push rax");
+                        target += &ASMBuilder::ident_line("xor rax, rax");
+
+                        target += &ASMBuilder::ident_line("pop rdi");
+                        target += &ASMBuilder::ident_line("pop rax");
 
                         target += &ASMBuilder::ident_line(&format!("{} eax, edi", self.operator.to_asm(stack, meta)?));
                     }
@@ -259,6 +305,19 @@ impl ToASM for Expression {
     }
 }
 
+fn extract_last_instruction(current_asm: &str) -> Option<String> {
+    let last_instruction = current_asm.lines()
+        .map(|a| a.trim())
+        .filter(|a| !a.starts_with(';'))
+        .last();
+
+    if let Some(last_instruction) = last_instruction {
+        return Some(last_instruction.to_string());
+    }
+
+    None
+}
+
 #[allow(unused)]
 impl Expression {
     pub fn new(lhs: Option<Box<Expression>>, operator: Operator, rhs: Option<Box<Expression>>, value: Option<Box<AssignableToken>>) -> Self {
@@ -273,7 +332,7 @@ impl Expression {
     }
 
     pub fn is_pointer(&self) -> bool {
-        return self.pointer_arithmetic.len() > 0
+        !self.pointer_arithmetic.is_empty()
     }
 
     pub fn traverse_type(&self, meta: &MetaInfo) -> Option<TypeToken> {
@@ -293,7 +352,7 @@ impl Expression {
                         } else {
                             "".to_string()
                         }
-                    },
+                    }
                     _ => "".to_string()
                 };
 
@@ -304,15 +363,15 @@ impl Expression {
                             if let Some(new_ty) = value_type.pop_pointer() {
                                 value_type = new_ty;
                             } else {
-                                return Err(InferTypeError::IllegalDereference(*value.clone() ,code_line.clone()));
+                                return Err(InferTypeError::IllegalDereference(*value.clone(), code_line.clone()));
                             }
-                        },
+                        }
                         PointerArithmetic::Ampersand => {
                             value_type = value_type.push_pointer();
-                        },
+                        }
                         PointerArithmetic::Asterics => {
                             // just using & in front of non pointer types is illegal. Dereferencing non pointers doesnt make any sense
-                            return Err(InferTypeError::IllegalDereference(*value.clone() ,code_line.clone()));
+                            return Err(InferTypeError::IllegalDereference(*value.clone(), code_line.clone()));
                         }
                     }
                 }
@@ -324,7 +383,7 @@ impl Expression {
                 }
             } else {
                 value_type
-            }
+            };
         }
 
         if let Some(lhs) = &self.lhs {

@@ -595,7 +595,7 @@ main:
     ; (*b Add *b)
     ; *b
     mov rdi, QWORD [rbp - 12]
-    mov eax, DWORD [rax]
+    mov eax, DWORD [rdi]
     ; *b
     mov rdx, QWORD [rbp - 12]
     add eax, DWORD [rdx]
@@ -610,6 +610,139 @@ main:
     mov eax, eax
     add eax, edi
     mov DWORD [rbp - 16], eax
+    leave
+    ret
+    "#;
+
+    assert_eq!(expected.trim(), asm_result.trim());
+    Ok(())
+}
+
+#[test]
+fn pointer_deref_operation_complex_expression_expression() -> anyhow::Result<()> {
+    let code = r#"
+let a: i32 = 5;
+let b: *i32 = &a;
+
+let c: i32 = 13;
+let d: *i32 = &c;
+
+let addition = (((*d + *b) + (*b + *d)) + (*b + *b)) + ((*b + (*b + *b)) + (*b + (*d + *b)));
+    "#;
+
+    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
+    let mut lexer = Lexer::from(monkey_file);
+    let top_level_scope = lexer.tokenize()?;
+
+    static_type_check(&top_level_scope)?;
+
+    let mut code_generator = ASMGenerator::from((top_level_scope, TargetOS::Windows));
+    let asm_result = code_generator.generate()?;
+
+
+    println!("{}", asm_result);
+
+    let expected = r#"
+; This assembly is targeted for the Windows Operating System
+segment .text
+global main
+
+
+main:
+    push rbp
+    mov rbp, rsp
+    ; Reserve stack space as MS convention. Shadow stacking
+    sub rsp, 60
+    ; let a: i32 = 5
+    mov DWORD [rbp - 4], 5
+    ; let b: *i32 = &a
+    ; &a
+    lea rax, [rbp - 4]
+    mov QWORD [rbp - 12], rax
+    ; let c: i32 = 13
+    mov DWORD [rbp - 16], 13
+    ; let d: *i32 = &c
+    ; &c
+    lea rax, [rbp - 16]
+    mov QWORD [rbp - 24], rax
+    ; let addition: i32 = ((((*d Add *b) Add (*b Add *d)) Add (*b Add *b)) Add ((*b Add (*b Add *b)) Add (*b Add (*d Add *b))))
+    ; ((((*d Add *b) Add (*b Add *d)) Add (*b Add *b)) Add ((*b Add (*b Add *b)) Add (*b Add (*d Add *b))))
+    ; (((*d Add *b) Add (*b Add *d)) Add (*b Add *b))
+    ; ((*d Add *b) Add (*b Add *d))
+    ; (*d Add *b)
+    ; *d
+    mov rdi, QWORD [rbp - 24]
+    mov eax, DWORD [rdi]
+    ; *b
+    mov rdx, QWORD [rbp - 12]
+    add eax, DWORD [rdx]
+    mov edi, eax
+    ; (*b Add *d)
+    ; *b
+    mov rax, QWORD [rbp - 12]
+    mov eax, DWORD [rax]
+    ; *d
+    mov rdx, QWORD [rbp - 24]
+    add eax, DWORD [rdx]
+    mov eax, eax
+    add eax, edi
+    push rax
+    xor rax, rax
+    ; (*b Add *b)
+    ; *b
+    mov rax, QWORD [rbp - 12]
+    mov eax, DWORD [rax]
+    ; *b
+    mov rdx, QWORD [rbp - 12]
+    add eax, DWORD [rdx]
+    mov eax, eax
+    push rax
+    xor rax, rax
+    pop rdi
+    pop rax
+    add eax, edi
+    push rax
+    xor rax, rax
+    ; ((*b Add (*b Add *b)) Add (*b Add (*d Add *b)))
+    ; (*b Add (*b Add *b))
+    ; (*b Add *b)
+    ; *b
+    mov rdx, QWORD [rbp - 12]
+    mov eax, DWORD [rdx]
+    ; *b
+    mov rdx, QWORD [rbp - 12]
+    add eax, DWORD [rdx]
+    mov edx, eax
+    ; *b
+    mov rax, QWORD [rbp - 12]
+    mov eax, DWORD [rax]
+    add eax, edx
+    push rax
+    xor rax, rax
+    ; (*b Add (*d Add *b))
+    ; (*d Add *b)
+    ; *d
+    mov rdx, QWORD [rbp - 24]
+    mov eax, DWORD [rdx]
+    ; *b
+    mov rdx, QWORD [rbp - 12]
+    add eax, DWORD [rdx]
+    mov edx, eax
+    ; *b
+    mov rax, QWORD [rbp - 12]
+    mov eax, DWORD [rax]
+    add eax, edx
+    push rax
+    xor rax, rax
+    pop rdi
+    pop rax
+    add eax, edi
+    push rax
+    xor rax, rax
+    pop rdi
+    pop rax
+    add eax, edi
+    mov DWORD [rbp - 28], eax
     leave
     ret
     "#;

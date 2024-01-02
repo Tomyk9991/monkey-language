@@ -23,7 +23,21 @@ pub struct Stack {
     pub variables: Vec<StackLocation>,
     /// to create labels and avoid collisions in naming, a label count is used
     label_count: usize,
-    pub register_to_use: String,
+    pub register_to_use: Vec<String>,
+}
+
+pub trait LastUnchecked<T> {
+    fn last_unchecked(&self) -> T;
+}
+
+impl LastUnchecked<String> for Vec<String> {
+    fn last_unchecked(&self) -> String {
+        if let Some(last) = self.last() {
+            last.to_string()
+        } else {
+            String::from("")
+        }
+    }
 }
 
 pub trait RegisterTransformation {
@@ -48,7 +62,7 @@ impl Default for Stack {
             scopes: vec![],
             variables: Default::default(),
             label_count: 0,
-            register_to_use: String::from("eax"),
+            register_to_use: vec!["eax".to_string()],
         }
     }
 }

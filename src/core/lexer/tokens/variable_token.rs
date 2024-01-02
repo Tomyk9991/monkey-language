@@ -187,7 +187,7 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for VariableToken<ASSI
             let register_destination = register_destination::from_byte_size(self.assignable.byte_size(meta));
 
             if !wrote_expression_to_target {
-                if self.assignable.pointer_arithmetic().len() > 0 {
+                if !self.assignable.pointer_arithmetic().is_empty() {
                     target += &ASMBuilder::push(&self.assignable.to_asm(stack, meta)?);
                 } else {
                     target += &ASMBuilder::ident_line(&format!("mov {register_destination}, {}", self.assignable.to_asm(stack, meta)?));

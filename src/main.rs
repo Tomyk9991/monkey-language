@@ -57,6 +57,12 @@ fn main() -> anyhow::Result<()> {
                 // https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-erref/596a1078-e883-4972-9bbc-49e60bebca55
                 if status_code.is_err() {
                     let error = windows_core::Error::from(status_code);
+                    let message = error.message();
+                    if message.is_empty() {
+                        if let Some(hard_coded_message) = more_windows_errors(status) {
+                            println!("{}", hard_coded_message);
+                        }
+                    }
                     println!("Error: {error}");
                 }
             }
@@ -65,4 +71,12 @@ fn main() -> anyhow::Result<()> {
     std::env::set_current_dir(s)?;
 
     Ok(())
+}
+
+/// looks up more numbers, maybe there is a hardcoded message
+fn more_windows_errors(status: i32) -> Option<String> {
+    match status {
+        -1073741819 => Some("Pointing to invalid memory".to_string()),
+        _ => None
+    }
 }

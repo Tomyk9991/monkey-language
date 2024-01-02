@@ -115,7 +115,7 @@ impl TypeToken {
             return name.name.starts_with('*');
         }
 
-        return false;
+        false
     }
 
     /// adds * from type

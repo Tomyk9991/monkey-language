@@ -197,7 +197,7 @@ impl ToASM for MethodCallToken {
             let parsed_argument = match argument {
                 AssignableToken::ArithmeticEquation(_) | AssignableToken::BooleanEquation(_) => {
                     result += &ASMBuilder::push(&argument.to_asm(stack, meta)?);
-                    result += &ASMBuilder::ident_line(&"mov rax, QWORD [rax]".to_string());
+                    result += &ASMBuilder::ident_line("mov rax, QWORD [rax]");
                     String::from("rax")
                 }
                 _ => {
