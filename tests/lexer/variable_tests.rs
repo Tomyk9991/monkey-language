@@ -3,6 +3,8 @@ use monkey_language::core::io::monkey_file::MonkeyFile;
 use monkey_language::core::lexer::token::Token;
 use monkey_language::core::lexer::tokenizer::Lexer;
 use monkey_language::core::lexer::tokens::assignable_token::AssignableToken;
+use monkey_language::core::lexer::tokens::assignable_tokens::equation_parser::expression::{Expression, PointerArithmetic};
+use monkey_language::core::lexer::tokens::assignable_tokens::equation_parser::operator::Operator;
 use monkey_language::core::lexer::tokens::assignable_tokens::integer_token::IntegerToken;
 use monkey_language::core::lexer::tokens::assignable_tokens::method_call_token::MethodCallToken;
 use monkey_language::core::lexer::tokens::assignable_tokens::object_token::ObjectToken;
@@ -24,6 +26,9 @@ fn variable_test() -> anyhow::Result<()> {
         rofl: name(),
         mofl: name(nestedMethod("Hallo", moin("Ciao", 5)))
     };
+    let value = 9;
+    let ref_value = &value;
+    let pointer_arithmetic = *ref_value + 1;
     "#;
 
     let monkey_file: MonkeyFile = MonkeyFile::read_from_str(variables);
@@ -139,7 +144,62 @@ fn variable_test() -> anyhow::Result<()> {
                     ty: TypeToken::Custom(NameToken { name: "Data".to_string() }),
                 }),
                 code_line: CodeLine { line: "let michi = Data {  guten :  \"Hallo\" ,  ciau :  5 ,  rofl :  name (  )  ,  mofl :  name ( nestedMethod ( \"Hallo\" ,  moin ( \"Ciao\" ,  5 )  )  )  }  ;".to_string(), actual_line_number: 5..11, virtual_line_number: 5 },
-            }),
+            }
+        ),
+        Token::Variable(
+            VariableToken {
+                name_token: NameToken { name: "value".to_string() },
+                mutability: false,
+                ty: Some(TypeToken::I32),
+                define: true,
+                assignable: AssignableToken::IntegerToken(IntegerToken { value: 9 }),
+                code_line: CodeLine { line: "let value = 9 ;".to_string(), actual_line_number: 12..12, virtual_line_number: 6 },
+            }
+        ),
+        Token::Variable(
+            VariableToken {
+                name_token: NameToken { name: "ref_value".to_string() },
+                mutability: false,
+                ty: Some(TypeToken::Custom(NameToken { name: "*i32".to_string() })),
+                define: true,
+                assignable: AssignableToken::ArithmeticEquation(Expression {
+                    lhs: None,
+                    rhs: None,
+                    operator: Operator::Noop,
+                    pointer_arithmetic: vec![PointerArithmetic::Ampersand],
+                    value: Some(Box::new(AssignableToken::NameToken(NameToken { name: "value".to_string() }))),
+                    positive: true,
+                }),
+                code_line: CodeLine { line: "let ref_value = &value ;".to_string(), actual_line_number: 13..13, virtual_line_number: 7 },
+            }
+        ),
+        // let pointer_arithmetic = *ref_value + 1;
+        Token::Variable(
+            VariableToken {
+                name_token: NameToken { name: "pointer_arithmetic".to_string() },
+                mutability: false,
+                ty: Some(TypeToken::I32),
+                define: true,
+                assignable: AssignableToken::ArithmeticEquation(Expression {
+                    lhs: Some(Box::new(Expression {
+                        value: Some(Box::new(AssignableToken::NameToken(NameToken { name: "ref_value".to_string() }))),
+                        pointer_arithmetic: vec![PointerArithmetic::Asterics],
+                        positive: true,
+                        ..Default::default()
+                    })),
+                    rhs: Some(Box::new(Expression {
+                        value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: 1 }))),
+                        positive: true,
+                        ..Default::default()
+                    })),
+                    operator: Operator::Add,
+                    pointer_arithmetic: vec![],
+                    value: None,
+                    positive: true,
+                }),
+                code_line: CodeLine { line: "let pointer_arithmetic = *ref_value + 1 ;".to_string(), actual_line_number: 14..14, virtual_line_number: 8 },
+            }
+        ),
     ];
 
     assert_eq!(expected, top_level_scope.tokens);

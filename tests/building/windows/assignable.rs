@@ -36,8 +36,6 @@ fn expression_assign() -> anyhow::Result<()> {
     let asm_result = asm_from_assign_code(&code)?;
 
 
-    println!("{}", asm_result);
-
     let expected = r#"
 ; let a: i32 = (5 Add 3)
     ; (5 Add 3)
@@ -57,13 +55,14 @@ fn expression_assign() -> anyhow::Result<()> {
 
 
     let expected = r#"
-; let a: i32 = ((5 Add 2) Add 8)
+    ; let a: i32 = ((5 Add 2) Add 8)
     ; ((5 Add 2) Add 8)
     ; (5 Add 2)
     mov eax, 5
     add eax, 2
     mov eax, eax
-    add edx, 8
+    mov edx, 8
+    add eax, edx
     mov DWORD [rbp - 4], eax
     "#;
 
@@ -75,15 +74,15 @@ fn expression_assign() -> anyhow::Result<()> {
 
     let asm_result = asm_from_assign_code(&code)?;
 
-
     let expected = r#"
     ; let a: i32 = (5 Add (2 Add 8))
     ; (5 Add (2 Add 8))
     ; (2 Add 8)
     mov eax, 2
     add eax, 8
-    mov eax, eax
-    add eax, 5
+    mov edx, eax
+    mov eax, 5
+    add eax, edx
     mov DWORD [rbp - 4], eax
     "#;
 
@@ -102,16 +101,17 @@ fn expression_assign() -> anyhow::Result<()> {
     ; (5 Add 3)
     mov eax, 5
     add eax, 3
-    mov edx, eax
+    mov edi, eax
     ; (2 Add 8)
     mov eax, 2
     add eax, 8
     mov eax, eax
-    add eax, edx
+    add eax, edi
     mov DWORD [rbp - 4], eax
     "#;
 
     println!("{}", asm_result);
+
     assert_eq!(expected.trim(), asm_result.trim());
 
     let code = r#"
@@ -177,6 +177,7 @@ main:
     ; let a: i32 = 5
     mov DWORD [rbp - 4], 5
     ; let b: *i32 = &a
+    ; &a
     lea rax, [rbp - 4]
     mov QWORD [rbp - 12], rax
     leave
@@ -218,6 +219,8 @@ ExitProcess(*b);
     let mut code_generator = ASMGenerator::from((top_level_scope, TargetOS::Windows));
     let asm_result = code_generator.generate()?;
 
+    println!("{}", asm_result);
+
     let expected = r#"
 ; This assembly is targeted for the Windows Operating System
 segment .text
@@ -236,37 +239,377 @@ main:
     ; let a: i32 = 5
     mov DWORD [rbp - 4], 5
     ; let b: *i32 = &a
+    ; &a
     lea rax, [rbp - 4]
     mov QWORD [rbp - 12], rax
     ; let c: **i32 = &b
+    ; &b
     lea rax, [rbp - 12]
     mov QWORD [rbp - 20], rax
     ; let d: *i32 = *c
+    ; *c
     mov rax, QWORD [rbp - 20]
     mov QWORD [rbp - 28], rax
     ; let ref: **i32 = c
     mov rax, QWORD [rbp - 20]
     mov QWORD [rbp - 36], rax
     ; let f: i32 = *d
+    ; *d
     mov rax, QWORD [rbp - 28]
     mov DWORD [rbp - 40], eax
     ; let g: i32 = **c
+    ; **c
     mov rax, QWORD [rbp - 20]
     mov rax, QWORD [rax]
     mov DWORD [rbp - 44], eax
     ; let format: *string = "Das ist ein Test %d"
     mov QWORD [rbp - 52], .label0
     mov rcx, QWORD [rbp - 52] ; Parameter (format)
+    ; *b
     mov rax, QWORD [rbp - 12]
     mov rax, QWORD [rax]
     mov rdx, rax ; Parameter (*b)
     ; printf(format, *b)
     call printf
+    ; *b
     mov rax, QWORD [rbp - 12]
     mov rax, QWORD [rax]
     mov rcx, rax ; Parameter (*b)
     ; ExitProcess(*b)
     call ExitProcess
+    leave
+    ret
+    "#;
+
+    assert_eq!(expected.trim(), asm_result.trim());
+    Ok(())
+}
+
+#[test]
+fn pointer_deref_operation_lhs() -> anyhow::Result<()> {
+    let code = r#"
+let a: i32 = 5;
+let b: *i32 = &a;
+let addition = *b + 1;
+    "#;
+
+    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
+    let mut lexer = Lexer::from(monkey_file);
+    let top_level_scope = lexer.tokenize()?;
+
+    static_type_check(&top_level_scope)?;
+
+    let mut code_generator = ASMGenerator::from((top_level_scope, TargetOS::Windows));
+    let asm_result = code_generator.generate()?;
+
+    let expected = r#"
+; This assembly is targeted for the Windows Operating System
+segment .text
+global main
+
+
+main:
+    push rbp
+    mov rbp, rsp
+    ; Reserve stack space as MS convention. Shadow stacking
+    sub rsp, 48
+    ; let a: i32 = 5
+    mov DWORD [rbp - 4], 5
+    ; let b: *i32 = &a
+    ; &a
+    lea rax, [rbp - 4]
+    mov QWORD [rbp - 12], rax
+    ; let addition: i32 = (*b Add 1)
+    ; (*b Add 1)
+    ; *b
+    mov rax, QWORD [rbp - 12]
+    mov eax, DWORD [rax]
+    add eax, 1
+    mov eax, eax
+    mov DWORD [rbp - 16], eax
+    leave
+    ret
+    "#;
+
+    assert_eq!(expected.trim(), asm_result.trim());
+    Ok(())
+}
+
+#[test]
+fn pointer_deref_operation_rhs() -> anyhow::Result<()> {
+    let code = r#"
+let a: i32 = 5;
+let b: *i32 = &a;
+let addition = 1 + *b;
+    "#;
+
+    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
+    let mut lexer = Lexer::from(monkey_file);
+    let top_level_scope = lexer.tokenize()?;
+
+    static_type_check(&top_level_scope)?;
+
+    let mut code_generator = ASMGenerator::from((top_level_scope, TargetOS::Windows));
+    let asm_result = code_generator.generate()?;
+
+    println!("{}", asm_result);
+
+
+    let expected = r#"
+; This assembly is targeted for the Windows Operating System
+segment .text
+global main
+
+
+main:
+    push rbp
+    mov rbp, rsp
+    ; Reserve stack space as MS convention. Shadow stacking
+    sub rsp, 48
+    ; let a: i32 = 5
+    mov DWORD [rbp - 4], 5
+    ; let b: *i32 = &a
+    ; &a
+    lea rax, [rbp - 4]
+    mov QWORD [rbp - 12], rax
+    ; let addition: i32 = (1 Add *b)
+    ; (1 Add *b)
+    mov eax, 1
+    ; *b
+    mov rdx, QWORD [rbp - 12]
+    add eax, DWORD [rdx]
+    mov eax, eax
+    mov DWORD [rbp - 16], eax
+    leave
+    ret
+    "#;
+
+    assert_eq!(expected.trim(), asm_result.trim());
+    Ok(())
+}
+
+
+#[test]
+fn pointer_deref_operation_lhs_rhs() -> anyhow::Result<()> {
+    let code = r#"
+let a: i32 = 5;
+let b: *i32 = &a;
+let addition = *b + *b;
+    "#;
+
+    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
+    let mut lexer = Lexer::from(monkey_file);
+    let top_level_scope = lexer.tokenize()?;
+
+    static_type_check(&top_level_scope)?;
+
+    let mut code_generator = ASMGenerator::from((top_level_scope, TargetOS::Windows));
+    let asm_result = code_generator.generate()?;
+
+
+    println!("{}", asm_result);
+
+    let expected = r#"
+; This assembly is targeted for the Windows Operating System
+segment .text
+global main
+
+
+main:
+    push rbp
+    mov rbp, rsp
+    ; Reserve stack space as MS convention. Shadow stacking
+    sub rsp, 48
+    ; let a: i32 = 5
+    mov DWORD [rbp - 4], 5
+    ; let b: *i32 = &a
+    ; &a
+    lea rax, [rbp - 4]
+    mov QWORD [rbp - 12], rax
+    ; let addition: i32 = (*b Add *b)
+    ; (*b Add *b)
+    ; *b
+    mov rax, QWORD [rbp - 12]
+    mov eax, DWORD [rax]
+    ; *b
+    mov rdx, QWORD [rbp - 12]
+    add eax, DWORD [rdx]
+    mov eax, eax
+    mov DWORD [rbp - 16], eax
+    leave
+    ret
+    "#;
+
+    assert_eq!(expected.trim(), asm_result.trim());
+    Ok(())
+}
+
+#[test]
+fn pointer_deref_operation_lhs_expression() -> anyhow::Result<()> {
+    let code = r#"
+let a: i32 = 5;
+let b: *i32 = &a;
+let addition = *b + (0 + 1);
+    "#;
+
+    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
+    let mut lexer = Lexer::from(monkey_file);
+    let top_level_scope = lexer.tokenize()?;
+
+    static_type_check(&top_level_scope)?;
+
+    let mut code_generator = ASMGenerator::from((top_level_scope, TargetOS::Windows));
+    let asm_result = code_generator.generate()?;
+
+    let expected = r#"
+; This assembly is targeted for the Windows Operating System
+segment .text
+global main
+
+
+main:
+    push rbp
+    mov rbp, rsp
+    ; Reserve stack space as MS convention. Shadow stacking
+    sub rsp, 48
+    ; let a: i32 = 5
+    mov DWORD [rbp - 4], 5
+    ; let b: *i32 = &a
+    ; &a
+    lea rax, [rbp - 4]
+    mov QWORD [rbp - 12], rax
+    ; let addition: i32 = (*b Add (0 Add 1))
+    ; (*b Add (0 Add 1))
+    ; (0 Add 1)
+    mov eax, 0
+    add eax, 1
+    mov edx, eax
+    ; *b
+    mov rax, QWORD [rbp - 12]
+    mov eax, DWORD [rax]
+    add eax, edx
+    mov DWORD [rbp - 16], eax
+    leave
+    ret
+    "#;
+
+    assert_eq!(expected.trim(), asm_result.trim());
+    Ok(())
+}
+
+#[test]
+fn pointer_deref_operation_expression_rhs() -> anyhow::Result<()> {
+    let code = r#"
+let a: i32 = 5;
+let b: *i32 = &a;
+let addition = (0 + 1) + *b;
+    "#;
+
+    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
+    let mut lexer = Lexer::from(monkey_file);
+    let top_level_scope = lexer.tokenize()?;
+
+    static_type_check(&top_level_scope)?;
+
+    let mut code_generator = ASMGenerator::from((top_level_scope, TargetOS::Windows));
+    let asm_result = code_generator.generate()?;
+
+
+    println!("{}", asm_result);
+
+    let expected = r#"
+; This assembly is targeted for the Windows Operating System
+segment .text
+global main
+
+
+main:
+    push rbp
+    mov rbp, rsp
+    ; Reserve stack space as MS convention. Shadow stacking
+    sub rsp, 48
+    ; let a: i32 = 5
+    mov DWORD [rbp - 4], 5
+    ; let b: *i32 = &a
+    ; &a
+    lea rax, [rbp - 4]
+    mov QWORD [rbp - 12], rax
+    ; let addition: i32 = ((0 Add 1) Add *b)
+    ; ((0 Add 1) Add *b)
+    ; (0 Add 1)
+    mov eax, 0
+    add eax, 1
+    mov eax, eax
+    ; *b
+    mov rdx, QWORD [rbp - 12]
+    mov edx, DWORD [rdx]
+    add eax, edx
+    mov DWORD [rbp - 16], eax
+    leave
+    ret
+    "#;
+
+    assert_eq!(expected.trim(), asm_result.trim());
+    Ok(())
+}
+
+#[test]
+fn pointer_deref_operation_expression_expression() -> anyhow::Result<()> {
+    let code = r#"
+let a: i32 = 5;
+let b: *i32 = &a;
+let addition = (*b + *b) + (*b + *b);
+    "#;
+
+    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
+    let mut lexer = Lexer::from(monkey_file);
+    let top_level_scope = lexer.tokenize()?;
+
+    static_type_check(&top_level_scope)?;
+
+    let mut code_generator = ASMGenerator::from((top_level_scope, TargetOS::Windows));
+    let asm_result = code_generator.generate()?;
+
+
+    println!("{}", asm_result);
+
+    let expected = r#"
+; This assembly is targeted for the Windows Operating System
+segment .text
+global main
+
+
+main:
+    push rbp
+    mov rbp, rsp
+    ; Reserve stack space as MS convention. Shadow stacking
+    sub rsp, 48
+    ; let a: i32 = 5
+    mov DWORD [rbp - 4], 5
+    ; let b: *i32 = &a
+    ; &a
+    lea rax, [rbp - 4]
+    mov QWORD [rbp - 12], rax
+    ; let addition: i32 = ((*b Add *b) Add (*b Add *b))
+    ; ((*b Add *b) Add (*b Add *b))
+    ; (*b Add *b)
+    ; *b
+    mov rdi, QWORD [rbp - 12]
+    mov eax, DWORD [rax]
+    ; *b
+    mov rdx, QWORD [rbp - 12]
+    add eax, DWORD [rdx]
+    mov edi, eax
+    ; (*b Add *b)
+    ; *b
+    mov rax, QWORD [rbp - 12]
+    mov eax, DWORD [rax]
+    ; *b
+    mov rdx, QWORD [rbp - 12]
+    add eax, DWORD [rdx]
+    mov eax, eax
+    add eax, edi
+    mov DWORD [rbp - 16], eax
     leave
     ret
     "#;

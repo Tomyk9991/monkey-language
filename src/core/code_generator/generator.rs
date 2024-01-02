@@ -26,6 +26,21 @@ pub struct Stack {
     pub register_to_use: String,
 }
 
+pub trait RegisterTransformation {
+    fn is_64_bit_register(&self) -> bool;
+    fn to_64_bit_register(&self) -> String;
+}
+
+impl RegisterTransformation for String {
+    fn is_64_bit_register(&self) -> bool {
+        self.starts_with(['r', 'R'])
+    }
+
+    fn to_64_bit_register(&self) -> String {
+        self.replacen('e', "r", 1)
+    }
+}
+
 impl Default for Stack {
     fn default() -> Self {
         Stack {

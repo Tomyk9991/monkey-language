@@ -160,7 +160,7 @@ impl<T: EquationTokenOptions> EquationToken<T> {
             return Ok(x);
         } else if self.eat(T::inverse_additive()) {
             x = self.parse_factor()?;
-            x.as_mut().flip_value();
+            x.flip_value();
             return Ok(x);
         }
 
