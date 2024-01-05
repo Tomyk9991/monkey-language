@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};
+use std::str::FromStr;
 
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
@@ -20,15 +21,36 @@ pub enum PointerArithmetic {
     Ampersand,
 }
 
+#[derive(Clone, PartialEq, Debug)]
+pub enum PrefixArithmetic {
+    #[allow(unused)]
+    Operation(Operator), // For example the "-" like let a = -5;
+    PointerArithmetic(PointerArithmetic),
+    Cast(TypeToken)
+}
+
 #[derive(Clone, PartialEq)]
 #[allow(unused)]
 pub struct Expression {
     pub lhs: Option<Box<Expression>>,
     pub rhs: Option<Box<Expression>>,
     pub operator: Operator,
-    pub pointer_arithmetic: Vec<PointerArithmetic>,
+    pub prefix_arithmetic: Vec<PrefixArithmetic>,
     pub value: Option<Box<AssignableToken>>,
     pub positive: bool,
+}
+
+impl Expression {
+    pub fn pointers(&self) -> Vec<PointerArithmetic> {
+        let mut pointer_arithmetic = vec![];
+        for prefix in &self.prefix_arithmetic {
+            if let PrefixArithmetic::PointerArithmetic(p) = &prefix {
+                pointer_arithmetic.push(p.clone());
+            }
+        }
+
+        return pointer_arithmetic;
+    }
 }
 
 impl Default for Expression {
@@ -37,9 +59,9 @@ impl Default for Expression {
             lhs: None,
             rhs: None,
             operator: Operator::Noop,
-            pointer_arithmetic: vec![],
             value: None,
             positive: true,
+            prefix_arithmetic: vec![],
         }
     }
 }
@@ -63,32 +85,45 @@ impl Debug for Expression {
         }
 
         debug_struct_formatter.field("positive", &self.positive);
-        let pointer_arithmetic = self.pointer_arithmetic.iter().map(|a| match a {
-            PointerArithmetic::Asterics => '*',
-            PointerArithmetic::Ampersand => '&'
-        }).collect::<String>();
+        let prefix_arithmetic = self.prefix_arithmetic.iter().map(|a| a.to_string()).collect::<String>();
 
-        debug_struct_formatter.field("pointer_arithmetic", &pointer_arithmetic);
+        debug_struct_formatter.field("prefix_arithmetic", &prefix_arithmetic);
 
         debug_struct_formatter.finish()
+    }
+}
+
+impl Display for PrefixArithmetic {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", match self {
+            PrefixArithmetic::Operation(operation) => operation.to_string(),
+            PrefixArithmetic::PointerArithmetic(p) => p.to_string(),
+            PrefixArithmetic::Cast(c) => format!("({c})")
+        })
+    }
+}
+
+impl Display for PointerArithmetic {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", match self {
+            PointerArithmetic::Asterics => "*".to_string(),
+            PointerArithmetic::Ampersand => "&".to_string()
+        })
     }
 }
 
 impl Display for Expression {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let sign = if self.positive { "".to_string() } else { "-".to_string() };
-        let pointer_prefix = self.pointer_arithmetic.iter().rev().map(|a| match a {
-            PointerArithmetic::Asterics => '*',
-            PointerArithmetic::Ampersand => '&'
-        }).collect::<String>();
+        let prefix_arithmetic = self.prefix_arithmetic.iter().rev().map(|a| a.to_string()).collect::<String>();
 
         match (&self.lhs, &self.rhs) {
             (Some(lhs), Some(rhs)) => {
-                write!(f, "{}{}({} {} {})", pointer_prefix, sign, lhs, &self.operator, rhs)
+                write!(f, "{}{}({} {} {})", prefix_arithmetic, sign, lhs, &self.operator, rhs)
             }
             _ => {
                 if let Some(ass) = &self.value {
-                    write!(f, "{}{}{}", pointer_prefix, sign, ass)
+                    write!(f, "{}{}{}", prefix_arithmetic, sign, ass)
                 } else {
                     write!(f, "Some error. No lhs and rhs and no value found")
                 }
@@ -110,7 +145,7 @@ impl From<Option<Box<AssignableToken>>> for Expression {
 impl ToASM for Expression {
     fn to_asm(&self, stack: &mut Stack, meta: &mut MetaInfo) -> Result<String, ASMGenerateError> {
         if let Some(value) = &self.value { // this means, no children are provided. this is the actual value
-            let pointer_iter = &self.pointer_arithmetic;
+            let pointer_iter = &self.pointers();
             let mut pointed = false;
             let mut inner_source = value.to_asm(stack, meta)?;
             let mut target = String::new();
@@ -325,14 +360,14 @@ impl Expression {
             lhs,
             rhs,
             operator,
-            pointer_arithmetic: vec![],
+            prefix_arithmetic: vec![],
             value,
             positive: true,
         }
     }
 
     pub fn is_pointer(&self) -> bool {
-        !self.pointer_arithmetic.is_empty()
+        !self.pointers().is_empty()
     }
 
     pub fn traverse_type(&self, meta: &MetaInfo) -> Option<TypeToken> {
@@ -342,9 +377,9 @@ impl Expression {
     pub fn traverse_type_resulted(&self, context: &StaticTypeContext, code_line: &CodeLine) -> Result<TypeToken, InferTypeError> {
         if let Some(value) = &self.value {
             let value_type = value.infer_type_with_context(context, code_line);
-            let has_pointer_arithmetic = !self.pointer_arithmetic.is_empty();
+            let has_prefix_arithmetics = !self.prefix_arithmetic.is_empty();
 
-            return if let (true, Ok(value_type)) = (has_pointer_arithmetic, &value_type) {
+            return if let (true, Ok(value_type)) = (has_prefix_arithmetics, &value_type) {
                 let mut current_pointer_arithmetic: String = match value_type {
                     TypeToken::Custom(name) if name.name.starts_with(['*', '&']) => {
                         if let Some(index) = name.name.chars().position(|m| m.is_ascii_alphanumeric()) {
@@ -357,22 +392,28 @@ impl Expression {
                 };
 
                 let mut value_type = value_type.clone();
-                for pointer_arithmetic in self.pointer_arithmetic.iter().rev() {
-                    match pointer_arithmetic {
-                        PointerArithmetic::Asterics if current_pointer_arithmetic.ends_with('*') => {
+
+                for prefix_arithmetic in self.prefix_arithmetic.iter().rev() {
+                    match prefix_arithmetic {
+                        PrefixArithmetic::PointerArithmetic(PointerArithmetic::Asterics) if current_pointer_arithmetic.ends_with('*') => {
                             if let Some(new_ty) = value_type.pop_pointer() {
                                 value_type = new_ty;
+                                current_pointer_arithmetic = current_pointer_arithmetic.chars().collect::<Vec<char>>()[..current_pointer_arithmetic.len() - 1].iter().collect::<String>();
                             } else {
                                 return Err(InferTypeError::IllegalDereference(*value.clone(), code_line.clone()));
                             }
-                        }
-                        PointerArithmetic::Ampersand => {
+                        },
+                        PrefixArithmetic::PointerArithmetic(PointerArithmetic::Ampersand) => {
                             value_type = value_type.push_pointer();
                         }
-                        PointerArithmetic::Asterics => {
+                        PrefixArithmetic::PointerArithmetic(PointerArithmetic::Asterics) => {
                             // just using & in front of non pointer types is illegal. Dereferencing non pointers doesnt make any sense
                             return Err(InferTypeError::IllegalDereference(*value.clone(), code_line.clone()));
-                        }
+                        },
+                        PrefixArithmetic::Cast(casting_to) => {
+                            value_type = TypeToken::from_str(&format!("{current_pointer_arithmetic}{}", casting_to))?;
+                        },
+                        PrefixArithmetic::Operation(_) => {}
                     }
                 }
 
@@ -435,7 +476,19 @@ impl Expression {
         self.rhs = rhs;
         self.operator = operation;
         self.value = value;
-        self.pointer_arithmetic = vec![];
+        self.prefix_arithmetic = vec![];
+    }
+
+    pub fn set_keep_arithmetic(&mut self, lhs: Option<Box<Expression>>, operation: Operator, rhs: Option<Box<Expression>>, value: Option<Box<AssignableToken>>, positive: bool, prefix_arithmetic: Vec<PrefixArithmetic>) {
+        self.lhs = lhs;
+        self.rhs = rhs;
+        self.operator = operation;
+        self.positive = positive;
+        self.value = value;
+
+        for prefix in prefix_arithmetic {
+            self.prefix_arithmetic.push(prefix);
+        }
     }
 
     pub fn flip_value(&mut self) {

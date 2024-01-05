@@ -3,7 +3,7 @@ use monkey_language::core::io::monkey_file::MonkeyFile;
 use monkey_language::core::lexer::token::Token;
 use monkey_language::core::lexer::tokenizer::Lexer;
 use monkey_language::core::lexer::tokens::assignable_token::AssignableToken;
-use monkey_language::core::lexer::tokens::assignable_tokens::equation_parser::expression::{Expression, PointerArithmetic};
+use monkey_language::core::lexer::tokens::assignable_tokens::equation_parser::expression::{Expression, PointerArithmetic, PrefixArithmetic};
 use monkey_language::core::lexer::tokens::assignable_tokens::equation_parser::operator::Operator;
 use monkey_language::core::lexer::tokens::assignable_tokens::integer_token::IntegerToken;
 use monkey_language::core::lexer::tokens::assignable_tokens::method_call_token::MethodCallToken;
@@ -11,6 +11,7 @@ use monkey_language::core::lexer::tokens::assignable_tokens::object_token::Objec
 use monkey_language::core::lexer::tokens::assignable_tokens::string_token::StringToken;
 use monkey_language::core::lexer::tokens::name_token::NameToken;
 use monkey_language::core::lexer::tokens::variable_token::VariableToken;
+use monkey_language::core::lexer::type_token;
 use monkey_language::core::lexer::type_token::TypeToken;
 
 #[test]
@@ -166,7 +167,7 @@ fn variable_test() -> anyhow::Result<()> {
                     lhs: None,
                     rhs: None,
                     operator: Operator::Noop,
-                    pointer_arithmetic: vec![PointerArithmetic::Ampersand],
+                    prefix_arithmetic: vec![PrefixArithmetic::PointerArithmetic(PointerArithmetic::Ampersand)],
                     value: Some(Box::new(AssignableToken::NameToken(NameToken { name: "value".to_string() }))),
                     positive: true,
                 }),
@@ -183,8 +184,8 @@ fn variable_test() -> anyhow::Result<()> {
                 assignable: AssignableToken::ArithmeticEquation(Expression {
                     lhs: Some(Box::new(Expression {
                         value: Some(Box::new(AssignableToken::NameToken(NameToken { name: "ref_value".to_string() }))),
-                        pointer_arithmetic: vec![PointerArithmetic::Asterics],
                         positive: true,
+                        prefix_arithmetic: vec![PrefixArithmetic::PointerArithmetic(PointerArithmetic::Asterics)],
                         ..Default::default()
                     })),
                     rhs: Some(Box::new(Expression {
@@ -193,7 +194,7 @@ fn variable_test() -> anyhow::Result<()> {
                         ..Default::default()
                     })),
                     operator: Operator::Add,
-                    pointer_arithmetic: vec![],
+                    prefix_arithmetic: vec![],
                     value: None,
                     positive: true,
                 }),
@@ -203,6 +204,196 @@ fn variable_test() -> anyhow::Result<()> {
     ];
 
     assert_eq!(expected, top_level_scope.tokens);
+
+    Ok(())
+}
+
+#[test]
+fn variable_test_types() -> anyhow::Result<()> {
+    let variables = r#"
+    let fisch = "Fische sind wirklich wirklich toll";
+    let hallo = "Thomas"; let tschuess = 5;
+    let mallo = "";
+    let michi =
+    Data {
+        guten: "Hallo",
+        ciau: 5,
+        rofl: name(),
+        mofl: name(nestedMethod("Hallo", moin("Ciao", 5)))
+    };
+    let value = 9;
+    let ref_value = &value;
+    let pointer_arithmetic = *ref_value + 1;
+    "#;
+
+    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(variables);
+    let mut lexer = Lexer::from(monkey_file);
+    let top_level_scope = lexer.tokenize()?;
+
+    let expected = vec![
+        type_token::common::string(),
+        type_token::common::string(),
+        TypeToken::I32,
+        type_token::common::string(),
+        TypeToken::Custom(NameToken { name: "Data".to_string() }),
+        TypeToken::I32,
+        TypeToken::Custom(NameToken { name: "*i32".to_string() }),
+        TypeToken::I32,
+    ];
+
+    for (index, token) in top_level_scope.tokens.iter().enumerate() {
+        match token {
+            Token::Variable(v) if v.ty.is_some() => {
+                if let Some(ty) = &v.ty {
+                    assert_eq!(&expected[index], ty);
+                } else {
+                    assert!(false, "Didnt expect not inferred type");
+                }
+            },
+            _ => assert!(false, "Didnt expect this type of token")
+        }
+    }
+
+    Ok(())
+}
+
+#[test]
+fn variable_test_casting() -> anyhow::Result<()> {
+    let variables =
+        r#"let a = (f32) 5;
+    let b: f32 = (f32)(i32) 5;
+    let f: i32 = 5;
+    let c: f32 = (f32)(i32) 5;
+    let c: f32 = (f32)((i32) 5);
+    let d: f32 = 5.0 + 1.0;
+    "#;
+
+    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(variables);
+    let mut lexer = Lexer::from(monkey_file);
+    let top_level_scope = lexer.tokenize()?;
+
+    let expected = vec![
+        TypeToken::F32,
+        TypeToken::F32,
+        TypeToken::I32,
+        TypeToken::F32,
+        TypeToken::F32,
+        TypeToken::F32,
+    ];
+
+    let s = vec![];
+
+    for token in &top_level_scope.tokens {
+        println!("{}", token);
+        match token {
+            Token::Variable(v) => {
+                println!("{:?}", match &v.assignable {
+                    AssignableToken::ArithmeticEquation(a) => {
+                        &a.prefix_arithmetic
+                    },
+                    _ => { &s }
+                });
+            },
+            _ => {}
+        }
+    }
+
+    for (index, token) in top_level_scope.tokens.iter().enumerate() {
+        match token {
+            Token::Variable(v) if v.ty.is_some() => {
+                if let Some(ty) = &v.ty {
+                    assert_eq!(&expected[index], ty, "Failed at: {}", v);
+                } else {
+                    assert!(false, "Didnt expect not inferred type");
+                }
+            },
+            _ => assert!(false, "Didnt expect this type of token")
+        }
+    }
+
+    Ok(())
+}
+
+#[test]
+fn variable_test_double_casting() -> anyhow::Result<()> {
+    let variables = r#"let b: f32 = (f32)(i32) 5;"#;
+
+    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(variables);
+    let mut lexer = Lexer::from(monkey_file);
+    let top_level_scope = lexer.tokenize()?;
+
+    let expected = vec![
+        TypeToken::F32,
+    ];
+
+    let s = vec![];
+
+    for token in &top_level_scope.tokens {
+        println!("{}", token);
+        match token {
+            Token::Variable(v) => {
+                println!("{:?}", match &v.assignable {
+                    AssignableToken::ArithmeticEquation(a) => {
+                        &a.prefix_arithmetic
+                    },
+                    _ => { &s }
+                });
+            },
+            _ => {}
+        }
+    }
+
+    for (index, token) in top_level_scope.tokens.iter().enumerate() {
+        match token {
+            Token::Variable(v) if v.ty.is_some() => {
+                if let Some(ty) = &v.ty {
+                    assert_eq!(&expected[index], ty, "Failed at: {}", v);
+                } else {
+                    assert!(false, "Didnt expect not inferred type");
+                }
+            },
+            _ => assert!(false, "Didnt expect this type of token")
+        }
+    }
+
+    Ok(())
+}
+
+
+#[test]
+fn variable_test_casting_complex() -> anyhow::Result<()> {
+    let variables = r#"
+    let f: i32 = 5;
+    let r = &f;
+    let p: i32 = ((i32)(f32)*r);
+    let k: i32 = (i32)(f32)(((i32)(f32)*r) + 2);
+    let l: i32 = (i32)(f32)(((i32)*(*f32)r) + 2);
+    "#;
+
+    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(variables);
+    let mut lexer = Lexer::from(monkey_file);
+    let top_level_scope = lexer.tokenize()?;
+
+    let expected = vec![
+        TypeToken::I32,
+        TypeToken::Custom(NameToken { name: "*i32".to_string() }),
+        TypeToken::I32,
+        TypeToken::I32,
+        TypeToken::I32,
+    ];
+
+    for (index, token) in top_level_scope.tokens.iter().enumerate() {
+        match token {
+            Token::Variable(v) if v.ty.is_some() => {
+                if let Some(ty) = &v.ty {
+                    assert_eq!(&expected[index], ty, "FAILED AT: {token}");
+                } else {
+                    assert!(false, "Didnt expect not inferred type");
+                }
+            },
+            _ => assert!(false, "Didnt expect this type of token")
+        }
+    }
 
     Ok(())
 }

@@ -7,6 +7,14 @@ use crate::core::lexer::tokens::assignable_token::AssignableToken;
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::operator::Operator;
 use crate::core::lexer::tokens::name_token::{NameToken, NameTokenErr};
 
+pub mod common {
+    use crate::core::lexer::tokens::name_token::NameToken;
+    use crate::core::lexer::type_token::TypeToken;
+
+    #[allow(unused)]
+    pub fn string() -> TypeToken { TypeToken::Custom(NameToken { name: "*string".to_string() })}
+}
+
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub enum TypeToken {
     I32,

@@ -6,7 +6,7 @@ let b: *i32 = &a;
 let c: i32 = 13;
 let d: *i32 = &c;
 
-let addition = (((*d + *b) + (*b + *d)) + (*b + *b)) + ((*b + (*b + *b)) + (*b + (*d + *b)));
+let addition = (f32) (((*d + *b) + (*b + *d)) + (*b + *b)) + ((*b + (*b + *b)) + (*b + (*d + *b)));
 
 ExitProcess(addition);
 

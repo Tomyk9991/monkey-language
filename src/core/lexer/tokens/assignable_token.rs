@@ -10,12 +10,13 @@ use crate::core::lexer::tokens::assignable_tokens::boolean_token::BooleanToken;
 use crate::core::lexer::tokens::assignable_tokens::double_token::FloatToken;
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::equation_token_options::{ArithmeticEquationOptions, BooleanEquationOptions};
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::EquationToken;
-use crate::core::lexer::tokens::assignable_tokens::equation_parser::expression::{Expression, PointerArithmetic};
+use crate::core::lexer::tokens::assignable_tokens::equation_parser::expression::{Expression, PointerArithmetic, PrefixArithmetic};
 use crate::core::lexer::tokens::assignable_tokens::integer_token::IntegerToken;
 use crate::core::lexer::tokens::assignable_tokens::method_call_token::{MethodCallToken, MethodCallTokenErr};
 use crate::core::lexer::tokens::assignable_tokens::object_token::ObjectToken;
 use crate::core::lexer::tokens::assignable_tokens::string_token::StringToken;
 use crate::core::lexer::tokens::name_token::NameToken;
+use crate::core::lexer::type_token;
 use crate::core::lexer::type_token::{InferTypeError, TypeToken};
 
 /// Token for assignable tokens. Numbers, strings, methodcalls, other variables, objects, and arithmetic / boolean equations.
@@ -43,10 +44,17 @@ impl AssignableToken {
         self.infer_type_with_context(&StaticTypeContext::default(), code_line).ok()
     }
 
-    pub(crate) fn pointer_arithmetic(&self) -> Vec<PointerArithmetic> {
+    pub fn pointer_arithmetic(&self) -> Vec<PointerArithmetic> {
         match self {
             AssignableToken::ArithmeticEquation(a) | AssignableToken::BooleanEquation(a) => {
-                a.pointer_arithmetic.clone()
+                let mut pointer_arithmetic = vec![];
+                for prefix in &a.prefix_arithmetic {
+                    if let PrefixArithmetic::PointerArithmetic(p) = &prefix {
+                        pointer_arithmetic.push(p.clone());
+                    }
+                }
+
+                return pointer_arithmetic;
             },
             _ => vec![]
         }
@@ -94,7 +102,7 @@ impl AssignableToken {
 
     pub fn infer_type_with_context(&self, context: &StaticTypeContext, code_line: &CodeLine) -> Result<TypeToken, InferTypeError> {
         match self {
-            AssignableToken::String(_) => Ok(TypeToken::Custom(NameToken { name: "*string".to_string() })),
+            AssignableToken::String(_) => Ok(type_token::common::string()),
             AssignableToken::IntegerToken(_) => Ok(TypeToken::I32),
             AssignableToken::FloatToken(_) => Ok(TypeToken::F32),
             AssignableToken::BooleanToken(_) => Ok(TypeToken::Bool),

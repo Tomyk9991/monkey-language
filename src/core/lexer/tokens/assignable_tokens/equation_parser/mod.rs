@@ -4,9 +4,10 @@ use std::str::FromStr;
 use crate::core::io::code_line::{CodeLine, Normalizable};
 use crate::core::lexer::tokens::assignable_token::{AssignableToken, AssignableTokenErr};
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::equation_token_options::EquationTokenOptions;
-use crate::core::lexer::tokens::assignable_tokens::equation_parser::expression::{Expression, PointerArithmetic};
+use crate::core::lexer::tokens::assignable_tokens::equation_parser::expression::{Expression, PointerArithmetic, PrefixArithmetic};
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::operator::Operator;
 use crate::core::lexer::tokens::name_token::NameTokenErr;
+use crate::core::lexer::type_token::{InferTypeError, TypeToken};
 
 pub mod expression;
 pub mod operator;
@@ -31,9 +32,21 @@ pub enum Error {
     UndefinedSequence(String),
     FunctionNotFound,
     SourceEmpty,
+    NotAType(String), // Message
     TermNotParsable(String),
     ParenExpected,
     CannotParse
+}
+
+impl From<InferTypeError> for Error {
+    fn from(value: InferTypeError) -> Self {
+        match value {
+            InferTypeError::TypeNotAllowed(t) => {
+                Error::NotAType(t.to_string())
+            },
+            _ => unreachable!("Cannot reach this"),
+        }
+    }
 }
 
 
@@ -58,7 +71,8 @@ impl Display for Error {
             Error::UndefinedSequence(value) => value.to_string(),
             Error::FunctionNotFound => "Not a function".to_string(),
             Error::SourceEmpty => "Source code is empty".to_string(),
-            Error::CannotParse => "Cannot parse".to_string()
+            Error::CannotParse => "Cannot parse".to_string(),
+            Error::NotAType(f) => format!("Unexpeted type: {f}")
         })
     }
 }
@@ -88,6 +102,24 @@ impl<T: EquationTokenOptions> EquationToken<T> {
     fn next_char(&mut self) {
         self.pos += 1;
         self.ch = self.source_code.chars().nth(self.pos as usize);
+    }
+
+    fn prev_char(&mut self) {
+        self.pos -= 1;
+        self.ch = self.source_code.chars().nth(self.pos as usize);
+    }
+
+    // skips the provided amount of characters
+    fn next_char_amount(&mut self, amount_skip: usize) {
+        for _ in 0..amount_skip {
+            self.next_char();
+        }
+    }
+
+    fn previous_char_amount(&mut self, amount_skip: usize) {
+        for _ in 0..amount_skip {
+            self.prev_char();
+        }
     }
 
     fn eat(&mut self, char_to_eat: Option<char>) -> bool {
@@ -151,6 +183,59 @@ impl<T: EquationTokenOptions> EquationToken<T> {
         }
     }
 
+    fn peek(&self, expected_char: char) -> bool {
+        if let Some(a) = self.source_code.chars().nth(self.pos as usize) {
+            return a == expected_char;
+        }
+
+        return false;
+    }
+
+    /// collects until the specified character is found and checks each substring, if a certain predicate is met
+    /// returns a trimmed string between the the beginning and the expected last character and the amount of characters skipped, including the spaces
+    fn collect_until(&self, offset: usize, expected_last_char: char, predicate: fn(&str) -> bool) -> Option<(String, usize)> {
+        let starting_position = (self.pos as usize) + offset;
+        let mut end_position = starting_position;
+        let mut iter = self.source_code.chars().skip(starting_position);
+
+
+        while let Some(char) = iter.next() {
+            end_position += 1;
+
+            let current_string = self.source_code.chars()
+                .skip(starting_position)
+                .take(end_position - starting_position)
+                .collect::<String>().trim().to_string();
+
+            // check if it contains something else than *
+            // if it does, check if it is a type
+            let contains_only_stars = !current_string.chars().any(|a| {
+                a != '*'
+            });
+
+            if current_string.is_empty() || contains_only_stars { continue; }
+
+            if char == expected_last_char {
+                let current_string = self.source_code.chars()
+                    .skip(starting_position)
+                    .take(end_position - 1 - starting_position)
+                    .collect::<String>().trim().to_string();
+
+                return if !predicate(&current_string) {
+                    None
+                } else {
+                    Some((current_string, end_position - starting_position + 1))
+                }
+            }
+
+            if !predicate(&current_string) {
+                return None;
+            }
+        }
+
+        None
+    }
+
 
     fn parse_factor(&mut self) -> Result<Box<Expression>, Error> {
         let mut x: Box<Expression>;
@@ -164,16 +249,65 @@ impl<T: EquationTokenOptions> EquationToken<T> {
             return Ok(x);
         }
 
+        if self.peek('(') {
+            if let Some((cast_type, amount_skip)) = self.collect_until(1, ')', |a| TypeToken::from_str(a).is_ok()) {
+                self.next_char_amount(amount_skip);
+
+                if !self.peek(')') && self.pos < self.source_code.chars().count() as i32 {
+                    x = Box::new(Expression {
+                        lhs: None,
+                        rhs: None,
+                        operator: Operator::Noop,
+                        prefix_arithmetic: vec![],
+                        value: None,
+                        positive: false,
+                    });
+
+                    x.prefix_arithmetic.push(PrefixArithmetic::Cast(TypeToken::from_str(&cast_type)?));
+
+                    let y = self.parse_factor()?;
+                    x.set_keep_arithmetic(y.lhs, y.operator, y.rhs, y.value, y.positive, y.prefix_arithmetic);
+
+                    return Ok(x);
+                } else {
+                    self.previous_char_amount(amount_skip);
+                }
+                // not a type cast, resume
+            }
+        }
+
         if self.eat(Some('*')) {
-            x = self.parse_factor()?;
-            x.pointer_arithmetic.push(PointerArithmetic::Asterics);
+            x = Box::new(Expression {
+                lhs: None,
+                rhs: None,
+                operator: Operator::Noop,
+                prefix_arithmetic: vec![],
+                value: None,
+                positive: false,
+            });
+
+            x.prefix_arithmetic.push(PrefixArithmetic::PointerArithmetic(PointerArithmetic::Asterics));
+
+            let y = self.parse_factor()?;
+            x.set_keep_arithmetic(y.lhs, y.operator, y.rhs, y.value, y.positive, y.prefix_arithmetic);
 
             return Ok(x);
         }
 
         if self.eat(Some('&')) {
-            x = self.parse_factor()?;
-            x.pointer_arithmetic.push(PointerArithmetic::Ampersand);
+            x = Box::new(Expression {
+                lhs: None,
+                rhs: None,
+                operator: Operator::Noop,
+                prefix_arithmetic: vec![],
+                value: None,
+                positive: false,
+            });
+
+            x.prefix_arithmetic.push(PrefixArithmetic::PointerArithmetic(PointerArithmetic::Ampersand));
+
+            let y = self.parse_factor()?;
+            x.set_keep_arithmetic(y.lhs, y.operator, y.rhs, y.value, y.positive, y.prefix_arithmetic);
 
             return Ok(x);
         }
@@ -185,6 +319,7 @@ impl<T: EquationTokenOptions> EquationToken<T> {
             if !self.eat(Some(CLOSING)) {
                 return Err(Error::ParenExpected);
             }
+
         } else if self.ch.is_some() {
             // digits only
             if self.ch >= Some('0') && self.ch <= Some('9') || self.ch == Some('.') {

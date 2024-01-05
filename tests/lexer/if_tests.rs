@@ -236,7 +236,7 @@ fn function_in_function_test() -> anyhow::Result<()> {
             condition: AssignableToken::NameToken(NameToken { name: "hallo".to_string() }),
             if_stack: vec![
                 Token::Variable(VariableToken { name_token: NameToken { name: "if_stack_variable".to_string() }, mutability: false, ty: Some(TypeToken::F32), define: true, assignable: AssignableToken::ArithmeticEquation(
-                    Expression { lhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, pointer_arithmetic: vec![], value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: 5 }))), positive: true })), operator: Div, rhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, pointer_arithmetic: vec![], value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: 2 }))), positive: true })), positive: true, value: None, pointer_arithmetic: vec![] }
+                    Expression { lhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, prefix_arithmetic: vec![], value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: 5 }))), positive: true })), operator: Div, rhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, prefix_arithmetic: vec![], value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: 2 }))), positive: true })), positive: true, value: None, prefix_arithmetic: vec![] }
                 ),
                     code_line: CodeLine { line: "let if_stack_variable = 5 / 2 ;".to_string(), actual_line_number: 3..3, virtual_line_number: 2 },
                 }),
