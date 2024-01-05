@@ -157,6 +157,7 @@ impl<T: EquationTokenOptions> EquationToken<T> {
             #[allow(clippy::if_same_then_else)]
             if self.eat(T::additive()) {
                 let term = self.parse_term()?;
+                // x.set_keep_arithmetic(Some(x.clone()), Operator::Add, Some(term), None, x.positive, vec![]);
                 x.set(Some(x.clone()), Operator::Add, Some(term), None);
             } else if self.eat(T::inverse_additive()) {
                 let term = self.parse_term()?;
@@ -254,20 +255,11 @@ impl<T: EquationTokenOptions> EquationToken<T> {
                 self.next_char_amount(amount_skip);
 
                 if !self.peek(')') && self.pos < self.source_code.chars().count() as i32 {
-                    x = Box::new(Expression {
-                        lhs: None,
-                        rhs: None,
-                        operator: Operator::Noop,
-                        prefix_arithmetic: vec![],
-                        value: None,
-                        positive: false,
-                    });
+                    let value = self.parse_expression()?;
+                    x = Box::new(Expression::default());
 
+                    x.value = Some(Box::new(AssignableToken::ArithmeticEquation(*value)));
                     x.prefix_arithmetic.push(PrefixArithmetic::Cast(TypeToken::from_str(&cast_type)?));
-
-                    let y = self.parse_factor()?;
-                    x.set_keep_arithmetic(y.lhs, y.operator, y.rhs, y.value, y.positive, y.prefix_arithmetic);
-
                     return Ok(x);
                 } else {
                     self.previous_char_amount(amount_skip);
@@ -277,39 +269,32 @@ impl<T: EquationTokenOptions> EquationToken<T> {
         }
 
         if self.eat(Some('*')) {
-            x = Box::new(Expression {
-                lhs: None,
-                rhs: None,
-                operator: Operator::Noop,
-                prefix_arithmetic: vec![],
-                value: None,
-                positive: false,
-            });
+            let value = self.parse_factor()?;
+            x = Box::new(Expression::default());
 
+            x.value = Some(Box::new(AssignableToken::ArithmeticEquation(*value)));
             x.prefix_arithmetic.push(PrefixArithmetic::PointerArithmetic(PointerArithmetic::Asterics));
 
-            let y = self.parse_factor()?;
-            x.set_keep_arithmetic(y.lhs, y.operator, y.rhs, y.value, y.positive, y.prefix_arithmetic);
-
             return Ok(x);
+
+            // x = self.parse_factor()?;
+            // x.prefix_arithmetic.push(PrefixArithmetic::PointerArithmetic(PointerArithmetic::Asterics));
+            //
+            // return Ok(x);
         }
 
         if self.eat(Some('&')) {
-            x = Box::new(Expression {
-                lhs: None,
-                rhs: None,
-                operator: Operator::Noop,
-                prefix_arithmetic: vec![],
-                value: None,
-                positive: false,
-            });
+            let value = self.parse_factor()?;
+            x = Box::new(Expression::default());
 
+            x.value = Some(Box::new(AssignableToken::ArithmeticEquation(*value)));
             x.prefix_arithmetic.push(PrefixArithmetic::PointerArithmetic(PointerArithmetic::Ampersand));
 
-            let y = self.parse_factor()?;
-            x.set_keep_arithmetic(y.lhs, y.operator, y.rhs, y.value, y.positive, y.prefix_arithmetic);
-
             return Ok(x);
+            // x = self.parse_factor()?;
+            // x.prefix_arithmetic.push(PrefixArithmetic::PointerArithmetic(PointerArithmetic::Ampersand));
+            //
+            // return Ok(x);
         }
 
         let start_pos: i32 = self.pos;
@@ -328,8 +313,8 @@ impl<T: EquationTokenOptions> EquationToken<T> {
                 }
 
                 let sub_string: &str = &self.source_code[start_pos as usize..self.pos as usize];
-                let s = AssignableToken::from_str(sub_string)?;
-                x = Box::new(Expression::from(Some(Box::new(s))));
+                let assignment = AssignableToken::from_str(sub_string)?;
+                x = Box::new(Expression::from(Some(Box::new(assignment))));
             } else if (self.ch >= Some('A') && self.ch <= Some('Z')) || (self.ch >= Some('a') && self.ch <= Some('z')) {
                 let mut ident = 0;
 
@@ -343,7 +328,7 @@ impl<T: EquationTokenOptions> EquationToken<T> {
                         self.ch != add_token &&
                         self.ch != inv_add_token &&
                         self.ch != mul_token &&
-                        self.ch != inv_mul_token
+                        self.ch != inv_mul_token // todo check for other values not allowed: let a = r);
                     ) {
                     if let Some(char) = self.ch {
                         match char {

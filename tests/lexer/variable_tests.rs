@@ -168,7 +168,14 @@ fn variable_test() -> anyhow::Result<()> {
                     rhs: None,
                     operator: Operator::Noop,
                     prefix_arithmetic: vec![PrefixArithmetic::PointerArithmetic(PointerArithmetic::Ampersand)],
-                    value: Some(Box::new(AssignableToken::NameToken(NameToken { name: "value".to_string() }))),
+                    value: Some(Box::new(AssignableToken::ArithmeticEquation(Expression {
+                        lhs: None,
+                        rhs: None,
+                        operator: Operator::Noop,
+                        prefix_arithmetic: vec![],
+                        value: Some(Box::new(AssignableToken::NameToken(NameToken { name: "value".to_string() }))),
+                        positive: true,
+                    }))),
                     positive: true,
                 }),
                 code_line: CodeLine { line: "let ref_value = &value ;".to_string(), actual_line_number: 13..13, virtual_line_number: 7 },
@@ -183,7 +190,14 @@ fn variable_test() -> anyhow::Result<()> {
                 define: true,
                 assignable: AssignableToken::ArithmeticEquation(Expression {
                     lhs: Some(Box::new(Expression {
-                        value: Some(Box::new(AssignableToken::NameToken(NameToken { name: "ref_value".to_string() }))),
+                        value: Some(Box::new(AssignableToken::ArithmeticEquation(Expression {
+                            lhs: None,
+                            rhs: None,
+                            operator: Operator::Noop,
+                            prefix_arithmetic: vec![],
+                            value: Some(Box::new(AssignableToken::NameToken(NameToken { name: "ref_value".to_string() }))),
+                            positive: true,
+                        }))),
                         positive: true,
                         prefix_arithmetic: vec![PrefixArithmetic::PointerArithmetic(PointerArithmetic::Asterics)],
                         ..Default::default()
@@ -261,16 +275,17 @@ fn variable_test_types() -> anyhow::Result<()> {
 fn variable_test_casting() -> anyhow::Result<()> {
     let variables =
         r#"let a = (f32) 5;
-    let b: f32 = (f32)(i32) 5;
-    let f: i32 = 5;
-    let c: f32 = (f32)(i32) 5;
-    let c: f32 = (f32)((i32) 5);
-    let d: f32 = 5.0 + 1.0;
+    let b = (f32)((i32) 5);
+    let f = 5;
+    let c = (f32)(i32) 5;
+    let c = (f32)((i32) 5);
+    let d = 5.0 + 1.0;
     "#;
 
     let monkey_file: MonkeyFile = MonkeyFile::read_from_str(variables);
     let mut lexer = Lexer::from(monkey_file);
     let top_level_scope = lexer.tokenize()?;
+    println!("{:?}", top_level_scope);
 
     let expected = vec![
         TypeToken::F32,
@@ -280,23 +295,6 @@ fn variable_test_casting() -> anyhow::Result<()> {
         TypeToken::F32,
         TypeToken::F32,
     ];
-
-    let s = vec![];
-
-    for token in &top_level_scope.tokens {
-        println!("{}", token);
-        match token {
-            Token::Variable(v) => {
-                println!("{:?}", match &v.assignable {
-                    AssignableToken::ArithmeticEquation(a) => {
-                        &a.prefix_arithmetic
-                    },
-                    _ => { &s }
-                });
-            },
-            _ => {}
-        }
-    }
 
     for (index, token) in top_level_scope.tokens.iter().enumerate() {
         match token {
@@ -361,13 +359,18 @@ fn variable_test_double_casting() -> anyhow::Result<()> {
 
 
 #[test]
-fn variable_test_casting_complex() -> anyhow::Result<()> {
-    let variables = r#"
-    let f: i32 = 5;
-    let r = &f;
-    let p: i32 = ((i32)(f32)*r);
-    let k: i32 = (i32)(f32)(((i32)(f32)*r) + 2);
-    let l: i32 = (i32)(f32)(((i32)*(*f32)r) + 2);
+fn variable_test_casting_complex_expression() -> anyhow::Result<()> {
+    let variables = r#"let a: i32 = 5;
+    let b: *i32 = &a;
+
+    let c: i32 = 13;
+    let d: *i32 = &c;
+
+    let another_addition = (f32) (((1 + 2) + (3 + 4)) + (5 + 6)) + ((7 + (8 + 9)) + (10 + (11 + 12)));
+    let addition1 = (f32) (((*d + *b) + (*b + *d)) + (*b + *b)) + ((*b + (*b + *b)) + (*b + (*d + *b)));
+    let addition2 = ((((f32)*d + (f32) *b) + (*b + *d)) + (*b + *b)) + ((*b + (*b + *b)) + (*b + (*d + *b)));
+    let addition3 = (((*d + (f32)*b) + (*b + *d)) + (*b + *b)) + ((*b + (*b + *b)) + (*b + (*d + *b)));
+    let addition4 = ((((f32)*d + *b) + (*b + *d)) + (*b + *b)) + ((*b + (*b + *b)) + (*b + (*d + *b)));
     "#;
 
     let monkey_file: MonkeyFile = MonkeyFile::read_from_str(variables);
@@ -378,9 +381,57 @@ fn variable_test_casting_complex() -> anyhow::Result<()> {
         TypeToken::I32,
         TypeToken::Custom(NameToken { name: "*i32".to_string() }),
         TypeToken::I32,
+        TypeToken::Custom(NameToken { name: "*i32".to_string() }),
+        TypeToken::F32,
+        TypeToken::F32,
+        TypeToken::F32,
+        TypeToken::F32,
+        TypeToken::F32,
+    ];
+
+    for (index, token) in top_level_scope.tokens.iter().enumerate() {
+        match token {
+            Token::Variable(v) if v.ty.is_some() => {
+                if let Some(ty) = &v.ty {
+                    assert_eq!(&expected[index], ty, "FAILED AT: {token}");
+                } else {
+                    assert!(false, "Didnt expect not inferred type");
+                }
+            },
+            _ => assert!(false, "Didnt expect this type of token")
+        }
+    }
+
+    Ok(())
+}
+
+#[test]
+fn variable_test_casting_complex() -> anyhow::Result<()> {
+    let variables = r#"let f: i32 = 5;
+    let r = &f;
+    let p: i32 = ((i32)(f32)*r);
+    let q = (i32)*(*f32)r;
+    let k: i32 = (i32)(f32)(((i32)(f32)*r) + 2);
+    "#;
+
+    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(variables);
+    let mut lexer = Lexer::from(monkey_file);
+    let top_level_scope = lexer.tokenize()?;
+
+    println!("{:#?}", top_level_scope);
+
+    let expected = vec![
+        TypeToken::I32,
+        TypeToken::Custom(NameToken { name: "*i32".to_string() }),
+        TypeToken::I32,
         TypeToken::I32,
         TypeToken::I32,
     ];
+
+    for token in &top_level_scope.tokens {
+        println!("{}", token);
+    }
+
 
     for (index, token) in top_level_scope.tokens.iter().enumerate() {
         match token {

@@ -411,7 +411,8 @@ impl Expression {
                             return Err(InferTypeError::IllegalDereference(*value.clone(), code_line.clone()));
                         },
                         PrefixArithmetic::Cast(casting_to) => {
-                            value_type = TypeToken::from_str(&format!("{current_pointer_arithmetic}{}", casting_to))?;
+                            value_type = TypeToken::from_str(&casting_to.to_string())?;
+                            // value_type = TypeToken::from_str(&format!("{current_pointer_arithmetic}{}", casting_to))?;
                         },
                         PrefixArithmetic::Operation(_) => {}
                     }
@@ -427,8 +428,12 @@ impl Expression {
             };
         }
 
-        if let Some(lhs) = &self.lhs {
-            if let Some(rhs) = &self.rhs {
+        Self::check_operator_compatibility(self.to_string(), &self.lhs, self.operator.clone(), &self.rhs, context, code_line)
+    }
+
+    fn check_operator_compatibility(error_message: String, lhs: &Option<Box<Expression>>, operator: Operator, rhs: &Option<Box<Expression>>, context: &StaticTypeContext, code_line: &CodeLine) -> Result<TypeToken, InferTypeError> {
+        if let Some(lhs) = &lhs {
+            if let Some(rhs) = &rhs {
                 let lhs_type = lhs.traverse_type_resulted(context, code_line)?;
                 let rhs_type = rhs.traverse_type_resulted(context, code_line)?;
 
@@ -460,15 +465,15 @@ impl Expression {
                 base_type_matrix.insert((TypeToken::Bool, Operator::Mul, TypeToken::Bool), TypeToken::Bool);
                 base_type_matrix.insert((TypeToken::Bool, Operator::Div, TypeToken::Bool), TypeToken::Bool);
 
-                if let Some(result_type) = base_type_matrix.get(&(lhs_type.clone(), self.operator.clone(), rhs_type.clone())) {
+                if let Some(result_type) = base_type_matrix.get(&(lhs_type.clone(), operator.clone(), rhs_type.clone())) {
                     return Ok(result_type.clone());
                 }
 
-                return Err(InferTypeError::TypesNotCalculable(lhs_type, self.operator.clone(), rhs_type, code_line.clone()));
+                return Err(InferTypeError::TypesNotCalculable(lhs_type, operator, rhs_type, code_line.clone()));
             }
         }
 
-        Err(InferTypeError::UnresolvedReference(self.to_string(), code_line.clone()))
+        Err(InferTypeError::UnresolvedReference(error_message, code_line.clone()))
     }
 
     pub fn set(&mut self, lhs: Option<Box<Expression>>, operation: Operator, rhs: Option<Box<Expression>>, value: Option<Box<AssignableToken>>) {
@@ -479,17 +484,17 @@ impl Expression {
         self.prefix_arithmetic = vec![];
     }
 
-    pub fn set_keep_arithmetic(&mut self, lhs: Option<Box<Expression>>, operation: Operator, rhs: Option<Box<Expression>>, value: Option<Box<AssignableToken>>, positive: bool, prefix_arithmetic: Vec<PrefixArithmetic>) {
-        self.lhs = lhs;
-        self.rhs = rhs;
-        self.operator = operation;
-        self.positive = positive;
-        self.value = value;
-
-        for prefix in prefix_arithmetic {
-            self.prefix_arithmetic.push(prefix);
-        }
-    }
+    // pub fn set_keep_arithmetic(&mut self, lhs: Option<Box<Expression>>, operation: Operator, rhs: Option<Box<Expression>>, value: Option<Box<AssignableToken>>, positive: bool, prefix_arithmetic: Vec<PrefixArithmetic>) {
+    //     self.lhs = lhs;
+    //     self.rhs = rhs;
+    //     self.operator = operation;
+    //     self.positive = positive;
+    //     self.value = value;
+    //
+    //     for prefix in prefix_arithmetic {
+    //         self.prefix_arithmetic.push(prefix);
+    //     }
+    // }
 
     pub fn flip_value(&mut self) {
         if let Some(v) = &mut self.value {

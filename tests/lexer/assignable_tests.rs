@@ -214,7 +214,14 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
         (true, "a**b".to_string(), Some(Expression {
             lhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, prefix_arithmetic: vec![], value: Some(Box::new(AssignableToken::NameToken(NameToken { name: String::from("a") }))), positive: true })),
             operator: Operator::Mul,
-            rhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, prefix_arithmetic: vec![PrefixArithmetic::PointerArithmetic(PointerArithmetic::Asterics)], value: Some(Box::new(AssignableToken::NameToken(NameToken { name: String::from("b") }))), positive: true })),
+            rhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, prefix_arithmetic: vec![PrefixArithmetic::PointerArithmetic(PointerArithmetic::Asterics)], value: Some(Box::new(AssignableToken::ArithmeticEquation(Expression {
+                lhs: None,
+                rhs: None,
+                operator: Operator::Noop,
+                prefix_arithmetic: vec![],
+                value: Some(Box::new(AssignableToken::NameToken(NameToken { name: String::from("b") }))),
+                positive: true,
+            }))), positive: true })),
             value: None,
             positive: true,
             prefix_arithmetic: vec![],
