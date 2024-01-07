@@ -164,19 +164,14 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for VariableToken<ASSI
         target += &ASMBuilder::ident(&ASMBuilder::comment_line(&format!("{}", self)));
 
         if self.define && !self.assignable.is_stack_look_up(stack, meta) {
-            target += &ASMBuilder::ident_line(&format!("mov {}, {}", destination, self.assignable.to_asm(stack, meta)?));
+            target += &ASMBuilder::mov_ident_line(destination, self.assignable.to_asm(stack, meta)?);
         } else {
             let mut wrote_expression_to_target = false;
 
             match &self.assignable {
-                AssignableToken::ArithmeticEquation(eq) => {
+                AssignableToken::ArithmeticEquation(eq) | AssignableToken::BooleanEquation(eq)  => {
                     if eq.value.is_none() {
-                        target += &eq.to_asm(stack, meta)?.to_string();
-                        wrote_expression_to_target = true;
-                    }
-                }
-                AssignableToken::BooleanEquation(eq) => {
-                    if eq.value.is_none() {
+                        // target += &stack.reset_registers();
                         target += &eq.to_asm(stack, meta)?.to_string();
                         wrote_expression_to_target = true;
                     }
@@ -190,11 +185,11 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for VariableToken<ASSI
                 if !self.assignable.pointer_arithmetic().is_empty() {
                     target += &ASMBuilder::push(&self.assignable.to_asm(stack, meta)?);
                 } else {
-                    target += &ASMBuilder::ident_line(&format!("mov {register_destination}, {}", self.assignable.to_asm(stack, meta)?));
+                    target += &ASMBuilder::mov_ident_line(&register_destination, self.assignable.to_asm(stack, meta)?);
                 };
             }
 
-            target += &ASMBuilder::ident_line(&format!("mov {}, {}", destination, register_destination));
+            target += &ASMBuilder::mov_ident_line(destination, register_destination);
         }
 
 

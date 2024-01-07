@@ -1,6 +1,7 @@
 use crate::core::code_generator::{MetaInfo, ToASM};
 use crate::core::code_generator::ASMGenerateError;
 use crate::core::code_generator::asm_builder::{ASMBuilder};
+use crate::core::code_generator::registers::{Bit32, Bit64, GeneralPurposeRegister};
 use crate::core::code_generator::target_os::TargetOS;
 use crate::core::lexer::scope::Scope;
 use crate::core::lexer::static_type_context::StaticTypeContext;
@@ -13,6 +14,7 @@ pub struct StackLocation {
     pub name: NameToken,
 }
 
+
 /// a struct representing the current stack pointer and variables in the stack
 pub struct Stack {
     /// represents the current position on the stack
@@ -23,35 +25,22 @@ pub struct Stack {
     pub variables: Vec<StackLocation>,
     /// to create labels and avoid collisions in naming, a label count is used
     label_count: usize,
-    pub register_to_use: Vec<String>,
+    pub register_to_use: Vec<GeneralPurposeRegister>,
 }
 
 pub trait LastUnchecked<T> {
-    fn last_unchecked(&self) -> T;
+    type Error;
+    fn last(&self) -> Result<T, Self::Error>;
 }
 
-impl LastUnchecked<String> for Vec<String> {
-    fn last_unchecked(&self) -> String {
-        if let Some(last) = self.last() {
-            last.to_string()
+impl LastUnchecked<GeneralPurposeRegister> for Vec<GeneralPurposeRegister> {
+    type Error = ASMGenerateError;
+    fn last(&self) -> Result<GeneralPurposeRegister, Self::Error> {
+        if let [.., last] = &self[..] {
+            Ok(last.clone())
         } else {
-            String::from("")
+            Err(ASMGenerateError::InternalError(String::from("No register pushed to the general purpose register stack")))
         }
-    }
-}
-
-pub trait RegisterTransformation {
-    fn is_64_bit_register(&self) -> bool;
-    fn to_64_bit_register(&self) -> String;
-}
-
-impl RegisterTransformation for String {
-    fn is_64_bit_register(&self) -> bool {
-        self.starts_with(['r', 'R'])
-    }
-
-    fn to_64_bit_register(&self) -> String {
-        self.replacen('e', "r", 1)
     }
 }
 
@@ -62,20 +51,23 @@ impl Default for Stack {
             scopes: vec![],
             variables: Default::default(),
             label_count: 0,
-            register_to_use: vec!["eax".to_string()],
+            register_to_use: vec![Bit32::Eax.into()],
         }
     }
 }
 
 impl Stack {
-    pub fn _push_stack(&mut self, register: &str, size: usize) -> String {
-        self.stack_position += size;
-        format!("    push {register}\n")
-    }
+    pub fn _reset_registers(&self) -> String {
+        static REGISTERS: [Bit64; 4] = [Bit64::Rax, Bit64::Rcx, Bit64::Rdx, Bit64::Rdi];
+        let mut target = String::new();
 
-    pub fn _pop_stack(&mut self, register: &str, size: usize) -> String {
-        self.stack_position -= size;
-        format!("    pop {register}\n")
+        target += &ASMBuilder::ident_comment_line("Resetting registers");
+
+        for register in &REGISTERS {
+            target += &ASMBuilder::ident_line(&format!("xor {register}, {register}"));
+        }
+
+        target
     }
 
     pub fn create_label(&mut self) -> String {
@@ -162,7 +154,7 @@ impl ASMGenerator {
 
         label_header += &ASMBuilder::line(&format!("{entry_point_label}:"));
         label_header += &ASMBuilder::ident_line("push rbp");
-        label_header += &ASMBuilder::ident_line("mov rbp, rsp");
+        label_header += &ASMBuilder::mov_ident_line("rbp", "rsp");
 
         label_header += &ASMBuilder::ident(&ASMBuilder::comment_line("Reserve stack space as MS convention. Shadow stacking"));
 

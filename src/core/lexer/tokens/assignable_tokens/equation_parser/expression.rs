@@ -4,8 +4,8 @@ use std::str::FromStr;
 
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
-use crate::core::code_generator::generator::{LastUnchecked, RegisterTransformation, Stack};
-use crate::core::code_generator::register_destination::from_byte_size;
+use crate::core::code_generator::generator::{LastUnchecked, Stack};
+use crate::core::code_generator::registers::{Bit32, Bit64, GeneralPurposeRegister};
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::static_type_context::StaticTypeContext;
 use crate::core::lexer::tokens::assignable_token::AssignableToken;
@@ -24,9 +24,10 @@ pub enum PointerArithmetic {
 #[derive(Clone, PartialEq, Debug)]
 pub enum PrefixArithmetic {
     #[allow(unused)]
-    Operation(Operator), // For example the "-" like let a = -5;
+    Operation(Operator),
+    // For example the "-" like let a = -5;
     PointerArithmetic(PointerArithmetic),
-    Cast(TypeToken)
+    Cast(TypeToken),
 }
 
 #[derive(Clone, PartialEq)]
@@ -49,7 +50,15 @@ impl Expression {
             }
         }
 
-        return pointer_arithmetic;
+        pointer_arithmetic
+    }
+
+    pub fn pointer(&self) -> Option<PointerArithmetic> {
+        if let Some(PrefixArithmetic::PointerArithmetic(a)) = self.prefix_arithmetic.first() {
+            return Some(a.clone());
+        }
+
+        None
     }
 }
 
@@ -144,48 +153,15 @@ impl From<Option<Box<AssignableToken>>> for Expression {
 
 impl ToASM for Expression {
     fn to_asm(&self, stack: &mut Stack, meta: &mut MetaInfo) -> Result<String, ASMGenerateError> {
-        if let Some(value) = &self.value { // this means, no children are provided. this is the actual value
-            let pointer_iter = &self.pointers();
-            let mut pointed = false;
-            let mut inner_source = value.to_asm(stack, meta)?;
+        if let Some(value) = &self.value { // no lhs and rhs
             let mut target = String::new();
 
-
-            if self.is_pointer() {
-                target += &ASMBuilder::ident(&ASMBuilder::comment_line(&format!("{}{}", pointer_iter.iter().map(|a| match a {
-                    PointerArithmetic::Asterics => '*',
-                    PointerArithmetic::Ampersand => '&'
-                }).collect::<String>(), value)));
+            if let Some(pointer) = self.pointer() {
+                target += &ASMBuilder::push(&Self::pointer_arithmetic_to_asm(pointer, value, stack, meta)?);
+            } else {
+                target += &value.to_asm(stack, meta)?;
             }
 
-
-            for arithmetic in pointer_iter.iter().rev() {
-                let register_to_use = if !stack.register_to_use.last_unchecked().is_64_bit_register() {
-                    stack.register_to_use.last_unchecked().to_64_bit_register()
-                } else {
-                    stack.register_to_use.last_unchecked().to_string()
-                };
-
-                pointed = true;
-                match arithmetic {
-                    PointerArithmetic::Asterics => {
-                        target += &ASMBuilder::ident_line(
-                            &format!("mov {}, {}", register_to_use, inner_source)
-                        );
-                    }
-                    PointerArithmetic::Ampersand => {
-                        target += &ASMBuilder::ident_line(
-                            &format!("lea {}, {}", register_to_use, value.to_asm(stack, meta)?.replace("QWORD ", "").replace("DWORD ", ""))
-                        );
-                    }
-                }
-
-                inner_source = format!("QWORD [{}]", register_to_use);
-            }
-
-            if !pointed {
-                target += &ASMBuilder::push(&value.to_asm(stack, meta)?.to_string());
-            }
 
             return Ok(target);
         }
@@ -195,6 +171,7 @@ impl ToASM for Expression {
 
         match (&self.lhs, &self.rhs) {
             (Some(lhs), Some(rhs)) => {
+                // first optimization. use every register
                 if let (Some(inner_lhs_l), Some(inner_lhs_r), Some(inner_rhs_l), Some(inner_rhs_r)) = (&lhs.lhs, &lhs.rhs, &rhs.lhs, &rhs.rhs) {
                     if let (Some(_), Some(_), Some(_), Some(_)) = (
                         &inner_lhs_l.value,
@@ -202,108 +179,100 @@ impl ToASM for Expression {
                         &inner_rhs_l.value,
                         &inner_rhs_r.value) {
                         // two expressions containing two values
-                        stack.register_to_use.push("edi".to_string());
+                        stack.register_to_use.push(Bit32::Ecx.into());
                         target += &ASMBuilder::push(&lhs.to_asm(stack, meta)?.to_string());
                         stack.register_to_use.pop();
 
-                        stack.register_to_use.push("eax".to_string());
+                        stack.register_to_use.push(Bit32::Edi.into());
                         target += &ASMBuilder::push(&rhs.to_asm(stack, meta)?.to_string());
                         stack.register_to_use.pop();
 
-                        target += &ASMBuilder::ident_line(&format!("{} eax, edi", self.operator.to_asm(stack, meta)?));
+                        target += &ASMBuilder::ident_line(&format!("{} ecx, edi", self.operator.to_asm(stack, meta)?));
+                        target += &ASMBuilder::mov_ident_line(Bit32::Eax, Bit32::Ecx);
 
                         return Ok(target);
                     }
                 }
                 match (&lhs.value, &rhs.value) {
                     (Some(_), Some(_)) => { // 2 + 3
-                        let register_to_use_rhs = from_byte_size(rhs.byte_size(meta));
-                        let register_to_use_lhs = from_byte_size(lhs.byte_size(meta));
-                        assert_eq!(register_to_use_lhs, register_to_use_rhs); // todo: in type check make sure this is correct by checking if two types have the same byte length
-
-                        let target_register = register_to_use_rhs;
-
-                        let source = if lhs.is_pointer() {
+                        stack.register_to_use.push(Bit32::Eax.into());
+                        let destination_register = stack.register_to_use.last()?;
+                        if lhs.is_pointer() {
                             target += &ASMBuilder::push(&lhs.to_asm(stack, meta)?);
-                            format!("DWORD [{}]", stack.register_to_use.last_unchecked().to_64_bit_register()).to_string()
                         } else {
-                            lhs.to_asm(stack, meta)?
+                            target += &ASMBuilder::mov_ident_line(&destination_register, lhs.to_asm(stack, meta)?);
                         };
+                        stack.register_to_use.pop();
 
-                        target += &ASMBuilder::ident_line(&format!("mov {}, {}", target_register, source));
-
-                        let source = if rhs.is_pointer() {
-                            stack.register_to_use.push("rdx".to_string());
+                        stack.register_to_use.push(Bit32::Edx.into());
+                        let target_register = stack.register_to_use.last()?;
+                        if rhs.is_pointer() {
                             target += &ASMBuilder::push(&rhs.to_asm(stack, meta)?);
-                            stack.register_to_use.pop();
-
-                            "DWORD [rdx]".to_string()
+                            target += &ASMBuilder::ident_line(&format!("{} {destination_register}, {target_register}", self.operator.to_asm(stack, meta)?));
                         } else {
-                            rhs.to_asm(stack, meta)?
+                            target += &ASMBuilder::ident_line(&format!("{} {destination_register}, {}", self.operator.to_asm(stack, meta)?, &rhs.to_asm(stack, meta)?));
                         };
-
-                        target += &ASMBuilder::ident_line(&format!("{} {}, {}", self.operator.to_asm(stack, meta)?, target_register, source));
-                        target += &ASMBuilder::ident_line(&format!("mov {}, {}", stack.register_to_use.last_unchecked(), target_register));
+                        stack.register_to_use.pop();
+                        target += &ASMBuilder::mov_ident_line(stack.register_to_use.last()?, &destination_register);
                     }
                     (None, Some(_)) => { // (3 + 2) + 5
-                        stack.register_to_use.push("eax".to_string());
+                        stack.register_to_use.push(Bit32::Eax.into());
+                        let destination_register = stack.register_to_use.last()?;
                         target += &ASMBuilder::push(&lhs.to_asm(stack, meta)?.to_string());
                         stack.register_to_use.pop();
 
-                        stack.register_to_use.push("edx".to_string());
-
-                        let source = if rhs.is_pointer() {
+                        stack.register_to_use.push(Bit32::Edx.into());
+                        let target_register = stack.register_to_use.last()?;
+                        if rhs.is_pointer() {
                             target += &ASMBuilder::push(&rhs.to_asm(stack, meta)?);
-                            "DWORD [rdx]".to_string()
+                            target += &ASMBuilder::ident_line(&format!("{} {}, {}", self.operator.to_asm(stack, meta)?, Bit32::Eax, target_register));
                         } else {
-                            rhs.to_asm(stack, meta)?
+                            target += &ASMBuilder::ident_line(&format!("{} {destination_register}, {}", self.operator.to_asm(stack, meta)?, rhs.to_asm(stack, meta)?));
                         };
-
-                        target += &ASMBuilder::ident_line(&format!("mov {}, {}", stack.register_to_use.last_unchecked(), source));
                         stack.register_to_use.pop();
-                        target += &ASMBuilder::ident_line(&format!("{} eax, edx", self.operator.to_asm(stack, meta)?));
+                        target += &ASMBuilder::mov_ident_line(stack.register_to_use.last()?, destination_register);
                     }
                     (Some(_), None) => { // 5 + (3 + 2)
-                        stack.register_to_use.push("edx".to_string());
+                        stack.register_to_use.push(Bit32::Edx.into());
+                        let target_register = stack.register_to_use.last()?;
                         target += &ASMBuilder::push(&rhs.to_asm(stack, meta)?.to_string());
                         stack.register_to_use.pop();
 
-                        stack.register_to_use.push("eax".to_string());
-
-                        let source = if lhs.is_pointer() {
+                        stack.register_to_use.push(Bit32::Eax.into());
+                        let destination_register = stack.register_to_use.last()?;
+                        if lhs.is_pointer() {
                             target += &ASMBuilder::push(&lhs.to_asm(stack, meta)?);
-                            "DWORD [rax]".to_string()
+                            target += &ASMBuilder::ident_line(&format!("{} {}, {}", self.operator.to_asm(stack, meta)?, Bit32::Eax, Bit32::Edx));
                         } else {
-                            lhs.to_asm(stack, meta)?
+                            target += &ASMBuilder::mov_ident_line(&destination_register, lhs.to_asm(stack, meta)?);
+                            target += &ASMBuilder::ident_line(&format!("{} {destination_register}, {}", self.operator.to_asm(stack, meta)?, target_register));
                         };
-
-                        target += &ASMBuilder::ident_line(&format!("mov {}, {}", stack.register_to_use.last_unchecked(), source));
                         stack.register_to_use.pop();
-
-                        target += &ASMBuilder::ident_line(&format!("{} eax, edx", self.operator.to_asm(stack, meta)?));
+                        target += &ASMBuilder::mov_ident_line(stack.register_to_use.last()?, Bit32::Eax);
                     }
-                    (None, None) => { // (5 + 3) + (9 + 8)
-                        stack.register_to_use.push("edi".to_string());
+                    (None, None) => { // ((1 + 2) + (3 + 4)) + ((5 + 6) + (7 + 8)) // any depth
+                        stack.register_to_use.push(Bit32::Edi.into());
                         target += &ASMBuilder::push(&lhs.to_asm(stack, meta)?.to_string());
                         stack.register_to_use.pop();
 
-                        let register_to_push = if let Some(last_instruction) = extract_last_instruction(&target) {
-                            let mut r = String::from("rdi");
+                        let register_to_push: GeneralPurposeRegister = if let Some(last_instruction) = extract_last_instruction(&target) {
+                            let mut r = Bit64::Rdi.into();
+
                             if let Some(space_index) = last_instruction.chars().position(|a| a == ' ') {
                                 if let Some(comma_index) = last_instruction.chars().position(|a| a == ',') {
-                                    r = last_instruction[space_index + 1..comma_index].to_string()
+                                    r = GeneralPurposeRegister::from_str(&last_instruction[space_index + 1..comma_index])?.to_64_bit_register();
                                 }
                             }
 
                             r
                         } else {
-                            "rdi".to_string()
-                        }.to_64_bit_register();
+                            Bit64::Rdi.into()
+                        };
 
                         target += &ASMBuilder::ident_line(&format!("push {register_to_push}"));
                         target += &ASMBuilder::ident_line(&format!("xor {register_to_push}, {register_to_push}"));
 
-                        stack.register_to_use.push("eax".to_string());
+                        stack.register_to_use.push(Bit32::Eax.into());
                         target += &ASMBuilder::push(&rhs.to_asm(stack, meta)?.to_string());
                         stack.register_to_use.pop();
 
@@ -366,6 +335,45 @@ impl Expression {
         }
     }
 
+    fn pointer_arithmetic_to_asm(pointer_arithmetic: PointerArithmetic, value: &AssignableToken, stack: &mut Stack, meta: &mut MetaInfo) -> Result<String, ASMGenerateError> {
+        let mut target = String::new();
+        let mut inner_source = String::new();
+        let register_to_use = stack.register_to_use.last()?.to_64_bit_register().to_string();
+
+
+        let mut child_is_pointer = false;
+
+        if let Some(pointer) = value.pointer() {
+            if let AssignableToken::ArithmeticEquation(a) = value {
+                if let Some(child) = &a.value {
+                    // must be met, if the value has a pointer itself
+                    target += &ASMBuilder::push(&Self::pointer_arithmetic_to_asm(pointer, child, stack, meta)?);
+                    inner_source = format!("QWORD [{}]", register_to_use);
+                    child_is_pointer = true;
+                }
+            }
+        } else {
+            inner_source = value.to_asm(stack, meta)?;
+        }
+
+        match pointer_arithmetic {
+            PointerArithmetic::Asterics => {
+                target += &ASMBuilder::mov_ident_line(&register_to_use, inner_source);
+                if !child_is_pointer {
+                    target += &ASMBuilder::mov_ident_line(&register_to_use, format!("QWORD [{}]", register_to_use));
+                }
+            }
+            PointerArithmetic::Ampersand => {
+                target += &ASMBuilder::ident_line(
+                    &format!("lea {}, {}", register_to_use, inner_source.replace("QWORD ", "").replace("DWORD ", ""))
+                );
+            }
+        }
+
+
+        Ok(target)
+    }
+
     pub fn is_pointer(&self) -> bool {
         !self.pointers().is_empty()
     }
@@ -402,18 +410,18 @@ impl Expression {
                             } else {
                                 return Err(InferTypeError::IllegalDereference(*value.clone(), code_line.clone()));
                             }
-                        },
+                        }
                         PrefixArithmetic::PointerArithmetic(PointerArithmetic::Ampersand) => {
                             value_type = value_type.push_pointer();
                         }
                         PrefixArithmetic::PointerArithmetic(PointerArithmetic::Asterics) => {
                             // just using & in front of non pointer types is illegal. Dereferencing non pointers doesnt make any sense
                             return Err(InferTypeError::IllegalDereference(*value.clone(), code_line.clone()));
-                        },
+                        }
                         PrefixArithmetic::Cast(casting_to) => {
                             value_type = TypeToken::from_str(&casting_to.to_string())?;
                             // value_type = TypeToken::from_str(&format!("{current_pointer_arithmetic}{}", casting_to))?;
-                        },
+                        }
                         PrefixArithmetic::Operation(_) => {}
                     }
                 }

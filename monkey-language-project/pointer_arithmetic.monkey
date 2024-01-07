@@ -6,6 +6,7 @@ let b: *i32 = &a;
 let c: i32 = 13;
 let d: *i32 = &c;
 
-let addition = (f32) (((1 + 2) + (3 + 4)) + (5 + 6));
+let addition = (((*d + *b) + (*b + *d)) + (*b + *b)) + ((*b + (*b + *b)) + (*b + (*d + *b)));
+printf("%d", addition);
 
-ExitProcess(addition);
+ExitProcess(0);

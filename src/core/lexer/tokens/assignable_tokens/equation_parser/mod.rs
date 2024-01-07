@@ -189,7 +189,7 @@ impl<T: EquationTokenOptions> EquationToken<T> {
             return a == expected_char;
         }
 
-        return false;
+        false
     }
 
     /// collects until the specified character is found and checks each substring, if a certain predicate is met
@@ -197,10 +197,8 @@ impl<T: EquationTokenOptions> EquationToken<T> {
     fn collect_until(&self, offset: usize, expected_last_char: char, predicate: fn(&str) -> bool) -> Option<(String, usize)> {
         let starting_position = (self.pos as usize) + offset;
         let mut end_position = starting_position;
-        let mut iter = self.source_code.chars().skip(starting_position);
 
-
-        while let Some(char) = iter.next() {
+        for char in self.source_code.chars().skip(starting_position) {
             end_position += 1;
 
             let current_string = self.source_code.chars()
@@ -256,7 +254,7 @@ impl<T: EquationTokenOptions> EquationToken<T> {
 
                 if !self.peek(')') && self.pos < self.source_code.chars().count() as i32 {
                     let value = self.parse_expression()?;
-                    x = Box::new(Expression::default());
+                    x = Box::<Expression>::default();
 
                     x.value = Some(Box::new(AssignableToken::ArithmeticEquation(*value)));
                     x.prefix_arithmetic.push(PrefixArithmetic::Cast(TypeToken::from_str(&cast_type)?));
@@ -270,7 +268,7 @@ impl<T: EquationTokenOptions> EquationToken<T> {
 
         if self.eat(Some('*')) {
             let value = self.parse_factor()?;
-            x = Box::new(Expression::default());
+            x = Box::<Expression>::default();
 
             x.value = Some(Box::new(AssignableToken::ArithmeticEquation(*value)));
             x.prefix_arithmetic.push(PrefixArithmetic::PointerArithmetic(PointerArithmetic::Asterics));
@@ -285,7 +283,7 @@ impl<T: EquationTokenOptions> EquationToken<T> {
 
         if self.eat(Some('&')) {
             let value = self.parse_factor()?;
-            x = Box::new(Expression::default());
+            x = Box::<Expression>::default();
 
             x.value = Some(Box::new(AssignableToken::ArithmeticEquation(*value)));
             x.prefix_arithmetic.push(PrefixArithmetic::PointerArithmetic(PointerArithmetic::Ampersand));

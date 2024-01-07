@@ -44,6 +44,15 @@ impl AssignableToken {
         self.infer_type_with_context(&StaticTypeContext::default(), code_line).ok()
     }
 
+    pub fn _arithmetic(&self) -> Vec<PrefixArithmetic> {
+        match self {
+            AssignableToken::ArithmeticEquation(a) | AssignableToken::BooleanEquation(a) => {
+                a.prefix_arithmetic.clone()
+            },
+            _ => vec![]
+        }
+    }
+
     pub fn pointer_arithmetic(&self) -> Vec<PointerArithmetic> {
         match self {
             AssignableToken::ArithmeticEquation(a) | AssignableToken::BooleanEquation(a) => {
@@ -54,9 +63,18 @@ impl AssignableToken {
                     }
                 }
 
-                return pointer_arithmetic;
+                pointer_arithmetic
             },
             _ => vec![]
+        }
+    }
+
+    pub fn pointer(&self) -> Option<PointerArithmetic> {
+        match self {
+            AssignableToken::ArithmeticEquation(a) | AssignableToken::BooleanEquation(a) => {
+                a.pointer()
+            },
+            _ => None
         }
     }
 

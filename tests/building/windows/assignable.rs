@@ -41,7 +41,6 @@ fn expression_assign() -> anyhow::Result<()> {
     ; (5 Add 3)
     mov eax, 5
     add eax, 3
-    mov eax, eax
     mov DWORD [rbp - 4], eax
     "#;
 
@@ -60,9 +59,7 @@ fn expression_assign() -> anyhow::Result<()> {
     ; (5 Add 2)
     mov eax, 5
     add eax, 2
-    mov eax, eax
-    mov edx, 8
-    add eax, edx
+    add eax, 8
     mov DWORD [rbp - 4], eax
     "#;
 
@@ -101,17 +98,18 @@ fn expression_assign() -> anyhow::Result<()> {
     ; (5 Add 3)
     mov eax, 5
     add eax, 3
-    mov edi, eax
+    mov ecx, eax
     ; (2 Add 8)
     mov eax, 2
     add eax, 8
-    mov eax, eax
-    add eax, edi
+    mov edi, eax
+    add ecx, edi
+    mov eax, ecx
     mov DWORD [rbp - 4], eax
     "#;
 
-    println!("{}", asm_result);
 
+    println!("{}", asm_result);
     assert_eq!(expected.trim(), asm_result.trim());
 
     let code = r#"
@@ -177,7 +175,6 @@ main:
     ; let a: i32 = 5
     mov DWORD [rbp - 4], 5
     ; let b: *i32 = &a
-    ; &a
     lea rax, [rbp - 4]
     mov QWORD [rbp - 12], rax
     leave
@@ -239,39 +236,35 @@ main:
     ; let a: i32 = 5
     mov DWORD [rbp - 4], 5
     ; let b: *i32 = &a
-    ; &a
     lea rax, [rbp - 4]
     mov QWORD [rbp - 12], rax
     ; let c: **i32 = &b
-    ; &b
     lea rax, [rbp - 12]
     mov QWORD [rbp - 20], rax
     ; let d: *i32 = *c
-    ; *c
     mov rax, QWORD [rbp - 20]
+    mov rax, QWORD [rax]
     mov QWORD [rbp - 28], rax
     ; let ref: **i32 = c
     mov rax, QWORD [rbp - 20]
     mov QWORD [rbp - 36], rax
     ; let f: i32 = *d
-    ; *d
     mov rax, QWORD [rbp - 28]
+    mov rax, QWORD [rax]
     mov DWORD [rbp - 40], eax
     ; let g: i32 = **c
-    ; **c
     mov rax, QWORD [rbp - 20]
+    mov rax, QWORD [rax]
     mov rax, QWORD [rax]
     mov DWORD [rbp - 44], eax
     ; let format: *string = "Das ist ein Test %d"
     mov QWORD [rbp - 52], .label0
     mov rcx, QWORD [rbp - 52] ; Parameter (format)
-    ; *b
     mov rax, QWORD [rbp - 12]
     mov rax, QWORD [rax]
     mov rdx, rax ; Parameter (*b)
     ; printf(format, *b)
     call printf
-    ; *b
     mov rax, QWORD [rbp - 12]
     mov rax, QWORD [rax]
     mov rcx, rax ; Parameter (*b)
@@ -316,20 +309,19 @@ main:
     ; let a: i32 = 5
     mov DWORD [rbp - 4], 5
     ; let b: *i32 = &a
-    ; &a
     lea rax, [rbp - 4]
     mov QWORD [rbp - 12], rax
     ; let addition: i32 = (*b Add 1)
     ; (*b Add 1)
-    ; *b
     mov rax, QWORD [rbp - 12]
-    mov eax, DWORD [rax]
+    mov rax, QWORD [rax]
     add eax, 1
-    mov eax, eax
     mov DWORD [rbp - 16], eax
     leave
     ret
     "#;
+
+    println!("{}", asm_result);
 
     assert_eq!(expected.trim(), asm_result.trim());
     Ok(())
@@ -369,19 +361,18 @@ main:
     ; let a: i32 = 5
     mov DWORD [rbp - 4], 5
     ; let b: *i32 = &a
-    ; &a
     lea rax, [rbp - 4]
     mov QWORD [rbp - 12], rax
     ; let addition: i32 = (1 Add *b)
     ; (1 Add *b)
     mov eax, 1
-    ; *b
     mov rdx, QWORD [rbp - 12]
-    add eax, DWORD [rdx]
-    mov eax, eax
+    mov rdx, QWORD [rdx]
+    add eax, edx
     mov DWORD [rbp - 16], eax
     leave
     ret
+
     "#;
 
     assert_eq!(expected.trim(), asm_result.trim());
@@ -423,18 +414,15 @@ main:
     ; let a: i32 = 5
     mov DWORD [rbp - 4], 5
     ; let b: *i32 = &a
-    ; &a
     lea rax, [rbp - 4]
     mov QWORD [rbp - 12], rax
     ; let addition: i32 = (*b Add *b)
     ; (*b Add *b)
-    ; *b
     mov rax, QWORD [rbp - 12]
-    mov eax, DWORD [rax]
-    ; *b
+    mov rax, QWORD [rax]
     mov rdx, QWORD [rbp - 12]
-    add eax, DWORD [rdx]
-    mov eax, eax
+    mov rdx, QWORD [rdx]
+    add eax, edx
     mov DWORD [rbp - 16], eax
     leave
     ret
@@ -475,7 +463,6 @@ main:
     ; let a: i32 = 5
     mov DWORD [rbp - 4], 5
     ; let b: *i32 = &a
-    ; &a
     lea rax, [rbp - 4]
     mov QWORD [rbp - 12], rax
     ; let addition: i32 = (*b Add (0 Add 1))
@@ -484,15 +471,15 @@ main:
     mov eax, 0
     add eax, 1
     mov edx, eax
-    ; *b
     mov rax, QWORD [rbp - 12]
-    mov eax, DWORD [rax]
+    mov rax, QWORD [rax]
     add eax, edx
     mov DWORD [rbp - 16], eax
     leave
     ret
     "#;
 
+    println!("{}", asm_result);
     assert_eq!(expected.trim(), asm_result.trim());
     Ok(())
 }
@@ -531,7 +518,6 @@ main:
     ; let a: i32 = 5
     mov DWORD [rbp - 4], 5
     ; let b: *i32 = &a
-    ; &a
     lea rax, [rbp - 4]
     mov QWORD [rbp - 12], rax
     ; let addition: i32 = ((0 Add 1) Add *b)
@@ -539,10 +525,8 @@ main:
     ; (0 Add 1)
     mov eax, 0
     add eax, 1
-    mov eax, eax
-    ; *b
     mov rdx, QWORD [rbp - 12]
-    mov edx, DWORD [rdx]
+    mov rdx, QWORD [rdx]
     add eax, edx
     mov DWORD [rbp - 16], eax
     leave
@@ -587,28 +571,26 @@ main:
     ; let a: i32 = 5
     mov DWORD [rbp - 4], 5
     ; let b: *i32 = &a
-    ; &a
     lea rax, [rbp - 4]
     mov QWORD [rbp - 12], rax
     ; let addition: i32 = ((*b Add *b) Add (*b Add *b))
     ; ((*b Add *b) Add (*b Add *b))
     ; (*b Add *b)
-    ; *b
-    mov rdi, QWORD [rbp - 12]
-    mov eax, DWORD [rdi]
-    ; *b
-    mov rdx, QWORD [rbp - 12]
-    add eax, DWORD [rdx]
-    mov edi, eax
-    ; (*b Add *b)
-    ; *b
     mov rax, QWORD [rbp - 12]
-    mov eax, DWORD [rax]
-    ; *b
+    mov rax, QWORD [rax]
     mov rdx, QWORD [rbp - 12]
-    add eax, DWORD [rdx]
-    mov eax, eax
-    add eax, edi
+    mov rdx, QWORD [rdx]
+    add eax, edx
+    mov ecx, eax
+    ; (*b Add *b)
+    mov rax, QWORD [rbp - 12]
+    mov rax, QWORD [rax]
+    mov rdx, QWORD [rbp - 12]
+    mov rdx, QWORD [rdx]
+    add eax, edx
+    mov edi, eax
+    add ecx, edi
+    mov eax, ecx
     mov DWORD [rbp - 16], eax
     leave
     ret
@@ -656,13 +638,11 @@ main:
     ; let a: i32 = 5
     mov DWORD [rbp - 4], 5
     ; let b: *i32 = &a
-    ; &a
     lea rax, [rbp - 4]
     mov QWORD [rbp - 12], rax
     ; let c: i32 = 13
     mov DWORD [rbp - 16], 13
     ; let d: *i32 = &c
-    ; &c
     lea rax, [rbp - 16]
     mov QWORD [rbp - 24], rax
     ; let addition: i32 = ((((*d Add *b) Add (*b Add *d)) Add (*b Add *b)) Add ((*b Add (*b Add *b)) Add (*b Add (*d Add *b))))
@@ -670,32 +650,29 @@ main:
     ; (((*d Add *b) Add (*b Add *d)) Add (*b Add *b))
     ; ((*d Add *b) Add (*b Add *d))
     ; (*d Add *b)
-    ; *d
-    mov rdi, QWORD [rbp - 24]
-    mov eax, DWORD [rdi]
-    ; *b
+    mov rax, QWORD [rbp - 24]
+    mov rax, QWORD [rax]
     mov rdx, QWORD [rbp - 12]
-    add eax, DWORD [rdx]
-    mov edi, eax
+    mov rdx, QWORD [rdx]
+    add eax, edx
+    mov ecx, eax
     ; (*b Add *d)
-    ; *b
     mov rax, QWORD [rbp - 12]
-    mov eax, DWORD [rax]
-    ; *d
+    mov rax, QWORD [rax]
     mov rdx, QWORD [rbp - 24]
-    add eax, DWORD [rdx]
-    mov eax, eax
-    add eax, edi
+    mov rdx, QWORD [rdx]
+    add eax, edx
+    mov edi, eax
+    add ecx, edi
+    mov eax, ecx
     push rax
     xor rax, rax
     ; (*b Add *b)
-    ; *b
     mov rax, QWORD [rbp - 12]
-    mov eax, DWORD [rax]
-    ; *b
+    mov rax, QWORD [rax]
     mov rdx, QWORD [rbp - 12]
-    add eax, DWORD [rdx]
-    mov eax, eax
+    mov rdx, QWORD [rdx]
+    add eax, edx
     push rax
     xor rax, rax
     pop rdi
@@ -706,31 +683,28 @@ main:
     ; ((*b Add (*b Add *b)) Add (*b Add (*d Add *b)))
     ; (*b Add (*b Add *b))
     ; (*b Add *b)
-    ; *b
-    mov rdx, QWORD [rbp - 12]
-    mov eax, DWORD [rdx]
-    ; *b
-    mov rdx, QWORD [rbp - 12]
-    add eax, DWORD [rdx]
-    mov edx, eax
-    ; *b
     mov rax, QWORD [rbp - 12]
-    mov eax, DWORD [rax]
+    mov rax, QWORD [rax]
+    mov rdx, QWORD [rbp - 12]
+    mov rdx, QWORD [rdx]
     add eax, edx
-    push rax
-    xor rax, rax
+    mov edx, eax
+    mov rax, QWORD [rbp - 12]
+    mov rax, QWORD [rax]
+    add eax, edx
+    mov edi, eax
+    push rdi
+    xor rdi, rdi
     ; (*b Add (*d Add *b))
     ; (*d Add *b)
-    ; *d
-    mov rdx, QWORD [rbp - 24]
-    mov eax, DWORD [rdx]
-    ; *b
+    mov rax, QWORD [rbp - 24]
+    mov rax, QWORD [rax]
     mov rdx, QWORD [rbp - 12]
-    add eax, DWORD [rdx]
+    mov rdx, QWORD [rdx]
+    add eax, edx
     mov edx, eax
-    ; *b
     mov rax, QWORD [rbp - 12]
-    mov eax, DWORD [rax]
+    mov rax, QWORD [rax]
     add eax, edx
     push rax
     xor rax, rax

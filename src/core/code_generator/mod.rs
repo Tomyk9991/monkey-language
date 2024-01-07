@@ -12,6 +12,7 @@ pub mod target_os;
 pub mod asm_builder;
 pub mod conventions;
 pub mod register_destination;
+pub mod registers;
 
 
 #[derive(Debug)]
@@ -19,6 +20,7 @@ pub enum ASMGenerateError {
     _VariableAlreadyUsed { name: String, code_line: CodeLine },
     UnresolvedReference { name: String, code_line: CodeLine },
     TypeNotInferrable(InferTypeError),
+    InternalError(String),
     AssignmentNotImplemented { assignable_token: AssignableToken, },
     NotImplemented { token: String, },
 }
@@ -37,6 +39,7 @@ impl Display for ASMGenerateError {
             ASMGenerateError::AssignmentNotImplemented { assignable_token } => write!(f, "ASM implementation for this Assignment is missing: {}", assignable_token),
             ASMGenerateError::NotImplemented { token } => write!(f, "Cannot build ASM from this token: {}", token),
             ASMGenerateError::TypeNotInferrable(infer) => write!(f, "{}", infer),
+            ASMGenerateError::InternalError(message) => write!(f, "Internal Error: {}", message)
         }
     }
 }
