@@ -72,7 +72,7 @@ impl Display for Error {
             Error::FunctionNotFound => "Not a function".to_string(),
             Error::SourceEmpty => "Source code is empty".to_string(),
             Error::CannotParse => "Cannot parse".to_string(),
-            Error::NotAType(f) => format!("Unexpeted type: {f}")
+            Error::NotAType(f) => format!("Unexpected type: {f}")
         })
     }
 }
