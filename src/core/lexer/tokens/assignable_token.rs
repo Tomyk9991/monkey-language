@@ -44,15 +44,6 @@ impl AssignableToken {
         self.infer_type_with_context(&StaticTypeContext::default(), code_line).ok()
     }
 
-    pub fn _arithmetic(&self) -> Vec<PrefixArithmetic> {
-        match self {
-            AssignableToken::ArithmeticEquation(a) | AssignableToken::BooleanEquation(a) => {
-                a.prefix_arithmetic.clone()
-            },
-            _ => vec![]
-        }
-    }
-
     pub fn pointer_arithmetic(&self) -> Vec<PointerArithmetic> {
         match self {
             AssignableToken::ArithmeticEquation(a) | AssignableToken::BooleanEquation(a) => {
@@ -121,8 +112,8 @@ impl AssignableToken {
     pub fn infer_type_with_context(&self, context: &StaticTypeContext, code_line: &CodeLine) -> Result<TypeToken, InferTypeError> {
         match self {
             AssignableToken::String(_) => Ok(type_token::common::string()),
-            AssignableToken::IntegerToken(_) => Ok(TypeToken::I32),
-            AssignableToken::FloatToken(_) => Ok(TypeToken::F32),
+            AssignableToken::IntegerToken(a) => Ok(TypeToken::Integer(a.ty.clone())),
+            AssignableToken::FloatToken(a) => Ok(TypeToken::Float(a.ty.clone())),
             AssignableToken::BooleanToken(_) => Ok(TypeToken::Bool),
             AssignableToken::Object(object) => Ok(TypeToken::Custom(NameToken { name: object.ty.to_string() })),
             AssignableToken::ArithmeticEquation(arithmetic_expression) => Ok(arithmetic_expression.traverse_type_resulted(context, code_line)?),

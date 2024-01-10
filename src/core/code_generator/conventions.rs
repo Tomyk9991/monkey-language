@@ -30,14 +30,14 @@ fn windows_calling_convention(meta: &MetaInfo, calling_arguments: &[AssignableTo
         let calling_ty: TypeToken = calling_argument.infer_type_with_context(&meta.static_type_information, &meta.code_line)?;
 
         match calling_ty {
-            TypeToken::I32 | TypeToken::Bool | TypeToken::Custom(_) => {
+            TypeToken::Integer(_) | TypeToken::Bool | TypeToken::Custom(_) => {
                 if index < 4 {
                     result.push(POINTER_ORDER[index].clone());
                 } else {
                     result.push(CallingRegister::Stack);
                 }
             }
-            TypeToken::F32 => {
+            TypeToken::Float(_) => {
                 if index < 4 {
                     result.push(FLOAT_ORDER[index].clone());
                 } else {

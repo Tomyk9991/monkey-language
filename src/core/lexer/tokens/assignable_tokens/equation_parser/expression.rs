@@ -11,7 +11,7 @@ use crate::core::lexer::static_type_context::StaticTypeContext;
 use crate::core::lexer::tokens::assignable_token::AssignableToken;
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::operator::Operator;
 use crate::core::lexer::tokens::name_token::NameToken;
-use crate::core::lexer::type_token::{InferTypeError, TypeToken};
+use crate::core::lexer::type_token::{Float, InferTypeError, Integer, TypeToken};
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum PointerArithmetic {
@@ -36,7 +36,7 @@ pub struct Expression {
     pub lhs: Option<Box<Expression>>,
     pub rhs: Option<Box<Expression>>,
     pub operator: Operator,
-    pub prefix_arithmetic: Vec<PrefixArithmetic>,
+    pub prefix_arithmetic: Option<PrefixArithmetic>,
     pub value: Option<Box<AssignableToken>>,
     pub positive: bool,
 }
@@ -54,7 +54,7 @@ impl Expression {
     }
 
     pub fn pointer(&self) -> Option<PointerArithmetic> {
-        if let Some(PrefixArithmetic::PointerArithmetic(a)) = self.prefix_arithmetic.first() {
+        if let Some(PrefixArithmetic::PointerArithmetic(a)) = &self.prefix_arithmetic {
             return Some(a.clone());
         }
 
@@ -70,7 +70,7 @@ impl Default for Expression {
             operator: Operator::Noop,
             value: None,
             positive: true,
-            prefix_arithmetic: vec![],
+            prefix_arithmetic: None,
         }
     }
 }
@@ -329,7 +329,7 @@ impl Expression {
             lhs,
             rhs,
             operator,
-            prefix_arithmetic: vec![],
+            prefix_arithmetic: None,
             value,
             positive: true,
         }
@@ -385,7 +385,7 @@ impl Expression {
     pub fn traverse_type_resulted(&self, context: &StaticTypeContext, code_line: &CodeLine) -> Result<TypeToken, InferTypeError> {
         if let Some(value) = &self.value {
             let value_type = value.infer_type_with_context(context, code_line);
-            let has_prefix_arithmetics = !self.prefix_arithmetic.is_empty();
+            let has_prefix_arithmetics = self.prefix_arithmetic.is_some();
 
             return if let (true, Ok(value_type)) = (has_prefix_arithmetics, &value_type) {
                 let mut current_pointer_arithmetic: String = match value_type {
@@ -448,25 +448,17 @@ impl Expression {
                 let mut base_type_matrix: HashMap<(TypeToken, Operator, TypeToken), TypeToken> = HashMap::new();
                 base_type_matrix.insert((TypeToken::Custom(NameToken { name: "string".to_string() }), Operator::Add, TypeToken::Custom(NameToken { name: "string".to_string() })), TypeToken::Custom(NameToken { name: "*string".to_string() }));
 
-                base_type_matrix.insert((TypeToken::I32, Operator::Add, TypeToken::I32), TypeToken::I32);
-                base_type_matrix.insert((TypeToken::I32, Operator::Sub, TypeToken::I32), TypeToken::I32);
-                base_type_matrix.insert((TypeToken::I32, Operator::Mul, TypeToken::I32), TypeToken::I32);
-                base_type_matrix.insert((TypeToken::I32, Operator::Div, TypeToken::I32), TypeToken::F32);
+                let integer_operation_matrix = Integer::operation_matrix();
 
-                base_type_matrix.insert((TypeToken::F32, Operator::Add, TypeToken::F32), TypeToken::F32);
-                base_type_matrix.insert((TypeToken::F32, Operator::Sub, TypeToken::F32), TypeToken::F32);
-                base_type_matrix.insert((TypeToken::F32, Operator::Mul, TypeToken::F32), TypeToken::F32);
-                base_type_matrix.insert((TypeToken::F32, Operator::Div, TypeToken::F32), TypeToken::F32);
+                for row in integer_operation_matrix {
+                    base_type_matrix.insert((row.0, row.1, row.2), row.3);
+                }
 
-                base_type_matrix.insert((TypeToken::F32, Operator::Add, TypeToken::I32), TypeToken::F32);
-                base_type_matrix.insert((TypeToken::F32, Operator::Sub, TypeToken::I32), TypeToken::F32);
-                base_type_matrix.insert((TypeToken::F32, Operator::Mul, TypeToken::I32), TypeToken::F32);
-                base_type_matrix.insert((TypeToken::F32, Operator::Div, TypeToken::I32), TypeToken::F32);
+                let float_operation_matrix = Float::operation_matrix();
 
-                base_type_matrix.insert((TypeToken::I32, Operator::Add, TypeToken::F32), TypeToken::F32);
-                base_type_matrix.insert((TypeToken::I32, Operator::Sub, TypeToken::F32), TypeToken::F32);
-                base_type_matrix.insert((TypeToken::I32, Operator::Mul, TypeToken::F32), TypeToken::F32);
-                base_type_matrix.insert((TypeToken::I32, Operator::Div, TypeToken::F32), TypeToken::F32);
+                for row in float_operation_matrix {
+                    base_type_matrix.insert((row.0, row.1, row.2), row.3);
+                }
 
                 base_type_matrix.insert((TypeToken::Bool, Operator::Add, TypeToken::Bool), TypeToken::Bool);
                 base_type_matrix.insert((TypeToken::Bool, Operator::Sub, TypeToken::Bool), TypeToken::Bool);
@@ -489,7 +481,7 @@ impl Expression {
         self.rhs = rhs;
         self.operator = operation;
         self.value = value;
-        self.prefix_arithmetic = vec![];
+        self.prefix_arithmetic = None;
     }
 
     // pub fn set_keep_arithmetic(&mut self, lhs: Option<Box<Expression>>, operation: Operator, rhs: Option<Box<Expression>>, value: Option<Box<AssignableToken>>, positive: bool, prefix_arithmetic: Vec<PrefixArithmetic>) {

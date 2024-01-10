@@ -6,6 +6,7 @@ use crate::core::lexer::tokens::assignable_token::{AssignableToken, AssignableTo
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::equation_token_options::EquationTokenOptions;
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::expression::{Expression, PointerArithmetic, PrefixArithmetic};
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::operator::Operator;
+use crate::core::lexer::tokens::assignable_tokens::method_call_token::dyck_language;
 use crate::core::lexer::tokens::name_token::NameTokenErr;
 use crate::core::lexer::type_token::{InferTypeError, TypeToken};
 
@@ -142,6 +143,10 @@ impl<T: EquationTokenOptions> EquationToken<T> {
     fn parse(&mut self) -> Result<&Expression, Error> {
         self.next_char();
 
+        if dyck_language(&self.source_code, ['(', ',', ')']).is_err() {
+            return Err(Error::CannotParse);
+        }
+
         if self.pos < 0 || self.pos >= self.source_code.len() as i32 {
             return Err(Error::PositionNotInRange(self.pos));
         }
@@ -157,7 +162,6 @@ impl<T: EquationTokenOptions> EquationToken<T> {
             #[allow(clippy::if_same_then_else)]
             if self.eat(T::additive()) {
                 let term = self.parse_term()?;
-                // x.set_keep_arithmetic(Some(x.clone()), Operator::Add, Some(term), None, x.positive, vec![]);
                 x.set(Some(x.clone()), Operator::Add, Some(term), None);
             } else if self.eat(T::inverse_additive()) {
                 let term = self.parse_term()?;
@@ -253,11 +257,12 @@ impl<T: EquationTokenOptions> EquationToken<T> {
                 self.next_char_amount(amount_skip);
 
                 if !self.peek(')') && self.pos < self.source_code.chars().count() as i32 {
-                    let value = self.parse_expression()?;
+                    let value = self.parse_factor()?;
                     x = Box::<Expression>::default();
 
                     x.value = Some(Box::new(AssignableToken::ArithmeticEquation(*value)));
-                    x.prefix_arithmetic.push(PrefixArithmetic::Cast(TypeToken::from_str(&cast_type)?));
+                    x.prefix_arithmetic = Some(PrefixArithmetic::Cast(TypeToken::from_str(&cast_type)?));
+
                     return Ok(x);
                 } else {
                     self.previous_char_amount(amount_skip);
@@ -271,14 +276,9 @@ impl<T: EquationTokenOptions> EquationToken<T> {
             x = Box::<Expression>::default();
 
             x.value = Some(Box::new(AssignableToken::ArithmeticEquation(*value)));
-            x.prefix_arithmetic.push(PrefixArithmetic::PointerArithmetic(PointerArithmetic::Asterics));
+            x.prefix_arithmetic = Some(PrefixArithmetic::PointerArithmetic(PointerArithmetic::Asterics));
 
             return Ok(x);
-
-            // x = self.parse_factor()?;
-            // x.prefix_arithmetic.push(PrefixArithmetic::PointerArithmetic(PointerArithmetic::Asterics));
-            //
-            // return Ok(x);
         }
 
         if self.eat(Some('&')) {
@@ -286,13 +286,9 @@ impl<T: EquationTokenOptions> EquationToken<T> {
             x = Box::<Expression>::default();
 
             x.value = Some(Box::new(AssignableToken::ArithmeticEquation(*value)));
-            x.prefix_arithmetic.push(PrefixArithmetic::PointerArithmetic(PointerArithmetic::Ampersand));
+            x.prefix_arithmetic = Some(PrefixArithmetic::PointerArithmetic(PointerArithmetic::Ampersand));
 
             return Ok(x);
-            // x = self.parse_factor()?;
-            // x.prefix_arithmetic.push(PrefixArithmetic::PointerArithmetic(PointerArithmetic::Ampersand));
-            //
-            // return Ok(x);
         }
 
         let start_pos: i32 = self.pos;
@@ -316,26 +312,12 @@ impl<T: EquationTokenOptions> EquationToken<T> {
             } else if (self.ch >= Some('A') && self.ch <= Some('Z')) || (self.ch >= Some('a') && self.ch <= Some('z')) {
                 let mut ident = 0;
 
-                let add_token = T::additive();
-                let inv_add_token = T::inverse_additive();
-                let mul_token = T::multiplicative();
-                let inv_mul_token = T::inverse_multiplicative();
-
-
-                while ident != 0 || (
-                        self.ch != add_token &&
-                        self.ch != inv_add_token &&
-                        self.ch != mul_token &&
-                        self.ch != inv_mul_token // todo check for other values not allowed: let a = r);
-                    ) {
-                    if let Some(char) = self.ch {
-                        match char {
-                            '(' => ident += 1,
-                            ')' => ident -= 1,
-                            _ => { }
-                        }
-                    } else {
-                        break;
+                while ident != 0 || !self.is_operator_char() { // todo check for other values not allowed: let a = r);
+                    match self.ch {
+                        Some('(') => ident += 1,
+                        Some(')') => ident -= 1,
+                        None => break,
+                        _ => { }
                     }
 
                     if ident == -1 {
@@ -345,10 +327,10 @@ impl<T: EquationTokenOptions> EquationToken<T> {
                     self.next_char();
                 }
 
-
-                let sub_string: &str = &self.source_code[start_pos as usize..self.pos as usize];
-
+                let sub_string: &str = &self.source_code.chars().skip(start_pos as usize).take((self.pos - start_pos) as usize).collect::<String>();
+                println!("{}", sub_string);
                 let mut temp = vec![CodeLine::imaginary(sub_string)];
+
                 temp.normalize();
 
                 let sub_string = temp[0].line.to_string();
@@ -376,5 +358,13 @@ impl<T: EquationTokenOptions> EquationToken<T> {
         } else {
             Err(Error::SourceEmpty)
         }
+    }
+    fn is_operator_char(&self) -> bool {
+        let add_token = T::additive();
+        let inv_add_token = T::inverse_additive();
+        let mul_token = T::multiplicative();
+        let inv_mul_token = T::inverse_multiplicative();
+
+        !(self.ch != add_token && self.ch != inv_add_token && self.ch != mul_token && self.ch != inv_mul_token)
     }
 }

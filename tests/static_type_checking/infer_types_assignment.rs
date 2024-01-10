@@ -11,7 +11,7 @@ use monkey_language::core::lexer::tokens::if_definition::IfDefinition;
 use monkey_language::core::lexer::tokens::method_definition::MethodDefinition;
 use monkey_language::core::lexer::tokens::name_token::NameToken;
 use monkey_language::core::lexer::tokens::variable_token::VariableToken;
-use monkey_language::core::lexer::type_token::TypeToken;
+use monkey_language::core::lexer::type_token::{Integer, TypeToken};
 use monkey_language::core::type_checker::static_type_checker::static_type_check;
 
 #[test]
@@ -32,9 +32,9 @@ fn infer_type_assignment() -> anyhow::Result<()> {
         Token::Variable(VariableToken {
             name_token: NameToken { name: "a".to_string() },
             mutability: false,
-            ty: Some(TypeToken::I32),
+            ty: Some(TypeToken::Integer(Integer::I32)),
             define: true,
-            assignable: AssignableToken::IntegerToken(IntegerToken { value: 1 }),
+            assignable: AssignableToken::IntegerToken(IntegerToken { value: "1".to_string(), ty: Integer::I32 }),
             code_line: CodeLine {
                 line: "let a = 1 ;".to_string(),
                 actual_line_number: 2..2,
@@ -44,7 +44,7 @@ fn infer_type_assignment() -> anyhow::Result<()> {
         Token::Variable(VariableToken {
             name_token: NameToken { name: "c".to_string() },
             mutability: false,
-            ty: Some(TypeToken::I32),
+            ty: Some(TypeToken::Integer(Integer::I32)),
             define: true,
             assignable: AssignableToken::NameToken(NameToken { name: "a".to_string() }),
             code_line: CodeLine {
@@ -77,14 +77,14 @@ fn infer_type_assignment_in_scope() -> anyhow::Result<()> {
 
     let expected: Vec<Token> = vec![
         Token::IfDefinition(IfDefinition {
-            condition: AssignableToken::IntegerToken(IntegerToken { value: 1 }),
+            condition: AssignableToken::IntegerToken(IntegerToken { value: "1".to_string(), ty: Integer::I32 }),
             if_stack: vec![
                 Token::Variable(VariableToken {
                     name_token: NameToken { name: "a".to_string() },
                     mutability: false,
-                    ty: Some(TypeToken::I32),
+                    ty: Some(TypeToken::Integer(Integer::I32)),
                     define: true,
-                    assignable: AssignableToken::IntegerToken(IntegerToken { value: 1 }),
+                    assignable: AssignableToken::IntegerToken(IntegerToken { value: "1".to_string(), ty: Integer::I32 }),
                     code_line: CodeLine {
                         line: "let a = 1 ;".to_string(),
                         actual_line_number: 3..3,
@@ -94,7 +94,7 @@ fn infer_type_assignment_in_scope() -> anyhow::Result<()> {
                 Token::Variable(VariableToken {
                     name_token: NameToken { name: "c".to_string() },
                     mutability: false,
-                    ty: Some(TypeToken::I32),
+                    ty: Some(TypeToken::Integer(Integer::I32)),
                     define: true,
                     assignable: AssignableToken::NameToken(NameToken { name: "a".to_string() }),
                     code_line: CodeLine {
@@ -134,7 +134,7 @@ fn infer_type_assignment_in_scope_complex() -> anyhow::Result<()> {
     let expected: Vec<Token> = vec![
         Token::MethodDefinition(MethodDefinition {
             name: NameToken { name: "constant_1".to_string() },
-            return_type: TypeToken::I32,
+            return_type: TypeToken::Integer(Integer::I32),
             arguments: vec![],
             stack: vec![],
             is_extern: false,
@@ -143,21 +143,21 @@ fn infer_type_assignment_in_scope_complex() -> anyhow::Result<()> {
         Token::Variable(VariableToken {
             name_token: NameToken { name: "a".to_string() },
             mutability: false,
-            ty: Some(TypeToken::I32),
+            ty: Some(TypeToken::Integer(Integer::I32)),
             define: true,
-            assignable: AssignableToken::IntegerToken(IntegerToken { value: 5 }),
+            assignable: AssignableToken::IntegerToken(IntegerToken { value: "5".to_string(), ty: Integer::I32 }),
             code_line: CodeLine { line: "let a :  i32 = 5 ;".to_string(),
                 actual_line_number: 3..3,
                 virtual_line_number: 3,
             },
         }),
         Token::IfDefinition(IfDefinition {
-            condition: AssignableToken::IntegerToken(IntegerToken { value: 1 }),
+            condition: AssignableToken::IntegerToken(IntegerToken { value: "1".to_string(), ty: Integer::I32 }),
             if_stack: vec![
                 Token::Variable(VariableToken::<'=', ';'> {
                     name_token: NameToken { name: "a".to_string() },
                     mutability: false,
-                    ty: Some(TypeToken::F32),
+                    ty: Some(TypeToken::Integer(Integer::I32)),
                     define: true,
                     code_line: CodeLine {
                         line: "let a = a / constant_1 (  )  ;".to_string(),
@@ -169,7 +169,7 @@ fn infer_type_assignment_in_scope_complex() -> anyhow::Result<()> {
                             lhs: None,
                             rhs: None,
                             operator: Operator::Noop,
-                            prefix_arithmetic: vec![],
+                            prefix_arithmetic: None,
                             value: Some(Box::new(AssignableToken::NameToken(NameToken { name: "a".to_string() }))),
                             positive: true,
                         })),
@@ -177,7 +177,7 @@ fn infer_type_assignment_in_scope_complex() -> anyhow::Result<()> {
                             lhs: None,
                             rhs: None,
                             operator: Operator::Noop,
-                            prefix_arithmetic: vec![],
+                            prefix_arithmetic: None,
                             value: Some(Box::new(AssignableToken::MethodCallToken(MethodCallToken {
                                 name: NameToken { name: "constant_1".to_string() },
                                 arguments: vec![],
@@ -192,13 +192,13 @@ fn infer_type_assignment_in_scope_complex() -> anyhow::Result<()> {
                         operator: Operator::Div,
                         value: None,
                         positive: true,
-                        prefix_arithmetic: vec![],
+                        prefix_arithmetic: None,
                     }),
                 }),
                 Token::Variable(VariableToken {
                     name_token: NameToken { name: "c".to_string() },
                     mutability: false,
-                    ty: Some(TypeToken::F32),
+                    ty: Some(TypeToken::Integer(Integer::I32)),
                     define: true,
                     assignable: AssignableToken::NameToken(NameToken { name: "a".to_string() }),
                     code_line: CodeLine {
@@ -243,7 +243,7 @@ fn infer_type_assignment_in_scope_complex_in_method() -> anyhow::Result<()> {
     let expected: Vec<Token> = vec![
         Token::MethodDefinition(MethodDefinition {
             name: NameToken { name: "constant_1".to_string() },
-            return_type: TypeToken::I32,
+            return_type: TypeToken::Integer(Integer::I32),
             arguments: vec![],
             stack: vec![],
             is_extern: false,
@@ -251,16 +251,16 @@ fn infer_type_assignment_in_scope_complex_in_method() -> anyhow::Result<()> {
         }),
         Token::MethodDefinition(MethodDefinition {
             name: NameToken { name: "test".to_string() },
-            return_type: TypeToken::I32,
+            return_type: TypeToken::Integer(Integer::I32),
             arguments: vec![],
             stack: vec![
                 Token::IfDefinition(IfDefinition {
-                    condition: AssignableToken::IntegerToken(IntegerToken { value: 1 }),
+                    condition: AssignableToken::IntegerToken(IntegerToken { value: "1".to_string(), ty: Integer::I32 }),
                     if_stack: vec![
                         Token::Variable(VariableToken::<'=', ';'> {
                             name_token: NameToken { name: "a".to_string() },
                             mutability: false,
-                            ty: Some(TypeToken::F32),
+                            ty: Some(TypeToken::Integer(Integer::I32)),
                             define: true,
                             code_line: CodeLine {
                                 line: "let a = a / constant_1 (  )  ;".to_string(),
@@ -272,7 +272,7 @@ fn infer_type_assignment_in_scope_complex_in_method() -> anyhow::Result<()> {
                                     lhs: None,
                                     rhs: None,
                                     operator: Operator::Noop,
-                                    prefix_arithmetic: vec![],
+                                    prefix_arithmetic: None,
                                     value: Some(Box::new(AssignableToken::NameToken(NameToken { name: "a".to_string() }))),
                                     positive: true,
                                 })),
@@ -280,7 +280,7 @@ fn infer_type_assignment_in_scope_complex_in_method() -> anyhow::Result<()> {
                                     lhs: None,
                                     rhs: None,
                                     operator: Operator::Noop,
-                                    prefix_arithmetic: vec![],
+                                    prefix_arithmetic: None,
                                     value: Some(Box::new(AssignableToken::MethodCallToken(MethodCallToken {
                                         name: NameToken { name: "constant_1".to_string() },
                                         arguments: vec![],
@@ -293,7 +293,7 @@ fn infer_type_assignment_in_scope_complex_in_method() -> anyhow::Result<()> {
                                     positive: true,
                                 })),
                                 operator: Operator::Div,
-                                prefix_arithmetic: vec![],
+                                prefix_arithmetic: None,
                                 value: None,
                                 positive: true,
                             }),
@@ -301,7 +301,7 @@ fn infer_type_assignment_in_scope_complex_in_method() -> anyhow::Result<()> {
                         Token::Variable(VariableToken {
                             name_token: NameToken { name: "c".to_string() },
                             mutability: false,
-                            ty: Some(TypeToken::F32),
+                            ty: Some(TypeToken::Integer(Integer::I32)),
                             define: true,
                             assignable: AssignableToken::NameToken(NameToken { name: "a".to_string() }),
                             code_line: CodeLine {
@@ -325,9 +325,9 @@ fn infer_type_assignment_in_scope_complex_in_method() -> anyhow::Result<()> {
         Token::Variable(VariableToken {
             name_token: NameToken { name: "a".to_string() },
             mutability: false,
-            ty: Some(TypeToken::I32),
+            ty: Some(TypeToken::Integer(Integer::I32)),
             define: true,
-            assignable: AssignableToken::IntegerToken(IntegerToken { value: 5 }),
+            assignable: AssignableToken::IntegerToken(IntegerToken { value: "5".to_string(), ty: Integer::I32 }),
             code_line: CodeLine { line: "let a :  i32 = 5 ;".to_string(),
                 actual_line_number: 10..10,
                 virtual_line_number: 9,

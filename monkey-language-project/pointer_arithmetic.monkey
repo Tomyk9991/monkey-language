@@ -1,12 +1,12 @@
 module monkey-language-project/std.monkey;
 
-let a: i32 = 5;
-let b: *i32 = &a;
+let mut r: i32 = 5;
+let b = 0;
 
-let c: i32 = 13;
-let d: *i32 = &c;
+if (b) {
+    r = 20;
+} else {
+    r = 30;
+}
 
-let addition = (((*d + *b) + (*b + *d)) + (*b + *b)) + ((*b + (*b + *b)) + (*b + (*d + *b)));
-printf("%d", addition);
-
-ExitProcess(0);
+ExitProcess(r);

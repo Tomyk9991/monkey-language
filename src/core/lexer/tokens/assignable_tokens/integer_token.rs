@@ -4,10 +4,15 @@ use std::num::{ParseFloatError, ParseIntError};
 use std::str::FromStr;
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
+use crate::core::lexer::type_token::Integer;
+
 
 #[derive(Default, Debug, Eq, PartialEq, Clone)]
 pub struct IntegerToken {
-    pub value: i32
+    // Must be stored as a string literal, because
+    // you can have a bigger value than a i64. consider every number that's between i64::MAX and u64::MAX
+    pub value: String,
+    pub ty: Integer
 }
 
 
@@ -55,8 +60,17 @@ impl FromStr for IntegerToken {
             return Err(NumberTokenErr::UnmatchedRegex);
         }
 
+        let value: i128 = s.parse::<i128>()?;
+
+        let final_type = match value {
+            -2147483648..=2147483647 => Integer::I32,
+            -9223372036854775808..=9223372036854775808 => Integer::I64,
+            _ => return Err(NumberTokenErr::UnmatchedRegex)
+        };
+
         Ok(IntegerToken {
-            value: s.parse::<i32>()?,
+            value: value.to_string(),
+            ty: final_type,
         })
     }
 }

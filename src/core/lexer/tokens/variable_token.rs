@@ -56,7 +56,12 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> InferType for VariableToken<
                 let inferred_type = self.assignable.infer_type_with_context(type_context, &self.code_line)?;
 
                 if ty != &inferred_type {
-                    return Err(InferTypeError::MismatchedTypes { expected: ty.clone(), actual: inferred_type.clone(), code_line: self.code_line.clone() });
+                    // let a: i64 = 5; instead of let a: i32 = 5;
+                    if let Some(implicit_cast) = inferred_type.implicit_cast_to(&self.assignable, ty, &self.code_line)? {
+                        self.ty = Some(implicit_cast);
+                    } else {
+                        return Err(InferTypeError::MismatchedTypes { expected: ty.clone(), actual: inferred_type.clone(), code_line: self.code_line.clone() });
+                    }
                 }
 
                 Ok(())

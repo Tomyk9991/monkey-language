@@ -11,7 +11,7 @@ use monkey_language::core::lexer::tokens::assignable_tokens::string_token::Strin
 use monkey_language::core::lexer::tokens::if_definition::IfDefinition;
 use monkey_language::core::lexer::tokens::name_token::NameToken;
 use monkey_language::core::lexer::tokens::variable_token::VariableToken;
-use monkey_language::core::lexer::type_token::TypeToken;
+use monkey_language::core::lexer::type_token::{Integer, TypeToken};
 
 #[test]
 fn if_test() -> anyhow::Result<()> {
@@ -29,13 +29,14 @@ fn if_test() -> anyhow::Result<()> {
 
     let expected = vec![
         Token::IfDefinition(IfDefinition {
-            condition: AssignableToken::NameToken(NameToken { name: String::from("variable")}),
+            condition: AssignableToken::NameToken(NameToken { name: String::from("variable") }),
             if_stack: vec![
-                Token::Variable(VariableToken { name_token: NameToken { name: "if_variable_one".to_string() }, mutability: true, ty: Some(TypeToken::I32), define: true, assignable: AssignableToken::IntegerToken(IntegerToken { value: 10 }), code_line: CodeLine { line: "let mut if_variable_one = 10 ;".to_string(), actual_line_number: 3..3, virtual_line_number: 2 } }),
-                Token::Variable(VariableToken { name_token: NameToken { name: "if_variable_two".to_string() }, mutability: false, ty: Some(TypeToken::I32), define: true, assignable: AssignableToken::IntegerToken(IntegerToken { value: 2 }), code_line: CodeLine { line: "let if_variable_two = 2 ;".to_string(), actual_line_number: 4..4, virtual_line_number: 3 } })
+                Token::Variable(VariableToken { name_token: NameToken { name: "if_variable_one".to_string() }, mutability: true, ty: Some(TypeToken::Integer(Integer::I32)), define: true, assignable: AssignableToken::IntegerToken(IntegerToken { value: "10".to_string(), ty: Integer::I32 }), code_line: CodeLine { line: "let mut if_variable_one = 10 ;".to_string(), actual_line_number: 3..3, virtual_line_number: 2 } }),
+                Token::Variable(VariableToken { name_token: NameToken { name: "if_variable_two".to_string() }, mutability: false, ty: Some(TypeToken::Integer(Integer::I32)), define: true, assignable: AssignableToken::IntegerToken(IntegerToken { value: "2".to_string(), ty: Integer::I32 }), code_line: CodeLine { line: "let if_variable_two = 2 ;".to_string(), actual_line_number: 4..4, virtual_line_number: 3 } }),
             ],
             else_stack: None,
-            code_line: CodeLine { line: "if  ( variable )  {".to_string(), actual_line_number: 2..2, virtual_line_number: 1 } }),
+            code_line: CodeLine { line: "if  ( variable )  {".to_string(), actual_line_number: 2..2, virtual_line_number: 1 },
+        }),
     ];
 
     println!("{:?}", top_level_scope.tokens);
@@ -65,13 +66,14 @@ fn if_test() -> anyhow::Result<()> {
 
     let expected = vec![
         Token::IfDefinition(IfDefinition {
-            condition: AssignableToken::NameToken(NameToken { name: String::from("variable")}),
+            condition: AssignableToken::NameToken(NameToken { name: String::from("variable") }),
             if_stack: vec![
-                Token::Variable(VariableToken { name_token: NameToken { name: "if_variable_one".to_string() }, mutability: true, ty: Some(TypeToken::I32), define: true, assignable: AssignableToken::IntegerToken(IntegerToken { value: 10 }), code_line: CodeLine { line: "let mut if_variable_one = 10 ;".to_string(), actual_line_number: 2..2, virtual_line_number: 2 } }),
-                Token::Variable(VariableToken { name_token: NameToken { name: "if_variable_two".to_string() }, mutability: false, ty: Some(TypeToken::I32), define: true, assignable: AssignableToken::IntegerToken(IntegerToken { value: 2 }), code_line: CodeLine { line: "let if_variable_two = 2 ;".to_string(), actual_line_number: 3..3, virtual_line_number: 3 } })
+                Token::Variable(VariableToken { name_token: NameToken { name: "if_variable_one".to_string() }, mutability: true, ty: Some(TypeToken::Integer(Integer::I32)), define: true, assignable: AssignableToken::IntegerToken(IntegerToken { value: "10".to_string(), ty: Integer::I32 }), code_line: CodeLine { line: "let mut if_variable_one = 10 ;".to_string(), actual_line_number: 2..2, virtual_line_number: 2 } }),
+                Token::Variable(VariableToken { name_token: NameToken { name: "if_variable_two".to_string() }, mutability: false, ty: Some(TypeToken::Integer(Integer::I32)), define: true, assignable: AssignableToken::IntegerToken(IntegerToken { value: "2".to_string(), ty: Integer::I32 }), code_line: CodeLine { line: "let if_variable_two = 2 ;".to_string(), actual_line_number: 3..3, virtual_line_number: 3 } }),
             ],
             else_stack: None,
-            code_line: CodeLine { line: "if  ( variable )  {".to_string(), actual_line_number: 2..2, virtual_line_number: 1 } }),
+            code_line: CodeLine { line: "if  ( variable )  {".to_string(), actual_line_number: 2..2, virtual_line_number: 1 },
+        }),
     ];
 
     let monkey_file: MonkeyFile = MonkeyFile::read_from_str(function);
@@ -107,9 +109,19 @@ fn multiple_if_test() -> anyhow::Result<()> {
     let top_level_scope = lexer.tokenize()?;
 
     let expected = vec![
-        Token::IfDefinition(IfDefinition { condition: AssignableToken::NameToken(NameToken { name: String::from("variable1")}), if_stack: vec![Token::Variable(VariableToken { name_token: NameToken { name: "if_variable_one".to_string() }, mutability: false, ty: Some(TypeToken::I32), define: true, assignable: AssignableToken::IntegerToken(IntegerToken { value: 10 }), code_line: CodeLine { line: "let if_variable_one = 10 ;".to_string(), actual_line_number: 3..3, virtual_line_number: 2 } }), Token::Variable(VariableToken { name_token: NameToken { name: "if_variable_two".to_string() }, mutability: false, ty: Some(TypeToken::I32), define: true, assignable: AssignableToken::IntegerToken(IntegerToken { value: 2 }), code_line: CodeLine { line: "let if_variable_two = 2 ;".to_string(), actual_line_number: 4..4, virtual_line_number: 3 } })], else_stack: None, code_line: CodeLine { line: "if  ( variable1 )  {".to_string(), actual_line_number: 2..2, virtual_line_number: 1 } }),
-        Token::IfDefinition(IfDefinition { condition: AssignableToken::NameToken(NameToken { name: String::from("variable2")}), if_stack: vec![Token::Variable(VariableToken { name_token: NameToken { name: "if_variable_one".to_string() }, mutability: false, ty: Some(TypeToken::I32), define: true, assignable: AssignableToken::IntegerToken(IntegerToken { value: 10 }), code_line: CodeLine { line: "let if_variable_one = 10 ;".to_string(), actual_line_number: 8..8, virtual_line_number: 6 } }), Token::Variable(VariableToken { name_token: NameToken { name: "if_variable_two".to_string() }, mutability: false, ty: Some(TypeToken::I32), define: true, assignable: AssignableToken::IntegerToken(IntegerToken { value: 2 }), code_line: CodeLine { line: "let if_variable_two = 2 ;".to_string(), actual_line_number: 9..9, virtual_line_number: 7 } })], else_stack: None, code_line: CodeLine { line: "if  ( variable2 )  {".to_string(), actual_line_number: 7..7, virtual_line_number: 5 } }),
-        Token::IfDefinition(IfDefinition { condition: AssignableToken::NameToken(NameToken { name: String::from("variable3")}), if_stack: vec![], else_stack: None, code_line: CodeLine { line: "if  ( variable3 )  {".to_string(), actual_line_number: 13..13, virtual_line_number: 9 } })
+        Token::IfDefinition(IfDefinition {
+            condition: AssignableToken::NameToken(NameToken { name: String::from("variable1") }),
+            if_stack: vec![Token::Variable(VariableToken { name_token: NameToken { name: "if_variable_one".to_string() }, mutability: false, ty: Some(TypeToken::Integer(Integer::I32)), define: true, assignable: AssignableToken::IntegerToken(IntegerToken { value: "10".to_string(), ty: Integer::I32 }), code_line: CodeLine { line: "let if_variable_one = 10 ;".to_string(), actual_line_number: 3..3, virtual_line_number: 2 } }), Token::Variable(VariableToken { name_token: NameToken { name: "if_variable_two".to_string() }, mutability: false, ty: Some(TypeToken::Integer(Integer::I32)), define: true, assignable: AssignableToken::IntegerToken(IntegerToken { value: "2".to_string(), ty: Integer::I32 }), code_line: CodeLine { line: "let if_variable_two = 2 ;".to_string(), actual_line_number: 4..4, virtual_line_number: 3 } })],
+            else_stack: None,
+            code_line: CodeLine { line: "if  ( variable1 )  {".to_string(), actual_line_number: 2..2, virtual_line_number: 1 },
+        }),
+        Token::IfDefinition(IfDefinition {
+            condition: AssignableToken::NameToken(NameToken { name: String::from("variable2") }),
+            if_stack: vec![Token::Variable(VariableToken { name_token: NameToken { name: "if_variable_one".to_string() }, mutability: false, ty: Some(TypeToken::Integer(Integer::I32)), define: true, assignable: AssignableToken::IntegerToken(IntegerToken { value: "10".to_string(), ty: Integer::I32 }), code_line: CodeLine { line: "let if_variable_one = 10 ;".to_string(), actual_line_number: 8..8, virtual_line_number: 6 } }), Token::Variable(VariableToken { name_token: NameToken { name: "if_variable_two".to_string() }, mutability: false, ty: Some(TypeToken::Integer(Integer::I32)), define: true, assignable: AssignableToken::IntegerToken(IntegerToken { value: "2".to_string(), ty: Integer::I32 }), code_line: CodeLine { line: "let if_variable_two = 2 ;".to_string(), actual_line_number: 9..9, virtual_line_number: 7 } })],
+            else_stack: None,
+            code_line: CodeLine { line: "if  ( variable2 )  {".to_string(), actual_line_number: 7..7, virtual_line_number: 5 },
+        }),
+        Token::IfDefinition(IfDefinition { condition: AssignableToken::NameToken(NameToken { name: String::from("variable3") }), if_stack: vec![], else_stack: None, code_line: CodeLine { line: "if  ( variable3 )  {".to_string(), actual_line_number: 13..13, virtual_line_number: 9 } }),
     ];
 
     assert_eq!(expected, top_level_scope.tokens);
@@ -134,14 +146,14 @@ fn if_else_test() -> anyhow::Result<()> {
 
     let expected = vec![
         Token::IfDefinition(IfDefinition {
-            condition: AssignableToken::NameToken(NameToken { name: String::from("variable")}),
+            condition: AssignableToken::NameToken(NameToken { name: String::from("variable") }),
             if_stack: vec![
-                Token::Variable(VariableToken { name_token: NameToken { name: "if_variable_one".to_string() }, mutability: true, ty: Some(TypeToken::I32), define: true, assignable: AssignableToken::IntegerToken(IntegerToken { value: 10 }), code_line: CodeLine { line: "let mut if_variable_one = 10 ;".to_string(), actual_line_number: 2..2, virtual_line_number: 2 } }),
-                Token::Variable(VariableToken { name_token: NameToken { name: "if_variable_two".to_string() }, mutability: false, ty: Some(TypeToken::I32), define: true, assignable: AssignableToken::IntegerToken(IntegerToken { value: 2 }), code_line: CodeLine { line: "let if_variable_two = 2 ;".to_string(), actual_line_number: 3..3, virtual_line_number: 3 } })
+                Token::Variable(VariableToken { name_token: NameToken { name: "if_variable_one".to_string() }, mutability: true, ty: Some(TypeToken::Integer(Integer::I32)), define: true, assignable: AssignableToken::IntegerToken(IntegerToken { value: "10".to_string(), ty: Integer::I32 }), code_line: CodeLine { line: "let mut if_variable_one = 10 ;".to_string(), actual_line_number: 2..2, virtual_line_number: 2 } }),
+                Token::Variable(VariableToken { name_token: NameToken { name: "if_variable_two".to_string() }, mutability: false, ty: Some(TypeToken::Integer(Integer::I32)), define: true, assignable: AssignableToken::IntegerToken(IntegerToken { value: "2".to_string(), ty: Integer::I32 }), code_line: CodeLine { line: "let if_variable_two = 2 ;".to_string(), actual_line_number: 3..3, virtual_line_number: 3 } }),
             ],
             else_stack: Some(vec![
-                Token::Variable(VariableToken { name_token: NameToken { name: "else_variable_one".to_string() }, mutability: false, ty: Some(TypeToken::I32), define: true, assignable: AssignableToken::IntegerToken(IntegerToken { value: 10 }), code_line: CodeLine { line: "let else_variable_one = 10 ;".to_string(), actual_line_number: 5..5, virtual_line_number: 6 } }),
-                Token::Variable(VariableToken { name_token: NameToken { name: "else_variable_two".to_string() }, mutability: true, ty: Some(TypeToken::I32), define: true, assignable: AssignableToken::IntegerToken(IntegerToken { value: 2 }), code_line: CodeLine { line: "let mut else_variable_two = 2 ;".to_string(), actual_line_number: 6..6, virtual_line_number: 7 } })
+                Token::Variable(VariableToken { name_token: NameToken { name: "else_variable_one".to_string() }, mutability: false, ty: Some(TypeToken::Integer(Integer::I32)), define: true, assignable: AssignableToken::IntegerToken(IntegerToken { value: "10".to_string(), ty: Integer::I32 }), code_line: CodeLine { line: "let else_variable_one = 10 ;".to_string(), actual_line_number: 5..5, virtual_line_number: 6 } }),
+                Token::Variable(VariableToken { name_token: NameToken { name: "else_variable_two".to_string() }, mutability: true, ty: Some(TypeToken::Integer(Integer::I32)), define: true, assignable: AssignableToken::IntegerToken(IntegerToken { value: "2".to_string(), ty: Integer::I32 }), code_line: CodeLine { line: "let mut else_variable_two = 2 ;".to_string(), actual_line_number: 6..6, virtual_line_number: 7 } }),
             ]),
             code_line: CodeLine { line: "if  ( variable )  {".to_string(), actual_line_number: 1..1, virtual_line_number: 1 },
         }),
@@ -160,14 +172,14 @@ fn if_else_test() -> anyhow::Result<()> {
 
     let expected = vec![
         Token::IfDefinition(IfDefinition {
-            condition: AssignableToken::NameToken(NameToken { name: String::from("variable")}),
+            condition: AssignableToken::NameToken(NameToken { name: String::from("variable") }),
             if_stack: vec![
-                Token::Variable(VariableToken { name_token: NameToken { name: "if_variable_one".to_string() }, mutability: true, ty: Some(TypeToken::I32), define: true, assignable: AssignableToken::IntegerToken(IntegerToken { value: 10 }), code_line: CodeLine { line: "let mut if_variable_one = 10 ;".to_string(), actual_line_number: 2..2, virtual_line_number: 2 } }),
-                Token::Variable(VariableToken { name_token: NameToken { name: "if_variable_two".to_string() }, mutability: false, ty: Some(TypeToken::I32), define: true, assignable: AssignableToken::IntegerToken(IntegerToken { value: 2 }), code_line: CodeLine { line: "let if_variable_two = 2 ;".to_string(), actual_line_number: 2..2, virtual_line_number: 3 } })
+                Token::Variable(VariableToken { name_token: NameToken { name: "if_variable_one".to_string() }, mutability: true, ty: Some(TypeToken::Integer(Integer::I32)), define: true, assignable: AssignableToken::IntegerToken(IntegerToken { value: "10".to_string(), ty: Integer::I32 }), code_line: CodeLine { line: "let mut if_variable_one = 10 ;".to_string(), actual_line_number: 2..2, virtual_line_number: 2 } }),
+                Token::Variable(VariableToken { name_token: NameToken { name: "if_variable_two".to_string() }, mutability: false, ty: Some(TypeToken::Integer(Integer::I32)), define: true, assignable: AssignableToken::IntegerToken(IntegerToken { value: "2".to_string(), ty: Integer::I32 }), code_line: CodeLine { line: "let if_variable_two = 2 ;".to_string(), actual_line_number: 2..2, virtual_line_number: 3 } }),
             ],
             else_stack: Some(vec![
-                Token::Variable(VariableToken { name_token: NameToken { name: "else_variable_one".to_string() }, mutability: false, ty: Some(TypeToken::I32), define: true, assignable: AssignableToken::IntegerToken(IntegerToken { value: 10 }), code_line: CodeLine { line: "let else_variable_one = 10 ;".to_string(), actual_line_number: 3..3, virtual_line_number: 6 } }),
-                Token::Variable(VariableToken { name_token: NameToken { name: "else_variable_two".to_string() }, mutability: true, ty: Some(TypeToken::I32), define: true, assignable: AssignableToken::IntegerToken(IntegerToken { value: 2 }), code_line: CodeLine { line: "let mut else_variable_two = 2 ;".to_string(), actual_line_number: 4..4, virtual_line_number: 7 } })
+                Token::Variable(VariableToken { name_token: NameToken { name: "else_variable_one".to_string() }, mutability: false, ty: Some(TypeToken::Integer(Integer::I32)), define: true, assignable: AssignableToken::IntegerToken(IntegerToken { value: "10".to_string(), ty: Integer::I32 }), code_line: CodeLine { line: "let else_variable_one = 10 ;".to_string(), actual_line_number: 3..3, virtual_line_number: 6 } }),
+                Token::Variable(VariableToken { name_token: NameToken { name: "else_variable_two".to_string() }, mutability: true, ty: Some(TypeToken::Integer(Integer::I32)), define: true, assignable: AssignableToken::IntegerToken(IntegerToken { value: "2".to_string(), ty: Integer::I32 }), code_line: CodeLine { line: "let mut else_variable_two = 2 ;".to_string(), actual_line_number: 4..4, virtual_line_number: 7 } }),
             ]),
             code_line: CodeLine { line: "if  ( variable )  {".to_string(), actual_line_number: 2..2, virtual_line_number: 1 },
         }),
@@ -191,14 +203,14 @@ fn if_else_test() -> anyhow::Result<()> {
 
     let expected = vec![
         Token::IfDefinition(IfDefinition {
-            condition: AssignableToken::NameToken(NameToken { name: String::from("variable")}),
+            condition: AssignableToken::NameToken(NameToken { name: String::from("variable") }),
             if_stack: vec![
-                Token::Variable(VariableToken { name_token: NameToken { name: "if_variable_one".to_string() }, mutability: true, ty: Some(TypeToken::I32), define: true, assignable: AssignableToken::IntegerToken(IntegerToken { value: 10 }), code_line: CodeLine { line: "let mut if_variable_one = 10 ;".to_string(), actual_line_number: 3..3, virtual_line_number: 2 } }),
-                Token::Variable(VariableToken { name_token: NameToken { name: "if_variable_two".to_string() }, mutability: false, ty: Some(TypeToken::I32), define: true, assignable: AssignableToken::IntegerToken(IntegerToken { value: 2 }), code_line: CodeLine { line: "let if_variable_two = 2 ;".to_string(), actual_line_number: 4..4, virtual_line_number: 3 } })
+                Token::Variable(VariableToken { name_token: NameToken { name: "if_variable_one".to_string() }, mutability: true, ty: Some(TypeToken::Integer(Integer::I32)), define: true, assignable: AssignableToken::IntegerToken(IntegerToken { value: "10".to_string(), ty: Integer::I32 }), code_line: CodeLine { line: "let mut if_variable_one = 10 ;".to_string(), actual_line_number: 3..3, virtual_line_number: 2 } }),
+                Token::Variable(VariableToken { name_token: NameToken { name: "if_variable_two".to_string() }, mutability: false, ty: Some(TypeToken::Integer(Integer::I32)), define: true, assignable: AssignableToken::IntegerToken(IntegerToken { value: "2".to_string(), ty: Integer::I32 }), code_line: CodeLine { line: "let if_variable_two = 2 ;".to_string(), actual_line_number: 4..4, virtual_line_number: 3 } }),
             ],
             else_stack: Some(vec![
-                Token::Variable(VariableToken { name_token: NameToken { name: "else_variable_one".to_string() }, mutability: false, ty: Some(TypeToken::I32), define: true, assignable: AssignableToken::IntegerToken(IntegerToken { value: 10 }), code_line: CodeLine { line: "let else_variable_one = 10 ;".to_string(), actual_line_number: 7..7, virtual_line_number: 6 } }),
-                Token::Variable(VariableToken { name_token: NameToken { name: "else_variable_two".to_string() }, mutability: true, ty: Some(TypeToken::I32), define: true, assignable: AssignableToken::IntegerToken(IntegerToken { value: 2 }), code_line: CodeLine { line: "let mut else_variable_two = 2 ;".to_string(), actual_line_number: 7..7, virtual_line_number: 7 } })
+                Token::Variable(VariableToken { name_token: NameToken { name: "else_variable_one".to_string() }, mutability: false, ty: Some(TypeToken::Integer(Integer::I32)), define: true, assignable: AssignableToken::IntegerToken(IntegerToken { value: "10".to_string(), ty: Integer::I32 }), code_line: CodeLine { line: "let else_variable_one = 10 ;".to_string(), actual_line_number: 7..7, virtual_line_number: 6 } }),
+                Token::Variable(VariableToken { name_token: NameToken { name: "else_variable_two".to_string() }, mutability: true, ty: Some(TypeToken::Integer(Integer::I32)), define: true, assignable: AssignableToken::IntegerToken(IntegerToken { value: "2".to_string(), ty: Integer::I32 }), code_line: CodeLine { line: "let mut else_variable_two = 2 ;".to_string(), actual_line_number: 7..7, virtual_line_number: 7 } }),
             ]),
             code_line: CodeLine { line: "if  ( variable )  {".to_string(), actual_line_number: 2..2, virtual_line_number: 1 },
         }),
@@ -235,21 +247,26 @@ fn function_in_function_test() -> anyhow::Result<()> {
         Token::IfDefinition(IfDefinition {
             condition: AssignableToken::NameToken(NameToken { name: "hallo".to_string() }),
             if_stack: vec![
-                Token::Variable(VariableToken { name_token: NameToken { name: "if_stack_variable".to_string() }, mutability: false, ty: Some(TypeToken::F32), define: true, assignable: AssignableToken::ArithmeticEquation(
-                    Expression { lhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, prefix_arithmetic: vec![], value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: 5 }))), positive: true })), operator: Div, rhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, prefix_arithmetic: vec![], value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: 2 }))), positive: true })), positive: true, value: None, prefix_arithmetic: vec![] }
-                ),
+                Token::Variable(VariableToken {
+                    name_token: NameToken { name: "if_stack_variable".to_string() },
+                    mutability: false,
+                    ty: Some(TypeToken::Integer(Integer::I32)),
+                    define: true,
+                    assignable: AssignableToken::ArithmeticEquation(
+                        Expression { lhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, prefix_arithmetic: None, value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: "5".to_string(), ty: Integer::I32 }))), positive: true })), operator: Div, rhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, prefix_arithmetic: None, value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: "2".to_string(), ty: Integer::I32 }))), positive: true })), positive: true, value: None, prefix_arithmetic: None }
+                    ),
                     code_line: CodeLine { line: "let if_stack_variable = 5 / 2 ;".to_string(), actual_line_number: 3..3, virtual_line_number: 2 },
                 }),
                 Token::IfDefinition(IfDefinition {
                     condition: AssignableToken::NameToken(NameToken { name: "if_stack_variable".to_string() }),
                     if_stack: vec![
-                        Token::Variable(VariableToken { name_token: NameToken { name: "nested_if_stack_variable".to_string() }, mutability: false, ty: Some(TypeToken::I32), define: true, assignable: AssignableToken::IntegerToken(IntegerToken { value: 13 }), code_line: CodeLine { line: "let nested_if_stack_variable = 13 ;".to_string(), actual_line_number: 6..6, virtual_line_number: 4 } })
+                        Token::Variable(VariableToken { name_token: NameToken { name: "nested_if_stack_variable".to_string() }, mutability: false, ty: Some(TypeToken::Integer(Integer::I32)), define: true, assignable: AssignableToken::IntegerToken(IntegerToken { value: "13".to_string(), ty: Integer::I32 }), code_line: CodeLine { line: "let nested_if_stack_variable = 13 ;".to_string(), actual_line_number: 6..6, virtual_line_number: 4 } })
                     ],
                     else_stack: Some(vec![
                         Token::Variable(VariableToken { name_token: NameToken { name: "nested_else_stack_variable".to_string() }, mutability: false, ty: Some(TypeToken::Custom(NameToken { name: String::from("*string") })), define: true, assignable: AssignableToken::String(StringToken { value: "\"nice\"".to_string() }), code_line: CodeLine { line: "let nested_else_stack_variable = \"nice\" ;".to_string(), actual_line_number: 7..7, virtual_line_number: 7 } })
                     ]),
                     code_line: CodeLine { line: "if  ( if_stack_variable )  {".to_string(), actual_line_number: 5..5, virtual_line_number: 3 },
-                })
+                }),
             ],
             else_stack: Some(vec![
                 Token::Variable(VariableToken { name_token: NameToken { name: "else_stack_variable".to_string() }, mutability: false, ty: Some(TypeToken::Custom(NameToken { name: String::from("*string") })), define: true, assignable: AssignableToken::String(StringToken { value: "\"hallo\"".to_string() }), code_line: CodeLine { line: "let else_stack_variable = \"hallo\" ;".to_string(), actual_line_number: 9..9, virtual_line_number: 11 } })
