@@ -77,6 +77,8 @@ impl Normalizable for Vec<CodeLine> {
         let mut result: Vec<CodeLine> = Vec::new();
         let mut line_counter = 1;
         let mut scope_stack: Vec<ScopeType> = vec![];
+        // describes the current ident level, if the current character is inside a string or not
+        let mut string_ident = 0;
 
         for code_line in (*self).iter() {
             let combined_code_line_split =
@@ -103,7 +105,11 @@ impl Normalizable for Vec<CodeLine> {
                         .enumerate()
                         .collect::<Vec<(usize, char)>>()
                     {
-                        if char == searching_char {
+                        if char == '"' { // todo: problem with \" inside the actual string. need some escape system
+                            string_ident = (string_ident + 1) % 2;
+                        }
+
+                        if char == searching_char && string_ident == 0 {
                             indices.insert_without_dup(index);
                         }
                     }
