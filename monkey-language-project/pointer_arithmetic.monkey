@@ -1,12 +1,13 @@
 module monkey-language-project/std.monkey;
 
-let mut r: i32 = 5;
-let b = 0;
+let format: *string = "%d";
+let nice_format: *string = "Die eingegebene Zahl lautet: %d\n";
 
-if (b) {
-    r = 20;
-} else {
-    r = 30;
-}
+let size: i32 = 0;
+printf("Enter size: ", 0);
+scanf(format, &size);
 
-ExitProcess(r);
+printf(nice_format, size);
+printf("Der String ist: %s", "Hallo");
+
+ExitProcess(0);

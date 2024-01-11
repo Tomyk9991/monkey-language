@@ -103,53 +103,22 @@ impl TryParse for MethodDefinition {
         let split_ref = split_alloc.iter().map(|a| a.as_str()).collect::<Vec<_>>();
 
         // todo: check if parameter names are duplicates
-        if let ["extern", "fn", name, "(", arguments @ .., ")", ":", return_type, ";"] = &split_ref[..] {
-            let arguments_string = arguments.join("");
-            let arguments = arguments_string.split(',').filter(|a| !a.is_empty()).collect::<Vec<_>>();
-            let mut type_arguments = vec![];
 
-            for argument in arguments {
-                if let [name, ty] = &argument.split(':').collect::<Vec<&str>>()[..] {
-                    type_arguments.push((NameToken::from_str(name, false)?, TypeToken::from_str(ty)?));
-                } else {
-                    return Err(MethodDefinitionErr::PatternNotMatched { target_value: method_header.line.clone() })
-                }
-            }
+        let (is_extern, fn_name, _generic_type, arguments, return_type) = match &split_ref[..] {
+            ["extern", "fn", name, "<", generic_type, ">", "(", arguments @ .., ")", ":", return_type, ";"] => (true, name, Some(generic_type) ,arguments, return_type),
+            ["extern", "fn", name, "(", arguments @ .., ")", ":", return_type, ";"] => (true, name, None, arguments, return_type),
+            ["fn", name, "(", arguments @ .., ")", ":", return_type, "{"] => (false, name, None, arguments, return_type),
+            _ => return Err(MethodDefinitionErr::PatternNotMatched { target_value: method_header.line.to_string() })
+        };
 
-            let _ = code_lines_iterator.next();
+        let mut tokens = vec![];
+        // consume the header
+        let _ = code_lines_iterator.next();
 
-            return Ok(MethodDefinition {
-                name: NameToken::from_str(name, false)?,
-                return_type: TypeToken::from_str(return_type)?,
-                arguments: type_arguments,
-                stack: vec![],
-                is_extern: true,
-                code_line: method_header.clone(),
-            });
-        }
-
-        if let ["fn", name, "(", arguments @ .., ")", ":", return_type, "{"] = &split_ref[..] {
-            let arguments_string = arguments.join("");
-            let arguments = arguments_string.split(',').filter(|a| !a.is_empty()).collect::<Vec<_>>();
-            let mut type_arguments = vec![];
-
-            for argument in arguments {
-                if let [name, ty] = &argument.split(':').collect::<Vec<&str>>()[..] {
-                    type_arguments.push((NameToken::from_str(name, false)?, TypeToken::from_str(ty)?));
-                } else {
-                    return Err(MethodDefinitionErr::PatternNotMatched { target_value: method_header.line.clone() })
-                }
-            }
-
-            let mut tokens = vec![];
-
-            // consume the header
-            let _ = code_lines_iterator.next();
-
-            // consume the body
+        // consume the body
+        if !is_extern {
             while code_lines_iterator.peek().is_some() {
-                let token = Scope::try_parse(code_lines_iterator)
-                    .map_err(MethodDefinitionErr::ScopeErrorErr)?;
+                let token = Scope::try_parse(code_lines_iterator).map_err(MethodDefinitionErr::ScopeErrorErr)?;
 
                 if let Token::ScopeClosing(_) = token {
                     break;
@@ -157,20 +126,34 @@ impl TryParse for MethodDefinition {
 
                 tokens.push(token);
             }
-
-            return Ok(MethodDefinition {
-                name: NameToken::from_str(name, false)?,
-                return_type: TypeToken::from_str(return_type)?,
-                arguments: type_arguments,
-                stack: tokens,
-                is_extern: false,
-                code_line: method_header.clone(),
-            });
         }
 
-        Err(MethodDefinitionErr::PatternNotMatched {
-            target_value: method_header.line.to_string()
-        })
+        return Ok(MethodDefinition {
+            name: NameToken::from_str(fn_name, false)?,
+            return_type: TypeToken::from_str(return_type)?,
+            arguments: Self::type_arguments(method_header, arguments)?,
+            stack: tokens,
+            is_extern,
+            code_line: method_header.clone(),
+        });
+    }
+}
+
+impl MethodDefinition {
+    fn type_arguments(method_header: &CodeLine, arguments: &[&str]) -> Result<Vec<(NameToken, TypeToken)>, MethodDefinitionErr> {
+        let arguments_string = arguments.join("");
+        let arguments = arguments_string.split(',').filter(|a| !a.is_empty()).collect::<Vec<_>>();
+        let mut type_arguments = vec![];
+
+        for argument in arguments {
+            if let [name, ty] = &argument.split(':').collect::<Vec<&str>>()[..] {
+                type_arguments.push((NameToken::from_str(name, false)?, TypeToken::from_str(ty)?));
+            } else {
+                return Err(MethodDefinitionErr::PatternNotMatched { target_value: method_header.line.clone() })
+            }
+        }
+
+        Ok(type_arguments)
     }
 }
 

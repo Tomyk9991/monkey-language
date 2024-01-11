@@ -166,7 +166,7 @@ impl MethodCallToken {
                 let def_type = argument_def.1.clone();
                 let call_type = argument_call.infer_type_with_context(context, code_line)?;
 
-                if def_type != call_type {
+                if def_type != call_type && !def_type.is_void() {
                     return Err(InferTypeError::MethodCallArgumentTypeMismatch {
                         info: Box::new(MethodCallArgumentTypeMismatch {
                             expected: def_type,
@@ -242,21 +242,27 @@ impl ToASM for MethodCallToken {
     }
 
     fn before_label(&self, stack: &mut Stack, meta: &mut MetaInfo) -> Option<Result<String, ASMGenerateError>> {
-        let mut asb = String::new();
+        let mut target = String::new();
         let mut has_before_label_asm = false;
-        for argument in &self.arguments {
+
+        let count_before = stack.label_count;
+
+        for argument in self.arguments.iter().rev() {
             if let Some(before_label) = argument.before_label(stack, meta) {
                 match before_label {
                     Ok(before_label) => {
-                        asb += &ASMBuilder::line(&(before_label));
+                        target += &ASMBuilder::line(&(before_label));
                         has_before_label_asm = true;
                     },
                     Err(err) => return Some(Err(err))
                 }
+                stack.label_count -= 1;
             }
         }
 
-        if has_before_label_asm { Some(Ok(asb)) } else { None }
+        stack.label_count = count_before;
+
+        if has_before_label_asm { Some(Ok(target)) } else { None }
     }
 }
 

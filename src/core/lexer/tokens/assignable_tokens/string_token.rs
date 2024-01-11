@@ -45,15 +45,15 @@ impl ToASM for StringToken {
     }
 
     fn before_label(&self, stack: &mut Stack, _meta: &mut MetaInfo) -> Option<Result<String, ASMGenerateError>> {
-        let mut asb = String::new();
+        let mut target = String::new();
 
         let new_line_included = replace_add_quote(&self.value, "\\n", 10);
         let tab_included = replace_add_quote(&new_line_included, "\\t", 9);
 
-        asb += &ASMBuilder::line(&format!("{}:", stack.get_latest_label()));
-        asb += &ASMBuilder::ident_line(&format!("db {}, 0", tab_included));
+        target += &ASMBuilder::line(&format!("{}:", stack.get_latest_label()));
+        target += &ASMBuilder::ident_line(&format!("db {}, 0", tab_included));
 
-        Some(Ok(asb))
+        Some(Ok(target))
     }
 }
 

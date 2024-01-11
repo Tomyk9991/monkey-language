@@ -24,7 +24,7 @@ pub struct Stack {
     /// represents a list of all available variables in the current scopes and above
     pub variables: Vec<StackLocation>,
     /// to create labels and avoid collisions in naming, a label count is used
-    label_count: usize,
+    pub label_count: usize,
     pub register_to_use: Vec<GeneralPurposeRegister>,
 }
 
@@ -79,6 +79,7 @@ impl Stack {
     pub fn get_latest_label(&self) -> String {
         format!(".label{}", self.label_count - 1)
     }
+
 
     pub fn generate_scope(&mut self, tokens: &Vec<Token>, meta: &mut MetaInfo) -> Result<String, ASMGenerateError> {
         let mut target = String::new();
@@ -173,8 +174,8 @@ impl ASMGenerator {
             stack_allocation += token.byte_size(&mut meta);
             method_scope += &ASMBuilder::push(&token.to_asm(&mut self.stack, &mut meta)?);
 
-            if let Some(prefix_asm) = token.before_label(&mut self.stack, &mut meta) {
-                prefix += &ASMBuilder::push(&(prefix_asm?));
+            if let Some(Ok(prefix_asm)) = token.before_label(&mut self.stack, &mut meta) {
+                prefix += &ASMBuilder::push(&(prefix_asm));
             }
         }
 

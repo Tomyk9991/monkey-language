@@ -45,6 +45,8 @@ pub enum TypeToken {
 }
 
 
+
+
 type OperatorMatrixRow = (TypeToken, Operator, TypeToken, TypeToken);
 
 impl Integer {
@@ -221,7 +223,7 @@ impl Display for TypeToken {
             TypeToken::Float(float) => float.to_string(),
             TypeToken::Bool => "bool".to_string(),
             TypeToken::Void => "void".to_string(),
-            TypeToken::Custom(name) => name.name.clone()
+            TypeToken::Custom(name) => name.name.clone(),
         })
     }
 }
@@ -283,8 +285,13 @@ impl TypeToken {
             TypeToken::Float(float) => TypeToken::Custom(NameToken { name: format!("*{}", float) }),
             TypeToken::Bool => TypeToken::Custom(NameToken { name: format!("*{}", TypeToken::Bool) }),
             TypeToken::Void => TypeToken::Custom(NameToken { name: format!("*{}", TypeToken::Void) }),
-            TypeToken::Custom(custom) => TypeToken::Custom(NameToken { name: format!("*{}", custom) })
+            TypeToken::Custom(custom) => TypeToken::Custom(NameToken { name: format!("*{}", custom) }),
         }
+    }
+
+
+    pub(crate) fn is_void(&self) -> bool {
+        matches!(self, TypeToken::Void)
     }
 
     pub fn implicit_cast_to(&self, assignable_token: &AssignableToken, desired_type: &TypeToken, code_line: &CodeLine) -> Result<Option<TypeToken>, InferTypeError> {
