@@ -3,7 +3,7 @@ use std::str::FromStr;
 use monkey_language::core::io::code_line::CodeLine;
 use monkey_language::core::lexer::tokens::assignable_token::AssignableToken;
 use monkey_language::core::lexer::tokens::assignable_tokens::boolean_token::BooleanToken;
-use monkey_language::core::lexer::tokens::assignable_tokens::double_token::FloatToken;
+use monkey_language::core::lexer::tokens::assignable_tokens::float_token::FloatToken;
 use monkey_language::core::lexer::tokens::assignable_tokens::equation_parser::equation_token_options::{ArithmeticEquationOptions, BooleanEquationOptions};
 use monkey_language::core::lexer::tokens::assignable_tokens::equation_parser::EquationToken;
 use monkey_language::core::lexer::tokens::assignable_tokens::equation_parser::expression::{Expression, PointerArithmetic, PrefixArithmetic};

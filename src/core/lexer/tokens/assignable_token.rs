@@ -7,7 +7,7 @@ use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::static_type_context::StaticTypeContext;
 use crate::core::lexer::tokens::assignable_tokens::boolean_token::BooleanToken;
-use crate::core::lexer::tokens::assignable_tokens::double_token::FloatToken;
+use crate::core::lexer::tokens::assignable_tokens::float_token::FloatToken;
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::equation_token_options::{ArithmeticEquationOptions, BooleanEquationOptions};
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::EquationToken;
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::expression::{Expression, PointerArithmetic, PrefixArithmetic};

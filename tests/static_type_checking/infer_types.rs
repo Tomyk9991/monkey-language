@@ -4,7 +4,7 @@ use monkey_language::core::lexer::token::Token;
 use monkey_language::core::lexer::tokenizer::Lexer;
 use monkey_language::core::lexer::tokens::assignable_token::AssignableToken;
 use monkey_language::core::lexer::tokens::assignable_tokens::boolean_token::BooleanToken;
-use monkey_language::core::lexer::tokens::assignable_tokens::double_token::FloatToken;
+use monkey_language::core::lexer::tokens::assignable_tokens::float_token::FloatToken;
 use monkey_language::core::lexer::tokens::assignable_tokens::integer_token::IntegerToken;
 use monkey_language::core::lexer::tokens::assignable_tokens::string_token::StringToken;
 use monkey_language::core::lexer::tokens::if_definition::IfDefinition;
