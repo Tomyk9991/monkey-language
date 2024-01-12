@@ -5,10 +5,12 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[dependencies]
-#os specific for windows string error codes
+[target.'cfg(target_os = "windows")'.dependencies]
 windows = "0.52.0"
 windows-core = "0.52.0"
+
+[dependencies]
+#os specific for windows string error codes
 anyhow = "1.0.70"
 
 regex = "1.8.1"
