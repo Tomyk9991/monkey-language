@@ -1,6 +1,6 @@
 module monkey-language-project/std.monkey;
 
-let a = 1.0;
-let format: *string = "My float: %f";
+let a = 1;
+let format: *string = "My float: %d";
 
 ExitProcess(0);

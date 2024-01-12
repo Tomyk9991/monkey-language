@@ -14,6 +14,8 @@ mod utils;
 
 
 fn main() -> anyhow::Result<()> {
+    let only_write = true;
+
     let args = ProgramArgs::parse();
 
     let entry_point_file = args.input.clone();
@@ -34,6 +36,10 @@ fn main() -> anyhow::Result<()> {
     let asm_result = code_generator.generate()?;
 
     target_creator.write_to("main.asm", &asm_result)?;
+
+    if only_write {
+        return Ok(())
+    }
 
     let s = std::env::current_dir()?;
 
