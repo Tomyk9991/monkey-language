@@ -51,7 +51,7 @@ fn main() -> anyhow::Result<()> {
             let status = target_creator.execute(&args.target_os);
             println!("Process finished with exit code {}", status);
 
-            if args.target_os == TargetOS::Windows {
+            if args.target_os == TargetOS::Windows && cfg!(target_os = "windows") {
                 let status_code = HRESULT(status);
 
                 // https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-erref/596a1078-e883-4972-9bbc-49e60bebca55
