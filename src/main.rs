@@ -1,6 +1,5 @@
 use clap::Parser;
 use colored::Colorize;
-use windows_core::{HRESULT};
 use crate::cli::program_args::ProgramArgs;
 use crate::core::code_generator::generator::{ASMGenerator};
 use crate::core::code_generator::target_creator::TargetCreator;
@@ -52,7 +51,7 @@ fn main() -> anyhow::Result<()> {
             println!("Process finished with exit code {}", status);
 
             if args.target_os == TargetOS::Windows && cfg!(target_os = "windows") {
-                let status_code = HRESULT(status);
+                let status_code = windows_core::HRESULT(status);
 
                 // https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-erref/596a1078-e883-4972-9bbc-49e60bebca55
                 if status_code.is_err() {
