@@ -51,18 +51,21 @@ fn main() -> anyhow::Result<()> {
             println!("Process finished with exit code {}", status);
 
             if args.target_os == TargetOS::Windows && cfg!(target_os = "windows") {
-                let status_code = windows_core::HRESULT(status);
+                #[cfg(target_os = "windows")]
+                {
+                    let status_code = windows_core::HRESULT(status);
 
-                // https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-erref/596a1078-e883-4972-9bbc-49e60bebca55
-                if status_code.is_err() {
-                    let error = windows_core::Error::from(status_code);
-                    let message = error.message();
-                    if message.is_empty() {
-                        if let Some(hard_coded_message) = more_windows_errors(status) {
-                            println!("{}", hard_coded_message);
+                    // https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-erref/596a1078-e883-4972-9bbc-49e60bebca55
+                    if status_code.is_err() {
+                        let error = windows_core::Error::from(status_code);
+                        let message = error.message();
+                        if message.is_empty() {
+                            if let Some(hard_coded_message) = more_windows_errors(status) {
+                                println!("{}", hard_coded_message);
+                            }
                         }
+                        println!("Error: {error}");
                     }
-                    println!("Error: {error}");
                 }
             }
         }
