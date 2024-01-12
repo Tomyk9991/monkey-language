@@ -50,7 +50,7 @@ fn main() -> anyhow::Result<()> {
             let status = target_creator.execute(&args.target_os);
             println!("Process finished with exit code {}", status);
 
-            if args.target_os == TargetOS::Windows && cfg!(target_os = "windows") {
+            if args.target_os == TargetOS::Windows {
                 #[cfg(target_os = "windows")]
                 {
                     let status_code = windows_core::HRESULT(status);
@@ -75,6 +75,7 @@ fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
+#[cfg(target_os = "windows")]
 /// looks up more numbers, maybe there is a hardcoded message
 fn more_windows_errors(status: i32) -> Option<String> {
     match status {
