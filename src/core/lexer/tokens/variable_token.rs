@@ -9,6 +9,7 @@ use anyhow::Context;
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, register_destination, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::generator::{Stack, StackLocation};
+use crate::core::code_generator::registers::{FloatRegister, GeneralPurposeRegister};
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::errors::EmptyIteratorErr;
 use crate::core::lexer::levenshtein_distance::{MethodCallSummarizeTransform, PatternedLevenshteinDistance, PatternedLevenshteinString, QuoteSummarizeTransform};
@@ -154,6 +155,16 @@ impl Display for ParseVariableTokenErr {
 impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for VariableToken<ASSIGNMENT, SEPARATOR> {
     fn to_asm(&self, stack: &mut Stack, meta: &mut MetaInfo) -> Result<String, ASMGenerateError> {
         let mut target = String::new();
+        target += &ASMBuilder::ident(&ASMBuilder::comment_line(&format!("{}", self)));
+
+        let mut written_float_register = None;
+
+        if let AssignableToken::FloatToken(f) = &self.assignable {
+            let s = GeneralPurposeRegister::iter_from_byte_size(f.byte_size(meta))?.current();
+            target += &ASMBuilder::mov_ident_line(&s, f.to_asm(stack, meta)?);
+
+            written_float_register = Some((s, f.ty.clone()));
+        }
 
         let destination = if self.define {
             let byte_size = self.assignable.byte_size(meta);
@@ -167,10 +178,14 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for VariableToken<ASSI
             self.name_token.to_asm(stack, meta)?
         };
 
-        target += &ASMBuilder::ident(&ASMBuilder::comment_line(&format!("{}", self)));
+
 
         if self.define && !self.assignable.is_stack_look_up(stack, meta) {
-            target += &ASMBuilder::mov_ident_line(destination, self.assignable.to_asm(stack, meta)?);
+            if let Some((register, _)) = &written_float_register {
+                target += &ASMBuilder::mov_ident_line(destination, register);
+            } else {
+                target += &ASMBuilder::mov_ident_line(destination, self.assignable.to_asm(stack, meta)?);
+            }
         } else {
             let mut wrote_expression_to_target = false;
 
@@ -185,6 +200,12 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for VariableToken<ASSI
             }
 
             let register_destination = register_destination::from_byte_size(self.assignable.byte_size(meta));
+
+
+
+            if let Some(TypeToken::Float(float_type)) = &self.ty {
+                target += &ASMBuilder::mov_x_ident_line(&register_destination, FloatRegister::Xmm0, Some(float_type.byte_size()));
+            }
 
             if !wrote_expression_to_target {
                 if !self.assignable.pointer_arithmetic().is_empty() {

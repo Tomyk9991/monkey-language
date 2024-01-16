@@ -3,18 +3,20 @@ use std::fmt::{Display, Formatter};
 use std::iter::Peekable;
 use std::slice::Iter;
 use std::str::FromStr;
+
 use crate::core::code_generator::{ASMGenerateError, conventions, MetaInfo};
 use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::conventions::CallingRegister;
 use crate::core::code_generator::generator::Stack;
+use crate::core::code_generator::registers::GeneralPurposeRegister;
 use crate::core::code_generator::target_os::TargetOS;
 use crate::core::code_generator::ToASM;
-use crate::core::lexer::tokens::assignable_token::{AssignableToken, AssignableTokenErr};
-use crate::core::lexer::tokens::name_token::{NameToken, NameTokenErr};
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::errors::EmptyIteratorErr;
 use crate::core::lexer::levenshtein_distance::{ArgumentsIgnoreSummarizeTransform, EmptyParenthesesExpand, PatternedLevenshteinDistance, PatternedLevenshteinString, QuoteSummarizeTransform};
 use crate::core::lexer::static_type_context::StaticTypeContext;
+use crate::core::lexer::tokens::assignable_token::{AssignableToken, AssignableTokenErr};
+use crate::core::lexer::tokens::name_token::{NameToken, NameTokenErr};
 use crate::core::lexer::TryParse;
 use crate::core::lexer::type_token::{InferTypeError, MethodCallArgumentTypeMismatch, TypeToken};
 
@@ -22,7 +24,7 @@ use crate::core::lexer::type_token::{InferTypeError, MethodCallArgumentTypeMisma
 pub struct MethodCallToken {
     pub name: NameToken,
     pub arguments: Vec<AssignableToken>,
-    pub code_line: CodeLine
+    pub code_line: CodeLine,
 }
 
 impl Display for MethodCallToken {
@@ -41,7 +43,7 @@ pub enum MethodCallTokenErr {
     NameTokenErr(NameTokenErr),
     DyckLanguageErr { target_value: String, ordering: Ordering },
     AssignableTokenErr(AssignableTokenErr),
-    EmptyIterator(EmptyIteratorErr)
+    EmptyIterator(EmptyIteratorErr),
 }
 
 impl std::error::Error for MethodCallTokenErr {}
@@ -67,14 +69,14 @@ impl Display for MethodCallTokenErr {
             MethodCallTokenErr::AssignableTokenErr(a) => a.to_string(),
             MethodCallTokenErr::NameTokenErr(a) => a.to_string(),
             MethodCallTokenErr::DyckLanguageErr { target_value, ordering } =>
-            {
-                let error: String = match ordering {
-                    Ordering::Less => String::from("Expected `)`"),
-                    Ordering::Equal => String::from("Expected expression between `,`"),
-                    Ordering::Greater => String::from("Expected `(`")
-                };
-                format!("\"{target_value}\": {error}")
-            }
+                {
+                    let error: String = match ordering {
+                        Ordering::Less => String::from("Expected `)`"),
+                        Ordering::Equal => String::from("Expected expression between `,`"),
+                        Ordering::Greater => String::from("Expected `(`")
+                    };
+                    format!("\"{target_value}\": {error}")
+                }
             MethodCallTokenErr::EmptyIterator(e) => e.to_string()
         };
 
@@ -129,7 +131,7 @@ impl MethodCallToken {
             Ok(MethodCallToken {
                 name: NameToken::from_str(name, false)?,
                 arguments,
-                code_line: code_line.clone()
+                code_line: code_line.clone(),
             })
         } else {
             Err(MethodCallTokenErr::PatternNotMatched { target_value: code_line.line.to_string() })
@@ -154,8 +156,8 @@ impl MethodCallToken {
                 return Err(InferTypeError::MethodCallArgumentAmountMismatch {
                     expected: method_def.arguments.len(),
                     actual: self.arguments.len(),
-                    code_line: self.code_line.clone()
-                })
+                    code_line: self.code_line.clone(),
+                });
             }
 
             let zipped = method_def.arguments
@@ -172,14 +174,14 @@ impl MethodCallToken {
                             expected: def_type,
                             actual: call_type,
                             nth_parameter: index + 1,
-                            code_line: code_line.clone()
+                            code_line: code_line.clone(),
                         })
-                    })
+                    });
                 }
             }
 
 
-            return Ok(())
+            return Ok(());
         }
 
         Err(InferTypeError::UnresolvedReference(self.name.name.clone(), code_line.clone()))
@@ -188,35 +190,45 @@ impl MethodCallToken {
 
 impl ToASM for MethodCallToken {
     fn to_asm(&self, stack: &mut Stack, meta: &mut MetaInfo) -> Result<String, ASMGenerateError> {
-        let calling_convention = conventions::calling_convention(meta, &self.arguments)?;
+        let calling_convention = conventions::calling_convention(meta, &self.arguments, &self.name.name)?;
 
         let mut result = String::new();
-
         let zipped = calling_convention.iter().zip(&self.arguments);
-        for (convention, argument) in zipped {
-            let parsed_argument = match argument {
+
+        for (conventions, argument) in zipped {
+            let (parsed_argument, provided_type) = match argument {
                 AssignableToken::ArithmeticEquation(_) | AssignableToken::BooleanEquation(_) => {
                     result += &ASMBuilder::push(&argument.to_asm(stack, meta)?);
-                    String::from("rax")
+                    (String::from("rax"), argument.infer_type(&meta.code_line))
                 }
                 _ => {
-                    argument.to_asm(stack, meta)?.to_string()
+                    (argument.to_asm(stack, meta)?.to_string(), argument.infer_type_with_context(&meta.static_type_information, &meta.code_line).ok())
                 }
             };
 
             match meta.target_os {
                 TargetOS::Windows => {
-                    match convention {
-                        CallingRegister::Register(register) => {
-                            result += &ASMBuilder::ident(&format!("mov {}, {}", register, parsed_argument.replace("DWORD", "QWORD")));
-                        }
-                        CallingRegister::Stack =>
-                            result += &ASMBuilder::ident(&format!("push {}", parsed_argument.replace("DWORD", "QWORD")))
-                    }
-                    result += &ASMBuilder::push(" ");
-                    result += &ASMBuilder::comment_line(&format!("Parameter ({})", argument));
-                }
+                    for convention in conventions {
+                        match convention {
+                            CallingRegister::Register(register) => {
+                                let b = if let GeneralPurposeRegister::Float(_) = register {
+                                    if let Some(provided_type) = &provided_type {
+                                        Some(provided_type.byte_size())
+                                    } else {
+                                        None
+                                    }
+                                } else { None };
 
+                                result += &ASMBuilder::mov_x_ident_line(&register, format!("{} ; Parameter ({})", parsed_argument.replace("DWORD", "QWORD"), argument), b);
+                            }
+                            CallingRegister::Stack => {
+                                result += &ASMBuilder::ident(&format!("push {}", parsed_argument.replace("DWORD", "QWORD")))
+                            }
+                        }
+                        result += &ASMBuilder::push(" ");
+                        result += &ASMBuilder::comment_line(&format!("Parameter ({})", argument));
+                    }
+                }
 
                 TargetOS::WindowsSubsystemLinux | TargetOS::Linux => {
                     unimplemented!("Not implemented for linux yet");
@@ -238,7 +250,7 @@ impl ToASM for MethodCallToken {
             method_def.return_type.byte_size()
         } else {
             0
-        }
+        };
     }
 
     fn before_label(&self, stack: &mut Stack, meta: &mut MetaInfo) -> Option<Result<String, ASMGenerateError>> {
@@ -253,7 +265,7 @@ impl ToASM for MethodCallToken {
                     Ok(before_label) => {
                         target += &ASMBuilder::line(&(before_label));
                         has_before_label_asm = true;
-                    },
+                    }
                     Err(err) => return Some(Err(err))
                 }
                 stack.label_count -= 1;
@@ -283,7 +295,7 @@ impl PatternedLevenshteinDistance for MethodCallToken {
                 vec![
                     Box::new(QuoteSummarizeTransform),
                     Box::new(EmptyParenthesesExpand),
-                    Box::new(ArgumentsIgnoreSummarizeTransform)
+                    Box::new(ArgumentsIgnoreSummarizeTransform),
                 ],
             ),
             method_call_pattern,
@@ -295,7 +307,7 @@ impl PatternedLevenshteinDistance for MethodCallToken {
 #[derive(Debug)]
 pub struct DyckError {
     pub target_value: String,
-    pub ordering: Ordering
+    pub ordering: Ordering,
 }
 
 pub trait ArrayOrObject<T> {
@@ -326,19 +338,19 @@ pub fn dyck_language<T: ArrayOrObject<char>>(parameter_string: &str, values: [T;
 
     for (index, c) in parameter_string.chars().enumerate() {
         if values[0].list().contains(&c) { // opening
-                counter += 1;
+            counter += 1;
         } else if values[2].list().contains(&c) { // closing
             counter -= 1;
         } else if values[1].list().contains(&c) && counter == 0 { // seperator
             let value = &parameter_string[current_start_index..index].trim();
-        
+
             if value.is_empty() {
                 return Err(DyckError {
                     target_value: parameter_string.to_string(),
-                    ordering: Ordering::Equal
+                    ordering: Ordering::Equal,
                 });
             }
-        
+
             individual_parameters.push(value.to_string());
             current_start_index = index + 1;
         }
@@ -347,11 +359,11 @@ pub fn dyck_language<T: ArrayOrObject<char>>(parameter_string: &str, values: [T;
     return match counter {
         number if number > 0 => Err(DyckError {
             target_value: parameter_string.to_string(),
-            ordering: Ordering::Less
+            ordering: Ordering::Less,
         }),
         number if number < 0 => return Err(DyckError {
             target_value: parameter_string.to_string(),
-            ordering: Ordering::Greater
+            ordering: Ordering::Greater,
         }),
         _ => {
             let s = parameter_string[current_start_index..parameter_string.len()].trim().to_string();
@@ -361,5 +373,5 @@ pub fn dyck_language<T: ArrayOrObject<char>>(parameter_string: &str, values: [T;
 
             Ok(individual_parameters)
         }
-    }
+    };
 }

@@ -22,7 +22,15 @@ impl Display for FloatToken {
 
 impl ToASM for FloatToken {
     fn to_asm(&self, _stack: &mut Stack, _meta: &mut MetaInfo) -> Result<String, ASMGenerateError> {
-        todo!()
+        let value_str = if !self.value.to_string().contains(".") {
+            format!("{}.0", self.value)
+        } else {
+            self.value.to_string()
+        };
+        match self.ty {
+            Float::Float32 => Ok(format!("__?float32?__({})", value_str)),
+            Float::Float64 => Ok(format!("__?float64?__({})", value_str)),
+        }
     }
 
     fn is_stack_look_up(&self, _stack: &mut Stack, _meta: &MetaInfo) -> bool {

@@ -1,6 +1,7 @@
 use std::fmt::{Display, Formatter};
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
+use crate::core::lexer::type_token::Float;
 
 #[allow(unused)]
 #[derive(PartialEq, Clone, Debug, Eq, Hash)]
@@ -39,5 +40,17 @@ impl ToASM for Operator {
 
     fn before_label(&self, _stack: &mut Stack, _meta: &mut MetaInfo) -> Option<Result<String, ASMGenerateError>> {
         None
+    }
+}
+
+impl Operator {
+    pub fn adjust_float_operation(&self, s: &mut Stack, m: &mut MetaInfo, float: Option<Float>) -> Result<String, ASMGenerateError> {
+        let suffix = match float {
+            Some(Float::Float32) => "ss",
+            Some(Float::Float64) => "sd",
+            None => ""
+        };
+
+        return Ok(format!("{}{suffix}", self.to_asm(s, m)?))
     }
 }

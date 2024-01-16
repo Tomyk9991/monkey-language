@@ -158,9 +158,7 @@ impl ToASM for Expression {
 
             if let Some(pointer) = self.pointer() {
                 if stack.register_to_use.len() == 0 { stack.register_to_use.push(GeneralPurposeRegister::Bit64(Bit64::Rax)); }
-
                 target += &ASMBuilder::push(&Self::pointer_arithmetic_to_asm(pointer, value, stack, meta)?);
-
                 if stack.register_to_use.len() == 1 { stack.register_to_use.pop(); }
             } else {
                 target += &value.to_asm(stack, meta)?;
@@ -185,7 +183,7 @@ impl ToASM for Expression {
                         // two expressions containing two values
                         let (lhs_size, _) = lhs_rhs_byte_sizes(lhs, rhs, meta)?;
 
-                        let mut register_to_use_iterator = GeneralPurposeRegister::from_byte_size(lhs_size)?;
+                        let mut register_to_use_iterator = GeneralPurposeRegister::iter_from_byte_size(lhs_size)?;
                         let register_a = register_to_use_iterator.current();
                         let register_b = register_to_use_iterator.next().ok_or(ASMGenerateError::InternalError("No next register found".to_string()))?;
                         let register_c = register_to_use_iterator.next().ok_or(ASMGenerateError::InternalError("No next register found".to_string()))?;
@@ -207,9 +205,18 @@ impl ToASM for Expression {
                 match (&lhs.value, &rhs.value) {
                     (Some(_), Some(_)) => { // 2 + 3
                         let (lhs_size, _) = lhs_rhs_byte_sizes(lhs, rhs, meta)?;
+                        let float_type;
 
-                        let mut register_to_use_iterator = GeneralPurposeRegister::from_byte_size(lhs_size)?;
-                        let next_register = register_to_use_iterator.current();
+                        let mut register_iterator = if let TypeToken::Float(f) = &self.traverse_type(meta)
+                            .ok_or(ASMGenerateError::InternalError("Could not traverse type".to_string()))? {
+                            float_type = Some(f.clone());
+                            GeneralPurposeRegister::iter_float_register()?
+                        } else {
+                            float_type = None;
+                            GeneralPurposeRegister::iter_from_byte_size(lhs_size)?
+                        };
+
+                        let next_register = register_iterator.current();
 
                         // pushing twice. the last pop will move the arithmetic result into this register,
                         // basically eax or rax or anything similar where a result is expected
@@ -222,19 +229,22 @@ impl ToASM for Expression {
                         if lhs.is_pointer() {
                             target += &ASMBuilder::push(&lhs.to_asm(stack, meta)?);
                         } else {
-                            target += &ASMBuilder::mov_ident_line(&destination_register, lhs.to_asm(stack, meta)?);
+                            target += &ASMBuilder::mov_x_ident_line(&destination_register, lhs.to_asm(stack, meta)?, if float_type.is_some() { Some(lhs_size) } else { None});
                         };
                         stack.register_to_use.pop();
 
-                        let next_register = register_to_use_iterator.nth(2).ok_or(ASMGenerateError::InternalError("No next register found".to_string()))?;
+                        let next_register = register_iterator.nth(2).ok_or(ASMGenerateError::InternalError("No next register found".to_string()))?;
+
                         stack.register_to_use.push(next_register);
                         let target_register = stack.register_to_use.last()?;
                         if rhs.is_pointer() {
                             target += &ASMBuilder::push(&rhs.to_asm(stack, meta)?);
                             target += &ASMBuilder::ident_line(&format!("{} {destination_register}, {target_register}", self.operator.to_asm(stack, meta)?));
                         } else {
-                            target += &ASMBuilder::ident_line(&format!("{} {destination_register}, {}", self.operator.to_asm(stack, meta)?, &rhs.to_asm(stack, meta)?));
+                            target += &ASMBuilder::ident_line(&format!("{} {destination_register}, {}", self.operator.adjust_float_operation(stack, meta, float_type)?, &rhs.to_asm(stack, meta)?));
                         };
+
+
                         stack.register_to_use.pop();
                         target += &ASMBuilder::mov_ident_line(stack.register_to_use.last()?, &destination_register);
 
@@ -245,7 +255,7 @@ impl ToASM for Expression {
                     (None, Some(_)) => { // (3 + 2) + 5
                         let (lhs_size, _) = lhs_rhs_byte_sizes(lhs, rhs, meta)?;
 
-                        let mut register_to_use_iterator = GeneralPurposeRegister::from_byte_size(lhs_size)?;
+                        let mut register_to_use_iterator = GeneralPurposeRegister::iter_from_byte_size(lhs_size)?;
                         let next_register = register_to_use_iterator.current();
 
                         if stack.register_to_use.len() == 0 {
@@ -275,7 +285,7 @@ impl ToASM for Expression {
                     (Some(_), None) => { // 5 + (3 + 2)
                         let (lhs_size, _) = lhs_rhs_byte_sizes(lhs, rhs, meta)?;
 
-                        let mut register_to_use_iterator = GeneralPurposeRegister::from_byte_size(lhs_size)?;
+                        let mut register_to_use_iterator = GeneralPurposeRegister::iter_from_byte_size(lhs_size)?;
                         let register_a = register_to_use_iterator.current();
                         let register_b = register_to_use_iterator.nth(2).ok_or(ASMGenerateError::InternalError("No next register found".to_string()))?;
 
@@ -307,7 +317,7 @@ impl ToASM for Expression {
                     (None, None) => { // ((1 + 2) + (3 + 4)) + ((5 + 6) + (7 + 8)) // any depth
                         let (lhs_size, _) = lhs_rhs_byte_sizes(lhs, rhs, meta)?;
 
-                        let mut register_to_use_iterator = GeneralPurposeRegister::from_byte_size(lhs_size)?;
+                        let mut register_to_use_iterator = GeneralPurposeRegister::iter_from_byte_size(lhs_size)?;
                         let register_a = register_to_use_iterator.current();
                         let register_b = register_to_use_iterator.nth(1).ok_or(ASMGenerateError::InternalError("No next register found".to_string()))?;
 
@@ -368,6 +378,7 @@ impl ToASM for Expression {
         None
     }
 }
+
 
 fn lhs_rhs_byte_sizes(a: &Box<Expression>, b: &Box<Expression>, meta: &mut MetaInfo) -> Result<(usize, usize), ASMGenerateError> {
     let lhs_size = a.byte_size(meta);

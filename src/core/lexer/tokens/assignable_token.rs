@@ -162,12 +162,11 @@ impl ToASM for AssignableToken {
         match &self {
             AssignableToken::IntegerToken(token) => Ok(token.to_asm(stack, meta)?),
             AssignableToken::NameToken(variable) => Ok(variable.to_asm(stack, meta)?),
-            AssignableToken::ArithmeticEquation(expression) => {
-                Ok(expression.to_asm(stack, meta)?)
-            },
+            AssignableToken::ArithmeticEquation(expression) => Ok(expression.to_asm(stack, meta)?),
             AssignableToken::String(string) => Ok(string.to_asm(stack, meta)?),
+            AssignableToken::FloatToken(float) => Ok(float.to_asm(stack, meta)?),
             AssignableToken::MethodCallToken(method_call) => Ok(method_call.to_asm(stack, meta)?),
-            token => Err(crate::core::code_generator::ASMGenerateError::AssignmentNotImplemented { assignable_token: (*token).clone() })
+            token => Err(ASMGenerateError::AssignmentNotImplemented { assignable_token: (*token).clone() })
             // AssignableToken::DoubleToken(_) => {}
             // AssignableToken::BooleanToken(_) => {}
             // AssignableToken::Object(_) => {}

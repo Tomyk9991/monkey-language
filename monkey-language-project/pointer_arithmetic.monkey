@@ -1,13 +1,10 @@
 module monkey-language-project/std.monkey;
 
-let a: i32 = 5;
-let b: *i32 = &a;
+let a: f64 = 5.0;
+let b: f64 = 10.1;
 
-let c: i32 = 13;
-let d: *i32 = &c;
+let c = a + b;
 
-let addition = (((*d + *b) + (*b + *d)) + (*b + *b)) + ((*b + (*b + *b)) + (*b + (*d + *b)));
-
-printf("%d", addition);
+printf("%.2f", c);
 
 ExitProcess(0);
