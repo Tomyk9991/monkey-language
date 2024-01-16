@@ -929,6 +929,131 @@ main:
     Ok(())
 }
 
+#[test]
+fn pointer_deref_operation_complex_expression_expression_i64() -> anyhow::Result<()> {
+    let code = r#"
+let a: i64 = 5;
+let b: *i64 = &a;
+
+let c: i64 = 13;
+let d: *i64 = &c;
+
+let addition = (((*d + *b) + (*b + *d)) + (*b + *b)) + ((*b + (*b + *b)) + (*b + (*d + *b)));
+    "#;
+
+    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
+    let mut lexer = Lexer::from(monkey_file);
+    let top_level_scope = lexer.tokenize()?;
+
+    static_type_check(&top_level_scope)?;
+
+    let mut code_generator = ASMGenerator::from((top_level_scope, TargetOS::Windows));
+    let asm_result = code_generator.generate()?;
+
+
+    println!("{}", asm_result);
+
+    let expected = r#"
+; This assembly is targeted for the Windows Operating System
+segment .text
+global main
+
+
+main:
+    push rbp
+    mov rbp, rsp
+    ; Reserve stack space as MS convention. Shadow stacking
+    sub rsp, 72
+    ; let a: i64 = 5
+    mov QWORD [rbp - 8], 5
+    ; let b: *i64 = &a
+    lea rax, [rbp - 8]
+    mov QWORD [rbp - 16], rax
+    ; let c: i64 = 13
+    mov QWORD [rbp - 24], 13
+    ; let d: *i64 = &c
+    lea rax, [rbp - 24]
+    mov QWORD [rbp - 32], rax
+    ; let addition: i64 = ((((*d Add *b) Add (*b Add *d)) Add (*b Add *b)) Add ((*b Add (*b Add *b)) Add (*b Add (*d Add *b))))
+    ; ((((*d Add *b) Add (*b Add *d)) Add (*b Add *b)) Add ((*b Add (*b Add *b)) Add (*b Add (*d Add *b))))
+    ; (((*d Add *b) Add (*b Add *d)) Add (*b Add *b))
+    ; ((*d Add *b) Add (*b Add *d))
+    ; (*d Add *b)
+    mov rax, QWORD [rbp - 32]
+    mov rax, QWORD [rax]
+    mov rdx, QWORD [rbp - 16]
+    mov rdx, QWORD [rdx]
+    add rax, rdx
+    mov rcx, rax
+    ; (*b Add *d)
+    mov rax, QWORD [rbp - 16]
+    mov rax, QWORD [rax]
+    mov rdx, QWORD [rbp - 32]
+    mov rdx, QWORD [rdx]
+    add rax, rdx
+    mov rdi, rax
+    add rcx, rdi
+    mov rax, rcx
+    push rax
+    xor rax, rax
+    ; (*b Add *b)
+    mov rax, QWORD [rbp - 16]
+    mov rax, QWORD [rax]
+    mov rdx, QWORD [rbp - 16]
+    mov rdx, QWORD [rdx]
+    add rax, rdx
+    push rax
+    xor rax, rax
+    pop rdi
+    pop rax
+    add rax, rdi
+    push rax
+    xor rax, rax
+    ; ((*b Add (*b Add *b)) Add (*b Add (*d Add *b)))
+    ; (*b Add (*b Add *b))
+    ; (*b Add *b)
+    mov rax, QWORD [rbp - 16]
+    mov rax, QWORD [rax]
+    mov rdx, QWORD [rbp - 16]
+    mov rdx, QWORD [rdx]
+    add rax, rdx
+    mov rdx, rax
+    mov rax, QWORD [rbp - 16]
+    mov rax, QWORD [rax]
+    add rax, rdx
+    mov rdi, rax
+    push rdi
+    xor rdi, rdi
+    ; (*b Add (*d Add *b))
+    ; (*d Add *b)
+    mov rax, QWORD [rbp - 32]
+    mov rax, QWORD [rax]
+    mov rdx, QWORD [rbp - 16]
+    mov rdx, QWORD [rdx]
+    add rax, rdx
+    mov rdx, rax
+    mov rax, QWORD [rbp - 16]
+    mov rax, QWORD [rax]
+    add rax, rdx
+    push rax
+    xor rax, rax
+    pop rdi
+    pop rax
+    add rax, rdi
+    push rax
+    xor rax, rax
+    pop rdi
+    pop rax
+    add rax, rdi
+    mov QWORD [rbp - 40], rax
+    leave
+    ret
+    "#;
+
+    assert_eq!(expected.trim(), asm_result.trim());
+    Ok(())
+}
+
 fn asm_from_assign_code(code: &str) -> anyhow::Result<String> {
     let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
     let mut lexer = Lexer::from(monkey_file);
