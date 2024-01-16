@@ -294,19 +294,41 @@ impl TypeToken {
         matches!(self, TypeToken::Void)
     }
 
-    pub fn implicit_cast_to(&self, assignable_token: &AssignableToken, desired_type: &TypeToken, code_line: &CodeLine) -> Result<Option<TypeToken>, InferTypeError> {
+    pub fn implicit_cast_to(&self, assignable_token: &mut AssignableToken, desired_type: &TypeToken, code_line: &CodeLine) -> Result<Option<TypeToken>, InferTypeError> {
         match (self, desired_type) {
             (TypeToken::Integer(_), TypeToken::Integer(desired)) => {
                 if let AssignableToken::IntegerToken(integer_token) = assignable_token {
                     match desired {
-                        Integer::I8 if Self::in_range(-127_i8, 127_i8, Integer::from_number_str(&integer_token.value)) => { return Ok(Some(desired_type.clone())) },
-                        Integer::U8 => if Self::in_range(0_u8, 255_u8, Integer::from_number_str(&integer_token.value)) { return Ok(Some(desired_type.clone())) },
-                        Integer::I16 => if Self::in_range(-32768_i16, 32767_i16, Integer::from_number_str(&integer_token.value)) { return Ok(Some(desired_type.clone())) },
-                        Integer::U16 => if Self::in_range(0_u16, 65535_u16, Integer::from_number_str(&integer_token.value)) { return Ok(Some(desired_type.clone())) },
-                        Integer::I32 => if Self::in_range(-2147483648_i32, 2147483647_i32, Integer::from_number_str(&integer_token.value)) { return Ok(Some(desired_type.clone())) },
-                        Integer::U32 => if Self::in_range(0_u32, 4294967295_u32, Integer::from_number_str(&integer_token.value)) { return Ok(Some(desired_type.clone())) },
-                        Integer::I64 => if Self::in_range(-9223372036854775808_i64, 9223372036854775807_i64, Integer::from_number_str(&integer_token.value)) { return Ok(Some(desired_type.clone())) },
-                        Integer::U64 => {
+                        Integer::I8 if Self::in_range(-127_i8, 127_i8, Integer::from_number_str(&integer_token.value)) => {
+                            integer_token.ty = desired.clone();
+                            return Ok(Some(desired_type.clone()))
+                        },
+                        Integer::U8 => if Self::in_range(0_u8, 255_u8, Integer::from_number_str(&integer_token.value)) {
+                            integer_token.ty = desired.clone();
+                            return Ok(Some(desired_type.clone()))
+                        },
+                        Integer::I16 => if Self::in_range(-32768_i16, 32767_i16, Integer::from_number_str(&integer_token.value)) {
+                            integer_token.ty = desired.clone();
+                            return Ok(Some(desired_type.clone()))
+                        },
+                        Integer::U16 => if Self::in_range(0_u16, 65535_u16, Integer::from_number_str(&integer_token.value)) {
+                            integer_token.ty = desired.clone();
+                            return Ok(Some(desired_type.clone()))
+                        },
+                        Integer::I32 => if Self::in_range(-2147483648_i32, 2147483647_i32, Integer::from_number_str(&integer_token.value)) {
+                            integer_token.ty = desired.clone();
+                            return Ok(Some(desired_type.clone()))
+                        },
+                        Integer::U32 => if Self::in_range(0_u32, 4294967295_u32, Integer::from_number_str(&integer_token.value)) {
+                            integer_token.ty = desired.clone();
+                            return Ok(Some(desired_type.clone()))
+                        },
+                        Integer::I64 => if Self::in_range(-9223372036854775808_i64, 9223372036854775807_i64, Integer::from_number_str(&integer_token.value)) {
+                            integer_token.ty = desired.clone();
+                            return Ok(Some(desired_type.clone()))
+                        },
+                        Integer::U64 => if Self::in_range(0_u64, 18446744073709551615_u64, Integer::from_number_str(&integer_token.value)) {
+                            integer_token.ty = desired.clone();
                             return Ok(Some(desired_type.clone()))
                         },
                         _ => return Err(InferTypeError::IntegerTooSmall { ty: desired_type.clone() , literal: integer_token.value.to_string(), code_line: code_line.clone() })
@@ -316,8 +338,14 @@ impl TypeToken {
             (TypeToken::Float(_), TypeToken::Float(desired)) => {
                 if let AssignableToken::FloatToken(float_token) = assignable_token {
                     match desired {
-                        Float::Float32 if Self::in_range(-3.40282347e+38, 3.40282347e+38 , Ok(float_token.value)) => { return Ok(Some(desired_type.clone())) },
-                        Float::Float64 if Self::in_range(-1.797_693_134_862_315_7e308, 1.797_693_134_862_315_7e308, Ok(float_token.value)) => { return Ok(Some(desired_type.clone())) },
+                        Float::Float32 if Self::in_range(-3.40282347e+38, 3.40282347e+38 , Ok(float_token.value)) => {
+                            float_token.ty = desired.clone();
+                            return Ok(Some(desired_type.clone()))
+                        },
+                        Float::Float64 if Self::in_range(-1.797_693_134_862_315_7e308, 1.797_693_134_862_315_7e308, Ok(float_token.value)) => {
+                            float_token.ty = desired.clone();
+                            return Ok(Some(desired_type.clone()))
+                        },
                         _ => return Err(InferTypeError::FloatTooSmall { ty: desired_type.clone(), float: float_token.value, code_line: code_line.clone() })
                     }
                 }

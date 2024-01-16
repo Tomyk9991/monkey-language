@@ -848,6 +848,87 @@ main:
     Ok(())
 }
 
+#[test]
+fn assignable_different_integer_types() -> anyhow::Result<()> {
+    let code = r#"
+    let a: i64 = 512;
+    "#;
+
+    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
+    let mut lexer = Lexer::from(monkey_file);
+    let top_level_scope = lexer.tokenize()?;
+
+    static_type_check(&top_level_scope)?;
+    let mut code_generator = ASMGenerator::from((top_level_scope, TargetOS::Windows));
+    let asm_result = String::from(code_generator.generate()?.trim());
+
+    println!("{}", asm_result);
+
+    let expected = r#"; This assembly is targeted for the Windows Operating System
+segment .text
+global main
+
+
+main:
+    push rbp
+    mov rbp, rsp
+    ; Reserve stack space as MS convention. Shadow stacking
+    sub rsp, 40
+    ; let a: i64 = 512
+    mov QWORD [rbp - 8], 512
+    leave
+    ret"#;
+
+    assert_eq!(expected, asm_result);
+
+    Ok(())
+}
+
+#[test]
+fn basic_add_different_type() -> anyhow::Result<()> {
+    let code = r#"
+    let a: i64 = 512;
+    let b: i64 = 5;
+    let c = a + b;
+    "#;
+
+    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
+    let mut lexer = Lexer::from(monkey_file);
+    let top_level_scope = lexer.tokenize()?;
+
+    static_type_check(&top_level_scope)?;
+    let mut code_generator = ASMGenerator::from((top_level_scope, TargetOS::Windows));
+    let asm_result = String::from(code_generator.generate()?.trim());
+
+    println!("{}", asm_result);
+
+    let expected = r#"; This assembly is targeted for the Windows Operating System
+segment .text
+global main
+
+
+main:
+    push rbp
+    mov rbp, rsp
+    ; Reserve stack space as MS convention. Shadow stacking
+    sub rsp, 56
+    ; let a: i64 = 512
+    mov QWORD [rbp - 8], 512
+    ; let b: i64 = 5
+    mov QWORD [rbp - 16], 5
+    ; let c: i64 = (a Add b)
+    ; (a Add b)
+    mov rax, QWORD [rbp - 8]
+    add rax, QWORD [rbp - 16]
+    mov QWORD [rbp - 24], rax
+    leave
+    ret"#;
+
+    assert_eq!(expected, asm_result);
+
+    Ok(())
+}
+
 fn asm_from_assign_code(code: &str) -> anyhow::Result<String> {
     let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
     let mut lexer = Lexer::from(monkey_file);

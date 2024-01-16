@@ -505,3 +505,54 @@ fn variable_test_integers() -> anyhow::Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn variable_test_integers_assignable() -> anyhow::Result<()> {
+    let variables = r#"let a: i32 = 5;
+    let b: i64 = 5;
+    let c: i16 = 3;
+    let d: i8 = 9;
+
+    let f: u8 = 2;
+    let g: u16 = 3;
+    let h: u32 = 4;
+    let i: u64 = 5;
+    "#;
+
+    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(variables);
+    let mut lexer = Lexer::from(monkey_file);
+    let top_level_scope = lexer.tokenize()?;
+
+    println!("{:#?}", top_level_scope);
+
+    let expected = vec![
+        TypeToken::Integer(Integer::I32),
+        TypeToken::Integer(Integer::I64),
+        TypeToken::Integer(Integer::I16),
+        TypeToken::Integer(Integer::I8),
+        TypeToken::Integer(Integer::U8),
+        TypeToken::Integer(Integer::U16),
+        TypeToken::Integer(Integer::U32),
+        TypeToken::Integer(Integer::U64),
+    ];
+
+    for token in &top_level_scope.tokens {
+        println!("{}", token);
+    }
+
+
+    for (index, token) in top_level_scope.tokens.iter().enumerate() {
+        match token {
+            Token::Variable(v) if v.ty.is_some() => {
+                if let AssignableToken::IntegerToken(i) = &v.assignable {
+                    assert_eq!(&expected[index], &TypeToken::Integer(i.ty.clone()), "FAILED AT: {token}");
+                } else {
+                    assert!(false, "Didnt expect not inferred type {}", v);
+                }
+            },
+            _ => assert!(false, "Didnt expect this type of token")
+        }
+    }
+
+    Ok(())
+}

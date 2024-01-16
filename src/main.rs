@@ -14,7 +14,7 @@ mod utils;
 
 
 fn main() -> anyhow::Result<()> {
-    let only_write = true;
+    let only_write = false;
 
     let args = ProgramArgs::parse();
 

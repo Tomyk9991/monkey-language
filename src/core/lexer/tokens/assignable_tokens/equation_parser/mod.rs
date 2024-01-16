@@ -328,7 +328,6 @@ impl<T: EquationTokenOptions> EquationToken<T> {
                 }
 
                 let sub_string: &str = &self.source_code.chars().skip(start_pos as usize).take((self.pos - start_pos) as usize).collect::<String>();
-                println!("{}", sub_string);
                 let mut temp = vec![CodeLine::imaginary(sub_string)];
 
                 temp.normalize();

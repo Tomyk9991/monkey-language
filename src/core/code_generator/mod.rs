@@ -39,7 +39,7 @@ impl Display for ASMGenerateError {
             ASMGenerateError::AssignmentNotImplemented { assignable_token } => write!(f, "ASM implementation for this Assignment is missing: {}", assignable_token),
             ASMGenerateError::NotImplemented { token } => write!(f, "Cannot build ASM from this token: {}", token),
             ASMGenerateError::TypeNotInferrable(infer) => write!(f, "{}", infer),
-            ASMGenerateError::InternalError(message) => write!(f, "Internal Error: {}", message)
+            ASMGenerateError::InternalError(message) => write!(f, "Internal Error: {}", message),
         }
     }
 }

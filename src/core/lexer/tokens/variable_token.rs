@@ -57,8 +57,9 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> InferType for VariableToken<
 
                 if ty != &inferred_type {
                     // let a: i64 = 5; instead of let a: i32 = 5;
-                    if let Some(implicit_cast) = inferred_type.implicit_cast_to(&self.assignable, ty, &self.code_line)? {
+                    if let Some(implicit_cast) = inferred_type.implicit_cast_to(&mut self.assignable, ty, &self.code_line)? {
                         self.ty = Some(implicit_cast);
+
                     } else {
                         return Err(InferTypeError::MismatchedTypes { expected: ty.clone(), actual: inferred_type.clone(), code_line: self.code_line.clone() });
                     }
@@ -176,7 +177,6 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for VariableToken<ASSI
             match &self.assignable {
                 AssignableToken::ArithmeticEquation(eq) | AssignableToken::BooleanEquation(eq)  => {
                     if eq.value.is_none() {
-                        // target += &stack.reset_registers();
                         target += &eq.to_asm(stack, meta)?.to_string();
                         wrote_expression_to_target = true;
                     }

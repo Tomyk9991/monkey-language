@@ -5,7 +5,7 @@ use std::str::FromStr;
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::generator::{LastUnchecked, Stack};
-use crate::core::code_generator::registers::{Bit32, Bit64, GeneralPurposeRegister};
+use crate::core::code_generator::registers::{Bit64, GeneralPurposeRegister};
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::static_type_context::StaticTypeContext;
 use crate::core::lexer::tokens::assignable_token::AssignableToken;
@@ -157,7 +157,11 @@ impl ToASM for Expression {
             let mut target = String::new();
 
             if let Some(pointer) = self.pointer() {
+                if stack.register_to_use.len() == 0 { stack.register_to_use.push(GeneralPurposeRegister::Bit64(Bit64::Rax)); }
+
                 target += &ASMBuilder::push(&Self::pointer_arithmetic_to_asm(pointer, value, stack, meta)?);
+
+                if stack.register_to_use.len() == 1 { stack.register_to_use.pop(); }
             } else {
                 target += &value.to_asm(stack, meta)?;
             }
@@ -179,23 +183,41 @@ impl ToASM for Expression {
                         &inner_rhs_l.value,
                         &inner_rhs_r.value) {
                         // two expressions containing two values
-                        stack.register_to_use.push(Bit32::Ecx.into());
+                        let (lhs_size, _) = lhs_rhs_byte_sizes(lhs, rhs, meta)?;
+
+                        let mut register_to_use_iterator = GeneralPurposeRegister::from_byte_size(lhs_size)?;
+                        let register_a = register_to_use_iterator.current();
+                        let register_b = register_to_use_iterator.next().ok_or(ASMGenerateError::InternalError("No next register found".to_string()))?;
+                        let register_c = register_to_use_iterator.next().ok_or(ASMGenerateError::InternalError("No next register found".to_string()))?;
+
+                        stack.register_to_use.push(register_b.clone());
                         target += &ASMBuilder::push(&lhs.to_asm(stack, meta)?.to_string());
                         stack.register_to_use.pop();
 
-                        stack.register_to_use.push(Bit32::Edi.into());
+                        stack.register_to_use.push(register_c.clone());
                         target += &ASMBuilder::push(&rhs.to_asm(stack, meta)?.to_string());
                         stack.register_to_use.pop();
 
-                        target += &ASMBuilder::ident_line(&format!("{} ecx, edi", self.operator.to_asm(stack, meta)?));
-                        target += &ASMBuilder::mov_ident_line(Bit32::Eax, Bit32::Ecx);
+                        target += &ASMBuilder::ident_line(&format!("{} {register_b}, {register_c}", self.operator.to_asm(stack, meta)?));
+                        target += &ASMBuilder::mov_ident_line(register_a, register_b);
 
                         return Ok(target);
                     }
                 }
                 match (&lhs.value, &rhs.value) {
                     (Some(_), Some(_)) => { // 2 + 3
-                        stack.register_to_use.push(Bit32::Eax.into());
+                        let (lhs_size, _) = lhs_rhs_byte_sizes(lhs, rhs, meta)?;
+
+                        let mut register_to_use_iterator = GeneralPurposeRegister::from_byte_size(lhs_size)?;
+                        let next_register = register_to_use_iterator.current();
+
+                        // pushing twice. the last pop will move the arithmetic result into this register,
+                        // basically eax or rax or anything similar where a result is expected
+                        if stack.register_to_use.len() == 0 {
+                            stack.register_to_use.push(next_register.clone());
+                        }
+
+                        stack.register_to_use.push(next_register);
                         let destination_register = stack.register_to_use.last()?;
                         if lhs.is_pointer() {
                             target += &ASMBuilder::push(&lhs.to_asm(stack, meta)?);
@@ -204,7 +226,8 @@ impl ToASM for Expression {
                         };
                         stack.register_to_use.pop();
 
-                        stack.register_to_use.push(Bit32::Edx.into());
+                        let next_register = register_to_use_iterator.nth(2).ok_or(ASMGenerateError::InternalError("No next register found".to_string()))?;
+                        stack.register_to_use.push(next_register);
                         let target_register = stack.register_to_use.last()?;
                         if rhs.is_pointer() {
                             target += &ASMBuilder::push(&rhs.to_asm(stack, meta)?);
@@ -214,48 +237,85 @@ impl ToASM for Expression {
                         };
                         stack.register_to_use.pop();
                         target += &ASMBuilder::mov_ident_line(stack.register_to_use.last()?, &destination_register);
+
+                        if stack.register_to_use.len() == 1 {
+                            stack.register_to_use.pop();
+                        }
                     }
                     (None, Some(_)) => { // (3 + 2) + 5
-                        stack.register_to_use.push(Bit32::Eax.into());
+                        let (lhs_size, _) = lhs_rhs_byte_sizes(lhs, rhs, meta)?;
+
+                        let mut register_to_use_iterator = GeneralPurposeRegister::from_byte_size(lhs_size)?;
+                        let next_register = register_to_use_iterator.current();
+
+                        if stack.register_to_use.len() == 0 {
+                            stack.register_to_use.push(next_register.clone());
+                        }
+
+                        stack.register_to_use.push(next_register);
                         let destination_register = stack.register_to_use.last()?;
                         target += &ASMBuilder::push(&lhs.to_asm(stack, meta)?.to_string());
                         stack.register_to_use.pop();
 
-                        stack.register_to_use.push(Bit32::Edx.into());
+                        let next_register = register_to_use_iterator.nth(2).ok_or(ASMGenerateError::InternalError("No next register found".to_string()))?;
+                        stack.register_to_use.push(next_register);
                         let target_register = stack.register_to_use.last()?;
                         if rhs.is_pointer() {
                             target += &ASMBuilder::push(&rhs.to_asm(stack, meta)?);
-                            target += &ASMBuilder::ident_line(&format!("{} {}, {}", self.operator.to_asm(stack, meta)?, Bit32::Eax, target_register));
+                            target += &ASMBuilder::ident_line(&format!("{} {}, {}", self.operator.to_asm(stack, meta)?, destination_register, target_register));
                         } else {
                             target += &ASMBuilder::ident_line(&format!("{} {destination_register}, {}", self.operator.to_asm(stack, meta)?, rhs.to_asm(stack, meta)?));
                         };
                         stack.register_to_use.pop();
                         target += &ASMBuilder::mov_ident_line(stack.register_to_use.last()?, destination_register);
+                        if stack.register_to_use.len() == 1 {
+                            stack.register_to_use.pop();
+                        }
                     }
                     (Some(_), None) => { // 5 + (3 + 2)
-                        stack.register_to_use.push(Bit32::Edx.into());
+                        let (lhs_size, _) = lhs_rhs_byte_sizes(lhs, rhs, meta)?;
+
+                        let mut register_to_use_iterator = GeneralPurposeRegister::from_byte_size(lhs_size)?;
+                        let register_a = register_to_use_iterator.current();
+                        let register_b = register_to_use_iterator.nth(2).ok_or(ASMGenerateError::InternalError("No next register found".to_string()))?;
+
+                        if stack.register_to_use.len() == 0 {
+                            stack.register_to_use.push(register_a.clone());
+                        }
+
+                        stack.register_to_use.push(register_b.clone());
                         let target_register = stack.register_to_use.last()?;
                         target += &ASMBuilder::push(&rhs.to_asm(stack, meta)?.to_string());
                         stack.register_to_use.pop();
 
-                        stack.register_to_use.push(Bit32::Eax.into());
+                        stack.register_to_use.push(register_a.clone());
                         let destination_register = stack.register_to_use.last()?;
                         if lhs.is_pointer() {
                             target += &ASMBuilder::push(&lhs.to_asm(stack, meta)?);
-                            target += &ASMBuilder::ident_line(&format!("{} {}, {}", self.operator.to_asm(stack, meta)?, Bit32::Eax, Bit32::Edx));
+                            target += &ASMBuilder::ident_line(&format!("{} {}, {}", self.operator.to_asm(stack, meta)?, register_a, register_b));
                         } else {
                             target += &ASMBuilder::mov_ident_line(&destination_register, lhs.to_asm(stack, meta)?);
                             target += &ASMBuilder::ident_line(&format!("{} {destination_register}, {}", self.operator.to_asm(stack, meta)?, target_register));
                         };
                         stack.register_to_use.pop();
-                        target += &ASMBuilder::mov_ident_line(stack.register_to_use.last()?, Bit32::Eax);
+
+                        target += &ASMBuilder::mov_ident_line(stack.register_to_use.last()?, register_a);
+                        if stack.register_to_use.len() == 1 {
+                            stack.register_to_use.pop();
+                        }
                     }
                     (None, None) => { // ((1 + 2) + (3 + 4)) + ((5 + 6) + (7 + 8)) // any depth
-                        stack.register_to_use.push(Bit32::Edi.into());
+                        let (lhs_size, _) = lhs_rhs_byte_sizes(lhs, rhs, meta)?;
+
+                        let mut register_to_use_iterator = GeneralPurposeRegister::from_byte_size(lhs_size)?;
+                        let register_a = register_to_use_iterator.current();
+                        let register_b = register_to_use_iterator.nth(1).ok_or(ASMGenerateError::InternalError("No next register found".to_string()))?;
+
+                        stack.register_to_use.push(register_b.clone());
                         target += &ASMBuilder::push(&lhs.to_asm(stack, meta)?.to_string());
                         stack.register_to_use.pop();
 
-                        let register_to_push: GeneralPurposeRegister = if let Some(last_instruction) = extract_last_instruction(&target) {
+                        let pushing_register: GeneralPurposeRegister = if let Some(last_instruction) = extract_last_instruction(&target) {
                             let mut r = Bit64::Rdi.into();
 
                             if let Some(space_index) = last_instruction.chars().position(|a| a == ' ') {
@@ -269,20 +329,20 @@ impl ToASM for Expression {
                             Bit64::Rdi.into()
                         };
 
-                        target += &ASMBuilder::ident_line(&format!("push {register_to_push}"));
-                        target += &ASMBuilder::ident_line(&format!("xor {register_to_push}, {register_to_push}"));
+                        target += &ASMBuilder::ident_line(&format!("push {pushing_register}"));
+                        target += &ASMBuilder::ident_line(&format!("xor {pushing_register}, {pushing_register}"));
 
-                        stack.register_to_use.push(Bit32::Eax.into());
+                        stack.register_to_use.push(register_a.clone());
                         target += &ASMBuilder::push(&rhs.to_asm(stack, meta)?.to_string());
                         stack.register_to_use.pop();
 
-                        target += &ASMBuilder::ident_line("push rax");
-                        target += &ASMBuilder::ident_line("xor rax, rax");
+                        target += &ASMBuilder::ident_line(&format!("push {}", register_a.to_64_bit_register()));
+                        target += &ASMBuilder::ident_line(&format!("xor {}, {}", register_a.to_64_bit_register(), register_a.to_64_bit_register()));
 
-                        target += &ASMBuilder::ident_line("pop rdi");
-                        target += &ASMBuilder::ident_line("pop rax");
+                        target += &ASMBuilder::ident_line(&format!("pop {}", register_b.to_64_bit_register()));
+                        target += &ASMBuilder::ident_line(&format!("pop {}", register_a.to_64_bit_register()));
 
-                        target += &ASMBuilder::ident_line(&format!("{} eax, edi", self.operator.to_asm(stack, meta)?));
+                        target += &ASMBuilder::ident_line(&format!("{} {}, {}", self.operator.to_asm(stack, meta)?, register_a, register_b));
                     }
                 }
             }
@@ -307,6 +367,17 @@ impl ToASM for Expression {
     fn before_label(&self, _stack: &mut Stack, _meta: &mut MetaInfo) -> Option<Result<String, ASMGenerateError>> {
         None
     }
+}
+
+fn lhs_rhs_byte_sizes(a: &Box<Expression>, b: &Box<Expression>, meta: &mut MetaInfo) -> Result<(usize, usize), ASMGenerateError> {
+    let lhs_size = a.byte_size(meta);
+    let rhs_size = b.byte_size(meta);
+
+    if lhs_size != rhs_size {
+        return Err(ASMGenerateError::NotImplemented { token: format!("Expected both types to be the same byte size. lhs: {}, rhs: {}", lhs_size, rhs_size) });
+    }
+
+    Ok((lhs_size, rhs_size))
 }
 
 fn extract_last_instruction(current_asm: &str) -> Option<String> {

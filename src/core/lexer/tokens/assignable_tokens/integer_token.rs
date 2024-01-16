@@ -76,7 +76,7 @@ impl FromStr for IntegerToken {
 }
 
 impl ToASM for IntegerToken {
-    fn to_asm(&self, _stack: &mut Stack, _meta: &mut MetaInfo) -> Result<String, crate::core::code_generator::ASMGenerateError> {
+    fn to_asm(&self, _stack: &mut Stack, _meta: &mut MetaInfo) -> Result<String, ASMGenerateError> {
         Ok(self.value.to_string())
     }
 
@@ -85,7 +85,12 @@ impl ToASM for IntegerToken {
     }
 
     fn byte_size(&self, _meta: &mut MetaInfo) -> usize {
-        4
+        match self.ty {
+            Integer::I8 | Integer::U8 => 1,
+            Integer::I16 | Integer::U16 => 2,
+            Integer::I32 | Integer::U32 => 4,
+            Integer::I64 | Integer::U64 => 8,
+        }
     }
 
     fn before_label(&self, _stack: &mut Stack, _meta: &mut MetaInfo) -> Option<Result<String, ASMGenerateError>> {

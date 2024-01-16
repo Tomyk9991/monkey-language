@@ -1,7 +1,7 @@
 use crate::core::code_generator::{MetaInfo, ToASM};
 use crate::core::code_generator::ASMGenerateError;
 use crate::core::code_generator::asm_builder::{ASMBuilder};
-use crate::core::code_generator::registers::{Bit32, Bit64, GeneralPurposeRegister};
+use crate::core::code_generator::registers::{Bit64, GeneralPurposeRegister};
 use crate::core::code_generator::target_os::TargetOS;
 use crate::core::lexer::scope::Scope;
 use crate::core::lexer::static_type_context::StaticTypeContext;
@@ -51,7 +51,7 @@ impl Default for Stack {
             scopes: vec![],
             variables: Default::default(),
             label_count: 0,
-            register_to_use: vec![Bit32::Eax.into()],
+            register_to_use: vec![],
         }
     }
 }
