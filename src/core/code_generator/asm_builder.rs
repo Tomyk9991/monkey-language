@@ -54,11 +54,11 @@ impl ASMBuilder {
     fn mov_instruction_ident_line<T: Display, P: Display>(mov_instruction: MovInstruction, destination: T, source: P) -> String {
         let s = Self::mov_instruction_ident(mov_instruction, destination, source);
 
-        return if s.ends_with("\n") {
+        if s.ends_with('\n') {
             s
         } else {
             format!("{s}\n")
-        };
+        }
     }
 
     pub fn mov_instruction_ident<T: Display, P: Display>(mov_instruction: MovInstruction, destination: T, source: P) -> String {

@@ -302,7 +302,7 @@ impl<T: EquationTokenOptions> EquationToken<T> {
         } else if self.ch.is_some() {
             // digits only
             if self.ch >= Some('0') && self.ch <= Some('9') || self.ch == Some('.') {
-                while self.ch >= Some('0') && self.ch <= Some('9') || self.ch == Some('.') {
+                while self.ch >= Some('0') && self.ch <= Some('9') || self.ch == Some('.') || self.ch == Some('_') || (self.ch >= Some('A') && self.ch <= Some('Z')) || (self.ch >= Some('a') && self.ch <= Some('z')) {
                     self.next_char()
                 }
 

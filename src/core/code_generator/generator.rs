@@ -15,6 +15,7 @@ pub struct StackLocation {
 }
 
 
+#[derive(Default)]
 /// a struct representing the current stack pointer and variables in the stack
 pub struct Stack {
     /// represents the current position on the stack
@@ -44,17 +45,6 @@ impl LastUnchecked<GeneralPurposeRegister> for Vec<GeneralPurposeRegister> {
     }
 }
 
-impl Default for Stack {
-    fn default() -> Self {
-        Stack {
-            stack_position: 0,
-            scopes: vec![],
-            variables: Default::default(),
-            label_count: 0,
-            register_to_use: vec![],
-        }
-    }
-}
 
 impl Stack {
     pub fn _reset_registers(&self) -> String {

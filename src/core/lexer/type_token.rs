@@ -337,19 +337,18 @@ impl TypeToken {
             }
             (TypeToken::Float(_), TypeToken::Float(desired)) => {
                 if let AssignableToken::FloatToken(float_token) = assignable_token {
-                    match desired {
-                        Float::Float32 if Self::in_range(-3.40282347e+38, 3.40282347e+38 , Ok(float_token.value)) => {
+                    return match desired {
+                        Float::Float32 if Self::in_range(-3.40282347e+38, 3.40282347e+38, Ok(float_token.value)) => {
                             float_token.ty = desired.clone();
-                            return Ok(Some(desired_type.clone()))
+                            Ok(Some(desired_type.clone()))
                         },
                         Float::Float64 if Self::in_range(-1.797_693_134_862_315_7e308, 1.797_693_134_862_315_7e308, Ok(float_token.value)) => {
                             float_token.ty = desired.clone();
-                            return Ok(Some(desired_type.clone()))
+                            Ok(Some(desired_type.clone()))
                         },
-                        _ => return Err(InferTypeError::FloatTooSmall { ty: desired_type.clone(), float: float_token.value, code_line: code_line.clone() })
+                        _ => Err(InferTypeError::FloatTooSmall { ty: desired_type.clone(), float: float_token.value, code_line: code_line.clone() })
                     }
                 }
-
             },
             _ => { }
         }

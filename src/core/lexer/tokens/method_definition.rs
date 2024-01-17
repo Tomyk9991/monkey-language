@@ -128,14 +128,14 @@ impl TryParse for MethodDefinition {
             }
         }
 
-        return Ok(MethodDefinition {
+        Ok(MethodDefinition {
             name: NameToken::from_str(fn_name, false)?,
             return_type: TypeToken::from_str(return_type)?,
             arguments: Self::type_arguments(method_header, arguments)?,
             stack: tokens,
             is_extern,
             code_line: method_header.clone(),
-        });
+        })
     }
 }
 

@@ -22,7 +22,7 @@ impl Display for FloatToken {
 
 impl ToASM for FloatToken {
     fn to_asm(&self, _stack: &mut Stack, _meta: &mut MetaInfo) -> Result<String, ASMGenerateError> {
-        let value_str = if !self.value.to_string().contains(".") {
+        let value_str = if !self.value.to_string().contains('.') {
             format!("{}.0", self.value)
         } else {
             self.value.to_string()
@@ -54,22 +54,35 @@ impl FromStr for FloatToken {
     type Err = NumberTokenErr;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if !lazy_regex::regex_is_match!("^[+-]?(\\d+\\.\\d*|\\d*\\.\\d+)$", s) {
+        if !lazy_regex::regex_is_match!("^[+-]?(\\d+\\.\\d*|\\d*\\.\\d+)(_f64|_f32)?$", s) {
             return Err(NumberTokenErr::UnmatchedRegex);
         }
 
+        let expected_type = match s {
+            a if a.ends_with("_f64") => Float::Float64,
+            a if a.ends_with("_f32") => Float::Float32,
+            _ => Float::Float32
+        };
+
+        let s = s.replace("_f64", "").replace("_f32", "");
+
         let value = s.parse::<f64>()?;
 
-
-
-        let final_type = if (-1.17549435e-38..=3.40282347e+38).contains(&value) {
-            Float::Float32
+        let final_type = if (-3.40282347e+38..=3.40282347e+38).contains(&value) {
+            if matches!(expected_type, Float::Float64) {
+                Float::Float64
+            } else {
+                Float::Float32
+            }
         } else {
+            if matches!(expected_type, Float::Float32) {
+                return Err(NumberTokenErr::UnmatchedRegex)
+            }
             Float::Float64
         };
 
         Ok(FloatToken {
-            value: s.parse::<f64>()?,
+            value,
             ty: final_type,
         })
     }

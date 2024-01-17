@@ -44,13 +44,13 @@ impl ToASM for Operator {
 }
 
 impl Operator {
-    pub fn adjust_float_operation(&self, s: &mut Stack, m: &mut MetaInfo, float: Option<Float>) -> Result<String, ASMGenerateError> {
+    pub fn adjust_float_operation(&self, s: &mut Stack, m: &mut MetaInfo, float: &Option<Float>) -> Result<String, ASMGenerateError> {
         let suffix = match float {
             Some(Float::Float32) => "ss",
             Some(Float::Float64) => "sd",
             None => ""
         };
 
-        return Ok(format!("{}{suffix}", self.to_asm(s, m)?))
+        Ok(format!("{}{suffix}", self.to_asm(s, m)?))
     }
 }

@@ -86,7 +86,7 @@ impl FromStr for FloatRegister {
             "xmm5" => Ok(FloatRegister::Xmm5),
             "xmm6" => Ok(FloatRegister::Xmm6),
             "xmm7" => Ok(FloatRegister::Xmm7),
-            a => { Err(ASMGenerateError::InternalError(format!("Could not convert `{a}` into a register"))) }
+            a => { Err(ASMGenerateError::InternalError(format!("Float: Could not convert `{a}` into a register"))) }
         }
     }
 
@@ -123,6 +123,14 @@ impl FromStr for GeneralPurposeRegister {
             "sil" => Ok(GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::SIL))),
             "dh" => Ok(GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::DH))),
             "dl" => Ok(GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::DL))),
+            "xmm0" => Ok(GeneralPurposeRegister::Float(FloatRegister::Xmm0)),
+            "xmm1" => Ok(GeneralPurposeRegister::Float(FloatRegister::Xmm1)),
+            "xmm2" => Ok(GeneralPurposeRegister::Float(FloatRegister::Xmm2)),
+            "xmm3" => Ok(GeneralPurposeRegister::Float(FloatRegister::Xmm3)),
+            "xmm4" => Ok(GeneralPurposeRegister::Float(FloatRegister::Xmm4)),
+            "xmm5" => Ok(GeneralPurposeRegister::Float(FloatRegister::Xmm5)),
+            "xmm6" => Ok(GeneralPurposeRegister::Float(FloatRegister::Xmm6)),
+            "xmm7" => Ok(GeneralPurposeRegister::Float(FloatRegister::Xmm7)),
             a => { Err(ASMGenerateError::InternalError(format!("Could not convert `{a}` into a register"))) }
         }
     }
@@ -150,7 +158,7 @@ impl Iterator for GeneralPurposeRegisterIterator {
     type Item = GeneralPurposeRegister;
 
     fn next(&mut self) -> Option<Self::Item> {
-        return match &self.current {
+        match &self.current {
             GeneralPurposeRegister::Bit64(a) => {
                 match a {
                     Bit64::Rax => { self.current = GeneralPurposeRegister::Bit64(Bit64::Rcx);  Some(GeneralPurposeRegister::Bit64(Bit64::Rcx)) },
@@ -210,7 +218,7 @@ impl Iterator for GeneralPurposeRegisterIterator {
                     FloatRegister::Xmm7 => None,
                 }
             }
-        };
+        }
     }
 }
 
@@ -228,7 +236,7 @@ impl GeneralPurposeRegister {
     }
 
     pub fn iter_float_register() -> Result<GeneralPurposeRegisterIterator, ASMGenerateError> {
-        return Ok(GeneralPurposeRegisterIterator::new(GeneralPurposeRegister::Float(FloatRegister::Xmm0)));
+        Ok(GeneralPurposeRegisterIterator::new(GeneralPurposeRegister::Float(FloatRegister::Xmm0)))
     }
 
     pub fn to_64_bit_register(&self) -> GeneralPurposeRegister {
@@ -256,7 +264,17 @@ impl GeneralPurposeRegister {
                     Bit8::_Tuple(v1, _) => GeneralPurposeRegister::Bit64(v1.to_64_bit_register())
                 }
             }
-            GeneralPurposeRegister::Float(f) => { unreachable!("{} to 64 bit register expected", f) }
+            GeneralPurposeRegister::Float(f) => {
+                match f {
+                    FloatRegister::Xmm0 => GeneralPurposeRegister::Bit64(Bit64::Rax),
+                    FloatRegister::Xmm1 => GeneralPurposeRegister::Bit64(Bit64::Rcx),
+                    FloatRegister::Xmm2 => GeneralPurposeRegister::Bit64(Bit64::Rdi),
+                    FloatRegister::Xmm3 => GeneralPurposeRegister::Bit64(Bit64::Rdx),
+                    FloatRegister::Xmm4 => GeneralPurposeRegister::Bit64(Bit64::R8),
+                    FloatRegister::Xmm5 => GeneralPurposeRegister::Bit64(Bit64::R9),
+                    _ => todo!("Not enough general purpose registers")
+                }
+            }
         }
     }
 }

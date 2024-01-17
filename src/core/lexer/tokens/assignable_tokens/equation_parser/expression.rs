@@ -5,7 +5,8 @@ use std::str::FromStr;
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::generator::{LastUnchecked, Stack};
-use crate::core::code_generator::registers::{Bit64, GeneralPurposeRegister};
+use crate::core::code_generator::register_destination::from_byte_size;
+use crate::core::code_generator::registers::{Bit64, GeneralPurposeRegister, GeneralPurposeRegisterIterator};
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::static_type_context::StaticTypeContext;
 use crate::core::lexer::tokens::assignable_token::AssignableToken;
@@ -59,6 +60,40 @@ impl Expression {
         }
 
         None
+    }
+
+    fn iterator_from_type(&self, meta: &&mut MetaInfo, lhs_size: usize) -> Result<(GeneralPurposeRegisterIterator, Option<Float>), ASMGenerateError> {
+        Ok(if let TypeToken::Float(f) = &self.traverse_type(meta).ok_or(ASMGenerateError::InternalError("Could not traverse type".to_string()))? {
+            (GeneralPurposeRegister::iter_float_register()?, Some(f.clone()))
+        } else {
+            (GeneralPurposeRegister::iter_from_byte_size(lhs_size)?, None)
+        })
+    }
+
+    fn latest_used_destination_register(&self, meta: &&mut MetaInfo, target: &mut str, lhs_size: usize) -> Result<GeneralPurposeRegister, ASMGenerateError> {
+        let pushing_register: GeneralPurposeRegister = if let Some(last_instruction) = extract_last_instruction(target) {
+            let (mut i, _) = self.iterator_from_type(meta, lhs_size)?;
+
+            if let Some(mut r) = i.nth(2) {
+                if let Some(space_index) = last_instruction.chars().position(|a| a == ' ') {
+                    if let Some(comma_index) = last_instruction.chars().position(|a| a == ',') {
+                        r = GeneralPurposeRegister::from_str(&last_instruction[space_index + 1..comma_index])?;
+                    }
+                }
+
+                r
+            } else {
+                unreachable!()
+            }
+        } else {
+            let (mut i, _) = self.iterator_from_type(meta, lhs_size)?;
+            if let Some(r) = i.nth(2) {
+                r
+            } else {
+                unreachable!()
+            }
+        };
+        Ok(pushing_register)
     }
 }
 
@@ -157,8 +192,8 @@ impl ToASM for Expression {
             let mut target = String::new();
 
             if let Some(pointer) = self.pointer() {
-                if stack.register_to_use.len() == 0 { stack.register_to_use.push(GeneralPurposeRegister::Bit64(Bit64::Rax)); }
-                target += &ASMBuilder::push(&Self::pointer_arithmetic_to_asm(pointer, value, stack, meta)?);
+                if stack.register_to_use.is_empty() { stack.register_to_use.push(GeneralPurposeRegister::Bit64(Bit64::Rax)); }
+                target += &ASMBuilder::push(&Self::pointer_arithmetic_to_asm(pointer, value, &stack.register_to_use.last().ok(), stack, meta)?);
                 if stack.register_to_use.len() == 1 { stack.register_to_use.pop(); }
             } else {
                 target += &value.to_asm(stack, meta)?;
@@ -182,11 +217,11 @@ impl ToASM for Expression {
                         &inner_rhs_r.value) {
                         // two expressions containing two values
                         let (lhs_size, _) = lhs_rhs_byte_sizes(lhs, rhs, meta)?;
+                        let (mut register_iterator, float_type) = self.iterator_from_type(&meta, lhs_size)?;
 
-                        let mut register_to_use_iterator = GeneralPurposeRegister::iter_from_byte_size(lhs_size)?;
-                        let register_a = register_to_use_iterator.current();
-                        let register_b = register_to_use_iterator.next().ok_or(ASMGenerateError::InternalError("No next register found".to_string()))?;
-                        let register_c = register_to_use_iterator.next().ok_or(ASMGenerateError::InternalError("No next register found".to_string()))?;
+                        let register_a = register_iterator.current();
+                        let register_b = register_iterator.next().ok_or(ASMGenerateError::InternalError("No next register found".to_string()))?;
+                        let register_c = register_iterator.next().ok_or(ASMGenerateError::InternalError("No next register found".to_string()))?;
 
                         stack.register_to_use.push(register_b.clone());
                         target += &ASMBuilder::push(&lhs.to_asm(stack, meta)?.to_string());
@@ -196,8 +231,8 @@ impl ToASM for Expression {
                         target += &ASMBuilder::push(&rhs.to_asm(stack, meta)?.to_string());
                         stack.register_to_use.pop();
 
-                        target += &ASMBuilder::ident_line(&format!("{} {register_b}, {register_c}", self.operator.to_asm(stack, meta)?));
-                        target += &ASMBuilder::mov_ident_line(register_a, register_b);
+                        target += &ASMBuilder::ident_line(&format!("{} {register_b}, {register_c}", self.operator.adjust_float_operation(stack, meta, &float_type)?));
+                        target += &ASMBuilder::mov_x_ident_line(register_a, register_b, if float_type.is_some() { Some(lhs_size) } else { None });
 
                         return Ok(target);
                     }
@@ -205,31 +240,29 @@ impl ToASM for Expression {
                 match (&lhs.value, &rhs.value) {
                     (Some(_), Some(_)) => { // 2 + 3
                         let (lhs_size, _) = lhs_rhs_byte_sizes(lhs, rhs, meta)?;
-                        let float_type;
-
-                        let mut register_iterator = if let TypeToken::Float(f) = &self.traverse_type(meta)
-                            .ok_or(ASMGenerateError::InternalError("Could not traverse type".to_string()))? {
-                            float_type = Some(f.clone());
-                            GeneralPurposeRegister::iter_float_register()?
-                        } else {
-                            float_type = None;
-                            GeneralPurposeRegister::iter_from_byte_size(lhs_size)?
-                        };
-
+                        let (mut register_iterator, float_type) = self.iterator_from_type(&meta, lhs_size)?;
                         let next_register = register_iterator.current();
 
                         // pushing twice. the last pop will move the arithmetic result into this register,
                         // basically eax or rax or anything similar where a result is expected
-                        if stack.register_to_use.len() == 0 {
+                        if stack.register_to_use.is_empty() {
                             stack.register_to_use.push(next_register.clone());
                         }
 
-                        stack.register_to_use.push(next_register);
+                        stack.register_to_use.push(next_register.clone());
                         let destination_register = stack.register_to_use.last()?;
                         if lhs.is_pointer() {
                             target += &ASMBuilder::push(&lhs.to_asm(stack, meta)?);
                         } else {
-                            target += &ASMBuilder::mov_x_ident_line(&destination_register, lhs.to_asm(stack, meta)?, if float_type.is_some() { Some(lhs_size) } else { None});
+                            let source = if let Some(AssignableToken::FloatToken(f)) = &lhs.value.as_deref(){
+                                let destination_register = from_byte_size(f.byte_size(meta));
+                                target += &ASMBuilder::mov_ident_line(&destination_register, lhs.to_asm(stack, meta)?);
+                                destination_register
+                            } else {
+                                lhs.to_asm(stack, meta)?
+                            };
+
+                            target += &ASMBuilder::mov_x_ident_line(&destination_register, source, if float_type.is_some() { Some(lhs_size) } else { None });
                         };
                         stack.register_to_use.pop();
 
@@ -239,14 +272,22 @@ impl ToASM for Expression {
                         let target_register = stack.register_to_use.last()?;
                         if rhs.is_pointer() {
                             target += &ASMBuilder::push(&rhs.to_asm(stack, meta)?);
-                            target += &ASMBuilder::ident_line(&format!("{} {destination_register}, {target_register}", self.operator.to_asm(stack, meta)?));
+                            target += &ASMBuilder::ident_line(&format!("{} {destination_register}, {target_register}", self.operator.adjust_float_operation(stack, meta, &float_type)?));
                         } else {
-                            target += &ASMBuilder::ident_line(&format!("{} {destination_register}, {}", self.operator.adjust_float_operation(stack, meta, float_type)?, &rhs.to_asm(stack, meta)?));
+                            let source = if let Some(AssignableToken::FloatToken(f)) = &rhs.value.as_deref(){
+                                let destination_register = from_byte_size(f.byte_size(meta));
+                                target += &ASMBuilder::mov_ident_line(&destination_register, rhs.to_asm(stack, meta)?);
+                                target += &ASMBuilder::mov_x_ident_line(&target_register, destination_register, Some(f.byte_size(meta)));
+                                target_register.to_string()
+                            } else {
+                                rhs.to_asm(stack, meta)?
+                            };
+
+                            target += &ASMBuilder::ident_line(&format!("{} {destination_register}, {}", self.operator.adjust_float_operation(stack, meta, &float_type)?, source));
                         };
-
-
                         stack.register_to_use.pop();
-                        target += &ASMBuilder::mov_ident_line(stack.register_to_use.last()?, &destination_register);
+
+                        target += &ASMBuilder::mov_x_ident_line(stack.register_to_use.last()?, &destination_register, if float_type.is_some() { Some(lhs_size) } else { None });
 
                         if stack.register_to_use.len() == 1 {
                             stack.register_to_use.pop();
@@ -254,42 +295,51 @@ impl ToASM for Expression {
                     }
                     (None, Some(_)) => { // (3 + 2) + 5
                         let (lhs_size, _) = lhs_rhs_byte_sizes(lhs, rhs, meta)?;
+                        let (mut register_iterator, float_type) = self.iterator_from_type(&meta, lhs_size)?;
+                        let register_a = register_iterator.current();
+                        let register_b = register_iterator.nth(2).ok_or(ASMGenerateError::InternalError("No next register found".to_string()))?;
 
-                        let mut register_to_use_iterator = GeneralPurposeRegister::iter_from_byte_size(lhs_size)?;
-                        let next_register = register_to_use_iterator.current();
 
-                        if stack.register_to_use.len() == 0 {
-                            stack.register_to_use.push(next_register.clone());
+                        if stack.register_to_use.is_empty() {
+                            stack.register_to_use.push(register_a.clone());
                         }
 
-                        stack.register_to_use.push(next_register);
+                        stack.register_to_use.push(register_a);
                         let destination_register = stack.register_to_use.last()?;
                         target += &ASMBuilder::push(&lhs.to_asm(stack, meta)?.to_string());
                         stack.register_to_use.pop();
 
-                        let next_register = register_to_use_iterator.nth(2).ok_or(ASMGenerateError::InternalError("No next register found".to_string()))?;
-                        stack.register_to_use.push(next_register);
+                        stack.register_to_use.push(register_b);
                         let target_register = stack.register_to_use.last()?;
                         if rhs.is_pointer() {
                             target += &ASMBuilder::push(&rhs.to_asm(stack, meta)?);
-                            target += &ASMBuilder::ident_line(&format!("{} {}, {}", self.operator.to_asm(stack, meta)?, destination_register, target_register));
+                            target += &ASMBuilder::ident_line(&format!("{} {}, {}", self.operator.adjust_float_operation(stack, meta, &float_type)?, destination_register, target_register));
                         } else {
-                            target += &ASMBuilder::ident_line(&format!("{} {destination_register}, {}", self.operator.to_asm(stack, meta)?, rhs.to_asm(stack, meta)?));
+                            let source = if let Some(AssignableToken::FloatToken(f)) = &rhs.value.as_deref() {
+                                let destination_register = from_byte_size(f.byte_size(meta));
+                                target += &ASMBuilder::mov_ident_line(&destination_register, rhs.to_asm(stack, meta)?);
+                                target += &ASMBuilder::mov_x_ident_line(&target_register, destination_register, Some(f.byte_size(meta)));
+                                target_register.to_string()
+                            } else {
+                                rhs.to_asm(stack, meta)?
+                            };
+                            target += &ASMBuilder::ident_line(&format!("{} {destination_register}, {}", self.operator.adjust_float_operation(stack, meta, &float_type)?, source));
                         };
                         stack.register_to_use.pop();
-                        target += &ASMBuilder::mov_ident_line(stack.register_to_use.last()?, destination_register);
+
+                        target += &ASMBuilder::mov_x_ident_line(stack.register_to_use.last()?, destination_register, if float_type.is_some() { Some(lhs_size) } else { None });
                         if stack.register_to_use.len() == 1 {
                             stack.register_to_use.pop();
                         }
                     }
                     (Some(_), None) => { // 5 + (3 + 2)
                         let (lhs_size, _) = lhs_rhs_byte_sizes(lhs, rhs, meta)?;
+                        let (mut register_iterator, float_type) = self.iterator_from_type(&meta, lhs_size)?;
 
-                        let mut register_to_use_iterator = GeneralPurposeRegister::iter_from_byte_size(lhs_size)?;
-                        let register_a = register_to_use_iterator.current();
-                        let register_b = register_to_use_iterator.nth(2).ok_or(ASMGenerateError::InternalError("No next register found".to_string()))?;
+                        let register_a = register_iterator.current();
+                        let register_b = register_iterator.nth(2).ok_or(ASMGenerateError::InternalError("No next register found".to_string()))?;
 
-                        if stack.register_to_use.len() == 0 {
+                        if stack.register_to_use.is_empty() {
                             stack.register_to_use.push(register_a.clone());
                         }
 
@@ -302,57 +352,75 @@ impl ToASM for Expression {
                         let destination_register = stack.register_to_use.last()?;
                         if lhs.is_pointer() {
                             target += &ASMBuilder::push(&lhs.to_asm(stack, meta)?);
-                            target += &ASMBuilder::ident_line(&format!("{} {}, {}", self.operator.to_asm(stack, meta)?, register_a, register_b));
+                            target += &ASMBuilder::ident_line(&format!("{} {}, {}", self.operator.adjust_float_operation(stack, meta, &float_type)?, register_a, register_b));
                         } else {
-                            target += &ASMBuilder::mov_ident_line(&destination_register, lhs.to_asm(stack, meta)?);
-                            target += &ASMBuilder::ident_line(&format!("{} {destination_register}, {}", self.operator.to_asm(stack, meta)?, target_register));
+                            let source = if let Some(AssignableToken::FloatToken(f)) = &lhs.value.as_deref() {
+                                let destination_register = from_byte_size(f.byte_size(meta));
+                                target += &ASMBuilder::mov_ident_line(&destination_register, lhs.to_asm(stack, meta)?);
+                                let register_c = register_iterator.next().ok_or(ASMGenerateError::InternalError("No next register found".to_string()))?;
+                                target += &ASMBuilder::mov_x_ident_line(&register_c, destination_register, Some(f.byte_size(meta)));
+                                register_c.to_string()
+                            } else {
+                                lhs.to_asm(stack, meta)?
+                            };
+
+                            target += &ASMBuilder::mov_x_ident_line(&destination_register, source, if float_type.is_some() { Some(lhs_size) } else { None });
+                            target += &ASMBuilder::ident_line(&format!("{} {destination_register}, {}", self.operator.adjust_float_operation(stack, meta, &float_type)?, target_register));
                         };
                         stack.register_to_use.pop();
 
-                        target += &ASMBuilder::mov_ident_line(stack.register_to_use.last()?, register_a);
+                        target += &ASMBuilder::mov_x_ident_line(stack.register_to_use.last()?, register_a, if float_type.is_some() { Some(lhs_size) } else { None });
                         if stack.register_to_use.len() == 1 {
                             stack.register_to_use.pop();
                         }
                     }
                     (None, None) => { // ((1 + 2) + (3 + 4)) + ((5 + 6) + (7 + 8)) // any depth
                         let (lhs_size, _) = lhs_rhs_byte_sizes(lhs, rhs, meta)?;
+                        let (mut register_iterator, float_type) = self.iterator_from_type(&meta, lhs_size)?;
 
-                        let mut register_to_use_iterator = GeneralPurposeRegister::iter_from_byte_size(lhs_size)?;
-                        let register_a = register_to_use_iterator.current();
-                        let register_b = register_to_use_iterator.nth(1).ok_or(ASMGenerateError::InternalError("No next register found".to_string()))?;
+                        let register_a = register_iterator.current();
+                        let register_b = register_iterator.nth(1).ok_or(ASMGenerateError::InternalError("No next register found".to_string()))?;
 
                         stack.register_to_use.push(register_b.clone());
                         target += &ASMBuilder::push(&lhs.to_asm(stack, meta)?.to_string());
                         stack.register_to_use.pop();
 
-                        let pushing_register: GeneralPurposeRegister = if let Some(last_instruction) = extract_last_instruction(&target) {
-                            let mut r = Bit64::Rdi.into();
+                        let pushing_register = self.latest_used_destination_register(&meta, &mut target, lhs_size)?;
 
-                            if let Some(space_index) = last_instruction.chars().position(|a| a == ' ') {
-                                if let Some(comma_index) = last_instruction.chars().position(|a| a == ',') {
-                                    r = GeneralPurposeRegister::from_str(&last_instruction[space_index + 1..comma_index])?.to_64_bit_register();
-                                }
-                            }
+                        if let Some(f) = &float_type {
+                            target += &ASMBuilder::mov_x_ident_line(pushing_register.to_64_bit_register(), &pushing_register, Some(f.byte_size()));
+                        }
 
-                            r
-                        } else {
-                            Bit64::Rdi.into()
-                        };
-
-                        target += &ASMBuilder::ident_line(&format!("push {pushing_register}"));
-                        target += &ASMBuilder::ident_line(&format!("xor {pushing_register}, {pushing_register}"));
+                        target += &ASMBuilder::ident_line(&format!("push {}", pushing_register.to_64_bit_register()));
+                        target += &ASMBuilder::ident_line(&format!("xor {}, {}", pushing_register.to_64_bit_register(), pushing_register.to_64_bit_register()));
 
                         stack.register_to_use.push(register_a.clone());
                         target += &ASMBuilder::push(&rhs.to_asm(stack, meta)?.to_string());
                         stack.register_to_use.pop();
 
+                        if let Some(f) = &float_type {
+                            let pushing_register = self.latest_used_destination_register(&meta, &mut target, lhs_size)?;
+                            target += &ASMBuilder::mov_x_ident_line(register_a.to_64_bit_register(), pushing_register, Some(f.byte_size()));
+                        }
+
                         target += &ASMBuilder::ident_line(&format!("push {}", register_a.to_64_bit_register()));
                         target += &ASMBuilder::ident_line(&format!("xor {}, {}", register_a.to_64_bit_register(), register_a.to_64_bit_register()));
 
-                        target += &ASMBuilder::ident_line(&format!("pop {}", register_b.to_64_bit_register()));
-                        target += &ASMBuilder::ident_line(&format!("pop {}", register_a.to_64_bit_register()));
+                        if let Some(f) = &float_type {
+                            target += &ASMBuilder::ident_line(&format!("pop {}", register_b.to_64_bit_register()));
+                            target += &ASMBuilder::mov_x_ident_line(&register_b, register_b.to_64_bit_register(), Some(f.byte_size()));
+                        } else {
+                            target += &ASMBuilder::ident_line(&format!("pop {}", register_b.to_64_bit_register()));
+                        }
 
-                        target += &ASMBuilder::ident_line(&format!("{} {}, {}", self.operator.to_asm(stack, meta)?, register_a, register_b));
+                        if let Some(f) = &float_type {
+                            target += &ASMBuilder::ident_line(&format!("pop {}", register_a.to_64_bit_register()));
+                            target += &ASMBuilder::mov_x_ident_line(&register_a, register_a.to_64_bit_register(), Some(f.byte_size()));
+                        } else {
+                            target += &ASMBuilder::ident_line(&format!("pop {}", register_a.to_64_bit_register()));
+                        }
+
+                        target += &ASMBuilder::ident_line(&format!("{} {}, {}", self.operator.adjust_float_operation(stack, meta, &float_type)?, register_a, register_b));
                     }
                 }
             }
@@ -380,7 +448,7 @@ impl ToASM for Expression {
 }
 
 
-fn lhs_rhs_byte_sizes(a: &Box<Expression>, b: &Box<Expression>, meta: &mut MetaInfo) -> Result<(usize, usize), ASMGenerateError> {
+fn lhs_rhs_byte_sizes(a: &Expression, b: &Expression, meta: &mut MetaInfo) -> Result<(usize, usize), ASMGenerateError> {
     let lhs_size = a.byte_size(meta);
     let rhs_size = b.byte_size(meta);
 
@@ -417,25 +485,27 @@ impl Expression {
         }
     }
 
-    fn pointer_arithmetic_to_asm(pointer_arithmetic: PointerArithmetic, value: &AssignableToken, stack: &mut Stack, meta: &mut MetaInfo) -> Result<String, ASMGenerateError> {
+    fn pointer_arithmetic_to_asm(pointer_arithmetic: PointerArithmetic, value: &AssignableToken, float_register: &Option<GeneralPurposeRegister>, stack: &mut Stack, meta: &mut MetaInfo) -> Result<String, ASMGenerateError> {
         let mut target = String::new();
         let mut inner_source = String::new();
         let register_to_use = stack.register_to_use.last()?.to_64_bit_register().to_string();
 
 
         let mut child_is_pointer = false;
+        let mut float_type = None;
 
         if let Some(pointer) = value.pointer() {
             if let AssignableToken::ArithmeticEquation(a) = value {
                 if let Some(child) = &a.value {
                     // must be met, if the value has a pointer itself
-                    target += &ASMBuilder::push(&Self::pointer_arithmetic_to_asm(pointer, child, stack, meta)?);
+                    target += &ASMBuilder::push(&Self::pointer_arithmetic_to_asm(pointer, child, float_register, stack, meta)?);
                     inner_source = format!("QWORD [{}]", register_to_use);
                     child_is_pointer = true;
                 }
             }
         } else {
             inner_source = value.to_asm(stack, meta)?;
+            float_type = value.infer_type_with_context(&meta.static_type_information, &meta.code_line).ok();
         }
 
         match pointer_arithmetic {
@@ -443,6 +513,9 @@ impl Expression {
                 target += &ASMBuilder::mov_ident_line(&register_to_use, inner_source);
                 if !child_is_pointer {
                     target += &ASMBuilder::mov_ident_line(&register_to_use, format!("QWORD [{}]", register_to_use));
+                    if let (Some(GeneralPurposeRegister::Float(destination_float_register)), Some(f)) = (float_register, &float_type) {
+                        target += &ASMBuilder::mov_x_ident_line(destination_float_register, &register_to_use, Some(f.byte_size()));
+                    }
                 }
             }
             PointerArithmetic::Ampersand => {
@@ -502,7 +575,6 @@ impl Expression {
                         }
                         PrefixArithmetic::Cast(casting_to) => {
                             value_type = TypeToken::from_str(&casting_to.to_string())?;
-                            // value_type = TypeToken::from_str(&format!("{current_pointer_arithmetic}{}", casting_to))?;
                         }
                         PrefixArithmetic::Operation(_) => {}
                     }
@@ -565,18 +637,6 @@ impl Expression {
         self.value = value;
         self.prefix_arithmetic = None;
     }
-
-    // pub fn set_keep_arithmetic(&mut self, lhs: Option<Box<Expression>>, operation: Operator, rhs: Option<Box<Expression>>, value: Option<Box<AssignableToken>>, positive: bool, prefix_arithmetic: Vec<PrefixArithmetic>) {
-    //     self.lhs = lhs;
-    //     self.rhs = rhs;
-    //     self.operator = operation;
-    //     self.positive = positive;
-    //     self.value = value;
-    //
-    //     for prefix in prefix_arithmetic {
-    //         self.prefix_arithmetic.push(prefix);
-    //     }
-    // }
 
     pub fn flip_value(&mut self) {
         if let Some(v) = &mut self.value {

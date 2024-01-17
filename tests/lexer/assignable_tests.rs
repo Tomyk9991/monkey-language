@@ -90,6 +90,7 @@ fn assignable_double() -> anyhow::Result<()> {
 
     for (expected_result, value) in &values {
         let token = FloatToken::from_str(value);
+        println!("{}", value);
         if !*expected_result {
             println!("{}", token.err().unwrap());
         } else {

@@ -199,7 +199,7 @@ impl ToASM for MethodCallToken {
             let (parsed_argument, provided_type) = match argument {
                 AssignableToken::ArithmeticEquation(_) | AssignableToken::BooleanEquation(_) => {
                     result += &ASMBuilder::push(&argument.to_asm(stack, meta)?);
-                    (String::from("rax"), argument.infer_type(&meta.code_line))
+                    (String::from("rax"), argument.infer_type_with_context(&meta.static_type_information, &meta.code_line).ok())
                 }
                 _ => {
                     (argument.to_asm(stack, meta)?.to_string(), argument.infer_type_with_context(&meta.static_type_information, &meta.code_line).ok())
@@ -212,21 +212,15 @@ impl ToASM for MethodCallToken {
                         match convention {
                             CallingRegister::Register(register) => {
                                 let b = if let GeneralPurposeRegister::Float(_) = register {
-                                    if let Some(provided_type) = &provided_type {
-                                        Some(provided_type.byte_size())
-                                    } else {
-                                        None
-                                    }
+                                    provided_type.as_ref().map(|provided_type| provided_type.byte_size())
                                 } else { None };
 
-                                result += &ASMBuilder::mov_x_ident_line(&register, format!("{} ; Parameter ({})", parsed_argument.replace("DWORD", "QWORD"), argument), b);
+                                result += &ASMBuilder::mov_x_ident_line(register, format!("{} ; Parameter ({})", parsed_argument.replace("DWORD", "QWORD"), argument), b);
                             }
                             CallingRegister::Stack => {
                                 result += &ASMBuilder::ident(&format!("push {}", parsed_argument.replace("DWORD", "QWORD")))
                             }
                         }
-                        result += &ASMBuilder::push(" ");
-                        result += &ASMBuilder::comment_line(&format!("Parameter ({})", argument));
                     }
                 }
 
