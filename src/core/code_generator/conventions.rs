@@ -2,7 +2,7 @@ use crate::core::code_generator::MetaInfo;
 use crate::core::code_generator::registers::{Bit64, FloatRegister, GeneralPurposeRegister};
 use crate::core::code_generator::target_os::TargetOS;
 use crate::core::lexer::tokens::assignable_token::AssignableToken;
-use crate::core::lexer::type_token::{InferTypeError, TypeToken};
+use crate::core::lexer::types::type_token::{InferTypeError, TypeToken};
 
 /// An enum representing the destination register. If its a register it contains the register
 /// For floats its for example a "rcx" or "rdx" for windows calling convention

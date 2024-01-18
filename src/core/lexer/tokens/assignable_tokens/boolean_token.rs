@@ -3,6 +3,8 @@ use std::fmt::{Display, Formatter};
 use std::str::{FromStr, ParseBoolError};
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
+use crate::core::lexer::tokens::assignable_tokens::equation_parser::operator::Operator;
+use crate::core::lexer::types::type_token::TypeToken;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct BooleanToken {
@@ -13,6 +15,24 @@ pub struct BooleanToken {
 pub enum BooleanTokenErr {
     UnmatchedRegex,
     ParseBoolError(ParseBoolError)
+}
+
+#[allow(dead_code)]
+#[derive(Debug)]
+pub enum Boolean {
+    True,
+    False
+}
+
+impl Boolean {
+    pub fn operation_matrix() -> Vec<crate::core::lexer::types::type_token::OperatorMatrixRow> {
+        vec![
+            (TypeToken::Bool, Operator::Add, TypeToken::Bool, TypeToken::Bool),
+            (TypeToken::Bool, Operator::Sub, TypeToken::Bool, TypeToken::Bool),
+            (TypeToken::Bool, Operator::Mul, TypeToken::Bool, TypeToken::Bool),
+            (TypeToken::Bool, Operator::Div, TypeToken::Bool, TypeToken::Bool),
+        ]
+    }
 }
 
 impl From<ParseBoolError> for BooleanTokenErr {

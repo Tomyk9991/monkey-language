@@ -9,7 +9,7 @@ use crate::core::lexer::tokens::method_definition::MethodDefinition;
 use crate::core::lexer::tokens::assignable_tokens::method_call_token::MethodCallToken;
 use crate::core::lexer::tokens::if_definition::IfDefinition;
 use crate::core::lexer::tokens::variable_token::VariableToken;
-use crate::core::lexer::type_token::InferTypeError;
+use crate::core::lexer::types::type_token::InferTypeError;
 use crate::core::type_checker::InferType;
 
 /// A token is a piece of code that is used to represent atomic elements of a program.

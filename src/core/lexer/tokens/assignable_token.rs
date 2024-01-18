@@ -10,14 +10,14 @@ use crate::core::lexer::tokens::assignable_tokens::boolean_token::BooleanToken;
 use crate::core::lexer::tokens::assignable_tokens::float_token::FloatToken;
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::equation_token_options::{ArithmeticEquationOptions, BooleanEquationOptions};
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::EquationToken;
-use crate::core::lexer::tokens::assignable_tokens::equation_parser::expression::{Expression, PointerArithmetic, PrefixArithmetic};
+use crate::core::lexer::tokens::assignable_tokens::equation_parser::expression::{Expression, PrefixArithmetic};
 use crate::core::lexer::tokens::assignable_tokens::integer_token::IntegerToken;
 use crate::core::lexer::tokens::assignable_tokens::method_call_token::{MethodCallToken, MethodCallTokenErr};
 use crate::core::lexer::tokens::assignable_tokens::object_token::ObjectToken;
 use crate::core::lexer::tokens::assignable_tokens::string_token::StringToken;
 use crate::core::lexer::tokens::name_token::NameToken;
-use crate::core::lexer::type_token;
-use crate::core::lexer::type_token::{InferTypeError, TypeToken};
+use crate::core::lexer::types::type_token;
+use crate::core::lexer::types::type_token::{InferTypeError, TypeToken};
 
 /// Token for assignable tokens. Numbers, strings, methodcalls, other variables, objects, and arithmetic / boolean equations.
 #[derive(Debug, PartialEq, Clone)]
@@ -44,30 +44,15 @@ impl AssignableToken {
         self.infer_type_with_context(&StaticTypeContext::default(), code_line).ok()
     }
 
-    pub fn pointer_arithmetic(&self) -> Vec<PointerArithmetic> {
+    pub fn prefix_arithmetic(&self) -> Option<PrefixArithmetic> {
         match self {
             AssignableToken::ArithmeticEquation(a) | AssignableToken::BooleanEquation(a) => {
-                let mut pointer_arithmetic = vec![];
-                for prefix in &a.prefix_arithmetic {
-                    if let PrefixArithmetic::PointerArithmetic(p) = &prefix {
-                        pointer_arithmetic.push(p.clone());
-                    }
-                }
-
-                pointer_arithmetic
-            },
-            _ => vec![]
-        }
-    }
-
-    pub fn pointer(&self) -> Option<PointerArithmetic> {
-        match self {
-            AssignableToken::ArithmeticEquation(a) | AssignableToken::BooleanEquation(a) => {
-                a.pointer()
-            },
+                a.prefix_arithmetic.clone()
+            }
             _ => None
         }
     }
+
 
     pub fn from_str_ignore(line: &str, ignore_expression: bool) -> Result<Self, AssignableTokenErr> {
         if let Ok(string_token) = StringToken::from_str(line) {

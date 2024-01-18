@@ -18,7 +18,7 @@ use crate::core::lexer::static_type_context::StaticTypeContext;
 use crate::core::lexer::tokens::assignable_token::{AssignableToken, AssignableTokenErr};
 use crate::core::lexer::tokens::name_token::{NameToken, NameTokenErr};
 use crate::core::lexer::TryParse;
-use crate::core::lexer::type_token::{InferTypeError, MethodCallArgumentTypeMismatch, TypeToken};
+use crate::core::lexer::types::type_token::{InferTypeError, MethodCallArgumentTypeMismatch, TypeToken};
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct MethodCallToken {

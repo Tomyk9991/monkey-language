@@ -17,7 +17,7 @@ use crate::core::lexer::static_type_context::{StaticTypeContext};
 use crate::core::lexer::tokens::assignable_token::{AssignableToken, AssignableTokenErr};
 use crate::core::lexer::tokens::name_token::{NameToken, NameTokenErr};
 use crate::core::lexer::TryParse;
-use crate::core::lexer::type_token::{InferTypeError, TypeToken};
+use crate::core::lexer::types::type_token::{InferTypeError, TypeToken};
 use crate::core::type_checker::InferType;
 
 /// Token for a variable. Pattern is defined as: name <Assignment> assignment <Separator>
@@ -208,7 +208,7 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for VariableToken<ASSI
             }
 
             if !wrote_expression_to_target {
-                if !self.assignable.pointer_arithmetic().is_empty() {
+                if self.assignable.prefix_arithmetic().is_some() {
                     target += &ASMBuilder::push(&self.assignable.to_asm(stack, meta)?);
                 } else {
                     target += &ASMBuilder::mov_ident_line(&register_destination, self.assignable.to_asm(stack, meta)?);

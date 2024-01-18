@@ -14,8 +14,8 @@ use crate::core::lexer::tokens::method_definition::MethodDefinition;
 use crate::core::lexer::tokens::scope_ending::ScopeEnding;
 use crate::core::lexer::tokens::variable_token::VariableToken;
 use crate::core::lexer::TryParse;
-use crate::core::lexer::type_token::InferTypeError;
 use crate::core::lexer::tokens::import::ImportToken;
+use crate::core::lexer::types::type_token::InferTypeError;
 
 /// Tokens inside scope
 pub struct Scope {

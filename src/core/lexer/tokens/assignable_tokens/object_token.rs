@@ -9,7 +9,7 @@ use crate::core::lexer::tokens::assignable_token::AssignableTokenErr;
 use crate::core::lexer::tokens::assignable_tokens::method_call_token::{dyck_language, DyckError};
 use crate::core::lexer::tokens::name_token::{NameToken, NameTokenErr};
 use crate::core::lexer::tokens::variable_token::{ParseVariableTokenErr, VariableToken};
-use crate::core::lexer::type_token::TypeToken;
+use crate::core::lexer::types::type_token::TypeToken;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct ObjectToken {

@@ -6,7 +6,7 @@ use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::constants::KEYWORDS;
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::static_type_context::StaticTypeContext;
-use crate::core::lexer::type_token::{InferTypeError, TypeToken};
+use crate::core::lexer::types::type_token::{InferTypeError, TypeToken};
 
 /// Token for a name. Basically a string that can be used as a variable name.
 /// Everything is allowed except for reserved keywords and special characters in the beginning

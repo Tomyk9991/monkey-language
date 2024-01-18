@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter};
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
-use crate::core::lexer::type_token::Float;
+use crate::core::lexer::types::float::Float;
 
 #[allow(unused)]
 #[derive(PartialEq, Clone, Debug, Eq, Hash)]

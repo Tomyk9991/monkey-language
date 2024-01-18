@@ -3,7 +3,7 @@ use std::str::FromStr;
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::lexer::tokens::assignable_tokens::integer_token::NumberTokenErr;
-use crate::core::lexer::type_token::Float;
+use crate::core::lexer::types::float::Float;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct FloatToken {

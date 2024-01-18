@@ -10,9 +10,12 @@ use crate::core::code_generator::registers::{Bit64, GeneralPurposeRegister, Gene
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::static_type_context::StaticTypeContext;
 use crate::core::lexer::tokens::assignable_token::AssignableToken;
+use crate::core::lexer::tokens::assignable_tokens::boolean_token::Boolean;
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::operator::Operator;
 use crate::core::lexer::tokens::name_token::NameToken;
-use crate::core::lexer::type_token::{Float, InferTypeError, Integer, TypeToken};
+use crate::core::lexer::types::float::Float;
+use crate::core::lexer::types::integer::Integer;
+use crate::core::lexer::types::type_token::{InferTypeError, TypeToken};
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum PointerArithmetic {
@@ -52,14 +55,6 @@ impl Expression {
         }
 
         pointer_arithmetic
-    }
-
-    pub fn pointer(&self) -> Option<PointerArithmetic> {
-        if let Some(PrefixArithmetic::PointerArithmetic(a)) = &self.prefix_arithmetic {
-            return Some(a.clone());
-        }
-
-        None
     }
 
     fn iterator_from_type(&self, meta: &&mut MetaInfo, lhs_size: usize) -> Result<(GeneralPurposeRegisterIterator, Option<Float>), ASMGenerateError> {
@@ -191,14 +186,14 @@ impl ToASM for Expression {
         if let Some(value) = &self.value { // no lhs and rhs
             let mut target = String::new();
 
-            if let Some(pointer) = self.pointer() {
+
+            if let Some(prefix_arithmetic) = &self.prefix_arithmetic {
                 if stack.register_to_use.is_empty() { stack.register_to_use.push(GeneralPurposeRegister::Bit64(Bit64::Rax)); }
-                target += &ASMBuilder::push(&Self::pointer_arithmetic_to_asm(pointer, value, &stack.register_to_use.last().ok(), stack, meta)?);
+                target += &ASMBuilder::push(&Self::prefix_arithmetic_to_asm(prefix_arithmetic, value, &stack.register_to_use.last().ok(), stack, meta)?);
                 if stack.register_to_use.len() == 1 { stack.register_to_use.pop(); }
             } else {
                 target += &value.to_asm(stack, meta)?;
             }
-
 
             return Ok(target);
         }
@@ -485,7 +480,7 @@ impl Expression {
         }
     }
 
-    fn pointer_arithmetic_to_asm(pointer_arithmetic: PointerArithmetic, value: &AssignableToken, float_register: &Option<GeneralPurposeRegister>, stack: &mut Stack, meta: &mut MetaInfo) -> Result<String, ASMGenerateError> {
+    fn prefix_arithmetic_to_asm(prefix_arithmetic: &PrefixArithmetic, value: &AssignableToken, float_register: &Option<GeneralPurposeRegister>, stack: &mut Stack, meta: &mut MetaInfo) -> Result<String, ASMGenerateError> {
         let mut target = String::new();
         let mut inner_source = String::new();
         let register_to_use = stack.register_to_use.last()?.to_64_bit_register().to_string();
@@ -494,22 +489,26 @@ impl Expression {
         let mut child_is_pointer = false;
         let mut float_type = None;
 
-        if let Some(pointer) = value.pointer() {
+        if let Some(prefix_arithmetic) = value.prefix_arithmetic() {
             if let AssignableToken::ArithmeticEquation(a) = value {
                 if let Some(child) = &a.value {
                     // must be met, if the value has a pointer itself
-                    target += &ASMBuilder::push(&Self::pointer_arithmetic_to_asm(pointer, child, float_register, stack, meta)?);
+                    target += &ASMBuilder::push(&Self::prefix_arithmetic_to_asm(&prefix_arithmetic, child, float_register, stack, meta)?);
                     inner_source = format!("QWORD [{}]", register_to_use);
-                    child_is_pointer = true;
+                    if matches!(prefix_arithmetic, PrefixArithmetic::PointerArithmetic(_)) {
+                        child_is_pointer = true;
+                    }
                 }
             }
         } else {
             inner_source = value.to_asm(stack, meta)?;
             float_type = value.infer_type_with_context(&meta.static_type_information, &meta.code_line).ok();
+            println!("{:?}", float_type);
         }
 
-        match pointer_arithmetic {
-            PointerArithmetic::Asterics => {
+
+        match prefix_arithmetic {
+            PrefixArithmetic::PointerArithmetic(PointerArithmetic::Asterics) => {
                 target += &ASMBuilder::mov_ident_line(&register_to_use, inner_source);
                 if !child_is_pointer {
                     target += &ASMBuilder::mov_ident_line(&register_to_use, format!("QWORD [{}]", register_to_use));
@@ -518,10 +517,25 @@ impl Expression {
                     }
                 }
             }
-            PointerArithmetic::Ampersand => {
+            PrefixArithmetic::PointerArithmetic(PointerArithmetic::Ampersand) => {
                 target += &ASMBuilder::ident_line(
                     &format!("lea {}, {}", register_to_use, inner_source.replace("QWORD ", "").replace("DWORD ", ""))
                 );
+            }
+            PrefixArithmetic::Cast(ty) => {
+                let assignable_type = value.infer_type_with_context(&meta.static_type_information, &meta.code_line)?;
+
+                let cast_to = assignable_type.cast_to(ty);
+
+                if let (TypeToken::Float(f1), TypeToken::Float(f2)) = (&cast_to.from, &cast_to.to) {
+                    target += &Float::cast_from_to(f1, f2, &inner_source, stack, meta)?;
+                }
+
+                // target += &inner_source;
+                return Ok(target);
+            }
+            PrefixArithmetic::Operation(_) => {
+                unimplemented!("Prefix operations are not supported yet (-+)")
             }
         }
 
@@ -602,22 +616,17 @@ impl Expression {
                 let mut base_type_matrix: HashMap<(TypeToken, Operator, TypeToken), TypeToken> = HashMap::new();
                 base_type_matrix.insert((TypeToken::Custom(NameToken { name: "string".to_string() }), Operator::Add, TypeToken::Custom(NameToken { name: "string".to_string() })), TypeToken::Custom(NameToken { name: "*string".to_string() }));
 
-                let integer_operation_matrix = Integer::operation_matrix();
-
-                for row in integer_operation_matrix {
+                for row in Integer::operation_matrix() {
                     base_type_matrix.insert((row.0, row.1, row.2), row.3);
                 }
 
-                let float_operation_matrix = Float::operation_matrix();
-
-                for row in float_operation_matrix {
+                for row in Float::operation_matrix() {
                     base_type_matrix.insert((row.0, row.1, row.2), row.3);
                 }
 
-                base_type_matrix.insert((TypeToken::Bool, Operator::Add, TypeToken::Bool), TypeToken::Bool);
-                base_type_matrix.insert((TypeToken::Bool, Operator::Sub, TypeToken::Bool), TypeToken::Bool);
-                base_type_matrix.insert((TypeToken::Bool, Operator::Mul, TypeToken::Bool), TypeToken::Bool);
-                base_type_matrix.insert((TypeToken::Bool, Operator::Div, TypeToken::Bool), TypeToken::Bool);
+                for row in Boolean::operation_matrix() {
+                    base_type_matrix.insert((row.0, row.1, row.2), row.3);
+                }
 
                 if let Some(result_type) = base_type_matrix.get(&(lhs_type.clone(), operator.clone(), rhs_type.clone())) {
                     return Ok(result_type.clone());

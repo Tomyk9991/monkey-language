@@ -6,33 +6,16 @@ use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::tokens::assignable_token::AssignableToken;
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::operator::Operator;
 use crate::core::lexer::tokens::name_token::{NameToken, NameTokenErr};
+use crate::core::lexer::types::cast_to::CastTo;
+use crate::core::lexer::types::float::Float;
+use crate::core::lexer::types::integer::Integer;
 
 pub mod common {
     use crate::core::lexer::tokens::name_token::NameToken;
-    use crate::core::lexer::type_token::TypeToken;
+    use crate::core::lexer::types::type_token::TypeToken;
 
     #[allow(unused)]
     pub fn string() -> TypeToken { TypeToken::Custom(NameToken { name: "*string".to_string() })}
-}
-
-#[derive(Debug, Default, PartialEq, Eq, Hash, Clone)]
-pub enum Integer {
-    I8,
-    U8,
-    I16,
-    U16,
-    #[default]
-    I32,
-    U32,
-    I64,
-    U64
-}
-
-#[derive(Debug, Default, PartialEq, Eq, Hash, Clone)]
-pub enum Float {
-    #[default]
-    Float32,
-    Float64
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
@@ -44,127 +27,7 @@ pub enum TypeToken {
     Custom(NameToken),
 }
 
-
-
-
-type OperatorMatrixRow = (TypeToken, Operator, TypeToken, TypeToken);
-
-impl Integer {
-    pub fn from_number_str<T: FromStr>(value: &str) -> Result<T, InferTypeError> {
-        value.parse().map_err(|_| InferTypeError::TypeNotAllowed(NameTokenErr::UnmatchedRegex { target_value: String::from(value) }))
-    }
-
-    pub fn _signed(&self) -> bool {
-        matches!(self, Integer::I8 | Integer::I16 | Integer::I32 | Integer::I64)
-    }
-
-    pub fn operation_matrix() -> Vec<OperatorMatrixRow> {
-        let mut matrix = Vec::new();
-        let types = [Integer::I8, Integer::U8, Integer::I16, Integer::U16, Integer::I32, Integer::U32, Integer::I64, Integer::U64];
-
-        for ty in &types {
-            matrix.push((TypeToken::Integer(ty.clone()), Operator::Add, TypeToken::Integer(ty.clone()), TypeToken::Integer(ty.clone())));
-            matrix.push((TypeToken::Integer(ty.clone()), Operator::Sub, TypeToken::Integer(ty.clone()), TypeToken::Integer(ty.clone())));
-            matrix.push((TypeToken::Integer(ty.clone()), Operator::Mul, TypeToken::Integer(ty.clone()), TypeToken::Integer(ty.clone())));
-            matrix.push((TypeToken::Integer(ty.clone()), Operator::Div, TypeToken::Integer(ty.clone()), TypeToken::Integer(ty.clone())));
-        }
-
-        matrix
-    }
-
-
-    pub fn byte_size(&self) -> usize {
-        match self {
-            Integer::I8 => 1,
-            Integer::U8 => 1,
-            Integer::I16 => 2,
-            Integer::U16 => 2,
-            Integer::I32 => 4,
-            Integer::U32 => 4,
-            Integer::I64 => 8,
-            Integer::U64 => 8,
-        }
-    }
-}
-
-impl Float {
-    pub fn operation_matrix() -> Vec<OperatorMatrixRow> {
-        let mut matrix = Vec::new();
-        let types = [Float::Float32, Float::Float64];
-
-        for ty in &types {
-            matrix.push((TypeToken::Float(ty.clone()), Operator::Add, TypeToken::Float(ty.clone()), TypeToken::Float(ty.clone())));
-            matrix.push((TypeToken::Float(ty.clone()), Operator::Sub, TypeToken::Float(ty.clone()), TypeToken::Float(ty.clone())));
-            matrix.push((TypeToken::Float(ty.clone()), Operator::Mul, TypeToken::Float(ty.clone()), TypeToken::Float(ty.clone())));
-            matrix.push((TypeToken::Float(ty.clone()), Operator::Div, TypeToken::Float(ty.clone()), TypeToken::Float(ty.clone())));
-        }
-
-        matrix
-    }
-
-    pub fn byte_size(&self) -> usize {
-        match self {
-            Float::Float32 => 4,
-            Float::Float64 => 8,
-        }
-    }
-}
-
-
-impl FromStr for Integer {
-    type Err = InferTypeError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(match s {
-            "i8" => Integer::I8,
-            "u8" => Integer::U8,
-            "i16" => Integer::I16,
-            "u16" => Integer::U16,
-            "i32" => Integer::I32,
-            "u32" => Integer::U32,
-            "i64" => Integer::I64,
-            "u64" => Integer::U64,
-            _ => return Err(InferTypeError::TypeNotAllowed(NameTokenErr::UnmatchedRegex { target_value: String::from(s) }))
-        })
-    }
-}
-
-impl FromStr for Float {
-    type Err = InferTypeError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(match s {
-            "f32" => Float::Float32,
-            "f64" => Float::Float64,
-            _ => return Err(InferTypeError::TypeNotAllowed(NameTokenErr::UnmatchedRegex { target_value: String::from(s) }))
-        })
-    }
-}
-
-
-impl Display for Integer {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Integer::I8 => write!(f, "i8"),
-            Integer::U8 => write!(f, "u8"),
-            Integer::I16 => write!(f, "i16"),
-            Integer::U16 => write!(f, "u16"),
-            Integer::I32 => write!(f, "i32"),
-            Integer::U32 => write!(f, "u32"),
-            Integer::I64 => write!(f, "i64"),
-            Integer::U64 => write!(f, "u64"),
-        }
-    }
-}
-
-impl Display for Float {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Float::Float32 => write!(f, "f32"),
-            Float::Float64 => write!(f, "f64"),
-        }
-    }
-}
+pub(crate) type OperatorMatrixRow = (TypeToken, Operator, TypeToken, TypeToken);
 
 
 #[derive(Debug)]
@@ -255,6 +118,13 @@ impl FromStr for TypeToken {
 }
 
 impl TypeToken {
+    pub fn cast_to(&self, to: &TypeToken) -> CastTo {
+        CastTo {
+            from: self.clone(),
+            to: to.clone(),
+        }
+    }
+
     /// removes * from type
     pub fn pop_pointer(&self) -> Option<TypeToken> {
         if let TypeToken::Custom(name_token) = self {

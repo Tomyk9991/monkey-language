@@ -4,7 +4,7 @@ use crate::core::lexer::scope::Scope;
 use crate::core::lexer::static_type_context::{StaticTypeContext};
 use crate::core::lexer::token::Token;
 use crate::core::lexer::tokens::name_token::NameToken;
-use crate::core::lexer::type_token::{InferTypeError};
+use crate::core::lexer::types::type_token::InferTypeError;
 
 #[derive(Debug)]
 pub enum StaticTypeCheckError {

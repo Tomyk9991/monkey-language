@@ -8,7 +8,7 @@ use crate::core::lexer::tokens::assignable_tokens::equation_parser::expression::
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::operator::Operator;
 use crate::core::lexer::tokens::assignable_tokens::method_call_token::dyck_language;
 use crate::core::lexer::tokens::name_token::NameTokenErr;
-use crate::core::lexer::type_token::{InferTypeError, TypeToken};
+use crate::core::lexer::types::type_token::{InferTypeError, TypeToken};
 
 pub mod expression;
 pub mod operator;

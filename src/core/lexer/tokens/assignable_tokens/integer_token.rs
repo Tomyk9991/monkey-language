@@ -4,7 +4,7 @@ use std::num::{ParseFloatError, ParseIntError};
 use std::str::FromStr;
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
-use crate::core::lexer::type_token::Integer;
+use crate::core::lexer::types::integer::Integer;
 
 
 #[derive(Default, Debug, Eq, PartialEq, Clone)]

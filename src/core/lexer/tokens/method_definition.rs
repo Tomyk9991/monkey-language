@@ -15,7 +15,7 @@ use crate::core::constants::FUNCTION_KEYWORD;
 use crate::core::lexer::errors::EmptyIteratorErr;
 use crate::core::lexer::levenshtein_distance::PatternedLevenshteinDistance;
 use crate::core::lexer::levenshtein_distance::{ArgumentsIgnoreSummarizeTransform, EmptyParenthesesExpand, PatternedLevenshteinString, QuoteSummarizeTransform};
-use crate::core::lexer::type_token::{InferTypeError, TypeToken};
+use crate::core::lexer::types::type_token::{InferTypeError, TypeToken};
 
 /// Token for method definition. Pattern is `fn function_name(argument1, ..., argumentN): returnType { }`
 #[derive(Debug, PartialEq, Clone)]
