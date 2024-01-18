@@ -503,7 +503,6 @@ impl Expression {
         } else {
             inner_source = value.to_asm(stack, meta)?;
             float_type = value.infer_type_with_context(&meta.static_type_information, &meta.code_line).ok();
-            println!("{:?}", float_type);
         }
 
 
@@ -524,7 +523,6 @@ impl Expression {
             }
             PrefixArithmetic::Cast(ty) => {
                 let assignable_type = value.infer_type_with_context(&meta.static_type_information, &meta.code_line)?;
-
                 let cast_to = assignable_type.cast_to(ty);
 
                 if let (TypeToken::Float(f1), TypeToken::Float(f2)) = (&cast_to.from, &cast_to.to) {

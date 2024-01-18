@@ -3,7 +3,7 @@ use std::str::FromStr;
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::generator::Stack;
-use crate::core::code_generator::registers::{Bit32, Bit64, FloatRegister, GeneralPurposeRegister};
+use crate::core::code_generator::registers::{FloatRegister, GeneralPurposeRegister};
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::operator::Operator;
 use crate::core::lexer::tokens::name_token::NameTokenErr;
 use crate::core::lexer::types::cast_to::CastTo;
@@ -24,16 +24,20 @@ impl Float {
         };
 
         let instruction = cast_to.to_asm(stack, meta)?;
+        let last_register = stack.register_to_use
+            .last()
+            .ok_or(ASMGenerateError::InternalError("No register to use".to_string()))?;
+
 
         let cast_from_register: GeneralPurposeRegister = match cast_to.from.byte_size() {
-            8 => Bit64::Rax.into(),
-            4 => Bit32::Eax.into(),
+            8 => last_register.to_64_bit_register(),
+            4 => last_register.to_32_bit_register(),
             _ => unreachable!("Target type {f2} doesnt have a compile time known size")
         };
 
         let cast_to_register: GeneralPurposeRegister = match cast_to.to.byte_size() {
-            8 => Bit64::Rax.into(),
-            4 => Bit32::Eax.into(),
+            8 => last_register.to_64_bit_register(),
+            4 => last_register.to_32_bit_register(),
             _ => unreachable!("Target type {f2} doesnt have a compile time known size")
         };
 
@@ -42,11 +46,11 @@ impl Float {
         let mut target = String::new();
 
         target += &ASMBuilder::mov_ident_line(&cast_from_register, source);
-        target += &ASMBuilder::mov_x_ident_line(FloatRegister::Xmm0, &cast_from_register, Some(cast_to.from.byte_size()));
+        target += &ASMBuilder::mov_x_ident_line(FloatRegister::Xmm7, &cast_from_register, Some(cast_to.from.byte_size()));
 
         // actual cast
-        target += &ASMBuilder::ident_line(&format!("{instruction} {}, {}", FloatRegister::Xmm0, FloatRegister::Xmm0));
-        target += &ASMBuilder::mov_x_ident_line(cast_to_register, FloatRegister::Xmm0, Some(cast_to.to.byte_size()));
+        target += &ASMBuilder::ident_line(&format!("{instruction} {}, {}", FloatRegister::Xmm7, FloatRegister::Xmm7));
+        target += &ASMBuilder::mov_x_ident_line(cast_to_register, FloatRegister::Xmm7, Some(cast_to.to.byte_size()));
 
         Ok(target)
     }
