@@ -4,7 +4,7 @@ use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::target_os::TargetOS;
 use crate::core::lexer::static_type_context::StaticTypeContext;
 use crate::core::lexer::tokens::assignable_token::AssignableToken;
-use crate::core::lexer::types::cast_to::CastTo;
+use crate::core::lexer::types::cast_to::CastToError;
 use crate::core::lexer::types::type_token::InferTypeError;
 
 pub mod generator;
@@ -20,7 +20,7 @@ pub mod registers;
 pub enum ASMGenerateError {
     _VariableAlreadyUsed { name: String, code_line: CodeLine },
     UnresolvedReference { name: String, code_line: CodeLine },
-    CastUnsupported(CastTo),
+    CastUnsupported(CastToError),
     TypeNotInferrable(InferTypeError),
     InternalError(String),
     AssignmentNotImplemented { assignable_token: AssignableToken, },
@@ -42,7 +42,7 @@ impl Display for ASMGenerateError {
             ASMGenerateError::NotImplemented { token } => write!(f, "Cannot build ASM from this token: {}", token),
             ASMGenerateError::TypeNotInferrable(infer) => write!(f, "{}", infer),
             ASMGenerateError::InternalError(message) => write!(f, "Internal Error: {}", message),
-            ASMGenerateError::CastUnsupported(cast_to) => write!(f, "Cannot cast from '{}' to '{}'", cast_to.from, cast_to.to),
+            ASMGenerateError::CastUnsupported(cast_to) => write!(f, "{}", cast_to),
         }
     }
 }

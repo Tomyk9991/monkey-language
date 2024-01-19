@@ -11,7 +11,8 @@ use monkey_language::core::lexer::tokens::if_definition::IfDefinition;
 use monkey_language::core::lexer::tokens::method_definition::MethodDefinition;
 use monkey_language::core::lexer::tokens::name_token::NameToken;
 use monkey_language::core::lexer::tokens::variable_token::VariableToken;
-use monkey_language::core::lexer::type_token::{Integer, TypeToken};
+use monkey_language::core::lexer::types::integer::Integer;
+use monkey_language::core::lexer::types::type_token::TypeToken;
 use monkey_language::core::type_checker::static_type_checker::static_type_check;
 
 #[test]

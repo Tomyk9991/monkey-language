@@ -11,8 +11,10 @@ use monkey_language::core::lexer::tokens::assignable_tokens::object_token::Objec
 use monkey_language::core::lexer::tokens::assignable_tokens::string_token::StringToken;
 use monkey_language::core::lexer::tokens::name_token::NameToken;
 use monkey_language::core::lexer::tokens::variable_token::VariableToken;
-use monkey_language::core::lexer::type_token;
-use monkey_language::core::lexer::type_token::{Float, Integer, TypeToken};
+use monkey_language::core::lexer::types::float::Float;
+use monkey_language::core::lexer::types::integer::Integer;
+use monkey_language::core::lexer::types::type_token;
+use monkey_language::core::lexer::types::type_token::TypeToken;
 
 #[test]
 fn variable_test() -> anyhow::Result<()> {

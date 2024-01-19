@@ -13,7 +13,7 @@ use monkey_language::core::lexer::tokens::assignable_tokens::method_call_token::
 use monkey_language::core::lexer::tokens::assignable_tokens::object_token::ObjectToken;
 use monkey_language::core::lexer::tokens::assignable_tokens::string_token::StringToken;
 use monkey_language::core::lexer::tokens::name_token::NameToken;
-use monkey_language::core::lexer::type_token::Integer;
+use monkey_language::core::lexer::types::integer::Integer;
 
 #[test]
 fn assignable_string() -> anyhow::Result<()> {

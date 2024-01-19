@@ -3,7 +3,7 @@ use std::str::FromStr;
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::generator::Stack;
-use crate::core::code_generator::registers::{FloatRegister, GeneralPurposeRegister};
+use crate::core::code_generator::registers::{Bit64, FloatRegister, GeneralPurposeRegister};
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::operator::Operator;
 use crate::core::lexer::tokens::name_token::NameTokenErr;
 use crate::core::lexer::types::cast_to::CastTo;
@@ -17,7 +17,7 @@ pub enum Float {
 }
 
 impl Float {
-    pub fn cast_from_to(f1: &Float, f2: &Float, source: &str, stack: &mut Stack, meta: &mut MetaInfo) -> Result<String, ASMGenerateError> {
+    pub fn cast_from_to(f1: &Float, f2: &Float, source: &str, source_is_expression: bool, stack: &mut Stack, meta: &mut MetaInfo) -> Result<String, ASMGenerateError> {
         let cast_to = CastTo {
             from: TypeToken::Float(f1.clone()),
             to: TypeToken::Float(f2.clone()),
@@ -26,7 +26,7 @@ impl Float {
         let instruction = cast_to.to_asm(stack, meta)?;
         let last_register = stack.register_to_use
             .last()
-            .ok_or(ASMGenerateError::InternalError("No register to use".to_string()))?;
+            .unwrap_or(&GeneralPurposeRegister::Bit64(Bit64::Rax));
 
 
         let cast_from_register: GeneralPurposeRegister = match cast_to.from.byte_size() {
@@ -45,7 +45,12 @@ impl Float {
 
         let mut target = String::new();
 
-        target += &ASMBuilder::mov_ident_line(&cast_from_register, source);
+        if source_is_expression {
+            target += &ASMBuilder::push(source);
+        } else {
+            target += &ASMBuilder::mov_ident_line(&cast_from_register, source);
+        }
+
         target += &ASMBuilder::mov_x_ident_line(FloatRegister::Xmm7, &cast_from_register, Some(cast_to.from.byte_size()));
 
         // actual cast

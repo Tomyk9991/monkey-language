@@ -11,7 +11,8 @@ use monkey_language::core::lexer::tokens::assignable_tokens::string_token::Strin
 use monkey_language::core::lexer::tokens::if_definition::IfDefinition;
 use monkey_language::core::lexer::tokens::name_token::NameToken;
 use monkey_language::core::lexer::tokens::variable_token::VariableToken;
-use monkey_language::core::lexer::type_token::{Integer, TypeToken};
+use monkey_language::core::lexer::types::integer::Integer;
+use monkey_language::core::lexer::types::type_token::TypeToken;
 
 #[test]
 fn if_test() -> anyhow::Result<()> {
