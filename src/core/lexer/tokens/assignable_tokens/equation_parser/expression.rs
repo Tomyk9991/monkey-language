@@ -6,7 +6,7 @@ use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::generator::{LastUnchecked, Stack};
 use crate::core::code_generator::register_destination::from_byte_size;
-use crate::core::code_generator::registers::{GeneralPurposeRegister, GeneralPurposeRegisterIterator};
+use crate::core::code_generator::registers::{FloatRegister, GeneralPurposeRegister, GeneralPurposeRegisterIterator};
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::static_type_context::StaticTypeContext;
 use crate::core::lexer::tokens::assignable_token::AssignableToken;
@@ -89,6 +89,19 @@ impl Expression {
             }
         };
         Ok(pushing_register)
+    }
+
+    fn cut_last_register_to_size(stack: &mut Stack, float_type: &Option<Float>) -> Result<GeneralPurposeRegister, ASMGenerateError> {
+        let last = if let Some(f) = &float_type {
+            match f.byte_size() {
+                8 => stack.register_to_use.last()?.to_64_bit_register(),
+                4 => stack.register_to_use.last()?.to_32_bit_register(),
+                _ => stack.register_to_use.last()?,
+            }
+        } else {
+            stack.register_to_use.last()?
+        };
+        Ok(last)
     }
 }
 
@@ -188,11 +201,12 @@ impl ToASM for Expression {
 
 
             if let Some(prefix_arithmetic) = &self.prefix_arithmetic {
-                let assignable_type = value.infer_type_with_context(&meta.static_type_information, &meta.code_line)?;
+                if stack.register_to_use.is_empty() {
+                    let assignable_type = self.traverse_type_resulted(&meta.static_type_information, &meta.code_line)?;
+                    let iterator = GeneralPurposeRegister::iter_from_byte_size(assignable_type.byte_size())?;
 
-                let iterator = GeneralPurposeRegister::iter_from_byte_size(assignable_type.byte_size())?;
-
-                if stack.register_to_use.is_empty() { stack.register_to_use.push(iterator.current()); }
+                    stack.register_to_use.push(iterator.current());
+                }
                 target += &ASMBuilder::push(&Self::prefix_arithmetic_to_asm(prefix_arithmetic, value, &stack.register_to_use.last().ok(), stack, meta)?);
                 if stack.register_to_use.len() == 1 { stack.register_to_use.pop(); }
             } else {
@@ -253,7 +267,7 @@ impl ToASM for Expression {
                         if lhs.is_pointer() {
                             target += &ASMBuilder::push(&lhs.to_asm(stack, meta)?);
                         } else {
-                            let source = if let Some(AssignableToken::FloatToken(f)) = &lhs.value.as_deref(){
+                            let source = if let Some(AssignableToken::FloatToken(f)) = &lhs.value.as_deref() {
                                 let destination_register = from_byte_size(f.byte_size(meta));
                                 target += &ASMBuilder::mov_ident_line(&destination_register, lhs.to_asm(stack, meta)?);
                                 destination_register
@@ -286,7 +300,8 @@ impl ToASM for Expression {
                         };
                         stack.register_to_use.pop();
 
-                        target += &ASMBuilder::mov_x_ident_line(stack.register_to_use.last()?, &destination_register, if float_type.is_some() { Some(lhs_size) } else { None });
+                        let last = Self::cut_last_register_to_size(stack, &float_type)?;
+                        target += &ASMBuilder::mov_x_ident_line(last, &destination_register, if float_type.is_some() { Some(lhs_size) } else { None });
 
                         if stack.register_to_use.len() == 1 {
                             stack.register_to_use.pop();
@@ -326,7 +341,9 @@ impl ToASM for Expression {
                         };
                         stack.register_to_use.pop();
 
-                        target += &ASMBuilder::mov_x_ident_line(stack.register_to_use.last()?, destination_register, if float_type.is_some() { Some(lhs_size) } else { None });
+                        let last = Self::cut_last_register_to_size(stack, &float_type)?;
+
+                        target += &ASMBuilder::mov_x_ident_line(last, destination_register, if float_type.is_some() { Some(lhs_size) } else { None });
                         if stack.register_to_use.len() == 1 {
                             stack.register_to_use.pop();
                         }
@@ -368,7 +385,9 @@ impl ToASM for Expression {
                         };
                         stack.register_to_use.pop();
 
-                        target += &ASMBuilder::mov_x_ident_line(stack.register_to_use.last()?, register_a, if float_type.is_some() { Some(lhs_size) } else { None });
+                        let last = Self::cut_last_register_to_size(stack, &float_type)?;
+
+                        target += &ASMBuilder::mov_x_ident_line(last, register_a, if float_type.is_some() { Some(lhs_size) } else { None });
                         if stack.register_to_use.len() == 1 {
                             stack.register_to_use.pop();
                         }
@@ -487,7 +506,7 @@ impl Expression {
     fn prefix_arithmetic_to_asm(prefix_arithmetic: &PrefixArithmetic, value: &AssignableToken, float_register: &Option<GeneralPurposeRegister>, stack: &mut Stack, meta: &mut MetaInfo) -> Result<String, ASMGenerateError> {
         let mut target = String::new();
         let mut inner_source = String::new();
-        let register_to_use = stack.register_to_use.last()?.to_64_bit_register().to_string();
+        let register_to_use = stack.register_to_use.last()?;
 
 
         let mut child_has_arithmetic = false;
@@ -498,10 +517,13 @@ impl Expression {
                 if let Some(child) = &a.value {
                     // must be met, if the value has a pointer itself
                     target += &ASMBuilder::push(&Self::prefix_arithmetic_to_asm(&prefix_arithmetic, child, float_register, stack, meta)?);
+
                     if matches!(prefix_arithmetic, PrefixArithmetic::PointerArithmetic(_)) {
-                        inner_source = format!("QWORD [{}]", register_to_use);
+                        inner_source = format!("QWORD [{}]", register_to_use.to_64_bit_register());
+                    } else if (matches!(prefix_arithmetic, PrefixArithmetic::Cast(_))) {
+                        inner_source = GeneralPurposeRegister::Float(FloatRegister::Xmm7).to_string()
                     } else {
-                        inner_source = register_to_use.clone();
+                        inner_source = register_to_use.to_string();
                     }
 
                     if matches!(prefix_arithmetic, PrefixArithmetic::PointerArithmetic(_)) {
@@ -517,18 +539,18 @@ impl Expression {
 
         match prefix_arithmetic {
             PrefixArithmetic::PointerArithmetic(PointerArithmetic::Asterics) => {
-                target += &ASMBuilder::mov_ident_line(&register_to_use, inner_source);
+                target += &ASMBuilder::mov_ident_line(&register_to_use.to_64_bit_register(), inner_source);
                 if !child_has_arithmetic {
-                    target += &ASMBuilder::mov_ident_line(&register_to_use, format!("QWORD [{}]", register_to_use));
+                    target += &ASMBuilder::mov_ident_line(&register_to_use.to_64_bit_register(), format!("QWORD [{}]", register_to_use));
 
                     if let (Some(GeneralPurposeRegister::Float(destination_float_register)), Some(f)) = (float_register, &float_type) {
-                        target += &ASMBuilder::mov_x_ident_line(destination_float_register, &register_to_use, Some(f.byte_size()));
+                        target += &ASMBuilder::mov_x_ident_line(destination_float_register, &register_to_use.to_64_bit_register(), Some(f.byte_size()));
                     }
                 }
             }
             PrefixArithmetic::PointerArithmetic(PointerArithmetic::Ampersand) => {
                 target += &ASMBuilder::ident_line(
-                    &format!("lea {}, {}", register_to_use, inner_source.replace("QWORD ", "").replace("DWORD ", ""))
+                    &format!("lea {}, {}", register_to_use.to_64_bit_register(), inner_source.replace("QWORD ", "").replace("DWORD ", ""))
                 );
             }
             PrefixArithmetic::Cast(ty) => {
@@ -536,8 +558,8 @@ impl Expression {
                 let cast_to = assignable_type.cast_to(ty);
 
                 if let (TypeToken::Float(f1), TypeToken::Float(f2)) = (&cast_to.from, &cast_to.to) {
-                    let value_is_expression = matches!(value, AssignableToken::ArithmeticEquation(_));
-                    target += &Float::cast_from_to(f1, f2, &inner_source, value_is_expression, stack, meta)?;
+
+                    target += &Float::cast_from_to(f1, f2, &inner_source, stack, meta)?;
                 }
 
                 return Ok(target);

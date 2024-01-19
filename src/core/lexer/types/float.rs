@@ -17,7 +17,7 @@ pub enum Float {
 }
 
 impl Float {
-    pub fn cast_from_to(f1: &Float, f2: &Float, source: &str, source_is_expression: bool, stack: &mut Stack, meta: &mut MetaInfo) -> Result<String, ASMGenerateError> {
+    pub fn cast_from_to(f1: &Float, f2: &Float, source: &str, stack: &mut Stack, meta: &mut MetaInfo) -> Result<String, ASMGenerateError> {
         let cast_to = CastTo {
             from: TypeToken::Float(f1.clone()),
             to: TypeToken::Float(f2.clone()),
@@ -45,11 +45,14 @@ impl Float {
 
         let mut target = String::new();
 
-        if source_is_expression {
+        if let Ok(general_purpose_register) = GeneralPurposeRegister::from_str(&source) {
+            target += &ASMBuilder::mov_x_ident_line(&cast_from_register, general_purpose_register, Some(cast_to.from.byte_size()));
+        } else if source.trim().starts_with(';') {
             target += &ASMBuilder::push(source);
         } else {
             target += &ASMBuilder::mov_ident_line(&cast_from_register, source);
         }
+
 
         target += &ASMBuilder::mov_x_ident_line(FloatRegister::Xmm7, &cast_from_register, Some(cast_to.from.byte_size()));
 
