@@ -41,11 +41,9 @@ impl Float {
             _ => unreachable!("Target type {f2} doesnt have a compile time known size")
         };
 
-
-
         let mut target = String::new();
 
-        if let Ok(general_purpose_register) = GeneralPurposeRegister::from_str(&source) {
+        if let Ok(general_purpose_register) = GeneralPurposeRegister::from_str(source) {
             target += &ASMBuilder::mov_x_ident_line(&cast_from_register, general_purpose_register, Some(cast_to.from.byte_size()));
         } else if source.trim().starts_with(';') {
             target += &ASMBuilder::push(source);

@@ -100,6 +100,7 @@ main:
     "#;
 
 
+    println!("{}", asm_result);
     assert_eq!(expected.trim(), asm_result.trim());
 
     let code = r#"

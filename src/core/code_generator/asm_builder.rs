@@ -45,6 +45,7 @@ impl ASMBuilder {
         }
 
         match byte_size {
+            _ if source.starts_with("xmm") && destination.starts_with("xmm") => Self::mov_instruction_ident_line(MovInstruction::MovQ, destination, source),
             Some(8) => Self::mov_instruction_ident_line(MovInstruction::MovQ, destination, source),
             Some(4) => Self::mov_instruction_ident_line(MovInstruction::MovD, destination, source),
             _ => Self::mov_instruction_ident_line(MovInstruction::Mov, destination, source),

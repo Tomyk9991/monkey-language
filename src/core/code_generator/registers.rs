@@ -446,6 +446,37 @@ impl GeneralPurposeRegister {
             }
         }
     }
+
+    /// Converts a general purpose register to the provided size
+    pub fn to_size_register(&self, size: ByteSize) -> GeneralPurposeRegister {
+        match size {
+            ByteSize::_8 => self.to_64_bit_register(),
+            ByteSize::_4 => self.to_32_bit_register(),
+            ByteSize::_2 => unimplemented!("2 Bytes:    Not supported general purpose register conversion"),
+            ByteSize::_1 => unimplemented!("1 Byte:     Not supported general purpose register conversion")
+        }
+    }
+}
+
+pub enum ByteSize {
+    _8,
+    _4,
+    _2,
+    _1
+}
+
+impl TryFrom<usize> for ByteSize {
+    type Error = ASMGenerateError;
+
+    fn try_from(value: usize) -> Result<Self, Self::Error> {
+        match value {
+            8 => Ok(ByteSize::_8),
+            4 => Ok(ByteSize::_4),
+            2 => Ok(ByteSize::_2),
+            1 => Ok(ByteSize::_1),
+            _ => Err(ASMGenerateError::InternalError("Something went wrong casting general purpose registers".to_string()))
+        }
+    }
 }
 
 impl NibbleRegister {

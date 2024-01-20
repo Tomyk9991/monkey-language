@@ -14,3 +14,9 @@
     movd eax, xmm0
     mov eax, DWORD [rbp - 4]
     ```
+
+- Move something twice in the same register
+  - ```nasm
+    mov rax, rax
+    mov rax, rax
+    ```

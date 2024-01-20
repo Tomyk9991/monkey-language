@@ -201,10 +201,8 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for VariableToken<ASSI
 
             let register_destination = register_destination::from_byte_size(self.assignable.byte_size(meta));
 
-
-
             if let Some(TypeToken::Float(float_type)) = &self.ty {
-                target += &ASMBuilder::mov_x_ident_line(&register_destination, FloatRegister::Xmm0, Some(float_type.byte_size()));
+                target += &ASMBuilder::mov_x_ident_line(&register_destination, format!("{}", FloatRegister::Xmm0), Some(float_type.byte_size()));
             }
 
             if !wrote_expression_to_target {
