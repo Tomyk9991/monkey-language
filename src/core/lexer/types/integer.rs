@@ -1,5 +1,7 @@
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
+use crate::core::lexer::tokens::assignable_tokens::equation_parser::operator::OperatorToASM;
+use crate::core::code_generator::ASMGenerateError;
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::operator::Operator;
 use crate::core::lexer::tokens::name_token::NameTokenErr;
 use crate::core::lexer::types::type_token::{InferTypeError, OperatorMatrixRow, TypeToken};
@@ -51,6 +53,18 @@ impl Integer {
             Integer::U32 => 4,
             Integer::I64 => 8,
             Integer::U64 => 8,
+        }
+    }
+}
+
+impl OperatorToASM for Integer {
+    fn operation_to_asm(&self, operator: &Operator) -> Result<String, ASMGenerateError> {
+        match operator {
+            Operator::Noop => Err(ASMGenerateError::InternalError("Noop instruction is not supported".to_string())),
+            Operator::Add => Ok("add".to_string()),
+            Operator::Sub => Ok("sub".to_string()),
+            Operator::Div => Ok("div".to_string()),
+            Operator::Mul => Ok("imul".to_string()),
         }
     }
 }

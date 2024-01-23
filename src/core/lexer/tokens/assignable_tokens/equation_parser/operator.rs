@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter};
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
-use crate::core::lexer::types::float::Float;
+use crate::core::lexer::types::type_token::TypeToken;
 
 #[allow(unused)]
 #[derive(PartialEq, Clone, Debug, Eq, Hash)]
@@ -11,6 +11,10 @@ pub enum Operator {
     Sub,
     Div,
     Mul,
+}
+
+pub trait OperatorToASM {
+    fn operation_to_asm(&self, operator: &Operator) -> Result<String, ASMGenerateError>;
 }
 
 impl Display for Operator {
@@ -44,13 +48,7 @@ impl ToASM for Operator {
 }
 
 impl Operator {
-    pub fn adjust_float_operation(&self, s: &mut Stack, m: &mut MetaInfo, float: &Option<Float>) -> Result<String, ASMGenerateError> {
-        let suffix = match float {
-            Some(Float::Float32) => "ss",
-            Some(Float::Float64) => "sd",
-            None => ""
-        };
-
-        Ok(format!("{}{suffix}", self.to_asm(s, m)?))
+    pub fn specific_operation(&self, ty: &TypeToken) -> Result<String, ASMGenerateError> {
+        ty.operation_to_asm(&self)
     }
 }

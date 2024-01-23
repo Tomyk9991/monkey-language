@@ -1,10 +1,11 @@
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
+use crate::core::code_generator::ASMGenerateError;
 
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::tokens::assignable_token::AssignableToken;
-use crate::core::lexer::tokens::assignable_tokens::equation_parser::operator::Operator;
+use crate::core::lexer::tokens::assignable_tokens::equation_parser::operator::{Operator, OperatorToASM};
 use crate::core::lexer::tokens::name_token::{NameToken, NameTokenErr};
 use crate::core::lexer::types::cast_to::CastTo;
 use crate::core::lexer::types::float::Float;
@@ -52,6 +53,33 @@ pub struct MethodCallArgumentTypeMismatch {
     pub nth_parameter: usize,
     pub code_line: CodeLine,
 }
+
+impl OperatorToASM for TypeToken {
+    fn operation_to_asm(&self, operator: &Operator) -> Result<String, ASMGenerateError> {
+        struct Bool;
+
+        impl OperatorToASM for Bool {
+            fn operation_to_asm(&self, operator: &Operator) -> Result<String, ASMGenerateError> {
+                match operator {
+                    Operator::Noop => Err(ASMGenerateError::InternalError("No operation for noop and booleans".to_string())),
+                    Operator::Add => Ok("or".to_string()),
+                    Operator::Sub => Err(ASMGenerateError::InternalError("No operation for sub and booleans".to_string())),
+                    Operator::Div => Err(ASMGenerateError::InternalError("No operation for div and booleans".to_string())),
+                    Operator::Mul => Ok("and".to_string()),
+                }
+            }
+        }
+
+        match self {
+            TypeToken::Integer(t) => t.operation_to_asm(operator),
+            TypeToken::Float(t) => t.operation_to_asm(operator),
+            TypeToken::Bool => Bool{}.operation_to_asm(operator),
+            TypeToken::Void => Err(ASMGenerateError::InternalError("Void cannot be operated on".to_string())),
+            TypeToken::Custom(_) => todo!(),
+        }
+    }
+}
+
 
 impl From<NameTokenErr> for InferTypeError {
     fn from(value: NameTokenErr) -> Self {

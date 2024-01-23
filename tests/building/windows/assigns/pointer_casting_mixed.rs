@@ -180,7 +180,7 @@ main:
     cvtsd2ss xmm7, xmm7
     movd edx, xmm7
     movd xmm3, edx
-    imulss xmm0, xmm3
+    mulss xmm0, xmm3
     movd eax, xmm0
     mov DWORD [rbp - 20], eax
     leave
