@@ -557,26 +557,36 @@ impl Expression {
         let register_64 = register_to_use.to_64_bit_register();
 
 
-        let mut child_has_arithmetic = false;
+        let mut child_has_pointer_arithmetic = false;
         let mut float_type = None;
 
         if let Some(prefix_arithmetic) = value.prefix_arithmetic() {
             if let AssignableToken::ArithmeticEquation(a) = value {
                 if let Some(child) = &a.value {
-                    // must be met, if the value has a pointer itself
                     target += &ASMBuilder::push(&Self::prefix_arithmetic_to_asm(&prefix_arithmetic, child, float_register, stack, meta)?);
 
-                    if matches!(prefix_arithmetic, PrefixArithmetic::PointerArithmetic(_)) {
-                        inner_source = format!("QWORD [{}]", register_64);
-                    } else if (matches!(prefix_arithmetic, PrefixArithmetic::Cast(_))) {
-                        inner_source = GeneralPurposeRegister::Float(FloatRegister::Xmm7).to_string()
-                    } else {
-                        inner_source = register_64.to_string();
-                    }
+                    inner_source = match prefix_arithmetic {
+                        PrefixArithmetic::PointerArithmetic(_) => {
+                            child_has_pointer_arithmetic = true;
+                            format!("QWORD [{}]", register_64)
+                        },
+                        PrefixArithmetic::Cast(_) => {
+                            GeneralPurposeRegister::Float(FloatRegister::Xmm7).to_string()
+                        },
+                        _ => register_64.to_string()
+                    };
 
-                    if matches!(prefix_arithmetic, PrefixArithmetic::PointerArithmetic(_)) {
-                        child_has_arithmetic = true;
-                    }
+                    // if matches!(prefix_arithmetic, PrefixArithmetic::PointerArithmetic(_)) {
+                    //     inner_source = format!("QWORD [{}]", register_64);
+                    // } else if (matches!(prefix_arithmetic, PrefixArithmetic::Cast(_))) {
+                    //     inner_source = GeneralPurposeRegister::Float(FloatRegister::Xmm7).to_string()
+                    // } else {
+                    //     inner_source = register_64.to_string();
+                    // }
+                    //
+                    // if matches!(prefix_arithmetic, PrefixArithmetic::PointerArithmetic(_)) {
+                    //     child_has_pointer_arithmetic = true;
+                    // }
                 }
             }
         } else {
@@ -588,7 +598,7 @@ impl Expression {
         match prefix_arithmetic {
             PrefixArithmetic::PointerArithmetic(PointerArithmetic::Asterics) => {
                 target += &ASMBuilder::mov_ident_line(&register_64, inner_source);
-                if !child_has_arithmetic {
+                if !child_has_pointer_arithmetic {
                     target += &ASMBuilder::mov_ident_line(&register_64, format!("QWORD [{}]", register_64));
 
                     if let (Some(GeneralPurposeRegister::Float(destination_float_register)), Some(f)) = (float_register, &float_type) {
@@ -604,6 +614,10 @@ impl Expression {
             PrefixArithmetic::Cast(ty) => {
                 let assignable_type = value.infer_type_with_context(&meta.static_type_information, &meta.code_line)?;
                 let cast_to = assignable_type.cast_to(ty);
+
+                if child_has_pointer_arithmetic {
+                    inner_source = register_64.to_string();
+                }
 
                 if let (TypeToken::Float(f1), TypeToken::Float(f2)) = (&cast_to.from, &cast_to.to) {
                     target += &Float::cast_from_to(f1, f2, &inner_source, stack, meta)?;
