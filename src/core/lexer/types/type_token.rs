@@ -5,7 +5,7 @@ use crate::core::code_generator::ASMGenerateError;
 
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::tokens::assignable_token::AssignableToken;
-use crate::core::lexer::tokens::assignable_tokens::equation_parser::operator::{Operator, OperatorToASM};
+use crate::core::lexer::tokens::assignable_tokens::equation_parser::operator::{AssemblerOperation, Operator, OperatorToASM};
 use crate::core::lexer::tokens::name_token::{NameToken, NameTokenErr};
 use crate::core::lexer::types::cast_to::CastTo;
 use crate::core::lexer::types::float::Float;
@@ -55,25 +55,25 @@ pub struct MethodCallArgumentTypeMismatch {
 }
 
 impl OperatorToASM for TypeToken {
-    fn operation_to_asm(&self, operator: &Operator) -> Result<String, ASMGenerateError> {
+    fn operation_to_asm<T: Display>(&self, operator: &Operator, registers: &[T]) -> Result<AssemblerOperation, ASMGenerateError> {
         struct Bool;
 
         impl OperatorToASM for Bool {
-            fn operation_to_asm(&self, operator: &Operator) -> Result<String, ASMGenerateError> {
+            fn operation_to_asm<T: Display>(&self, operator: &Operator, _: &[T]) -> Result<AssemblerOperation, ASMGenerateError> {
                 match operator {
                     Operator::Noop => Err(ASMGenerateError::InternalError("No operation for noop and booleans".to_string())),
-                    Operator::Add => Ok("or".to_string()),
+                    Operator::Add => Ok("or".to_string().into()),
                     Operator::Sub => Err(ASMGenerateError::InternalError("No operation for sub and booleans".to_string())),
                     Operator::Div => Err(ASMGenerateError::InternalError("No operation for div and booleans".to_string())),
-                    Operator::Mul => Ok("and".to_string()),
+                    Operator::Mul => Ok("and".to_string().into()),
                 }
             }
         }
 
         match self {
-            TypeToken::Integer(t) => t.operation_to_asm(operator),
-            TypeToken::Float(t) => t.operation_to_asm(operator),
-            TypeToken::Bool => Bool{}.operation_to_asm(operator),
+            TypeToken::Integer(t) => t.operation_to_asm(operator, registers),
+            TypeToken::Float(t) => t.operation_to_asm(operator, registers),
+            TypeToken::Bool => Bool{}.operation_to_asm(operator, registers),
             TypeToken::Void => Err(ASMGenerateError::InternalError("Void cannot be operated on".to_string())),
             TypeToken::Custom(_) => todo!(),
         }

@@ -12,6 +12,12 @@ pub enum Bit64 {
     R15,
     R8,
     R9,
+    /// Special register, used to cache something temporarily
+    R14,
+    /// Special register, used to cache something temporarily
+    R13,
+    /// Special register, used to cache something temporarily
+    R12
 }
 
 #[derive(Debug, Clone)]
@@ -23,6 +29,9 @@ pub enum Bit32 {
     R15d,
     R8d,
     R9d,
+    R14d,
+    R13d,
+    R12d
 }
 
 #[derive(Debug, Clone)]
@@ -80,6 +89,7 @@ pub enum FloatRegister {
     Xmm4,
     Xmm5,
     Xmm6,
+    /// Special use in this compiler. Used for only for float to float conversion
     Xmm7,
 }
 
@@ -195,7 +205,10 @@ impl Iterator for GeneralPurposeRegisterIterator {
                     Bit64::Rdx => None,
                     Bit64::R8 => None,
                     Bit64::R9 => None,
-                    Bit64::R15 => None
+                    Bit64::R15 => None,
+                    Bit64::R14 => None,
+                    Bit64::R13 => None,
+                    Bit64::R12 => None
                 }
             }
             GeneralPurposeRegister::Bit32(a) => {
@@ -216,6 +229,9 @@ impl Iterator for GeneralPurposeRegisterIterator {
                     Bit32::R15d => None,
                     Bit32::R8d => None,
                     Bit32::R9d => None,
+                    Bit32::R14d => None,
+                    Bit32::R13d => None,
+                    Bit32::R12d => None,
                 }
             }
             GeneralPurposeRegister::Bit16(a) => {
@@ -368,6 +384,9 @@ impl GeneralPurposeRegister {
                     Bit64::R15 => GeneralPurposeRegister::Bit32(Bit32::R15d),
                     Bit64::R8 => GeneralPurposeRegister::Bit32(Bit32::R8d),
                     Bit64::R9 => GeneralPurposeRegister::Bit32(Bit32::R9d),
+                    Bit64::R14 => GeneralPurposeRegister::Bit32(Bit32::R14d),
+                    Bit64::R13 => GeneralPurposeRegister::Bit32(Bit32::R13d),
+                    Bit64::R12 => GeneralPurposeRegister::Bit32(Bit32::R12d)
                 }
             }
             GeneralPurposeRegister::Bit32(v) => GeneralPurposeRegister::Bit32(v.clone()),
@@ -414,6 +433,9 @@ impl GeneralPurposeRegister {
                     Bit32::R15d => GeneralPurposeRegister::Bit64(Bit64::R15),
                     Bit32::R8d => GeneralPurposeRegister::Bit64(Bit64::R8),
                     Bit32::R9d => GeneralPurposeRegister::Bit64(Bit64::R9),
+                    Bit32::R14d => GeneralPurposeRegister::Bit64(Bit64::R14),
+                    Bit32::R13d => GeneralPurposeRegister::Bit64(Bit64::R13),
+                    Bit32::R12d => GeneralPurposeRegister::Bit64(Bit64::R12)
                 }
             }
             GeneralPurposeRegister::Bit16(v) => {
@@ -448,7 +470,7 @@ impl GeneralPurposeRegister {
     }
 
     /// Converts a general purpose register to the provided size
-    pub fn to_size_register(&self, size: ByteSize) -> GeneralPurposeRegister {
+    pub fn to_size_register(&self, size: &ByteSize) -> GeneralPurposeRegister {
         match size {
             ByteSize::_8 => self.to_64_bit_register(),
             ByteSize::_4 => self.to_32_bit_register(),
@@ -608,6 +630,9 @@ impl Display for Bit32 {
             Bit32::R15d => "r15d",
             Bit32::R8d => "r8d",
             Bit32::R9d => "r9d",
+            Bit32::R14d => "r14d",
+            Bit32::R13d => "r13d",
+            Bit32::R12d => "r12d"
         })
     }
 }
@@ -621,7 +646,10 @@ impl Display for Bit64 {
             Bit64::Rdx => "rdx",
             Bit64::R9 => "r9",
             Bit64::R8 => "r8",
-            Bit64::R15 => "r15"
+            Bit64::R15 => "r15",
+            Bit64::R14 => "r14",
+            Bit64::R13 => "r13",
+            Bit64::R12 => "r12"
         })
     }
 }

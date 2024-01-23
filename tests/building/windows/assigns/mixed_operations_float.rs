@@ -72,73 +72,6 @@ main:
 }
 
 #[test]
-fn mixed_operations_div() -> anyhow::Result<()> {
-    let code = r#"
-extern fn printf(format: *string, value: void): void;
-let a: f32 = 5.0 * 1.0 / 100.0;
-printf("%f", (f64)a);
-    "#;
-
-    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
-    let mut lexer = Lexer::from(monkey_file);
-    let top_level_scope = lexer.tokenize()?;
-
-    static_type_check(&top_level_scope)?;
-
-    let mut code_generator = ASMGenerator::from((top_level_scope, TargetOS::Windows));
-    let asm_result = code_generator.generate()?;
-
-
-    println!("{}", asm_result);
-
-    let expected = r#"
-; This assembly is targeted for the Windows Operating System
-segment .text
-global main
-
-extern printf
-
-.label0:
-    db "%f", 0
-
-main:
-    push rbp
-    mov rbp, rsp
-    ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 36
-    ; let a: f32 = (5 Mul (1 Div 100))
-    ; (5 Mul (1 Div 100))
-    ; (1 Div 100)
-    mov eax, __?float32?__(1.0)
-    movd xmm0, eax
-    mov eax, __?float32?__(100.0)
-    movd xmm3, eax
-    divss xmm0, xmm3
-    movq xmm3, xmm0
-    mov eax, __?float32?__(5.0)
-    movd xmm4, eax
-    movq xmm0, xmm4
-    mulss xmm0, xmm3
-    movd eax, xmm0
-    mov DWORD [rbp - 4], eax
-    mov rcx, .label0 ; Parameter ("%f")
-    mov eax, DWORD [rbp - 4]
-    movd xmm7, eax
-    cvtss2sd xmm7, xmm7
-    movq rax, xmm7
-    movq xmm1, rax ; Parameter ((f64)a)
-    mov rdx, rax ; Parameter ((f64)a)
-    ; printf("%f", (f64)a)
-    call printf
-    leave
-    ret
-    "#;
-
-    assert_eq!(expected.trim(), asm_result.trim());
-    Ok(())
-}
-
-#[test]
 fn mixed_operations_sub() -> anyhow::Result<()> {
     let code = r#"
 extern fn printf(format: *string, value: void): void;
@@ -223,8 +156,7 @@ printf("%f", (f64)a);
 
     println!("{}", asm_result);
 
-    let expected = r#"
-; This assembly is targeted for the Windows Operating System
+    let expected = r#"; This assembly is targeted for the Windows Operating System
 segment .text
 global main
 
@@ -238,8 +170,8 @@ main:
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
     sub rsp, 36
-    ; let a: f32 = (((((3.5 Add 1.2) Mul 4.8) Sub (9.6 Div 2.4)) Mul (((7.2 Add 3.6) Div 2.1) Sub (8.4 Mul 3.7))) Add ((6.3 Sub 2.1) Mul (3.8 Div (7.9 Add 4.2))))
-    ; (((((3.5 Add 1.2) Mul 4.8) Sub (9.6 Div 2.4)) Mul (((7.2 Add 3.6) Div 2.1) Sub (8.4 Mul 3.7))) Add ((6.3 Sub 2.1) Mul (3.8 Div (7.9 Add 4.2))))
+    ; let a: f32 = (((((3.5 Add 1.2) Mul 4.8) Sub (9.6 Div 2.4)) Mul (((7.2 Add 3.6) Div 2.1) Sub (8.4 Mul 3.7))) Add (((6.3 Sub 2.1) Mul 3.8) Div (7.9 Add 4.2)))
+    ; (((((3.5 Add 1.2) Mul 4.8) Sub (9.6 Div 2.4)) Mul (((7.2 Add 3.6) Div 2.1) Sub (8.4 Mul 3.7))) Add (((6.3 Sub 2.1) Mul 3.8) Div (7.9 Add 4.2)))
     ; ((((3.5 Add 1.2) Mul 4.8) Sub (9.6 Div 2.4)) Mul (((7.2 Add 3.6) Div 2.1) Sub (8.4 Mul 3.7)))
     ; (((3.5 Add 1.2) Mul 4.8) Sub (9.6 Div 2.4))
     ; ((3.5 Add 1.2) Mul 4.8)
@@ -313,29 +245,27 @@ main:
     movq rax, xmm0
     push rax
     xor rax, rax
-    ; ((6.3 Sub 2.1) Mul (3.8 Div (7.9 Add 4.2)))
+    ; (((6.3 Sub 2.1) Mul 3.8) Div (7.9 Add 4.2))
+    ; ((6.3 Sub 2.1) Mul 3.8)
     ; (6.3 Sub 2.1)
     mov eax, __?float32?__(6.3)
     movd xmm0, eax
     mov eax, __?float32?__(2.1)
     movd xmm3, eax
     subss xmm0, xmm3
+    mov eax, __?float32?__(3.8)
+    movd xmm3, eax
+    mulss xmm0, xmm3
     movq xmm2, xmm0
     movq rdi, xmm2
     push rdi
     xor rdi, rdi
-    ; (3.8 Div (7.9 Add 4.2))
     ; (7.9 Add 4.2)
     mov eax, __?float32?__(7.9)
     movd xmm0, eax
     mov eax, __?float32?__(4.2)
     movd xmm3, eax
     addss xmm0, xmm3
-    movq xmm3, xmm0
-    mov eax, __?float32?__(3.8)
-    movd xmm4, eax
-    movq xmm0, xmm4
-    divss xmm0, xmm3
     movq rax, xmm0
     push rax
     xor rax, rax
@@ -343,7 +273,7 @@ main:
     movd xmm2, edi
     pop rax
     movd xmm0, eax
-    mulss xmm0, xmm2
+    divss xmm0, xmm2
     movq rax, xmm0
     push rax
     xor rax, rax
@@ -392,7 +322,7 @@ printf("%f", a);
     println!("{}", asm_result);
 
     let expected = r#"
-; This assembly is targeted for the Windows Operating System
+    ; This assembly is targeted for the Windows Operating System
 segment .text
 global main
 
@@ -406,8 +336,8 @@ main:
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
     sub rsp, 40
-    ; let a: f64 = (((((3.5 Add 1.2) Mul 4.8) Sub (9.6 Div 2.4)) Mul (((7.2 Add 3.6) Div 2.1) Sub (8.4 Mul 3.7))) Add ((6.3 Sub 2.1) Mul (3.8 Div (7.9 Add 4.2))))
-    ; (((((3.5 Add 1.2) Mul 4.8) Sub (9.6 Div 2.4)) Mul (((7.2 Add 3.6) Div 2.1) Sub (8.4 Mul 3.7))) Add ((6.3 Sub 2.1) Mul (3.8 Div (7.9 Add 4.2))))
+    ; let a: f64 = (((((3.5 Add 1.2) Mul 4.8) Sub (9.6 Div 2.4)) Mul (((7.2 Add 3.6) Div 2.1) Sub (8.4 Mul 3.7))) Add (((6.3 Sub 2.1) Mul 3.8) Div (7.9 Add 4.2)))
+    ; (((((3.5 Add 1.2) Mul 4.8) Sub (9.6 Div 2.4)) Mul (((7.2 Add 3.6) Div 2.1) Sub (8.4 Mul 3.7))) Add (((6.3 Sub 2.1) Mul 3.8) Div (7.9 Add 4.2)))
     ; ((((3.5 Add 1.2) Mul 4.8) Sub (9.6 Div 2.4)) Mul (((7.2 Add 3.6) Div 2.1) Sub (8.4 Mul 3.7)))
     ; (((3.5 Add 1.2) Mul 4.8) Sub (9.6 Div 2.4))
     ; ((3.5 Add 1.2) Mul 4.8)
@@ -481,29 +411,27 @@ main:
     movq rax, xmm0
     push rax
     xor rax, rax
-    ; ((6.3 Sub 2.1) Mul (3.8 Div (7.9 Add 4.2)))
+    ; (((6.3 Sub 2.1) Mul 3.8) Div (7.9 Add 4.2))
+    ; ((6.3 Sub 2.1) Mul 3.8)
     ; (6.3 Sub 2.1)
     mov rax, __?float64?__(6.3)
     movq xmm0, rax
     mov rax, __?float64?__(2.1)
     movq xmm3, rax
     subsd xmm0, xmm3
+    mov rax, __?float64?__(3.8)
+    movq xmm3, rax
+    mulsd xmm0, xmm3
     movq xmm2, xmm0
     movq rdi, xmm2
     push rdi
     xor rdi, rdi
-    ; (3.8 Div (7.9 Add 4.2))
     ; (7.9 Add 4.2)
     mov rax, __?float64?__(7.9)
     movq xmm0, rax
     mov rax, __?float64?__(4.2)
     movq xmm3, rax
     addsd xmm0, xmm3
-    movq xmm3, xmm0
-    mov rax, __?float64?__(3.8)
-    movq xmm4, rax
-    movq xmm0, xmm4
-    divsd xmm0, xmm3
     movq rax, xmm0
     push rax
     xor rax, rax
@@ -511,7 +439,7 @@ main:
     movq xmm2, rdi
     pop rax
     movq xmm0, rax
-    mulsd xmm0, xmm2
+    divsd xmm0, xmm2
     movq rax, xmm0
     push rax
     xor rax, rax
@@ -529,7 +457,6 @@ main:
     call printf
     leave
     ret
-
     "#;
 
     assert_eq!(expected.trim(), asm_result.trim());
@@ -540,7 +467,7 @@ main:
 fn mixed_operations_div_0() -> anyhow::Result<()> {
     let code = r#"
 extern fn printf(format: *string, value: void): void;
-let a: f32 = 5.0 * 1.0 / 100.0;
+let a: f32 = 5.0 * 1.0 / 0.0;
 printf("%f", (f64)a);
     "#;
 
@@ -557,7 +484,7 @@ printf("%f", (f64)a);
     println!("{}", asm_result);
 
     let expected = r#"
-; This assembly is targeted for the Windows Operating System
+    ; This assembly is targeted for the Windows Operating System
 segment .text
 global main
 
@@ -571,19 +498,17 @@ main:
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
     sub rsp, 36
-    ; let a: f32 = (5 Mul (1 Div 100))
-    ; (5 Mul (1 Div 100))
-    ; (1 Div 100)
-    mov eax, __?float32?__(1.0)
+    ; let a: f32 = ((5 Mul 1) Div 0)
+    ; ((5 Mul 1) Div 0)
+    ; (5 Mul 1)
+    mov eax, __?float32?__(5.0)
     movd xmm0, eax
-    mov eax, __?float32?__(100.0)
+    mov eax, __?float32?__(1.0)
+    movd xmm3, eax
+    mulss xmm0, xmm3
+    mov eax, __?float32?__(0.0)
     movd xmm3, eax
     divss xmm0, xmm3
-    movq xmm3, xmm0
-    mov eax, __?float32?__(5.0)
-    movd xmm4, eax
-    movq xmm0, xmm4
-    mulss xmm0, xmm3
     movd eax, xmm0
     mov DWORD [rbp - 4], eax
     mov rcx, .label0 ; Parameter ("%f")

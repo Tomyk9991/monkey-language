@@ -36,6 +36,17 @@ impl ASMBuilder {
         format!("{}{}\n", " ".repeat(4), argument)
     }
 
+    pub fn mov_line<T: Display, P: Display>(destination: T, source: P) -> String {
+        let source = source.to_string();
+        let destination = destination.to_string();
+
+        if source == destination {
+            return String::new();
+        }
+
+        format!("mov {}\n", ASMBuilder::comma_seperated(&destination, &source))
+    }
+
     pub fn mov_x_ident_line<T: Display, P: Display>(destination: T, source: P, byte_size: Option<usize>) -> String {
         let source = source.to_string();
         let destination = destination.to_string();

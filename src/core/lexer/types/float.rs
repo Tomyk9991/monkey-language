@@ -4,7 +4,7 @@ use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::registers::{Bit64, FloatRegister, GeneralPurposeRegister};
-use crate::core::lexer::tokens::assignable_tokens::equation_parser::operator::{Operator, OperatorToASM};
+use crate::core::lexer::tokens::assignable_tokens::equation_parser::operator::{AssemblerOperation, Operator, OperatorToASM};
 use crate::core::lexer::tokens::name_token::NameTokenErr;
 use crate::core::lexer::types::cast_to::CastTo;
 use crate::core::lexer::types::type_token::{InferTypeError, OperatorMatrixRow, TypeToken};
@@ -84,7 +84,7 @@ impl Float {
 }
 
 impl OperatorToASM for Float {
-    fn operation_to_asm(&self, operator: &Operator) -> Result<String, ASMGenerateError> {
+    fn operation_to_asm<T: Display>(&self, operator: &Operator, registers: &[T]) -> Result<AssemblerOperation, ASMGenerateError> {
         let suffix = match self {
             Float::Float32 => "ss",
             Float::Float64 => "sd"
@@ -92,10 +92,10 @@ impl OperatorToASM for Float {
 
         match operator {
             Operator::Noop => Err(ASMGenerateError::InternalError("Noop instruction is not supported".to_string())),
-            Operator::Add => Ok(format!("add{suffix}")),
-            Operator::Sub => Ok(format!("sub{suffix}")),
-            Operator::Div => Ok(format!("div{suffix}")),
-            Operator::Mul => Ok(format!("mul{suffix}")),
+            Operator::Add => Ok(AssemblerOperation::two_operands(&format!("add{suffix}"), &registers[0], &registers[1]).into()),
+            Operator::Sub => Ok(AssemblerOperation::two_operands(&format!("sub{suffix}"), &registers[0], &registers[1]).into()),
+            Operator::Div => Ok(AssemblerOperation::two_operands(&format!("div{suffix}"), &registers[0], &registers[1]).into()),
+            Operator::Mul => Ok(AssemblerOperation::two_operands(&format!("mul{suffix}"), &registers[0], &registers[1]).into()),
         }
     }
 }

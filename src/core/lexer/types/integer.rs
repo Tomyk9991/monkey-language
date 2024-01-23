@@ -1,7 +1,8 @@
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
-use crate::core::lexer::tokens::assignable_tokens::equation_parser::operator::OperatorToASM;
+use crate::core::lexer::tokens::assignable_tokens::equation_parser::operator::{AssemblerOperation, OperatorToASM};
 use crate::core::code_generator::ASMGenerateError;
+use crate::core::code_generator::registers::{Bit64, ByteSize, GeneralPurposeRegister};
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::operator::Operator;
 use crate::core::lexer::tokens::name_token::NameTokenErr;
 use crate::core::lexer::types::type_token::{InferTypeError, OperatorMatrixRow, TypeToken};
@@ -24,7 +25,7 @@ impl Integer {
         value.parse().map_err(|_| InferTypeError::TypeNotAllowed(NameTokenErr::UnmatchedRegex { target_value: String::from(value) }))
     }
 
-    pub fn _signed(&self) -> bool {
+    pub fn signed(&self) -> bool {
         matches!(self, Integer::I8 | Integer::I16 | Integer::I32 | Integer::I64)
     }
 
@@ -58,13 +59,29 @@ impl Integer {
 }
 
 impl OperatorToASM for Integer {
-    fn operation_to_asm(&self, operator: &Operator) -> Result<String, ASMGenerateError> {
+    fn operation_to_asm<T: Display>(&self, operator: &Operator, registers: &[T]) -> Result<AssemblerOperation, ASMGenerateError> {
+        let prefix = if self.signed() { "i" } else { "" };
+
+        let integer_size = self.byte_size();
+
         match operator {
             Operator::Noop => Err(ASMGenerateError::InternalError("Noop instruction is not supported".to_string())),
-            Operator::Add => Ok("add".to_string()),
-            Operator::Sub => Ok("sub".to_string()),
-            Operator::Div => Ok("div".to_string()),
-            Operator::Mul => Ok("imul".to_string()),
+            Operator::Add => Ok(AssemblerOperation::two_operands("add", &registers[0], &registers[1]).into()),
+            Operator::Sub => Ok(AssemblerOperation::two_operands("sub", &registers[0], &registers[1]).into()),
+            Operator::Div => Ok(AssemblerOperation {
+                prefix: Some(AssemblerOperation::prefix_with_registers(self.byte_size(), registers)?),
+                operation: format!("{prefix}div {}", GeneralPurposeRegister::Bit64(Bit64::Rcx).to_size_register(&ByteSize::try_from(integer_size)?)),
+                postfix: Some(AssemblerOperation::postfix_with_registers(self.byte_size(), registers)?)
+            }),
+            Operator::Mul => if self.signed() {
+                Ok(AssemblerOperation::two_operands("imul", &registers[0], &registers[1]).into())
+            } else {
+                Ok(AssemblerOperation {
+                    prefix: Some(AssemblerOperation::prefix_with_registers(self.byte_size(), registers)?),
+                    operation: format!("{prefix}mul, {}", &GeneralPurposeRegister::Bit64(Bit64::Rdx).to_size_register(&ByteSize::try_from(integer_size)?)),
+                    postfix: Some(AssemblerOperation::postfix_with_registers(self.byte_size(), registers)?)
+                })
+            },
         }
     }
 }

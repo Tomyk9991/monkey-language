@@ -177,10 +177,10 @@ impl<T: EquationTokenOptions> EquationToken<T> {
         loop {
             #[allow(clippy::if_same_then_else)]
             if self.eat(T::multiplicative()) {
-                let term = self.parse_term()?;
+                let term = self.parse_factor()?;
                 x.set(Some(x.clone()), Operator::Mul, Some(term), None);
             } else if self.eat(T::inverse_multiplicative()) {
-                let term = self.parse_term()?;
+                let term = self.parse_factor()?;
                 x.set(Some(x.clone()), Operator::Div, Some(term), None);
             } else {
                 return Ok(x);
@@ -243,6 +243,7 @@ impl<T: EquationTokenOptions> EquationToken<T> {
     fn parse_factor(&mut self) -> Result<Box<Expression>, Error> {
         let mut x: Box<Expression>;
 
+        //Start Prefix
         if self.eat(T::additive()) {
             x = self.parse_factor()?;
             return Ok(x);
@@ -290,6 +291,8 @@ impl<T: EquationTokenOptions> EquationToken<T> {
 
             return Ok(x);
         }
+
+        //End Prefix
 
         let start_pos: i32 = self.pos;
         if self.eat(Some(OPENING)) {
