@@ -34,7 +34,9 @@ impl ToASM for CastTo {
         // from, to, instruction
         let mut cast_to_matrix: HashMap<(TypeToken, TypeToken), &'static str> = HashMap::new();
 
-        Integer::add_casts(&mut cast_to_matrix);
+        <Integer as Castable<Integer, Integer>>::add_casts(&mut cast_to_matrix);
+        <Integer as Castable<Integer, Float>>::add_casts(&mut cast_to_matrix);
+
         Float::add_casts(&mut cast_to_matrix);
 
         if self.from == self.to {

@@ -15,7 +15,7 @@ use crate::core::lexer::types::type_token::{InferTypeError, TypeToken};
 pub enum Float {
     #[default]
     Float32,
-    Float64
+    Float64,
 }
 
 impl Castable<Float, Float> for Float {

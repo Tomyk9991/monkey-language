@@ -6,11 +6,12 @@ use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::register_destination::word_from_byte_size;
-use crate::core::code_generator::registers::{Bit64, ByteSize, GeneralPurposeRegister};
+use crate::core::code_generator::registers::{Bit64, ByteSize, FloatRegister, GeneralPurposeRegister};
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::operator::Operator;
 use crate::core::lexer::tokens::assignable_tokens::integer_token::IntegerToken;
 use crate::core::lexer::tokens::name_token::NameTokenErr;
 use crate::core::lexer::types::cast_to::{Castable, CastTo};
+use crate::core::lexer::types::float::Float;
 use crate::core::lexer::types::type_token::{InferTypeError, TypeToken};
 
 #[derive(Debug, Default, PartialEq, Eq, Hash, Clone)]
@@ -25,6 +26,62 @@ pub enum Integer {
     I64,
     U64
 }
+
+impl Castable<Integer, Float> for Integer {
+    fn add_casts(cast_matrix: &mut HashMap<(TypeToken, TypeToken), &'static str>) {
+        let types = [Integer::U8, Integer::I8, Integer::U16, Integer::I16, Integer::U32, Integer::I32, Integer::U64, Integer::I64];
+
+        for t1 in &types {
+            cast_matrix.insert((TypeToken::Integer(t1.clone()), TypeToken::Float(Float::Float32)), "cvtsi2ss");
+            cast_matrix.insert((TypeToken::Integer(t1.clone()), TypeToken::Float(Float::Float64)), "cvtsi2sd");
+        }
+    }
+
+    fn cast_from_to(t1: &Integer, t2: &Float, source: &str, stack: &mut Stack, meta: &mut MetaInfo) -> Result<String, ASMGenerateError> {
+        let cast_to = CastTo {
+            from: TypeToken::Integer(t1.clone()),
+            to: TypeToken::Float(t2.clone()),
+        };
+
+        let instruction = cast_to.to_asm(stack, meta)?;
+        let last_register = stack.register_to_use
+            .last()
+            .unwrap_or(&GeneralPurposeRegister::Bit64(Bit64::Rax))
+            .clone();
+
+        let mut cast_from_register = last_register.to_size_register(&ByteSize::try_from(cast_to.from.byte_size())?);
+        let _cast_to_register = last_register.to_size_register(&ByteSize::try_from(cast_to.to.byte_size())?);
+
+        let mut target = String::new();
+        target += &ASMBuilder::ident_comment_line(&format!("Cast: ({}) -> ({})", cast_to.from, cast_to.to));
+
+        let mut is_stack_variable = false;
+        for (_, word) in [8, 4, 2, 1].map(|a| (a, word_from_byte_size(a))) {
+            if source.starts_with(&word) {
+                is_stack_variable = true;
+                break;
+            }
+        }
+
+        if *t1 != Integer::U32 { // Convert to unsigned U32
+            target += &<Integer as Castable<Integer, Integer>>::cast_from_to(t1, &Integer::U32, &source, stack, meta)?;
+            cast_from_register = last_register.to_size_register(&ByteSize::_4);
+        } else {
+            if IntegerToken::from_str(&source).is_ok() {
+                target += &ASMBuilder::mov_ident_line(&cast_from_register, &source);
+            } else if is_stack_variable {
+                target += &ASMBuilder::mov_ident_line(&cast_from_register, &source);
+            }
+        }
+
+
+        target += &ASMBuilder::ident_line(&format!("{instruction} {}, {}", GeneralPurposeRegister::Float(FloatRegister::Xmm7), &cast_from_register));
+        target += &ASMBuilder::mov_x_ident_line(_cast_to_register, &GeneralPurposeRegister::Float(FloatRegister::Xmm7), Some(cast_to.to.byte_size()));
+
+        return Ok(target);
+    }
+}
+
 
 impl Castable<Integer, Integer> for Integer {
     fn add_casts(cast_matrix: &mut HashMap<(TypeToken, TypeToken), &'static str>) {
