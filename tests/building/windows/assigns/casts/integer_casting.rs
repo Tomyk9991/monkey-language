@@ -520,8 +520,9 @@ main:
     mov DWORD [rbp - 11], eax
     ; let e: i64 = (i64)a
     ; Cast: (u32) -> (i64)
+    mov r14d, DWORD [rbp - 4]
     xor rax, rax
-    mov eax, DWORD [rbp - 4]
+    mov eax, r14d
     mov QWORD [rbp - 19], rax
     leave
     ret
@@ -579,8 +580,9 @@ main:
     mov DWORD [rbp - 11], eax
     ; let d: u64 = (u64)a
     ; Cast: (u32) -> (u64)
+    mov r14d, DWORD [rbp - 4]
     xor rax, rax
-    mov eax, DWORD [rbp - 4]
+    mov eax, r14d
     mov QWORD [rbp - 19], rax
     leave
     ret
@@ -698,8 +700,9 @@ main:
     mov DWORD [rbp - 11], eax
     ; let e: u64 = (u64)a
     ; Cast: (i32) -> (u64)
+    mov r14d, DWORD [rbp - 4]
     xor rax, rax
-    mov eax, DWORD [rbp - 4]
+    mov eax, r14d
     mov QWORD [rbp - 19], rax
     leave
     ret

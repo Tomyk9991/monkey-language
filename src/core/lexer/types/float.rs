@@ -4,11 +4,14 @@ use std::str::FromStr;
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::generator::Stack;
+use crate::core::code_generator::register_destination::word_from_byte_size;
 use crate::core::code_generator::registers::{Bit64, ByteSize, FloatRegister, GeneralPurposeRegister};
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::operator::{AssemblerOperation, Operator, OperatorToASM};
+use crate::core::lexer::tokens::assignable_tokens::integer_token::IntegerToken;
 use crate::core::lexer::tokens::name_token::NameTokenErr;
 use crate::core::lexer::types::cast_to::{Castable, CastTo};
 use crate::core::lexer::types::float::Float::{Float32, Float64};
+use crate::core::lexer::types::integer::Integer;
 use crate::core::lexer::types::type_token::{InferTypeError, TypeToken};
 
 #[derive(Debug, Default, PartialEq, Eq, Hash, Clone)]
@@ -16,6 +19,65 @@ pub enum Float {
     #[default]
     Float32,
     Float64,
+}
+
+
+impl Castable<Float, Integer> for Float {
+    fn add_casts(cast_matrix: &mut HashMap<(TypeToken, TypeToken), &'static str>) {
+        for ty in &[Integer::I8, Integer::I16, Integer::I32, Integer::I64, Integer::U8, Integer::U16, Integer::U32, Integer::U64] {
+            cast_matrix.insert((TypeToken::Float(Float32), TypeToken::Integer(ty.clone())), "cvtss2si");
+            cast_matrix.insert((TypeToken::Float(Float64), TypeToken::Integer(ty.clone())), "cvtsd2si");
+        }
+    }
+
+    fn cast_from_to(t1: &Float, t2: &Integer, source: &str, stack: &mut Stack, meta: &mut MetaInfo) -> Result<String, ASMGenerateError> {
+        let cast_to = CastTo {
+            from: TypeToken::Float(t1.clone()),
+            to: TypeToken::Integer(t2.clone()),
+        };
+
+        let instruction = cast_to.to_asm(stack, meta)?;
+        let last_register = stack.register_to_use
+            .last()
+            .unwrap_or(&GeneralPurposeRegister::Bit64(Bit64::Rax))
+            .clone();
+
+        let cast_from_register = last_register.to_size_register(&ByteSize::try_from(cast_to.from.byte_size())?);
+        let _cast_to_register = last_register.to_size_register(&ByteSize::try_from(cast_to.to.byte_size())?);
+
+        let mut target = String::new();
+        target += &ASMBuilder::ident_comment_line(&format!("Cast: ({}) -> ({})", cast_to.from, cast_to.to));
+
+        let mut is_stack_variable = false;
+        for (_, word) in [8, 4, 2, 1].map(|a| (a, word_from_byte_size(a))) {
+            if source.starts_with(&word) {
+                is_stack_variable = true;
+                break;
+            }
+        }
+
+
+        if IntegerToken::from_str(source).is_ok() || is_stack_variable {
+            target += &ASMBuilder::mov_ident_line(&cast_from_register, source);
+        }
+
+        let xmm7 = GeneralPurposeRegister::Float(FloatRegister::Xmm7);
+        target += &ASMBuilder::mov_x_ident_line(&xmm7, &cast_from_register, Some(cast_to.from.byte_size()));
+        target += &ASMBuilder::ident_line(&format!("{instruction} {}, {}", &cast_from_register, &xmm7));
+
+        match t1.byte_size() {
+            8 if *t2 != Integer::I64 => {
+                target += &<Integer as Castable<Integer, Integer>>::cast_from_to(&Integer::I64, t2, &cast_from_register.to_string(), stack, meta)?;
+            },
+            4 if *t2 != Integer::I32 => {
+                target += &<Integer as Castable<Integer, Integer>>::cast_from_to(&Integer::I32, t2, &cast_from_register.to_string(), stack, meta)?;
+            },
+            8 | 4 => { },
+            l => unreachable!("Float cannot be of size: {}", l)
+        }
+
+        Ok(target)
+    }
 }
 
 impl Castable<Float, Float> for Float {
@@ -63,7 +125,7 @@ impl Castable<Float, Float> for Float {
 
 impl Float {
     pub fn operation_matrix(base_type_matrix: &mut HashMap<(TypeToken, Operator, TypeToken), TypeToken>) {
-        let types = [Float::Float32, Float::Float64];
+        let types = [Float32, Float64];
 
         for ty in &types {
             base_type_matrix.insert((TypeToken::Float(ty.clone()), Operator::Add, TypeToken::Float(ty.clone())), TypeToken::Float(ty.clone()));
@@ -113,8 +175,8 @@ impl FromStr for Float {
 impl Display for Float {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Float::Float32 => write!(f, "f32"),
-            Float::Float64 => write!(f, "f64"),
+            Float32 => write!(f, "f32"),
+            Float64 => write!(f, "f64"),
         }
     }
 }

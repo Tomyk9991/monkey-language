@@ -37,7 +37,8 @@ impl ToASM for CastTo {
         <Integer as Castable<Integer, Integer>>::add_casts(&mut cast_to_matrix);
         <Integer as Castable<Integer, Float>>::add_casts(&mut cast_to_matrix);
 
-        Float::add_casts(&mut cast_to_matrix);
+        <Float as Castable<Float, Float>>::add_casts(&mut cast_to_matrix);
+        <Float as Castable<Float, Integer>>::add_casts(&mut cast_to_matrix);
 
         if self.from == self.to {
             return Err(ASMGenerateError::CastUnsupported(CastToError::CastTypesIdentical(self.clone()), meta.code_line.clone()))

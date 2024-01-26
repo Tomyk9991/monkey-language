@@ -599,6 +599,7 @@ impl Expression {
                 target += &match (&cast_to.from, &cast_to.to) {
                     (TypeToken::Float(f1), TypeToken::Float(f2)) => Float::cast_from_to(f1, f2, &inner_source, stack, meta)?,
                     (TypeToken::Integer(i1), TypeToken::Float(f2)) => Integer::cast_from_to(i1, f2, &inner_source, stack, meta)?,
+                    (TypeToken::Float(f1), TypeToken::Integer(i2)) => Float::cast_from_to(f1, i2, &inner_source, stack, meta)?,
                     (TypeToken::Integer(i1), TypeToken::Integer(i2)) => Integer::cast_from_to(i1, i2, &inner_source, stack, meta)?,
                     _ => return Err(ASMGenerateError::CastUnsupported(CastToError::CastUnsupported(cast_to.clone()), meta.code_line.clone()))
                 };

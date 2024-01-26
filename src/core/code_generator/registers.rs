@@ -3,7 +3,7 @@ use std::str::FromStr;
 
 use crate::core::code_generator::ASMGenerateError;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Bit64 {
     Rax,
     Rcx,
@@ -20,7 +20,7 @@ pub enum Bit64 {
     R12,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Bit32 {
     Eax,
     Ecx,
@@ -34,7 +34,7 @@ pub enum Bit32 {
     R12d,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Bit16 {
     Ax,
     Cx,
@@ -48,13 +48,13 @@ pub enum Bit16 {
     R9w,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Bit8 {
     Single(NibbleRegister),
     _Tuple(NibbleRegister, NibbleRegister),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 #[allow(clippy::upper_case_acronyms)]
 pub enum NibbleRegister {
     AH,
@@ -77,7 +77,7 @@ pub enum NibbleRegister {
     R9b,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum GeneralPurposeRegister {
     Bit64(Bit64),
     Bit32(Bit32),
@@ -86,7 +86,8 @@ pub enum GeneralPurposeRegister {
     Float(FloatRegister),
 }
 
-#[derive(Debug, Clone)]
+
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum FloatRegister {
     Xmm0,
     Xmm1,
@@ -324,6 +325,16 @@ impl GeneralPurposeRegister {
             8 => Ok(GeneralPurposeRegisterIterator::new(GeneralPurposeRegister::Bit64(Bit64::Rax))),
             _ => Err(ASMGenerateError::InternalError(format!("Could not convert `{}` into a register", size))),
         }
+    }
+
+    pub fn size(&self) -> ByteSize {
+       match self {
+           GeneralPurposeRegister::Bit64(_) => ByteSize::_8,
+           GeneralPurposeRegister::Float(_) => ByteSize::_8,
+           GeneralPurposeRegister::Bit32(_) => ByteSize::_4,
+           GeneralPurposeRegister::Bit16(_) => ByteSize::_2,
+           GeneralPurposeRegister::Bit8(_) => ByteSize::_1,
+       }
     }
 
     pub fn iter_float_register() -> Result<GeneralPurposeRegisterIterator, ASMGenerateError> {

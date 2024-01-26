@@ -64,21 +64,17 @@ impl Castable<Integer, Float> for Integer {
         }
 
         if *t1 != Integer::U32 { // Convert to unsigned U32
-            target += &<Integer as Castable<Integer, Integer>>::cast_from_to(t1, &Integer::U32, &source, stack, meta)?;
+            target += &<Integer as Castable<Integer, Integer>>::cast_from_to(t1, &Integer::U32, source, stack, meta)?;
             cast_from_register = last_register.to_size_register(&ByteSize::_4);
-        } else {
-            if IntegerToken::from_str(&source).is_ok() {
-                target += &ASMBuilder::mov_ident_line(&cast_from_register, &source);
-            } else if is_stack_variable {
-                target += &ASMBuilder::mov_ident_line(&cast_from_register, &source);
-            }
+        } else if IntegerToken::from_str(source).is_ok() || is_stack_variable {
+            target += &ASMBuilder::mov_ident_line(&cast_from_register, source);
         }
 
 
         target += &ASMBuilder::ident_line(&format!("{instruction} {}, {}", GeneralPurposeRegister::Float(FloatRegister::Xmm7), &cast_from_register));
         target += &ASMBuilder::mov_x_ident_line(_cast_to_register, &GeneralPurposeRegister::Float(FloatRegister::Xmm7), Some(cast_to.to.byte_size()));
 
-        return Ok(target);
+        Ok(target)
     }
 }
 
@@ -223,10 +219,13 @@ impl Castable<Integer, Integer> for Integer {
         // Special case: i32 -> u64
         // movzx cant handle DWORD on rhs
         // *i1 == Integer::I32 && *i2 == Integer::I64
-        if  *i1 == Integer::U32 && *i2 == Integer::I64 || *i1 == Integer::U32 && *i2 == Integer::U64 ||
-            *i1 == Integer::I32 && *i2 == Integer::U64 {
+        if  (*i2 == Integer::U64 || *i2 == Integer::I64) && *i1 == Integer::U32 || *i1 == Integer::I32 && *i2 == Integer::U64 {
+            let r14 = GeneralPurposeRegister::Bit64(Bit64::R14).to_size_register(&cast_from_register.size());
+            target += &ASMBuilder::ident_line(&format!("mov {}, {}", &r14, &source));
             target += &ASMBuilder::ident_line(&format!("xor {}, {}", cast_to_register, cast_to_register));
-            target += &ASMBuilder::mov_ident_line(&cast_from_register, &source);
+            // since we are using xor, we can use mov because mov eax, eax will get optimized out, but in order to make the
+            // conversion complete, we need this
+            target += &ASMBuilder::ident_line(&format!("mov {}, {}", &cast_from_register, r14));
 
             return Ok(target);
         }
@@ -234,15 +233,22 @@ impl Castable<Integer, Integer> for Integer {
         if IntegerToken::from_str(&source).is_ok() {
             target += &ASMBuilder::mov_ident_line(&cast_from_register, &source);
         } else {
-            if cast_to.casting_down() {
-                target += &ASMBuilder::ident_line(&format!("{instruction} {}, {}", cast_from_register, source));
+            let destination_register = if cast_to.casting_down() { cast_from_register } else { cast_to_register };
+            if instruction == "mov" {
+                if let Ok(source_register) = GeneralPurposeRegister::from_str(&source) {
+                    if destination_register.to_64_bit_register() == source_register.to_64_bit_register() {
+
+                    }
+                } else {
+                    target += &ASMBuilder::mov_ident_line(&destination_register, &source);
+                }
             } else {
-                target += &ASMBuilder::ident_line(&format!("{instruction} {}, {}", cast_to_register, source));
+                target += &ASMBuilder::ident_line(&format!("{instruction} {}, {}", destination_register, source));
             }
         }
 
 
-        return Ok(target);
+        Ok(target)
     }
 }
 
