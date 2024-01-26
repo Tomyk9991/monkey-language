@@ -1,37 +1,37 @@
+use std::collections::HashMap;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::str::{FromStr, ParseBoolError};
-use crate::core::code_generator::generator::Stack;
+
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
+use crate::core::code_generator::generator::Stack;
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::operator::Operator;
 use crate::core::lexer::types::type_token::TypeToken;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct BooleanToken {
-    pub value: bool
+    pub value: bool,
 }
 
 #[derive(Debug)]
 pub enum BooleanTokenErr {
     UnmatchedRegex,
-    ParseBoolError(ParseBoolError)
+    ParseBoolError(ParseBoolError),
 }
 
 #[allow(dead_code)]
 #[derive(Debug)]
 pub enum Boolean {
     True,
-    False
+    False,
 }
 
 impl Boolean {
-    pub fn operation_matrix() -> Vec<crate::core::lexer::types::type_token::OperatorMatrixRow> {
-        vec![
-            (TypeToken::Bool, Operator::Add, TypeToken::Bool, TypeToken::Bool),
-            (TypeToken::Bool, Operator::Sub, TypeToken::Bool, TypeToken::Bool),
-            (TypeToken::Bool, Operator::Mul, TypeToken::Bool, TypeToken::Bool),
-            (TypeToken::Bool, Operator::Div, TypeToken::Bool, TypeToken::Bool),
-        ]
+    pub fn operation_matrix(base_type_matrix: &mut HashMap<(TypeToken, Operator, TypeToken), TypeToken>) {
+        base_type_matrix.insert((TypeToken::Bool, Operator::Add, TypeToken::Bool), TypeToken::Bool);
+        base_type_matrix.insert((TypeToken::Bool, Operator::Sub, TypeToken::Bool), TypeToken::Bool);
+        base_type_matrix.insert((TypeToken::Bool, Operator::Mul, TypeToken::Bool), TypeToken::Bool);
+        base_type_matrix.insert((TypeToken::Bool, Operator::Div, TypeToken::Bool), TypeToken::Bool);
     }
 }
 
@@ -48,7 +48,7 @@ impl Display for BooleanTokenErr {
     }
 }
 
-impl Error for BooleanTokenErr { }
+impl Error for BooleanTokenErr {}
 
 impl Display for BooleanToken {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result { write!(f, "{}", self.value) }

@@ -20,7 +20,7 @@ pub mod registers;
 pub enum ASMGenerateError {
     _VariableAlreadyUsed { name: String, code_line: CodeLine },
     UnresolvedReference { name: String, code_line: CodeLine },
-    CastUnsupported(CastToError),
+    CastUnsupported(CastToError, CodeLine),
     TypeNotInferrable(InferTypeError),
     InternalError(String),
     AssignmentNotImplemented { assignable_token: AssignableToken, },
@@ -42,7 +42,7 @@ impl Display for ASMGenerateError {
             ASMGenerateError::NotImplemented { token } => write!(f, "Cannot build ASM from this token: {}", token),
             ASMGenerateError::TypeNotInferrable(infer) => write!(f, "{}", infer),
             ASMGenerateError::InternalError(message) => write!(f, "Internal Error: {}", message),
-            ASMGenerateError::CastUnsupported(cast_to) => write!(f, "{}", cast_to),
+            ASMGenerateError::CastUnsupported(cast_to, code_line) => write!(f, "Line: {:?}:\t{}", code_line.actual_line_number, cast_to),
         }
     }
 }

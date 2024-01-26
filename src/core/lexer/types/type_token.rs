@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
-use crate::core::code_generator::ASMGenerateError;
+use crate::core::code_generator::{ASMGenerateError};
 
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::tokens::assignable_token::AssignableToken;
@@ -27,8 +27,6 @@ pub enum TypeToken {
     Void,
     Custom(NameToken),
 }
-
-pub(crate) type OperatorMatrixRow = (TypeToken, Operator, TypeToken, TypeToken);
 
 
 #[derive(Debug)]

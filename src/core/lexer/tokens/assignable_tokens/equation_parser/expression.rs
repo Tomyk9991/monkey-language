@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
 
+use crate::core::lexer::types::cast_to::{Castable, CastToError};
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::generator::{LastUnchecked, Stack};
@@ -57,7 +58,7 @@ impl Expression {
         pointer_arithmetic
     }
 
-    fn iterator_from_type(&self, meta: &&mut MetaInfo, lhs_size: usize) -> Result<(GeneralPurposeRegisterIterator, Option<Float>), ASMGenerateError> {
+    fn iterator_from_type(&self, meta: &mut MetaInfo, lhs_size: usize) -> Result<(GeneralPurposeRegisterIterator, Option<Float>), ASMGenerateError> {
         Ok(if let TypeToken::Float(f) = &self.traverse_type(meta).ok_or(ASMGenerateError::InternalError("Could not traverse type".to_string()))? {
             (GeneralPurposeRegister::iter_float_register()?, Some(f.clone()))
         } else {
@@ -65,7 +66,7 @@ impl Expression {
         })
     }
 
-    fn latest_used_destination_register(&self, meta: &&mut MetaInfo, target: &str, lhs_size: usize) -> Result<GeneralPurposeRegister, ASMGenerateError> {
+    fn latest_used_destination_register(&self, meta: &mut MetaInfo, target: &str, lhs_size: usize) -> Result<GeneralPurposeRegister, ASMGenerateError> {
         let pushing_register: GeneralPurposeRegister = if let Some(last_instruction) = extract_last_instruction(target) {
             let (mut i, _) = self.iterator_from_type(meta, lhs_size)?;
 
@@ -109,7 +110,7 @@ impl Expression {
 
         Ok(if let Some(PrefixArithmetic::Cast(_)) = lhs.prefix_arithmetic {
             target.push_str(&r);
-            self.latest_used_destination_register(&meta, &r, lhs_size)?.to_string()
+            self.latest_used_destination_register(meta, &r, lhs_size)?.to_string()
         } else {
             r
         })
@@ -127,7 +128,7 @@ impl Expression {
 
             if let Some(PrefixArithmetic::Cast(_)) = rhs.prefix_arithmetic {
                 target.push_str(&r);
-                let register = self.latest_used_destination_register(&meta, &r, lhs_size)?.to_string();
+                let register = self.latest_used_destination_register(meta, &r, lhs_size)?.to_string();
                 target.push_str(&ASMBuilder::mov_x_ident_line(target_register, register, Some(lhs_size)));
                 target_register.to_string()
             } else {
@@ -280,7 +281,7 @@ impl ToASM for Expression {
                     if let (Some(_), Some(_), Some(_), Some(_)) = (&a.value, &b.value, &c.value, &d.value) {
                         // two expressions containing two values
                         let (lhs_size, _) = lhs_rhs_byte_sizes(lhs, rhs, meta)?;
-                        let (mut register_iterator, float_type) = self.iterator_from_type(&meta, lhs_size)?;
+                        let (mut register_iterator, float_type) = self.iterator_from_type(meta, lhs_size)?;
 
                         let register_a = register_iterator.current();
                         let register_b = register_iterator.next().ok_or(ASMGenerateError::InternalError("No next register found".to_string()))?;
@@ -304,7 +305,7 @@ impl ToASM for Expression {
                 match (&lhs.value, &rhs.value) {
                     (Some(_), Some(_)) => { // 2 + 3
                         let (lhs_size, _) = lhs_rhs_byte_sizes(lhs, rhs, meta)?;
-                        let (mut register_iterator, float_type) = self.iterator_from_type(&meta, lhs_size)?;
+                        let (mut register_iterator, float_type) = self.iterator_from_type(meta, lhs_size)?;
                         let next_register = register_iterator.current();
 
                         // pushing twice. the last pop will move the arithmetic result into this register,
@@ -351,7 +352,7 @@ impl ToASM for Expression {
                     }
                     (None, Some(_)) => { // (3 + 2) + 5
                         let (lhs_size, _) = lhs_rhs_byte_sizes(lhs, rhs, meta)?;
-                        let (mut register_iterator, float_type) = self.iterator_from_type(&meta, lhs_size)?;
+                        let (mut register_iterator, float_type) = self.iterator_from_type(meta, lhs_size)?;
                         let register_a = register_iterator.current();
                         let register_b = register_iterator.nth(2).ok_or(ASMGenerateError::InternalError("No next register found".to_string()))?;
 
@@ -384,7 +385,7 @@ impl ToASM for Expression {
                     }
                     (Some(_), None) => { // 5 + (3 + 2)
                         let (lhs_size, _) = lhs_rhs_byte_sizes(lhs, rhs, meta)?;
-                        let (mut register_iterator, float_type) = self.iterator_from_type(&meta, lhs_size)?;
+                        let (mut register_iterator, float_type) = self.iterator_from_type(meta, lhs_size)?;
 
                         let register_a = register_iterator.current();
                         let register_b = register_iterator.nth(2).ok_or(ASMGenerateError::InternalError("No next register found".to_string()))?;
@@ -429,7 +430,7 @@ impl ToASM for Expression {
                     }
                     (None, None) => { // ((1 + 2) + (3 + 4)) + ((5 + 6) + (7 + 8)) // any depth
                         let (lhs_size, _) = lhs_rhs_byte_sizes(lhs, rhs, meta)?;
-                        let (mut register_iterator, float_type) = self.iterator_from_type(&meta, lhs_size)?;
+                        let (mut register_iterator, float_type) = self.iterator_from_type(meta, lhs_size)?;
 
                         let register_a = register_iterator.current();
                         let register_b = register_iterator.nth(1).ok_or(ASMGenerateError::InternalError("No next register found".to_string()))?;
@@ -438,7 +439,7 @@ impl ToASM for Expression {
                         target += &ASMBuilder::push(&lhs.to_asm(stack, meta)?.to_string());
                         stack.register_to_use.pop();
 
-                        let pushing_register = self.latest_used_destination_register(&meta, &target, lhs_size)?;
+                        let pushing_register = self.latest_used_destination_register(meta, &target, lhs_size)?;
 
                         if float_type.is_some() {
                             target += &ASMBuilder::mov_x_ident_line(pushing_register.to_64_bit_register(), &pushing_register, Some(8));
@@ -452,7 +453,7 @@ impl ToASM for Expression {
                         stack.register_to_use.pop();
 
                         if float_type.is_some() {
-                            let pushing_register = self.latest_used_destination_register(&meta, &target, lhs_size)?;
+                            let pushing_register = self.latest_used_destination_register(meta, &target, lhs_size)?;
                             target += &ASMBuilder::mov_x_ident_line(register_a.to_64_bit_register(), pushing_register, Some(8));
                         }
 
@@ -594,9 +595,12 @@ impl Expression {
                     inner_source = register_64.to_string();
                 }
 
-                if let (TypeToken::Float(f1), TypeToken::Float(f2)) = (&cast_to.from, &cast_to.to) {
-                    target += &Float::cast_from_to(f1, f2, &inner_source, stack, meta)?;
-                }
+
+                target += &match (&cast_to.from, &cast_to.to) {
+                    (TypeToken::Float(f1), TypeToken::Float(f2)) => Float::cast_from_to(f1, f2, &inner_source, stack, meta)?,
+                    (TypeToken::Integer(i1), TypeToken::Integer(i2)) => Integer::cast_from_to(i1, i2, &inner_source, stack, meta)?,
+                    _ => return Err(ASMGenerateError::CastUnsupported(CastToError::CastUnsupported(cast_to.clone()), meta.code_line.clone()))
+                };
 
                 return Ok(target);
             }
@@ -682,17 +686,9 @@ impl Expression {
                 let mut base_type_matrix: HashMap<(TypeToken, Operator, TypeToken), TypeToken> = HashMap::new();
                 base_type_matrix.insert((TypeToken::Custom(NameToken { name: "string".to_string() }), Operator::Add, TypeToken::Custom(NameToken { name: "string".to_string() })), TypeToken::Custom(NameToken { name: "*string".to_string() }));
 
-                for row in Integer::operation_matrix() {
-                    base_type_matrix.insert((row.0, row.1, row.2), row.3);
-                }
-
-                for row in Float::operation_matrix() {
-                    base_type_matrix.insert((row.0, row.1, row.2), row.3);
-                }
-
-                for row in Boolean::operation_matrix() {
-                    base_type_matrix.insert((row.0, row.1, row.2), row.3);
-                }
+                Integer::operation_matrix(&mut base_type_matrix);
+                Float::operation_matrix(&mut base_type_matrix);
+                Boolean::operation_matrix(&mut base_type_matrix);
 
                 if let Some(result_type) = base_type_matrix.get(&(lhs_type.clone(), operator.clone(), rhs_type.clone())) {
                     return Ok(result_type.clone());

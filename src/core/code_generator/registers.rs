@@ -17,7 +17,7 @@ pub enum Bit64 {
     /// Special register, used to cache something temporarily
     R13,
     /// Special register, used to cache something temporarily
-    R12
+    R12,
 }
 
 #[derive(Debug, Clone)]
@@ -31,7 +31,7 @@ pub enum Bit32 {
     R9d,
     R14d,
     R13d,
-    R12d
+    R12d,
 }
 
 #[derive(Debug, Clone)]
@@ -41,6 +41,9 @@ pub enum Bit16 {
     Di,
     Dx,
     R15w,
+    R14w,
+    R13w,
+    R12w,
     R8w,
     R9w,
 }
@@ -62,11 +65,14 @@ pub enum NibbleRegister {
     CL,
     SPL,
     BPL,
-    BIL,
+    DIL,
     SIL,
     DH,
     DL,
     R15b,
+    R14b,
+    R13b,
+    R12b,
     R8b,
     R9b,
 }
@@ -135,9 +141,15 @@ impl FromStr for GeneralPurposeRegister {
             "di" => Ok(GeneralPurposeRegister::Bit16(Bit16::Di)),
             "dx" => Ok(GeneralPurposeRegister::Bit16(Bit16::Dx)),
             "r15w" => Ok(GeneralPurposeRegister::Bit16(Bit16::R15w)),
+            "r14w" => Ok(GeneralPurposeRegister::Bit16(Bit16::R14w)),
+            "r13w" => Ok(GeneralPurposeRegister::Bit16(Bit16::R13w)),
+            "r12w" => Ok(GeneralPurposeRegister::Bit16(Bit16::R12w)),
             "r9w" => Ok(GeneralPurposeRegister::Bit16(Bit16::R9w)),
             "r8w" => Ok(GeneralPurposeRegister::Bit16(Bit16::R8w)),
             "r15b" => Ok(GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::R15b))),
+            "r14b" => Ok(GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::R14b))),
+            "r13b" => Ok(GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::R13b))),
+            "r12b" => Ok(GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::R12b))),
             "r9b" => Ok(GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::R9b))),
             "r8b" => Ok(GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::R8b))),
             "ah" => Ok(GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::AH))),
@@ -148,7 +160,7 @@ impl FromStr for GeneralPurposeRegister {
             "cl" => Ok(GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::CL))),
             "spl" => Ok(GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::SPL))),
             "bpl" => Ok(GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::BPL))),
-            "bil" => Ok(GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::BIL))),
+            "dil" => Ok(GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::DIL))),
             "sil" => Ok(GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::SIL))),
             "dh" => Ok(GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::DH))),
             "dl" => Ok(GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::DL))),
@@ -201,14 +213,8 @@ impl Iterator for GeneralPurposeRegisterIterator {
                     Bit64::Rdi => {
                         self.current = GeneralPurposeRegister::Bit64(Bit64::Rdx);
                         Some(GeneralPurposeRegister::Bit64(Bit64::Rdx))
-                    }
-                    Bit64::Rdx => None,
-                    Bit64::R8 => None,
-                    Bit64::R9 => None,
-                    Bit64::R15 => None,
-                    Bit64::R14 => None,
-                    Bit64::R13 => None,
-                    Bit64::R12 => None
+                    },
+                    _ => None
                 }
             }
             GeneralPurposeRegister::Bit32(a) => {
@@ -224,14 +230,8 @@ impl Iterator for GeneralPurposeRegisterIterator {
                     Bit32::Edi => {
                         self.current = GeneralPurposeRegister::Bit32(Bit32::Edx);
                         Some(GeneralPurposeRegister::Bit32(Bit32::Edx))
-                    }
-                    Bit32::Edx => None,
-                    Bit32::R15d => None,
-                    Bit32::R8d => None,
-                    Bit32::R9d => None,
-                    Bit32::R14d => None,
-                    Bit32::R13d => None,
-                    Bit32::R12d => None,
+                    },
+                    _ => None
                 }
             }
             GeneralPurposeRegister::Bit16(a) => {
@@ -247,74 +247,31 @@ impl Iterator for GeneralPurposeRegisterIterator {
                     Bit16::Di => {
                         self.current = GeneralPurposeRegister::Bit16(Bit16::Dx);
                         Some(GeneralPurposeRegister::Bit16(Bit16::Dx))
-                    }
-                    Bit16::Dx => None,
-                    Bit16::R15w => None,
-                    Bit16::R8w => None,
-                    Bit16::R9w => None,
+                    },
+                    _ => None
                 }
             }
             GeneralPurposeRegister::Bit8(a) => {
                 match a {
                     Bit8::Single(n) => {
                         match n {
-                            NibbleRegister::AH => {
-                                self.current = GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::AL));
-                                Some(GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::AL)))
-                            }
                             NibbleRegister::AL => {
-                                self.current = GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::BH));
-                                Some(GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::BH)))
-                            }
-                            NibbleRegister::BH => {
                                 self.current = GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::BL));
                                 Some(GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::BL)))
                             }
                             NibbleRegister::BL => {
-                                self.current = GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::CH));
-                                Some(GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::CH)))
-                            }
-                            NibbleRegister::CH => {
                                 self.current = GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::CL));
                                 Some(GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::CL)))
-                            }
+                            },
                             NibbleRegister::CL => {
-                                self.current = GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::SPL));
-                                Some(GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::SPL)))
-                            }
-                            NibbleRegister::SPL => {
-                                self.current = GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::BPL));
-                                Some(GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::BPL)))
-                            }
-                            NibbleRegister::BPL => {
-                                self.current = GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::BIL));
-                                Some(GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::BIL)))
-                            }
-                            NibbleRegister::BIL => {
-                                self.current = GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::SIL));
-                                Some(GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::SIL)))
-                            }
-                            NibbleRegister::SIL => {
-                                self.current = GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::DH));
-                                Some(GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::DH)))
-                            }
-                            NibbleRegister::DH => {
-                                self.current = GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::DL));
-                                Some(GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::DL)))
-                            }
-                            NibbleRegister::DL => {
-                                self.current = GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::R15b));
-                                Some(GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::R15b)))
-                            }
-                            NibbleRegister::R15b => {
-                                self.current = GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::R8b));
-                                Some(GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::R8b)))
-                            }
-                            NibbleRegister::R8b => {
-                                self.current = GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::R9b));
-                                Some(GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::R9b)))
-                            }
-                            NibbleRegister::R9b => None
+                                self.current = GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::DIL));
+                                Some(GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::DIL)))
+                            },
+                            NibbleRegister::DIL => {
+                                self.current = GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::BH));
+                                Some(GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::BH)))
+                            },
+                            _ => None,
                         }
                     }
                     _ => None
@@ -361,7 +318,7 @@ impl Iterator for GeneralPurposeRegisterIterator {
 impl GeneralPurposeRegister {
     pub fn iter_from_byte_size(size: usize) -> Result<GeneralPurposeRegisterIterator, ASMGenerateError> {
         match size {
-            1 => Ok(GeneralPurposeRegisterIterator::new(GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::AH)))),
+            1 => Ok(GeneralPurposeRegisterIterator::new(GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::AL)))),
             2 => Ok(GeneralPurposeRegisterIterator::new(GeneralPurposeRegister::Bit16(Bit16::Ax))),
             4 => Ok(GeneralPurposeRegisterIterator::new(GeneralPurposeRegister::Bit32(Bit32::Eax))),
             8 => Ok(GeneralPurposeRegisterIterator::new(GeneralPurposeRegister::Bit64(Bit64::Rax))),
@@ -371,6 +328,105 @@ impl GeneralPurposeRegister {
 
     pub fn iter_float_register() -> Result<GeneralPurposeRegisterIterator, ASMGenerateError> {
         Ok(GeneralPurposeRegisterIterator::new(GeneralPurposeRegister::Float(FloatRegister::Xmm0)))
+    }
+
+    pub fn to_16_bit_register(&self) -> GeneralPurposeRegister {
+        match self {
+            GeneralPurposeRegister::Bit64(v) => {
+                match v {
+                    Bit64::Rax => GeneralPurposeRegister::Bit16(Bit16::Ax),
+                    Bit64::Rcx => GeneralPurposeRegister::Bit16(Bit16::Cx),
+                    Bit64::Rdi => GeneralPurposeRegister::Bit16(Bit16::Di),
+                    Bit64::Rdx => GeneralPurposeRegister::Bit16(Bit16::Dx),
+                    Bit64::R15 => GeneralPurposeRegister::Bit16(Bit16::R15w),
+                    Bit64::R14 => GeneralPurposeRegister::Bit16(Bit16::R14w),
+                    Bit64::R13 => GeneralPurposeRegister::Bit16(Bit16::R13w),
+                    Bit64::R12 => GeneralPurposeRegister::Bit16(Bit16::R12w),
+                    Bit64::R8 => GeneralPurposeRegister::Bit16(Bit16::R8w),
+                    Bit64::R9 => GeneralPurposeRegister::Bit16(Bit16::R9w),
+                }
+            },
+            GeneralPurposeRegister::Bit32(v) => {
+                match v {
+                    Bit32::Eax => GeneralPurposeRegister::Bit16(Bit16::Ax),
+                    Bit32::Ecx => GeneralPurposeRegister::Bit16(Bit16::Cx),
+                    Bit32::Edi => GeneralPurposeRegister::Bit16(Bit16::Di),
+                    Bit32::Edx => GeneralPurposeRegister::Bit16(Bit16::Dx),
+                    Bit32::R15d => GeneralPurposeRegister::Bit16(Bit16::R15w),
+                    Bit32::R14d => GeneralPurposeRegister::Bit16(Bit16::R14w),
+                    Bit32::R13d => GeneralPurposeRegister::Bit16(Bit16::R13w),
+                    Bit32::R12d => GeneralPurposeRegister::Bit16(Bit16::R12w),
+                    Bit32::R8d => GeneralPurposeRegister::Bit16(Bit16::R8w),
+                    Bit32::R9d => GeneralPurposeRegister::Bit16(Bit16::R9w),
+                }
+            },
+            GeneralPurposeRegister::Bit16(v) => GeneralPurposeRegister::Bit16(v.clone()),
+            GeneralPurposeRegister::Bit8(v) => {
+                match v {
+                    Bit8::Single(NibbleRegister::AH) => GeneralPurposeRegister::Bit16(Bit16::Ax),
+                    Bit8::Single(NibbleRegister::AL) => GeneralPurposeRegister::Bit16(Bit16::Ax),
+                    Bit8::Single(NibbleRegister::BH) => GeneralPurposeRegister::Bit16(Bit16::Cx),
+                    Bit8::Single(NibbleRegister::BL) => GeneralPurposeRegister::Bit16(Bit16::Cx),
+                    Bit8::Single(NibbleRegister::CH) => GeneralPurposeRegister::Bit16(Bit16::Cx),
+                    Bit8::Single(NibbleRegister::CL) => GeneralPurposeRegister::Bit16(Bit16::Cx),
+                    Bit8::Single(NibbleRegister::DIL) => GeneralPurposeRegister::Bit16(Bit16::Di),
+                    Bit8::Single(NibbleRegister::DH) => GeneralPurposeRegister::Bit16(Bit16::Dx),
+                    Bit8::Single(NibbleRegister::DL) => GeneralPurposeRegister::Bit16(Bit16::Dx),
+                    _ => unimplemented!("Not needed yet")
+                }
+            },
+            GeneralPurposeRegister::Float(_) => unreachable!("Float register cannot be converted to 16s bit register"),
+        }
+    }
+
+    pub fn to_8_bit_register(&self) -> GeneralPurposeRegister {
+        match self {
+            GeneralPurposeRegister::Bit64(v) => {
+                match v {
+                    Bit64::Rax => GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::AL)),
+                    Bit64::Rcx => GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::CL)),
+                    Bit64::Rdi => GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::DIL)),
+                    Bit64::Rdx => GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::DL)),
+                    Bit64::R15 => GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::R15b)),
+                    Bit64::R14 => GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::R14b)),
+                    Bit64::R13 => GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::R13b)),
+                    Bit64::R12 => GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::R12b)),
+                    Bit64::R8 => GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::R8b)),
+                    Bit64::R9 => GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::R9b)),
+                }
+            }
+            GeneralPurposeRegister::Bit32(v) => {
+                match v {
+                    Bit32::Eax => GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::AL)),
+                    Bit32::Ecx => GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::CL)),
+                    Bit32::Edi => GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::DIL)),
+                    Bit32::Edx => GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::DL)),
+                    Bit32::R15d => GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::R15b)),
+                    Bit32::R14d => GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::R14b)),
+                    Bit32::R13d => GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::R13b)),
+                    Bit32::R12d => GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::R12b)),
+                    Bit32::R8d => GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::R8b)),
+                    Bit32::R9d => GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::R9b)),
+                }
+            }
+            GeneralPurposeRegister::Bit16(v) => {
+                match v {
+                    Bit16::Ax => GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::AL)),
+                    Bit16::Cx => GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::CL)),
+                    Bit16::Di => GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::DIL)),
+                    Bit16::Dx => GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::DL)),
+                    Bit16::R15w => GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::R15b)),
+                    Bit16::R14w => GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::R14b)),
+                    Bit16::R13w => GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::R13b)),
+                    Bit16::R12w => GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::R12b)),
+                    Bit16::R8w => GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::R8b)),
+                    Bit16::R9w => GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::R9b)),
+
+                }
+            }
+            GeneralPurposeRegister::Bit8(v) => GeneralPurposeRegister::Bit8(v.clone()),
+            GeneralPurposeRegister::Float(_) => unreachable!("Float register cannot be converted to 8 bit register"),
+        }
     }
 
     pub fn to_32_bit_register(&self) -> GeneralPurposeRegister {
@@ -397,6 +453,9 @@ impl GeneralPurposeRegister {
                     Bit16::Di => GeneralPurposeRegister::Bit32(Bit32::Edi),
                     Bit16::Dx => GeneralPurposeRegister::Bit32(Bit32::Edx),
                     Bit16::R15w => GeneralPurposeRegister::Bit32(Bit32::R15d),
+                    Bit16::R14w => GeneralPurposeRegister::Bit32(Bit32::R14d),
+                    Bit16::R13w => GeneralPurposeRegister::Bit32(Bit32::R13d),
+                    Bit16::R12w => GeneralPurposeRegister::Bit32(Bit32::R12d),
                     Bit16::R9w => GeneralPurposeRegister::Bit32(Bit32::R9d),
                     Bit16::R8w => GeneralPurposeRegister::Bit32(Bit32::R8d),
                 }
@@ -445,6 +504,9 @@ impl GeneralPurposeRegister {
                     Bit16::Di => GeneralPurposeRegister::Bit64(Bit64::Rdi),
                     Bit16::Dx => GeneralPurposeRegister::Bit64(Bit64::Rdx),
                     Bit16::R15w => GeneralPurposeRegister::Bit64(Bit64::R15),
+                    Bit16::R14w => GeneralPurposeRegister::Bit64(Bit64::R14),
+                    Bit16::R13w => GeneralPurposeRegister::Bit64(Bit64::R13),
+                    Bit16::R12w => GeneralPurposeRegister::Bit64(Bit64::R12),
                     Bit16::R9w => GeneralPurposeRegister::Bit64(Bit64::R9),
                     Bit16::R8w => GeneralPurposeRegister::Bit64(Bit64::R8),
                 }
@@ -474,8 +536,8 @@ impl GeneralPurposeRegister {
         match size {
             ByteSize::_8 => self.to_64_bit_register(),
             ByteSize::_4 => self.to_32_bit_register(),
-            ByteSize::_2 => unimplemented!("2 Bytes:    Not supported general purpose register conversion"),
-            ByteSize::_1 => unimplemented!("1 Byte:     Not supported general purpose register conversion")
+            ByteSize::_2 => self.to_16_bit_register(),
+            ByteSize::_1 => self.to_8_bit_register(),
         }
     }
 }
@@ -484,7 +546,7 @@ pub enum ByteSize {
     _8,
     _4,
     _2,
-    _1
+    _1,
 }
 
 impl TryFrom<usize> for ByteSize {
@@ -512,11 +574,14 @@ impl NibbleRegister {
             NibbleRegister::CL => Bit64::Rdi,
             NibbleRegister::SPL => Bit64::Rdx,
             NibbleRegister::BPL => Bit64::Rdx,
-            NibbleRegister::BIL => Bit64::Rdx,
+            NibbleRegister::DIL => Bit64::Rdx,
             NibbleRegister::SIL => Bit64::Rdx,
             NibbleRegister::DH => Bit64::Rdx,
             NibbleRegister::DL => Bit64::Rdx,
             NibbleRegister::R15b => Bit64::R15,
+            NibbleRegister::R14b => Bit64::R14,
+            NibbleRegister::R13b => Bit64::R13,
+            NibbleRegister::R12b => Bit64::R12,
             NibbleRegister::R8b => Bit64::R8,
             NibbleRegister::R9b => Bit64::R9,
         }
@@ -524,21 +589,24 @@ impl NibbleRegister {
 
     pub fn to_32_bit_register(&self) -> Bit32 {
         match self {
-            NibbleRegister::AH =>  Bit32::Eax,
-            NibbleRegister::AL =>  Bit32::Eax,
-            NibbleRegister::BH =>  Bit32::Ecx,
-            NibbleRegister::BL =>  Bit32::Ecx,
-            NibbleRegister::CH =>  Bit32::Edi,
-            NibbleRegister::CL =>  Bit32::Edi,
+            NibbleRegister::AH => Bit32::Eax,
+            NibbleRegister::AL => Bit32::Eax,
+            NibbleRegister::BH => Bit32::Ecx,
+            NibbleRegister::BL => Bit32::Ecx,
+            NibbleRegister::CH => Bit32::Edi,
+            NibbleRegister::CL => Bit32::Edi,
             NibbleRegister::SPL => Bit32::Edx,
             NibbleRegister::BPL => Bit32::Edx,
-            NibbleRegister::BIL => Bit32::Edx,
+            NibbleRegister::DIL => Bit32::Edx,
             NibbleRegister::SIL => Bit32::Edx,
-            NibbleRegister::DH =>  Bit32::Edx,
-            NibbleRegister::DL =>  Bit32::Edx,
-            NibbleRegister::R15b =>Bit32::R15d,
+            NibbleRegister::DH => Bit32::Edx,
+            NibbleRegister::DL => Bit32::Edx,
+            NibbleRegister::R15b => Bit32::R15d,
             NibbleRegister::R8b => Bit32::R8d,
             NibbleRegister::R9b => Bit32::R9d,
+            NibbleRegister::R14b => Bit32::R14d,
+            NibbleRegister::R13b => Bit32::R13d,
+            NibbleRegister::R12b => Bit32::R12d,
         }
     }
 }
@@ -570,13 +638,16 @@ impl Display for NibbleRegister {
             NibbleRegister::CL => "cl",
             NibbleRegister::SPL => "spl",
             NibbleRegister::BPL => "bpl",
-            NibbleRegister::BIL => "bil",
+            NibbleRegister::DIL => "dil",
             NibbleRegister::SIL => "sil",
             NibbleRegister::DH => "dh",
             NibbleRegister::DL => "dl",
             NibbleRegister::R15b => "r15b",
+            NibbleRegister::R14b => "r14b",
+            NibbleRegister::R13b => "r13b",
+            NibbleRegister::R12b => "r12b",
             NibbleRegister::R8b => "r8b",
-            NibbleRegister::R9b => "r9b"
+            NibbleRegister::R9b => "r9b",
         })
     }
 }
@@ -613,6 +684,9 @@ impl Display for Bit16 {
             Bit16::Di => "di",
             Bit16::Dx => "dx",
             Bit16::R15w => "r15w",
+            Bit16::R14w => "r14w",
+            Bit16::R13w => "r13w",
+            Bit16::R12w => "r12w",
             Bit16::R8w => "r8w",
             Bit16::R9w => "r9w",
         })

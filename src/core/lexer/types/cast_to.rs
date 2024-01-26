@@ -1,9 +1,10 @@
 use std::collections::HashMap;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
+use crate::core::lexer::types::float::Float;
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
-use crate::core::lexer::types::float::Float::{Float32, Float64};
+use crate::core::lexer::types::integer::Integer;
 use crate::core::lexer::types::type_token::TypeToken;
 
 
@@ -21,18 +22,23 @@ pub enum CastToError {
 }
 
 
+pub trait Castable<T, K> {
+    fn add_casts(cast_matrix: &mut HashMap<(TypeToken, TypeToken), &'static str>);
+    fn cast_from_to(t1: &T, t2: &K, source: &str, stack: &mut Stack, meta: &mut MetaInfo) -> Result<String, ASMGenerateError>;
+}
+
 
 impl ToASM for CastTo {
     /// returns the needed instruction to actually convert
-    fn to_asm(&self, _stack: &mut Stack, _meta: &mut MetaInfo) -> Result<String, ASMGenerateError> {
+    fn to_asm(&self, _stack: &mut Stack, meta: &mut MetaInfo) -> Result<String, ASMGenerateError> {
         // from, to, instruction
         let mut cast_to_matrix: HashMap<(TypeToken, TypeToken), &'static str> = HashMap::new();
 
-        cast_to_matrix.insert((TypeToken::Float(Float32), TypeToken::Float(Float64)), "cvtss2sd");
-        cast_to_matrix.insert((TypeToken::Float(Float64), TypeToken::Float(Float32)), "cvtsd2ss");
+        Integer::add_casts(&mut cast_to_matrix);
+        Float::add_casts(&mut cast_to_matrix);
 
         if self.from == self.to {
-            return Err(ASMGenerateError::CastUnsupported(CastToError::CastTypesIdentical(self.clone())))
+            return Err(ASMGenerateError::CastUnsupported(CastToError::CastTypesIdentical(self.clone()), meta.code_line.clone()))
         }
 
 
@@ -40,7 +46,7 @@ impl ToASM for CastTo {
             return Ok(v.to_string())
         }
 
-        Err(ASMGenerateError::CastUnsupported(CastToError::CastUnsupported(self.clone())))
+        Err(ASMGenerateError::CastUnsupported(CastToError::CastUnsupported(self.clone()), meta.code_line.clone()))
     }
 
     fn is_stack_look_up(&self, _stack: &mut Stack, _meta: &MetaInfo) -> bool {
@@ -64,5 +70,12 @@ impl Display for CastToError {
             CastToError::CastUnsupported(cast_to) => format!("Cannot cast from '{}' to '{}'", cast_to.from, cast_to.to),
             CastToError::CastTypesIdentical(cast_to) => format!("Cannot cast from '{}' to '{}', types are identical", cast_to.from, cast_to.to),
         })
+    }
+}
+
+impl CastTo {
+    /// true, if the source type is bytewise bigger, than the destination type
+    pub fn casting_down(&self) -> bool {
+        self.from.byte_size() > self.to.byte_size()
     }
 }
