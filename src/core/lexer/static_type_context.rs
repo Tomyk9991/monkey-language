@@ -40,7 +40,7 @@ impl StaticTypeContext {
             }
         }
 
-        return Ok(());
+        Ok(())
     }
 }
 

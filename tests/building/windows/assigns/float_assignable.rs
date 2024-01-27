@@ -245,7 +245,7 @@ main:
 #[test]
 fn pointer_assign_multiple_test() -> anyhow::Result<()> {
     let code = r#"
-extern fn printf(format: *string, value: void): void;
+extern fn printf(format: *string, value: f64): void;
 extern fn ExitProcess(exitCode: i32): void;
 
 let a: f64 = 5.0_f64;

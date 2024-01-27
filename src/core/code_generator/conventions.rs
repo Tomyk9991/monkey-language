@@ -45,7 +45,6 @@ fn windows_calling_convention(meta: &MetaInfo, calling_arguments: &[AssignableTo
 
     for (index, calling_argument) in calling_arguments.iter().enumerate() {
         let calling_ty: TypeToken = calling_argument.infer_type_with_context(&meta.static_type_information, &meta.code_line)?;
-        let definition_ty: &TypeToken = &method_def.arguments[index].1;
 
         match calling_ty {
             TypeToken::Integer(_) | TypeToken::Bool | TypeToken::Custom(_) => {
@@ -63,7 +62,7 @@ fn windows_calling_convention(meta: &MetaInfo, calling_arguments: &[AssignableTo
                     r.push(CallingRegister::Stack);
                 }
 
-                if definition_ty.is_void() {
+                if method_def.is_extern {
                     r.push(POINTER_ORDER[index].clone());
                 }
 

@@ -55,7 +55,7 @@ main:
 #[test]
 fn float_cast_inline() -> anyhow::Result<()> {
     let code = r#"
-extern fn printf(format: *string, value: void): void;
+extern fn printf(format: *string, value: f64): void;
 let a: f32 = 5.0;
 printf("%f", (f64)a);
     "#;
@@ -110,7 +110,7 @@ main:
 #[test]
 fn float_double_cast() -> anyhow::Result<()> {
     let code = r#"
-extern fn printf(format: *string, value: void): void;
+extern fn printf(format: *string, value: f64): void;
 let a: f64 = 5.0_f64;
 printf("%f", (f64)(f32)a);
     "#;
@@ -169,7 +169,7 @@ main:
 #[test]
 fn float_cast_expression() -> anyhow::Result<()> {
     let code = r#"
-extern fn printf(format: *string, value: void): void;
+extern fn printf(format: *string, value: f64): void;
 let a: f64 = 5.0_f64;
 let b: f32 = (f32)(a + 1.0_f64);
 printf("%f", (f64) b);
@@ -237,7 +237,7 @@ main:
 #[test]
 fn float_cast_lhs() -> anyhow::Result<()> {
     let code = r#"
-extern fn printf(format: *string, value: void): void;
+extern fn printf(format: *string, value: f64): void;
 let a: f64 = 5.0_f64;
 let b: f32 = ((f32)a + 1.0_f32);
 printf("%f", (f64) b);
@@ -305,7 +305,7 @@ main:
 #[test]
 fn float_cast_lhs_rhs() -> anyhow::Result<()> {
     let code = r#"
-extern fn printf(format: *string, value: void): void;
+extern fn printf(format: *string, value: f64): void;
 let a: f64 = 5.0_f64;
 let b: f64 = 11.3_f64;
 
@@ -381,7 +381,7 @@ main:
 #[test]
 fn float_cast_rhs() -> anyhow::Result<()> {
     let code = r#"
-extern fn printf(format: *string, value: void): void;
+extern fn printf(format: *string, value: f64): void;
 let a: f64 = 5.0_f64;
 let b: f32 = (1.0_f32 + (f32)a);
 printf("%f", (f64) b);
@@ -449,7 +449,7 @@ main:
 #[test]
 fn float_cast_lhs_expression() -> anyhow::Result<()> {
     let code = r#"
-extern fn printf(format: *string, value: void): void;
+extern fn printf(format: *string, value: f64): void;
 let a: f64 = 5.0_f64;
 let b: f32 = (f32)a + (1.0_f32 + 5.1_f32);
 printf("%f", (f64) b);
@@ -522,7 +522,7 @@ main:
 #[test]
 fn float_cast_expression_rhs() -> anyhow::Result<()> {
     let code = r#"
-extern fn printf(format: *string, value: void): void;
+extern fn printf(format: *string, value: f64): void;
 let a: f64 = 5.0_f64;
 let b: f32 = (1.0_f32 + 5.1_f32) + (f32)a;
 printf("%f", (f64) b);
@@ -594,7 +594,7 @@ main:
 #[test]
 fn float_cast_expression_expression() -> anyhow::Result<()> {
     let code = r#"
-extern fn printf(format: *string, value: void): void;
+extern fn printf(format: *string, value: f64): void;
 let a: f64 = 5.0_f64;
 let b: f32 = ((f32)a + (f32)a) + ((f32)a + (f32)a);
 printf("%f", (f64) b);
@@ -682,7 +682,7 @@ main:
 #[test]
 fn float_cast_complex_expression() -> anyhow::Result<()> {
     let code = r#"
-extern fn printf(format: *string, value: void): void;
+extern fn printf(format: *string, value: f64): void;
 let b: f64 = 5.0_f64;
 let d: f64 = 13.0_f64;
 let addition: f32 = ((((f32)d + (f32)b) + ((f32)b + (f32)d)) + ((f32)b + (f32)b)) + (((f32)b + ((f32)b + (f32)b)) + ((f32)b + ((f32)d + (f32)b)));

@@ -1,6 +1,6 @@
 use crate::core::code_generator::{MetaInfo, ToASM};
+use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::ASMGenerateError;
-use crate::core::code_generator::asm_builder::{ASMBuilder};
 use crate::core::code_generator::registers::{Bit64, GeneralPurposeRegister};
 use crate::core::code_generator::target_os::TargetOS;
 use crate::core::lexer::scope::Scope;
@@ -129,10 +129,12 @@ impl ASMGenerator {
         boiler_plate += &ASMBuilder::line(&format!("global {}", entry_point_label));
         boiler_plate += &ASMBuilder::line("");
 
+        let mut added_extern_methods: Vec<&str> = vec![];
         self.top_level_scope.tokens.iter().for_each(|a|
             if let Token::MethodDefinition(method_def) = a {
-                if method_def.is_extern {
+                if method_def.is_extern && !added_extern_methods.contains(&method_def.name.name.as_str()) {
                     boiler_plate += &ASMBuilder::line(&format!("extern {}", &method_def.name.name));
+                    added_extern_methods.push(&method_def.name.name);
                 }
             }
         );

@@ -151,13 +151,19 @@ impl MethodCallToken {
 
     /// Type checks the symbol calling, by checking if the passed parameters are expected by the method definition
     pub fn type_check(&self, context: &StaticTypeContext, code_line: &CodeLine) -> Result<(), InferTypeError> {
-        if let Some(method_def) = context.methods.iter().find(|m| m.name == self.name) {
+        let method_defs = context.methods.iter().filter(|m| m.name == self.name).collect::<Vec<_>>();
+
+        'outer: for method_def in &method_defs {
             if method_def.arguments.len() != self.arguments.len() {
-                return Err(InferTypeError::MethodCallArgumentAmountMismatch {
-                    expected: method_def.arguments.len(),
-                    actual: self.arguments.len(),
-                    code_line: self.code_line.clone(),
-                });
+                if method_defs.len() == 1 {
+                    return Err(InferTypeError::MethodCallArgumentAmountMismatch {
+                        expected: method_def.arguments.len(),
+                        actual: self.arguments.len(),
+                        code_line: self.code_line.clone(),
+                    });
+                }
+
+                continue;
             }
 
             let zipped = method_def.arguments
@@ -168,23 +174,40 @@ impl MethodCallToken {
                 let def_type = argument_def.1.clone();
                 let call_type = argument_call.infer_type_with_context(context, code_line)?;
 
-                if def_type != call_type && !def_type.is_void() {
-                    return Err(InferTypeError::MethodCallArgumentTypeMismatch {
-                        info: Box::new(MethodCallArgumentTypeMismatch {
-                            expected: def_type,
-                            actual: call_type,
-                            nth_parameter: index + 1,
-                            code_line: code_line.clone(),
-                        })
-                    });
+                if def_type != call_type {
+                    if method_defs.len() == 1 {
+                        return Err(InferTypeError::MethodCallArgumentTypeMismatch {
+                            info: Box::new(MethodCallArgumentTypeMismatch {
+                                expected: def_type,
+                                actual: call_type,
+                                nth_parameter: index + 1,
+                                code_line: code_line.clone(),
+                            })
+                        });
+                    }
+
+                    continue 'outer;
                 }
             }
-
 
             return Ok(());
         }
 
-        Err(InferTypeError::UnresolvedReference(self.name.name.clone(), code_line.clone()))
+        if method_defs.is_empty() {
+            return Err(InferTypeError::UnresolvedReference(self.name.name.clone(), code_line.clone()))
+        }
+
+        let signatures = method_defs
+            .iter()
+            .map(|m| m.arguments.iter().map(|a| a.1.clone()).collect::<Vec<_>>())
+            .collect::<Vec<_>>();
+
+        Err(InferTypeError::MethodCallSignatureMismatch {
+            signatures,
+            method_name: self.name.clone(),
+            code_line: code_line.clone(),
+            provided: self.arguments.iter().filter_map(|a| a.infer_type_with_context(context, code_line).ok()).collect::<Vec<_>>(),
+        })
     }
 }
 
