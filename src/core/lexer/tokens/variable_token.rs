@@ -37,6 +37,7 @@ pub struct VariableToken<const ASSIGNMENT: char, const SEPARATOR: char> {
     pub code_line: CodeLine,
 }
 
+
 impl<const ASSIGNMENT: char, const SEPARATOR: char> InferType for VariableToken<ASSIGNMENT, SEPARATOR> {
     fn infer_type(&mut self, type_context: &mut StaticTypeContext) -> Result<(), InferTypeError> {
         if type_context.methods.iter().filter(|a| a.name == self.name_token).count() > 0 {

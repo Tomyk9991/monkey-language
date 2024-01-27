@@ -15,9 +15,7 @@ mod utils;
 
 fn main() -> anyhow::Result<()> {
     let only_write = false;
-
     let args = ProgramArgs::parse();
-
     let entry_point_file = args.input.clone();
     let monkey_file: MonkeyFile = MonkeyFile::read(entry_point_file)?;
 

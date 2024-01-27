@@ -37,6 +37,7 @@ pub fn static_type_check(scope: &Scope) -> Result<(), StaticTypeCheckError> {
     // let a = 1.0;
     // a = 5;
     let mut type_context: StaticTypeContext = StaticTypeContext::new(&scope.tokens);
+    type_context.colliding_symbols()?;
     static_type_check_rec(&scope.tokens, &mut type_context)
 }
 

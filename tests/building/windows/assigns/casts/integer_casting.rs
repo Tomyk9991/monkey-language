@@ -537,9 +537,9 @@ fn u32_to_u() -> anyhow::Result<()> {
     let code = r#"
 let a: u32 = 250;
 let b: u8 = (u8) a;
-let b: u16 = (u16) a;
-let c: u32 = a;
-let d: u64 = (u64) a;
+let c: u16 = (u16) a;
+let d: u32 = a;
+let e: u64 = (u64) a;
     "#;
 
     let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
@@ -571,14 +571,14 @@ main:
     ; Cast: (u32) -> (u8)
     mov eax, [rbp - 4]
     mov BYTE [rbp - 5], al
-    ; let b: u16 = (u16)a
+    ; let c: u16 = (u16)a
     ; Cast: (u32) -> (u16)
     mov eax, [rbp - 4]
     mov WORD [rbp - 7], ax
-    ; let c: u32 = a
+    ; let d: u32 = a
     mov eax, DWORD [rbp - 4]
     mov DWORD [rbp - 11], eax
-    ; let d: u64 = (u64)a
+    ; let e: u64 = (u64)a
     ; Cast: (u32) -> (u64)
     mov r14d, DWORD [rbp - 4]
     xor rax, rax
@@ -777,9 +777,9 @@ fn u64_to_u() -> anyhow::Result<()> {
     let code = r#"
 let a: u64 = 250;
 let b: u8 = (u8) a;
-let b: u16 = (u16) a;
-let c: u32 = (u32) a;
-let d: u64 = a;
+let c: u16 = (u16) a;
+let d: u32 = (u32) a;
+let e: u64 = a;
     "#;
 
     let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
@@ -811,15 +811,15 @@ main:
     ; Cast: (u64) -> (u8)
     mov rax, [rbp - 8]
     mov BYTE [rbp - 9], al
-    ; let b: u16 = (u16)a
+    ; let c: u16 = (u16)a
     ; Cast: (u64) -> (u16)
     mov rax, [rbp - 8]
     mov WORD [rbp - 11], ax
-    ; let c: u32 = (u32)a
+    ; let d: u32 = (u32)a
     ; Cast: (u64) -> (u32)
     mov rax, [rbp - 8]
     mov DWORD [rbp - 15], eax
-    ; let d: u64 = a
+    ; let e: u64 = a
     mov rax, QWORD [rbp - 8]
     mov QWORD [rbp - 23], rax
     leave

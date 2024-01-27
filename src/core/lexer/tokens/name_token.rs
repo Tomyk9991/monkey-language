@@ -10,7 +10,7 @@ use crate::core::lexer::types::type_token::{InferTypeError, TypeToken};
 
 /// Token for a name. Basically a string that can be used as a variable name.
 /// Everything is allowed except for reserved keywords and special characters in the beginning
-#[derive(Debug, Eq, PartialEq, Clone, Hash)]
+#[derive(Debug, Eq, PartialEq, Hash, Clone)]
 pub struct NameToken {
     pub name: String,
 }
@@ -59,9 +59,7 @@ impl NameToken {
     }
 
     pub fn infer_type_with_context(&self, context: &StaticTypeContext, code_line: &CodeLine) -> Result<TypeToken, InferTypeError> {
-        if let Some(v) = context.iter().rfind(|v| {
-            v.name_token == *self
-        }) {
+        if let Some(v) = context.iter().rfind(|v| v.name_token == *self) {
             return if let Some(ty) = &v.ty {
                 Ok(ty.clone())
             } else {

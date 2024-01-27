@@ -51,6 +51,7 @@ impl Lexer {
 
         // top level type context. top level variables and all methods are visible
         let mut type_context: StaticTypeContext = StaticTypeContext::new(&scope.tokens);
+
         let mut methods: Vec<*mut MethodDefinition> = Vec::new();
 
         for token in &mut scope.tokens {
