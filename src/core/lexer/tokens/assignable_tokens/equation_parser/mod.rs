@@ -178,6 +178,11 @@ impl EquationToken {
 
         // self.syntax_tree = self.parse_expression()?;
         self.syntax_tree = self.parse_bitwise_shift_expression()?;
+
+        if self.pos as usize != self.source_code.chars().count() {
+            return Err(Error::UndefinedSequence(self.source_code.chars().collect::<Vec<_>>()[self.pos as usize..].iter().collect::<String>()))
+        }
+
         Ok(&self.syntax_tree)
     }
 
