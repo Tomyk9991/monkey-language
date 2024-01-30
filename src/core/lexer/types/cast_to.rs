@@ -4,6 +4,7 @@ use std::fmt::{Display, Formatter};
 use crate::core::lexer::types::float::Float;
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
+use crate::core::lexer::tokens::assignable_tokens::boolean_token::Boolean;
 use crate::core::lexer::types::integer::Integer;
 use crate::core::lexer::types::type_token::TypeToken;
 
@@ -36,6 +37,8 @@ impl ToASM for CastTo {
 
         <Integer as Castable<Integer, Integer>>::add_casts(&mut cast_to_matrix);
         <Integer as Castable<Integer, Float>>::add_casts(&mut cast_to_matrix);
+
+        <Boolean as Castable<Boolean, Integer>>::add_casts(&mut cast_to_matrix);
 
         <Float as Castable<Float, Float>>::add_casts(&mut cast_to_matrix);
         <Float as Castable<Float, Integer>>::add_casts(&mut cast_to_matrix);

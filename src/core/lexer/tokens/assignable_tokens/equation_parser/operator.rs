@@ -1,4 +1,5 @@
 use std::fmt::{Display, Formatter};
+use std::str::FromStr;
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
@@ -14,6 +15,12 @@ pub enum Operator {
     Div,
     LeftShift,
     RightShift,
+    LessThan,
+    GreaterThan,
+    LessThanEqual,
+    GreaterThanEqual,
+    Equal,
+    NotEqual,
     Mul,
 }
 
@@ -24,21 +31,41 @@ pub trait OperatorToASM {
 
 impl Display for Operator {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
+        write!(f, "{}", match self {
+            Operator::Noop => "Noop",
+            Operator::Add => "+",
+            Operator::Sub => "-",
+            Operator::Mul => "*",
+            Operator::Div => "/",
+            Operator::LeftShift => "<<",
+            Operator::RightShift => ">>",
+            Operator::LessThan => "<",
+            Operator::GreaterThan => ">",
+            Operator::LessThanEqual => "<=",
+            Operator::GreaterThanEqual => ">=",
+            Operator::Equal => "==",
+            Operator::NotEqual => "!=",
+        })
     }
 }
 
 impl ToASM for Operator {
     fn to_asm(&self, _: &mut Stack, _: &mut MetaInfo) -> Result<String, ASMGenerateError> {
         Ok(match self {
-            Operator::Noop =>"noop".to_string(),
-            Operator::Add => "add".to_string(),
-            Operator::Sub => "sub".to_string(),
-            Operator::Mul => "imul".to_string(),
-            Operator::Div => "div".to_string(),
-            Operator::LeftShift => "shl".to_string(),
-            Operator::RightShift => "shr".to_string(),
-        })
+            Operator::Noop =>"noop",
+            Operator::Add => "add",
+            Operator::Sub => "sub",
+            Operator::Mul => "mul",
+            Operator::Div => "div",
+            Operator::LeftShift => "shl",
+            Operator::RightShift => "shr",
+            Operator::LessThan => "setl",
+            Operator::GreaterThan => "setg",
+            Operator::LessThanEqual => "setle",
+            Operator::GreaterThanEqual => "setge",
+            Operator::Equal => "sete",
+            Operator::NotEqual => "setne"
+        }.to_string())
     }
 
     fn is_stack_look_up(&self, _stack: &mut Stack, _meta: &MetaInfo) -> bool {
@@ -77,6 +104,11 @@ impl From<String> for AssemblerOperation {
 }
 
 impl AssemblerOperation {
+    pub fn compare<P: Display, T: Display>(instruction: &str, destination: &T, source: &P) -> Result<String, ASMGenerateError> {
+        let register_a = GeneralPurposeRegister::from_str(&destination.to_string())?.to_size_register(&ByteSize::_1);
+        Ok(format!("cmp {}, {}\n    {} {}", destination, source, instruction, register_a))
+    }
+
     pub fn two_operands<T: Display, P: Display>(instruction: &str, register_a: &T, register_b: &P) -> String {
         format!("{instruction} {register_a}, {register_b}")
     }

@@ -1,7 +1,6 @@
 module monkey-language-project/std.monkey;
 
-let a = (5 + 3) * 2 >> 3;
+let a: bool = (5 + 3) * 2 == 16;
 
-printf("%d", a);
-
+printf("%d", (i32) a);
 ExitProcess(0);

@@ -5,6 +5,7 @@ use crate::core::code_generator::{ASMGenerateError};
 
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::tokens::assignable_token::AssignableToken;
+use crate::core::lexer::tokens::assignable_tokens::boolean_token::Boolean;
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::operator::{AssemblerOperation, Operator, OperatorToASM};
 use crate::core::lexer::tokens::name_token::{NameToken, NameTokenErr};
 use crate::core::lexer::types::cast_to::CastTo;
@@ -55,26 +56,11 @@ pub struct MethodCallArgumentTypeMismatch {
 
 impl OperatorToASM for TypeToken {
     fn operation_to_asm<T: Display>(&self, operator: &Operator, registers: &[T]) -> Result<AssemblerOperation, ASMGenerateError> {
-        struct Bool;
-
-        impl OperatorToASM for Bool {
-            fn operation_to_asm<T: Display>(&self, operator: &Operator, _: &[T]) -> Result<AssemblerOperation, ASMGenerateError> {
-                match operator {
-                    Operator::Noop => Err(ASMGenerateError::InternalError("No operation for noop on booleans".to_string())),
-                    Operator::Add => Ok("or".to_string().into()),
-                    Operator::Sub => Err(ASMGenerateError::InternalError("No operation for sub on booleans".to_string())),
-                    Operator::Div => Err(ASMGenerateError::InternalError("No operation for div on booleans".to_string())),
-                    Operator::Mul => Ok("and".to_string().into()),
-                    Operator::LeftShift => Err(ASMGenerateError::InternalError("No operation for left shift on booleans".to_string())),
-                    Operator::RightShift => Err(ASMGenerateError::InternalError("No operation for right shift on booleans".to_string())),
-                }
-            }
-        }
 
         match self {
             TypeToken::Integer(t) => t.operation_to_asm(operator, registers),
             TypeToken::Float(t) => t.operation_to_asm(operator, registers),
-            TypeToken::Bool => Bool{}.operation_to_asm(operator, registers),
+            TypeToken::Bool => Boolean::True.operation_to_asm(operator, registers),
             TypeToken::Void => Err(ASMGenerateError::InternalError("Void cannot be operated on".to_string())),
             TypeToken::Custom(_) => todo!(),
         }
@@ -192,7 +178,7 @@ impl TypeToken {
         match self {
             TypeToken::Integer(int) => TypeToken::Custom(NameToken { name: format!("*{}", int) }),
             TypeToken::Float(float) => TypeToken::Custom(NameToken { name: format!("*{}", float) }),
-            TypeToken::Bool => TypeToken::Custom(NameToken { name: format!("*{}", TypeToken::Bool) }),
+            TypeToken::Bool => TypeToken::Custom(NameToken { name: "*bool".to_string() }),
             TypeToken::Void => TypeToken::Custom(NameToken { name: format!("*{}", TypeToken::Void) }),
             TypeToken::Custom(custom) => TypeToken::Custom(NameToken { name: format!("*{}", custom) }),
         }
@@ -272,7 +258,7 @@ impl TypeToken {
         match self {
             TypeToken::Integer(int) => int.byte_size(),
             TypeToken::Float(float) => float.byte_size(),
-            TypeToken::Bool => 4,
+            TypeToken::Bool => 1,
             TypeToken::Void => 0,
             TypeToken::Custom(_) => 8 // todo: calculate custom data types recursively
         }

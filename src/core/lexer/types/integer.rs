@@ -1,12 +1,13 @@
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
-use crate::core::lexer::tokens::assignable_tokens::equation_parser::operator::{AssemblerOperation, OperatorToASM};
+
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::register_destination::word_from_byte_size;
 use crate::core::code_generator::registers::{Bit64, ByteSize, FloatRegister, GeneralPurposeRegister};
+use crate::core::lexer::tokens::assignable_tokens::equation_parser::operator::{AssemblerOperation, OperatorToASM};
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::operator::Operator;
 use crate::core::lexer::tokens::assignable_tokens::integer_token::IntegerToken;
 use crate::core::lexer::tokens::name_token::NameTokenErr;
@@ -24,7 +25,7 @@ pub enum Integer {
     I32,
     U32,
     I64,
-    U64
+    U64,
 }
 
 impl Castable<Integer, Float> for Integer {
@@ -219,7 +220,7 @@ impl Castable<Integer, Integer> for Integer {
         // Special case: i32 -> u64
         // movzx cant handle DWORD on rhs
         // *i1 == Integer::I32 && *i2 == Integer::I64
-        if  (*i2 == Integer::U64 || *i2 == Integer::I64) && *i1 == Integer::U32 || *i1 == Integer::I32 && *i2 == Integer::U64 {
+        if (*i2 == Integer::U64 || *i2 == Integer::I64) && *i1 == Integer::U32 || *i1 == Integer::I32 && *i2 == Integer::U64 {
             let r14 = GeneralPurposeRegister::Bit64(Bit64::R14).to_size_register(&cast_from_register.size());
             target += &ASMBuilder::ident_line(&format!("mov {}, {}", &r14, &source));
             target += &ASMBuilder::ident_line(&format!("xor {}, {}", cast_to_register, cast_to_register));
@@ -236,9 +237,7 @@ impl Castable<Integer, Integer> for Integer {
             let destination_register = if cast_to.casting_down() { cast_from_register } else { cast_to_register };
             if instruction == "mov" {
                 if let Ok(source_register) = GeneralPurposeRegister::from_str(&source) {
-                    if destination_register.to_64_bit_register() == source_register.to_64_bit_register() {
-
-                    }
+                    if destination_register.to_64_bit_register() == source_register.to_64_bit_register() {}
                 } else {
                     target += &ASMBuilder::mov_ident_line(&destination_register, &source);
                 }
@@ -271,6 +270,14 @@ impl Integer {
             base_type_matrix.insert((TypeToken::Integer(ty.clone()), Operator::Div, TypeToken::Integer(ty.clone())), TypeToken::Integer(ty.clone()));
             base_type_matrix.insert((TypeToken::Integer(ty.clone()), Operator::LeftShift, TypeToken::Integer(ty.clone())), TypeToken::Integer(ty.clone()));
             base_type_matrix.insert((TypeToken::Integer(ty.clone()), Operator::RightShift, TypeToken::Integer(ty.clone())), TypeToken::Integer(ty.clone()));
+
+            base_type_matrix.insert((TypeToken::Integer(ty.clone()), Operator::LessThan, TypeToken::Integer(ty.clone())), TypeToken::Bool);
+            base_type_matrix.insert((TypeToken::Integer(ty.clone()), Operator::GreaterThan, TypeToken::Integer(ty.clone())), TypeToken::Bool);
+            base_type_matrix.insert((TypeToken::Integer(ty.clone()), Operator::LessThanEqual, TypeToken::Integer(ty.clone())), TypeToken::Bool);
+            base_type_matrix.insert((TypeToken::Integer(ty.clone()), Operator::GreaterThanEqual, TypeToken::Integer(ty.clone())), TypeToken::Bool);
+
+            base_type_matrix.insert((TypeToken::Integer(ty.clone()), Operator::Equal, TypeToken::Integer(ty.clone())), TypeToken::Bool);
+            base_type_matrix.insert((TypeToken::Integer(ty.clone()), Operator::NotEqual, TypeToken::Integer(ty.clone())), TypeToken::Bool);
         }
     }
 
@@ -302,7 +309,7 @@ impl OperatorToASM for Integer {
             Operator::Div => Ok(AssemblerOperation {
                 prefix: Some(AssemblerOperation::save_rax_rcx_rdx(self.byte_size(), registers)?),
                 operation: format!("{prefix}div {}", GeneralPurposeRegister::Bit64(Bit64::Rcx).to_size_register(&ByteSize::try_from(integer_size)?)),
-                postfix: Some(AssemblerOperation::load_rax_rcx_rdx(self.byte_size(), registers)?)
+                postfix: Some(AssemblerOperation::load_rax_rcx_rdx(self.byte_size(), registers)?),
             }),
             Operator::Mul => if self.signed() {
                 Ok(AssemblerOperation::two_operands("imul", &registers[0], &registers[1]).into())
@@ -310,23 +317,28 @@ impl OperatorToASM for Integer {
                 Ok(AssemblerOperation {
                     prefix: Some(AssemblerOperation::save_rax_rcx_rdx(self.byte_size(), registers)?),
                     operation: format!("{prefix}mul, {}", &GeneralPurposeRegister::Bit64(Bit64::Rdx).to_size_register(&ByteSize::try_from(integer_size)?)),
-                    postfix: Some(AssemblerOperation::load_rax_rcx_rdx(self.byte_size(), registers)?)
+                    postfix: Some(AssemblerOperation::load_rax_rcx_rdx(self.byte_size(), registers)?),
                 })
             },
             Operator::LeftShift => {
                 Ok(AssemblerOperation {
                     prefix: Some(AssemblerOperation::save_rax_rcx_rdx(self.byte_size(), registers)?),
                     operation: format!("shl {}, cl", &registers[0]),
-                    postfix: Some(AssemblerOperation::load_rax_rcx_rdx(self.byte_size(), registers)?)
+                    postfix: Some(AssemblerOperation::load_rax_rcx_rdx(self.byte_size(), registers)?),
                 })
             }
             Operator::RightShift => {
                 Ok(AssemblerOperation {
                     prefix: Some(AssemblerOperation::save_rax_rcx_rdx(self.byte_size(), registers)?),
                     operation: format!("shr {}, cl", &registers[0]),
-                    postfix: Some(AssemblerOperation::load_rax_rcx_rdx(self.byte_size(), registers)?)
+                    postfix: Some(AssemblerOperation::load_rax_rcx_rdx(self.byte_size(), registers)?),
                 })
             }
+            Operator::LessThan | Operator::GreaterThan | Operator::LessThanEqual | Operator::GreaterThanEqual | Operator::Equal | Operator::NotEqual => Ok(AssemblerOperation {
+                prefix: None,
+                operation: AssemblerOperation::compare(&operator.to_asm(&mut Default::default(), &mut Default::default())?, &registers[0], &registers[1])?,
+                postfix: None,
+            }),
         }
     }
 }

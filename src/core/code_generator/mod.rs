@@ -49,7 +49,7 @@ impl Display for ASMGenerateError {
 
 impl std::error::Error for ASMGenerateError { }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct MetaInfo {
     pub code_line: CodeLine,
     // todo: ultimately target_os as a parameter should not be relevant. this is a temporary solution until a proper sys-calls implementation is done

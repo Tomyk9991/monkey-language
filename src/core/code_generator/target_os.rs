@@ -4,8 +4,9 @@ use std::str::FromStr;
 use colored::Colorize;
 use crate::core::code_generator::target_creator::{CompileAndExecute, TargetCreator};
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Default)]
 pub enum TargetOS {
+    #[default]
     Windows,
     Linux,
     WindowsSubsystemLinux

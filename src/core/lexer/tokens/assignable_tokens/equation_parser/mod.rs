@@ -176,14 +176,51 @@ impl EquationToken {
             return Err(Error::PositionNotInRange(self.pos));
         }
 
-        // self.syntax_tree = self.parse_expression()?;
-        self.syntax_tree = self.parse_bitwise_shift_expression()?;
+        self.syntax_tree = self.parse_equality_expression()?;
 
         if self.pos as usize != self.source_code.chars().count() {
             return Err(Error::UndefinedSequence(self.source_code.chars().collect::<Vec<_>>()[self.pos as usize..].iter().collect::<String>()))
         }
 
         Ok(&self.syntax_tree)
+    }
+
+    fn parse_equality_expression(&mut self) -> Result<Box<Expression>, Error> {
+        let mut x = self.parse_relational_expression()?;
+
+        loop {
+            if self.eat_multiple(Some("==")) {
+                let expression = self.parse_relational_expression()?;
+                x.set(Some(x.clone()), Operator::Equal, Some(expression), None);
+            } else if self.eat_multiple(Some("!=")) {
+                let expression = self.parse_relational_expression()?;
+                x.set(Some(x.clone()), Operator::NotEqual, Some(expression), None);
+            } else {
+                return Ok(x);
+            }
+        }
+    }
+
+    fn parse_relational_expression(&mut self) -> Result<Box<Expression>, Error> {
+        let mut x = self.parse_bitwise_shift_expression()?;
+
+        loop {
+            if self.eat_multiple(Some("<=")) {
+                let expression = self.parse_bitwise_shift_expression()?;
+                x.set(Some(x.clone()), Operator::LessThanEqual, Some(expression), None);
+            } else if self.eat_multiple(Some(">=")) {
+                let expression = self.parse_bitwise_shift_expression()?;
+                x.set(Some(x.clone()), Operator::GreaterThanEqual, Some(expression), None);
+            } else if self.eat(Some('<')) {
+                let expression = self.parse_bitwise_shift_expression()?;
+                x.set(Some(x.clone()), Operator::LessThan, Some(expression), None);
+            } else if self.eat(Some('>')) {
+                let expression = self.parse_bitwise_shift_expression()?;
+                x.set(Some(x.clone()), Operator::GreaterThan, Some(expression), None);
+            } else {
+                return Ok(x);
+            }
+        }
     }
 
     fn parse_bitwise_shift_expression(&mut self) -> Result<Box<Expression>, Error> {

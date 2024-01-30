@@ -18,7 +18,7 @@ use crate::core::lexer::tokens::name_token::NameToken;
 use crate::core::lexer::types::type_token;
 use crate::core::lexer::types::type_token::{InferTypeError, TypeToken};
 
-/// Token for assignable tokens. Numbers, strings, methodcalls, other variables, objects, and arithmetic / boolean equations.
+/// Token for assignable tokens. Numbers, strings, method calls, other variables, objects, and arithmetic / boolean equations.
 #[derive(Debug, PartialEq, Clone)]
 pub enum AssignableToken {
     String(StringToken),

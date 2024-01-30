@@ -158,6 +158,11 @@ impl OperatorToASM for Float {
             Operator::Mul => Ok(AssemblerOperation::two_operands(&format!("mul{suffix}"), &registers[0], &registers[1]).into()),
             Operator::LeftShift => Err(ASMGenerateError::InternalError("Left Shift instruction is not supported on floats".to_string())),
             Operator::RightShift => Err(ASMGenerateError::InternalError("Left Shift instruction is not supported on floats".to_string())),
+            _ => todo!()
+            // Operator::LessThan => {}
+            // Operator::GreaterThan => {}
+            // Operator::LessThanEqual => {}
+            // Operator::GreaterThanEqual => {}
         }
     }
 }
