@@ -269,6 +269,8 @@ impl Integer {
             base_type_matrix.insert((TypeToken::Integer(ty.clone()), Operator::Sub, TypeToken::Integer(ty.clone())), TypeToken::Integer(ty.clone()));
             base_type_matrix.insert((TypeToken::Integer(ty.clone()), Operator::Mul, TypeToken::Integer(ty.clone())), TypeToken::Integer(ty.clone()));
             base_type_matrix.insert((TypeToken::Integer(ty.clone()), Operator::Div, TypeToken::Integer(ty.clone())), TypeToken::Integer(ty.clone()));
+            base_type_matrix.insert((TypeToken::Integer(ty.clone()), Operator::LeftShift, TypeToken::Integer(ty.clone())), TypeToken::Integer(ty.clone()));
+            base_type_matrix.insert((TypeToken::Integer(ty.clone()), Operator::RightShift, TypeToken::Integer(ty.clone())), TypeToken::Integer(ty.clone()));
         }
     }
 
@@ -298,19 +300,33 @@ impl OperatorToASM for Integer {
             Operator::Add => Ok(AssemblerOperation::two_operands("add", &registers[0], &registers[1]).into()),
             Operator::Sub => Ok(AssemblerOperation::two_operands("sub", &registers[0], &registers[1]).into()),
             Operator::Div => Ok(AssemblerOperation {
-                prefix: Some(AssemblerOperation::prefix_with_registers(self.byte_size(), registers)?),
+                prefix: Some(AssemblerOperation::save_rax_rcx_rdx(self.byte_size(), registers)?),
                 operation: format!("{prefix}div {}", GeneralPurposeRegister::Bit64(Bit64::Rcx).to_size_register(&ByteSize::try_from(integer_size)?)),
-                postfix: Some(AssemblerOperation::postfix_with_registers(self.byte_size(), registers)?)
+                postfix: Some(AssemblerOperation::load_rax_rcx_rdx(self.byte_size(), registers)?)
             }),
             Operator::Mul => if self.signed() {
                 Ok(AssemblerOperation::two_operands("imul", &registers[0], &registers[1]).into())
             } else {
                 Ok(AssemblerOperation {
-                    prefix: Some(AssemblerOperation::prefix_with_registers(self.byte_size(), registers)?),
+                    prefix: Some(AssemblerOperation::save_rax_rcx_rdx(self.byte_size(), registers)?),
                     operation: format!("{prefix}mul, {}", &GeneralPurposeRegister::Bit64(Bit64::Rdx).to_size_register(&ByteSize::try_from(integer_size)?)),
-                    postfix: Some(AssemblerOperation::postfix_with_registers(self.byte_size(), registers)?)
+                    postfix: Some(AssemblerOperation::load_rax_rcx_rdx(self.byte_size(), registers)?)
                 })
             },
+            Operator::LeftShift => {
+                Ok(AssemblerOperation {
+                    prefix: Some(AssemblerOperation::save_rax_rcx_rdx(self.byte_size(), registers)?),
+                    operation: format!("shl {}, cl", &registers[0]),
+                    postfix: Some(AssemblerOperation::load_rax_rcx_rdx(self.byte_size(), registers)?)
+                })
+            }
+            Operator::RightShift => {
+                Ok(AssemblerOperation {
+                    prefix: Some(AssemblerOperation::save_rax_rcx_rdx(self.byte_size(), registers)?),
+                    operation: format!("shr {}, cl", &registers[0]),
+                    postfix: Some(AssemblerOperation::load_rax_rcx_rdx(self.byte_size(), registers)?)
+                })
+            }
         }
     }
 }

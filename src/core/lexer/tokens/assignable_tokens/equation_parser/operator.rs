@@ -12,6 +12,8 @@ pub enum Operator {
     Add,
     Sub,
     Div,
+    LeftShift,
+    RightShift,
     Mul,
 }
 
@@ -34,6 +36,8 @@ impl ToASM for Operator {
             Operator::Sub => "sub".to_string(),
             Operator::Mul => "imul".to_string(),
             Operator::Div => "div".to_string(),
+            Operator::LeftShift => "shl".to_string(),
+            Operator::RightShift => "shr".to_string(),
         })
     }
 
@@ -77,52 +81,52 @@ impl AssemblerOperation {
         format!("{instruction} {register_a}, {register_b}")
     }
 
-    pub fn prefix_with_registers<T: Display>(size: usize, registers: &[T]) -> Result<String, ASMGenerateError> {
+    pub fn save_rax_rcx_rdx<T: Display>(size: usize, registers: &[T]) -> Result<String, ASMGenerateError> {
         let byte_size = ByteSize::try_from(size)?;
 
-        let destination = GeneralPurposeRegister::Bit64(Bit64::R14).to_size_register(&byte_size);
-        let source = GeneralPurposeRegister::Bit64(Bit64::Rdx).to_size_register(&byte_size);
-        let mut prefix = ASMBuilder::mov_line(destination, source);
+        let r14 = GeneralPurposeRegister::Bit64(Bit64::R14).to_size_register(&byte_size);
+        let rdx = GeneralPurposeRegister::Bit64(Bit64::Rdx).to_size_register(&byte_size);
+        let mut prefix = ASMBuilder::mov_line(r14, &rdx);
 
-        let destination = GeneralPurposeRegister::Bit64(Bit64::R13).to_size_register(&byte_size);
-        let source = GeneralPurposeRegister::Bit64(Bit64::Rax).to_size_register(&byte_size);
-        prefix += &ASMBuilder::mov_ident_line(destination, source);
+        let r13 = GeneralPurposeRegister::Bit64(Bit64::R13).to_size_register(&byte_size);
+        let rax = GeneralPurposeRegister::Bit64(Bit64::Rax).to_size_register(&byte_size);
+        prefix += &ASMBuilder::mov_ident_line(r13, &rax);
 
-        let destination = GeneralPurposeRegister::Bit64(Bit64::R12).to_size_register(&byte_size);
-        let source = GeneralPurposeRegister::Bit64(Bit64::Rcx).to_size_register(&byte_size);
-        prefix += &ASMBuilder::mov_ident_line(destination, source);
+        let r12 = GeneralPurposeRegister::Bit64(Bit64::R12).to_size_register(&byte_size);
+        let rcx = GeneralPurposeRegister::Bit64(Bit64::Rcx).to_size_register(&byte_size);
+        prefix += &ASMBuilder::mov_ident_line(r12, &rcx);
 
-        prefix += &ASMBuilder::mov_ident_line(GeneralPurposeRegister::Bit64(Bit64::Rcx).to_size_register(&byte_size), &registers[1]);
-        prefix += &ASMBuilder::mov_ident_line(GeneralPurposeRegister::Bit64(Bit64::Rax).to_size_register(&byte_size), &registers[0]);
-        prefix += &ASMBuilder::mov_ident_line(GeneralPurposeRegister::Bit64(Bit64::Rdx).to_size_register(&byte_size), 0);
+        prefix += &ASMBuilder::mov_ident_line(rcx, &registers[1]);
+        prefix += &ASMBuilder::mov_ident_line(rax, &registers[0]);
+        prefix += &ASMBuilder::mov_ident_line(rdx, 0);
 
         Ok(prefix)
     }
 
-    pub fn postfix_with_registers<T: Display>(size: usize, registers: &[T]) -> Result<String, ASMGenerateError> {
+    pub fn load_rax_rcx_rdx<T: Display>(size: usize, registers: &[T]) -> Result<String, ASMGenerateError> {
         let byte_size = ByteSize::try_from(size)?;
 
         let mut postfix = ASMBuilder::mov_ident_line(&registers[0],GeneralPurposeRegister::Bit64(Bit64::Rax).to_size_register(&byte_size));
 
-        let source = GeneralPurposeRegister::Bit64(Bit64::R14).to_size_register(&byte_size);
-        let destination = GeneralPurposeRegister::Bit64(Bit64::Rdx).to_size_register(&byte_size);
+        let r14 = GeneralPurposeRegister::Bit64(Bit64::R14).to_size_register(&byte_size);
+        let rdx = GeneralPurposeRegister::Bit64(Bit64::Rdx).to_size_register(&byte_size);
 
-        if !registers.iter().map(|register| register.to_string()).any(|register| register == destination.to_string()) {
-            postfix += &ASMBuilder::mov_ident_line(destination, source);
+        if !registers.iter().map(|register| register.to_string()).any(|register| register == rdx.to_string()) {
+            postfix += &ASMBuilder::mov_ident_line(rdx, r14);
         }
 
-        let destination = GeneralPurposeRegister::Bit64(Bit64::Rax).to_size_register(&byte_size);
-        let source = GeneralPurposeRegister::Bit64(Bit64::R13).to_size_register(&byte_size);
+        let rax = GeneralPurposeRegister::Bit64(Bit64::Rax).to_size_register(&byte_size);
+        let r13 = GeneralPurposeRegister::Bit64(Bit64::R13).to_size_register(&byte_size);
 
-        if !registers.iter().map(|register| register.to_string()).any(|register| register == destination.to_string()) {
-            postfix += &ASMBuilder::mov_ident_line(destination, source);
+        if !registers.iter().map(|register| register.to_string()).any(|register| register == rax.to_string()) {
+            postfix += &ASMBuilder::mov_ident_line(rax, r13);
         }
 
-        let source = GeneralPurposeRegister::Bit64(Bit64::R12).to_size_register(&byte_size);
-        let destination = GeneralPurposeRegister::Bit64(Bit64::Rcx).to_size_register(&byte_size);
+        let r12 = GeneralPurposeRegister::Bit64(Bit64::R12).to_size_register(&byte_size);
+        let rcx = GeneralPurposeRegister::Bit64(Bit64::Rcx).to_size_register(&byte_size);
 
-        if !registers.iter().map(|register| register.to_string()).any(|register| register == destination.to_string()) {
-            postfix += &format!("    mov {destination}, {source}");
+        if !registers.iter().map(|register| register.to_string()).any(|register| register == rcx.to_string()) {
+            postfix += &format!("    mov {rcx}, {r12}");
         }
 
         Ok(postfix)

@@ -220,7 +220,7 @@ impl ToASM for MethodCallToken {
 
         for (conventions, argument) in zipped {
             let (parsed_argument, provided_type) = match argument {
-                AssignableToken::ArithmeticEquation(_) | AssignableToken::BooleanEquation(_) => {
+                AssignableToken::ArithmeticEquation(_) => {
                     result += &ASMBuilder::push(&argument.to_asm(stack, meta)?);
                     (String::from("rax"), argument.infer_type_with_context(&meta.static_type_information, &meta.code_line).ok())
                 }

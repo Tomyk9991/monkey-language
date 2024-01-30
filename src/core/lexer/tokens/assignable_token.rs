@@ -8,7 +8,6 @@ use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::static_type_context::StaticTypeContext;
 use crate::core::lexer::tokens::assignable_tokens::boolean_token::BooleanToken;
 use crate::core::lexer::tokens::assignable_tokens::float_token::FloatToken;
-use crate::core::lexer::tokens::assignable_tokens::equation_parser::equation_token_options::{ArithmeticEquationOptions, BooleanEquationOptions};
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::EquationToken;
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::expression::{Expression, PrefixArithmetic};
 use crate::core::lexer::tokens::assignable_tokens::integer_token::IntegerToken;
@@ -30,7 +29,6 @@ pub enum AssignableToken {
     NameToken(NameToken),
     Object(ObjectToken),
     ArithmeticEquation(Expression),
-    BooleanEquation(Expression),
 }
 
 
@@ -46,7 +44,7 @@ impl AssignableToken {
 
     pub fn prefix_arithmetic(&self) -> Option<PrefixArithmetic> {
         match self {
-            AssignableToken::ArithmeticEquation(a) | AssignableToken::BooleanEquation(a) => {
+            AssignableToken::ArithmeticEquation(a) => {
                 a.prefix_arithmetic.clone()
             }
             _ => None
@@ -83,10 +81,8 @@ impl AssignableToken {
         }
 
         if !ignore_expression {
-            if let Ok(arithmetic_equation_token) = EquationToken::<ArithmeticEquationOptions>::from_str(line) {
+            if let Ok(arithmetic_equation_token) = EquationToken::from_str(line) {
                 return Ok(AssignableToken::ArithmeticEquation(arithmetic_equation_token));
-            } else if let Ok(boolean_equation_token) = EquationToken::<BooleanEquationOptions>::from_str(line) {
-                return Ok(AssignableToken::BooleanEquation(boolean_equation_token));
             }
         }
 
@@ -102,7 +98,6 @@ impl AssignableToken {
             AssignableToken::BooleanToken(_) => Ok(TypeToken::Bool),
             AssignableToken::Object(object) => Ok(TypeToken::Custom(NameToken { name: object.ty.to_string() })),
             AssignableToken::ArithmeticEquation(arithmetic_expression) => Ok(arithmetic_expression.traverse_type_resulted(context, code_line)?),
-            AssignableToken::BooleanEquation(boolean_expression) => Ok(boolean_expression.traverse_type_resulted(context, code_line)?),
             AssignableToken::MethodCallToken(method_call) => Ok(method_call.infer_type_with_context(context, code_line)?),
             AssignableToken::NameToken(var) => Ok(var.infer_type_with_context(context, code_line)?),
         }
@@ -126,7 +121,6 @@ impl Display for AssignableToken {
             AssignableToken::NameToken(token) => format!("{}", token),
             AssignableToken::Object(token) => format!("{}", token),
             AssignableToken::ArithmeticEquation(token) => format!("{}", token),
-            AssignableToken::BooleanEquation(token) => format!("{}", token),
         })
     }
 }
@@ -169,7 +163,6 @@ impl ToASM for AssignableToken {
             AssignableToken::NameToken(_) => true,
             AssignableToken::Object(_) => false,
             AssignableToken::ArithmeticEquation(a) => a.is_stack_look_up(stack, meta),
-            AssignableToken::BooleanEquation(a) => a.is_stack_look_up(stack, meta)
         }
     }
 
@@ -183,7 +176,6 @@ impl ToASM for AssignableToken {
             AssignableToken::NameToken(a) => a.byte_size(meta),
             AssignableToken::Object(a) => a.byte_size(meta),
             AssignableToken::ArithmeticEquation(a) => a.byte_size(meta),
-            AssignableToken::BooleanEquation(a) => a.byte_size(meta),
         }
     }
 
@@ -197,7 +189,6 @@ impl ToASM for AssignableToken {
             AssignableToken::NameToken(v) => v.before_label(stack, meta),
             AssignableToken::Object(v) => v.before_label(stack, meta),
             AssignableToken::ArithmeticEquation(v) => v.before_label(stack, meta),
-            AssignableToken::BooleanEquation(v) => v.before_label(stack, meta),
         }
     }
 }

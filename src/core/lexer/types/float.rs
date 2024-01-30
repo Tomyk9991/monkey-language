@@ -151,11 +151,13 @@ impl OperatorToASM for Float {
         };
 
         match operator {
-            Operator::Noop => Err(ASMGenerateError::InternalError("Noop instruction is not supported".to_string())),
+            Operator::Noop => Err(ASMGenerateError::InternalError("Noop instruction is not supported on".to_string())),
             Operator::Add => Ok(AssemblerOperation::two_operands(&format!("add{suffix}"), &registers[0], &registers[1]).into()),
             Operator::Sub => Ok(AssemblerOperation::two_operands(&format!("sub{suffix}"), &registers[0], &registers[1]).into()),
             Operator::Div => Ok(AssemblerOperation::two_operands(&format!("div{suffix}"), &registers[0], &registers[1]).into()),
             Operator::Mul => Ok(AssemblerOperation::two_operands(&format!("mul{suffix}"), &registers[0], &registers[1]).into()),
+            Operator::LeftShift => Err(ASMGenerateError::InternalError("Left Shift instruction is not supported on floats".to_string())),
+            Operator::RightShift => Err(ASMGenerateError::InternalError("Left Shift instruction is not supported on floats".to_string())),
         }
     }
 }

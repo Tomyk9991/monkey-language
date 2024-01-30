@@ -1,9 +1,7 @@
 use std::fmt::{Debug, Display, Formatter};
-use std::marker::PhantomData;
 use std::str::FromStr;
 use crate::core::io::code_line::{CodeLine, Normalizable};
 use crate::core::lexer::tokens::assignable_token::{AssignableToken, AssignableTokenErr};
-use crate::core::lexer::tokens::assignable_tokens::equation_parser::equation_token_options::EquationTokenOptions;
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::expression::{Expression, PointerArithmetic, PrefixArithmetic};
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::operator::Operator;
 use crate::core::lexer::tokens::assignable_tokens::method_call_token::dyck_language;
@@ -12,18 +10,16 @@ use crate::core::lexer::types::type_token::{InferTypeError, TypeToken};
 
 pub mod expression;
 pub mod operator;
-pub mod equation_token_options;
 
 const OPENING: char = '(';
 const CLOSING: char = ')';
 
 #[derive(Debug, PartialEq)]
-pub struct EquationToken<T: EquationTokenOptions> {
+pub struct EquationToken<> {
     source_code: String,
     pub syntax_tree: Box<Expression>,
     pos: i32,
     ch: Option<char>,
-    _marker: PhantomData<T>,
 }
 
 #[derive(Debug)]
@@ -81,10 +77,10 @@ impl Display for Error {
 impl std::error::Error for Error {}
 
 #[allow(clippy::should_implement_trait)]
-impl<T: EquationTokenOptions> EquationToken<T> {
+impl EquationToken {
 
     pub fn from_str(string: &str) -> Result<Expression, Error> {
-        let mut s: EquationToken<T> = EquationToken::new(string);
+        let mut s: EquationToken = EquationToken::new(string);
         let f = s.parse()?.clone();
         Ok(f)
     }
@@ -96,7 +92,6 @@ impl<T: EquationTokenOptions> EquationToken<T> {
             syntax_tree: Box::default(),
             pos: -1,
             ch: None,
-            _marker: PhantomData,
         }
     }
 
@@ -120,6 +115,36 @@ impl<T: EquationTokenOptions> EquationToken<T> {
     fn previous_char_amount(&mut self, amount_skip: usize) {
         for _ in 0..amount_skip {
             self.prev_char();
+        }
+    }
+
+    fn eat_multiple(&mut self, chars_to_eat: Option<&str>) -> bool {
+        return if let Some(chars_to_eat) = chars_to_eat {
+            while self.ch == Some(' ') {
+                self.next_char();
+            }
+
+            let latest_pos = self.pos;
+            let latest_ch = self.ch;
+
+
+            for char in chars_to_eat.chars() {
+                if self.ch == Some(' ') {
+                    self.next_char()
+                }
+
+                if self.ch != Some(char) {
+                    self.ch = latest_ch;
+                    self.pos = latest_pos;
+                    return false;
+                }
+
+                self.next_char();
+            }
+
+            true
+        } else {
+            false
         }
     }
 
@@ -151,8 +176,25 @@ impl<T: EquationTokenOptions> EquationToken<T> {
             return Err(Error::PositionNotInRange(self.pos));
         }
 
-        self.syntax_tree = self.parse_expression()?;
+        // self.syntax_tree = self.parse_expression()?;
+        self.syntax_tree = self.parse_bitwise_shift_expression()?;
         Ok(&self.syntax_tree)
+    }
+
+    fn parse_bitwise_shift_expression(&mut self) -> Result<Box<Expression>, Error> {
+        let mut x = self.parse_expression()?;
+
+        loop {
+            if self.eat_multiple(Some("<<")) {
+                let expression = self.parse_expression()?;
+                x.set(Some(x.clone()), Operator::LeftShift, Some(expression), None);
+            } else if self.eat_multiple(Some(">>")) {
+                let expression = self.parse_expression()?;
+                x.set(Some(x.clone()), Operator::RightShift, Some(expression), None);
+            } else {
+                return Ok(x);
+            }
+        }
     }
 
     fn parse_expression(&mut self) -> Result<Box<Expression>, Error> {
@@ -160,10 +202,10 @@ impl<T: EquationTokenOptions> EquationToken<T> {
 
         loop {
             #[allow(clippy::if_same_then_else)]
-            if self.eat(T::additive()) {
+            if self.eat(Some('+')) {
                 let term = self.parse_term()?;
                 x.set(Some(x.clone()), Operator::Add, Some(term), None);
-            } else if self.eat(T::inverse_additive()) {
+            } else if self.eat(Some('-')) {
                 let term = self.parse_term()?;
                 x.set(Some(x.clone()), Operator::Sub, Some(term), None);
             } else {
@@ -176,10 +218,10 @@ impl<T: EquationTokenOptions> EquationToken<T> {
         let mut x = self.parse_factor()?;
         loop {
             #[allow(clippy::if_same_then_else)]
-            if self.eat(T::multiplicative()) {
+            if self.eat(Some('*')) {
                 let term = self.parse_factor()?;
                 x.set(Some(x.clone()), Operator::Mul, Some(term), None);
-            } else if self.eat(T::inverse_multiplicative()) {
+            } else if self.eat(Some('/')) {
                 let term = self.parse_factor()?;
                 x.set(Some(x.clone()), Operator::Div, Some(term), None);
             } else {
@@ -244,10 +286,10 @@ impl<T: EquationTokenOptions> EquationToken<T> {
         let mut x: Box<Expression>;
 
         //Start Prefix
-        if self.eat(T::additive()) {
+        if self.eat(Some('+')) {
             x = self.parse_factor()?;
             return Ok(x);
-        } else if self.eat(T::inverse_additive()) {
+        } else if self.eat(Some('-')) {
             x = self.parse_factor()?;
             x.flip_value();
             return Ok(x);
@@ -362,11 +404,6 @@ impl<T: EquationTokenOptions> EquationToken<T> {
         }
     }
     fn is_operator_char(&self) -> bool {
-        let add_token = T::additive();
-        let inv_add_token = T::inverse_additive();
-        let mul_token = T::multiplicative();
-        let inv_mul_token = T::inverse_multiplicative();
-
-        !(self.ch != add_token && self.ch != inv_add_token && self.ch != mul_token && self.ch != inv_mul_token)
+        !(self.ch != Some('+') && self.ch != Some('-') && self.ch != Some('*') && self.ch != Some('/'))
     }
 }

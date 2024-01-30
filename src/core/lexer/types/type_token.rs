@@ -60,11 +60,13 @@ impl OperatorToASM for TypeToken {
         impl OperatorToASM for Bool {
             fn operation_to_asm<T: Display>(&self, operator: &Operator, _: &[T]) -> Result<AssemblerOperation, ASMGenerateError> {
                 match operator {
-                    Operator::Noop => Err(ASMGenerateError::InternalError("No operation for noop and booleans".to_string())),
+                    Operator::Noop => Err(ASMGenerateError::InternalError("No operation for noop on booleans".to_string())),
                     Operator::Add => Ok("or".to_string().into()),
-                    Operator::Sub => Err(ASMGenerateError::InternalError("No operation for sub and booleans".to_string())),
-                    Operator::Div => Err(ASMGenerateError::InternalError("No operation for div and booleans".to_string())),
+                    Operator::Sub => Err(ASMGenerateError::InternalError("No operation for sub on booleans".to_string())),
+                    Operator::Div => Err(ASMGenerateError::InternalError("No operation for div on booleans".to_string())),
                     Operator::Mul => Ok("and".to_string().into()),
+                    Operator::LeftShift => Err(ASMGenerateError::InternalError("No operation for left shift on booleans".to_string())),
+                    Operator::RightShift => Err(ASMGenerateError::InternalError("No operation for right shift on booleans".to_string())),
                 }
             }
         }

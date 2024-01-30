@@ -191,7 +191,7 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for VariableToken<ASSI
             let mut wrote_expression_to_target = false;
 
             match &self.assignable {
-                AssignableToken::ArithmeticEquation(eq) | AssignableToken::BooleanEquation(eq)  => {
+                AssignableToken::ArithmeticEquation(eq) => {
                     if eq.value.is_none() {
                         target += &eq.to_asm(stack, meta)?.to_string();
                         wrote_expression_to_target = true;
@@ -344,9 +344,6 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> VariableToken<ASSIGNMENT, SE
                 }
             }
             AssignableToken::ArithmeticEquation(expression) => {
-                return expression.traverse_type_resulted(context, code_line);
-            }
-            AssignableToken::BooleanEquation(expression) => {
                 return expression.traverse_type_resulted(context, code_line);
             }
             a => unreachable!("{}", format!("The type {a} should have been inferred or directly parsed. Something went wrong"))

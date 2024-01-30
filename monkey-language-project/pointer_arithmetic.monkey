@@ -1,13 +1,7 @@
 module monkey-language-project/std.monkey;
 
-let mut a: i32 = 5;
-let b = a;
+let a = (5 + 3) * 2 >> 3;
 
-let c: f32 = 5.0;
-
-
-printf("Integer is: %d\n", a);
-printf("Float is: %f", (f64) c);
-
+printf("%d", a);
 
 ExitProcess(0);
