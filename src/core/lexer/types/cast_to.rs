@@ -4,7 +4,7 @@ use std::fmt::{Display, Formatter};
 use crate::core::lexer::types::float::Float;
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
-use crate::core::lexer::tokens::assignable_tokens::boolean_token::Boolean;
+use crate::core::lexer::types::boolean::Boolean;
 use crate::core::lexer::types::integer::Integer;
 use crate::core::lexer::types::type_token::TypeToken;
 

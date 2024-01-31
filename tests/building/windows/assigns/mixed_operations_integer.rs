@@ -24,7 +24,7 @@ printf("%d", a);
     println!("{}", asm_result);
 
     let expected = r#"
-; This assembly is targeted for the Windows Operating System
+    ; This assembly is targeted for the Windows Operating System
 segment .text
 global main
 
@@ -38,9 +38,9 @@ main:
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
     sub rsp, 36
-    ; let a: i32 = (5 Add (1 Mul 100))
-    ; (5 Add (1 Mul 100))
-    ; (1 Mul 100)
+    ; let a: i32 = (5 + (1 * 100))
+    ; (5 + (1 * 100))
+    ; (1 * 100)
     mov eax, 1
     imul eax, 100
     mov edx, eax
@@ -80,7 +80,7 @@ printf("%d", a);
     println!("{}", asm_result);
 
     let expected = r#"
-; This assembly is targeted for the Windows Operating System
+    ; This assembly is targeted for the Windows Operating System
 segment .text
 global main
 
@@ -94,9 +94,9 @@ main:
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
     sub rsp, 36
-    ; let a: i32 = ((5 Mul 1) Div 100)
-    ; ((5 Mul 1) Div 100)
-    ; (5 Mul 1)
+    ; let a: i32 = ((5 * 1) / 100)
+    ; ((5 * 1) / 100)
+    ; (5 * 1)
     mov eax, 5
     imul eax, 1
     mov r14d, edx
@@ -141,7 +141,7 @@ printf("%d", a);
     println!("{}", asm_result);
 
     let expected = r#"
-; This assembly is targeted for the Windows Operating System
+    ; This assembly is targeted for the Windows Operating System
 segment .text
 global main
 
@@ -155,9 +155,9 @@ main:
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
     sub rsp, 36
-    ; let a: i32 = ((5 Mul 1) Sub 100)
-    ; ((5 Mul 1) Sub 100)
-    ; (5 Mul 1)
+    ; let a: i32 = ((5 * 1) - 100)
+    ; ((5 * 1) - 100)
+    ; (5 * 1)
     mov eax, 5
     imul eax, 1
     sub eax, 100
@@ -195,7 +195,7 @@ printf("%d", d);
     println!("{}", asm_result);
 
     let expected = r#"
-; This assembly is targeted for the Windows Operating System
+    ; This assembly is targeted for the Windows Operating System
 segment .text
 global main
 
@@ -209,17 +209,17 @@ main:
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
     sub rsp, 36
-    ; let d: i32 = (((6 Sub 2) Mul 3) Div (7 Add 4))
-    ; (((6 Sub 2) Mul 3) Div (7 Add 4))
-    ; ((6 Sub 2) Mul 3)
-    ; (6 Sub 2)
+    ; let d: i32 = (((6 - 2) * 3) / (7 + 4))
+    ; (((6 - 2) * 3) / (7 + 4))
+    ; ((6 - 2) * 3)
+    ; (6 - 2)
     mov eax, 6
     sub eax, 2
     imul eax, 3
     mov edi, eax
     push rdi
     xor rdi, rdi
-    ; (7 Add 4)
+    ; (7 + 4)
     mov eax, 7
     add eax, 4
     push rax
@@ -268,7 +268,7 @@ printf("%d", a);
     println!("{}", asm_result);
 
     let expected = r#"
-; This assembly is targeted for the Windows Operating System
+    ; This assembly is targeted for the Windows Operating System
 segment .text
 global main
 
@@ -282,19 +282,19 @@ main:
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
     sub rsp, 36
-    ; let a: i32 = (((((3 Add 1) Mul 4) Sub (9 Div 2)) Mul (((7 Add 3) Div 2) Sub (8 Mul 3))) Add (((6 Sub 2) Mul 3) Div (7 Add 4)))
-    ; (((((3 Add 1) Mul 4) Sub (9 Div 2)) Mul (((7 Add 3) Div 2) Sub (8 Mul 3))) Add (((6 Sub 2) Mul 3) Div (7 Add 4)))
-    ; ((((3 Add 1) Mul 4) Sub (9 Div 2)) Mul (((7 Add 3) Div 2) Sub (8 Mul 3)))
-    ; (((3 Add 1) Mul 4) Sub (9 Div 2))
-    ; ((3 Add 1) Mul 4)
-    ; (3 Add 1)
+    ; let a: i32 = (((((3 + 1) * 4) - (9 / 2)) * (((7 + 3) / 2) - (8 * 3))) + (((6 - 2) * 3) / (7 + 4)))
+    ; (((((3 + 1) * 4) - (9 / 2)) * (((7 + 3) / 2) - (8 * 3))) + (((6 - 2) * 3) / (7 + 4)))
+    ; ((((3 + 1) * 4) - (9 / 2)) * (((7 + 3) / 2) - (8 * 3)))
+    ; (((3 + 1) * 4) - (9 / 2))
+    ; ((3 + 1) * 4)
+    ; (3 + 1)
     mov eax, 3
     add eax, 1
     imul eax, 4
     mov edi, eax
     push rdi
     xor rdi, rdi
-    ; (9 Div 2)
+    ; (9 / 2)
     mov eax, 9
     mov r14d, edx
     mov r13d, eax
@@ -311,9 +311,9 @@ main:
     sub eax, edi
     push rax
     xor rax, rax
-    ; (((7 Add 3) Div 2) Sub (8 Mul 3))
-    ; ((7 Add 3) Div 2)
-    ; (7 Add 3)
+    ; (((7 + 3) / 2) - (8 * 3))
+    ; ((7 + 3) / 2)
+    ; (7 + 3)
     mov eax, 7
     add eax, 3
     mov r14d, edx
@@ -327,7 +327,7 @@ main:
     mov edi, eax
     push rdi
     xor rdi, rdi
-    ; (8 Mul 3)
+    ; (8 * 3)
     mov eax, 8
     imul eax, 3
     push rax
@@ -342,16 +342,16 @@ main:
     imul eax, edi
     push rax
     xor rax, rax
-    ; (((6 Sub 2) Mul 3) Div (7 Add 4))
-    ; ((6 Sub 2) Mul 3)
-    ; (6 Sub 2)
+    ; (((6 - 2) * 3) / (7 + 4))
+    ; ((6 - 2) * 3)
+    ; (6 - 2)
     mov eax, 6
     sub eax, 2
     imul eax, 3
     mov edi, eax
     push rdi
     xor rdi, rdi
-    ; (7 Add 4)
+    ; (7 + 4)
     mov eax, 7
     add eax, 4
     push rax
@@ -419,12 +419,12 @@ main:
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
     sub rsp, 40
-    ; let a: f64 = (((((3.5 Add 1.2) Mul 4.8) Sub (9.6 Div 2.4)) Mul (((7.2 Add 3.6) Div 2.1) Sub (8.4 Mul 3.7))) Add (((6.3 Sub 2.1) Mul 3.8) Div (7.9 Add 4.2)))
-    ; (((((3.5 Add 1.2) Mul 4.8) Sub (9.6 Div 2.4)) Mul (((7.2 Add 3.6) Div 2.1) Sub (8.4 Mul 3.7))) Add (((6.3 Sub 2.1) Mul 3.8) Div (7.9 Add 4.2)))
-    ; ((((3.5 Add 1.2) Mul 4.8) Sub (9.6 Div 2.4)) Mul (((7.2 Add 3.6) Div 2.1) Sub (8.4 Mul 3.7)))
-    ; (((3.5 Add 1.2) Mul 4.8) Sub (9.6 Div 2.4))
-    ; ((3.5 Add 1.2) Mul 4.8)
-    ; (3.5 Add 1.2)
+    ; let a: f64 = (((((3.5 + 1.2) * 4.8) - (9.6 / 2.4)) * (((7.2 + 3.6) / 2.1) - (8.4 * 3.7))) + (((6.3 - 2.1) * 3.8) / (7.9 + 4.2)))
+    ; (((((3.5 + 1.2) * 4.8) - (9.6 / 2.4)) * (((7.2 + 3.6) / 2.1) - (8.4 * 3.7))) + (((6.3 - 2.1) * 3.8) / (7.9 + 4.2)))
+    ; ((((3.5 + 1.2) * 4.8) - (9.6 / 2.4)) * (((7.2 + 3.6) / 2.1) - (8.4 * 3.7)))
+    ; (((3.5 + 1.2) * 4.8) - (9.6 / 2.4))
+    ; ((3.5 + 1.2) * 4.8)
+    ; (3.5 + 1.2)
     mov rax, __?float64?__(3.5)
     movq xmm0, rax
     mov rax, __?float64?__(1.2)
@@ -437,7 +437,7 @@ main:
     movq rdi, xmm2
     push rdi
     xor rdi, rdi
-    ; (9.6 Div 2.4)
+    ; (9.6 / 2.4)
     mov rax, __?float64?__(9.6)
     movq xmm0, rax
     mov rax, __?float64?__(2.4)
@@ -454,9 +454,9 @@ main:
     movq rax, xmm0
     push rax
     xor rax, rax
-    ; (((7.2 Add 3.6) Div 2.1) Sub (8.4 Mul 3.7))
-    ; ((7.2 Add 3.6) Div 2.1)
-    ; (7.2 Add 3.6)
+    ; (((7.2 + 3.6) / 2.1) - (8.4 * 3.7))
+    ; ((7.2 + 3.6) / 2.1)
+    ; (7.2 + 3.6)
     mov rax, __?float64?__(7.2)
     movq xmm0, rax
     mov rax, __?float64?__(3.6)
@@ -469,7 +469,7 @@ main:
     movq rdi, xmm2
     push rdi
     xor rdi, rdi
-    ; (8.4 Mul 3.7)
+    ; (8.4 * 3.7)
     mov rax, __?float64?__(8.4)
     movq xmm0, rax
     mov rax, __?float64?__(3.7)
@@ -494,9 +494,9 @@ main:
     movq rax, xmm0
     push rax
     xor rax, rax
-    ; (((6.3 Sub 2.1) Mul 3.8) Div (7.9 Add 4.2))
-    ; ((6.3 Sub 2.1) Mul 3.8)
-    ; (6.3 Sub 2.1)
+    ; (((6.3 - 2.1) * 3.8) / (7.9 + 4.2))
+    ; ((6.3 - 2.1) * 3.8)
+    ; (6.3 - 2.1)
     mov rax, __?float64?__(6.3)
     movq xmm0, rax
     mov rax, __?float64?__(2.1)
@@ -509,7 +509,7 @@ main:
     movq rdi, xmm2
     push rdi
     xor rdi, rdi
-    ; (7.9 Add 4.2)
+    ; (7.9 + 4.2)
     mov rax, __?float64?__(7.9)
     movq xmm0, rax
     mov rax, __?float64?__(4.2)
@@ -567,7 +567,7 @@ printf("%d", a);
     println!("{}", asm_result);
 
     let expected = r#"
-; This assembly is targeted for the Windows Operating System
+    ; This assembly is targeted for the Windows Operating System
 segment .text
 global main
 
@@ -581,9 +581,9 @@ main:
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
     sub rsp, 36
-    ; let a: i32 = ((5 Mul 1) Div 0)
-    ; ((5 Mul 1) Div 0)
-    ; (5 Mul 1)
+    ; let a: i32 = ((5 * 1) / 0)
+    ; ((5 * 1) / 0)
+    ; (5 * 1)
     mov eax, 5
     imul eax, 1
     mov r14d, edx

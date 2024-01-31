@@ -43,8 +43,8 @@ main:
     ; let b: f64 = 10.1
     mov rax, __?float64?__(10.1)
     mov QWORD [rbp - 16], rax
-    ; let c: f64 = (a Add b)
-    ; (a Add b)
+    ; let c: f64 = (a + b)
+    ; (a + b)
     movq xmm0, QWORD [rbp - 8]
     addsd xmm0, QWORD [rbp - 16]
     movq rax, xmm0
@@ -63,8 +63,8 @@ main:
 
 
     let expected = r#"
-    ; let a: f32 = (5 Add 3)
-    ; (5 Add 3)
+    ; let a: f32 = (5 + 3)
+    ; (5 + 3)
     mov eax, __?float32?__(5.0)
     movd xmm0, eax
     mov eax, __?float32?__(3.0)
@@ -84,9 +84,9 @@ main:
 
 
     let expected = r#"
-    ; let a: f64 = ((5 Add 2) Add 8)
-    ; ((5 Add 2) Add 8)
-    ; (5 Add 2)
+    ; let a: f64 = ((5 + 2) + 8)
+    ; ((5 + 2) + 8)
+    ; (5 + 2)
     mov rax, __?float64?__(5.0)
     movq xmm0, rax
     mov rax, __?float64?__(2.0)
@@ -110,9 +110,9 @@ main:
     let asm_result = asm_from_assign_code(&code)?;
 
     let expected = r#"
-    ; let a: f64 = (5 Add (2 Add 8))
-    ; (5 Add (2 Add 8))
-    ; (2 Add 8)
+    ; let a: f64 = (5 + (2 + 8))
+    ; (5 + (2 + 8))
+    ; (2 + 8)
     mov rax, __?float64?__(2.0)
     movq xmm0, rax
     mov rax, __?float64?__(8.0)
@@ -138,16 +138,16 @@ main:
 
 
     let expected = r#"
-    ; let a: f64 = ((5 Add 3) Add (2 Add 8))
-    ; ((5 Add 3) Add (2 Add 8))
-    ; (5 Add 3)
+    ; let a: f64 = ((5 + 3) + (2 + 8))
+    ; ((5 + 3) + (2 + 8))
+    ; (5 + 3)
     mov rax, __?float64?__(5.0)
     movq xmm0, rax
     mov rax, __?float64?__(3.0)
     movq xmm3, rax
     addsd xmm0, xmm3
     movq xmm1, xmm0
-    ; (2 Add 8)
+    ; (2 + 8)
     mov rax, __?float64?__(2.0)
     movq xmm0, rax
     mov rax, __?float64?__(8.0)
@@ -370,8 +370,8 @@ main:
     ; let b: *f64 = &a
     lea rax, [rbp - 8]
     mov QWORD [rbp - 16], rax
-    ; let addition: f64 = (*b Add 1)
-    ; (*b Add 1)
+    ; let addition: f64 = (*b + 1)
+    ; (*b + 1)
     mov rax, QWORD [rbp - 16]
     mov rax, QWORD [rax]
     movq xmm0, rax
@@ -427,8 +427,8 @@ main:
     ; let b: *f64 = &a
     lea rax, [rbp - 8]
     mov QWORD [rbp - 16], rax
-    ; let addition: f64 = (1 Add *b)
-    ; (1 Add *b)
+    ; let addition: f64 = (1 + *b)
+    ; (1 + *b)
     mov rax, __?float64?__(1.0)
     movq xmm0, rax
     mov rdx, QWORD [rbp - 16]
@@ -483,8 +483,8 @@ main:
     ; let b: *f64 = &a
     lea rax, [rbp - 8]
     mov QWORD [rbp - 16], rax
-    ; let addition: f64 = (*b Add *b)
-    ; (*b Add *b)
+    ; let addition: f64 = (*b + *b)
+    ; (*b + *b)
     mov rax, QWORD [rbp - 16]
     mov rax, QWORD [rax]
     movq xmm0, rax
@@ -536,9 +536,9 @@ main:
     ; let b: *f64 = &a
     lea rax, [rbp - 8]
     mov QWORD [rbp - 16], rax
-    ; let addition: f64 = (*b Add (0 Add 1))
-    ; (*b Add (0 Add 1))
-    ; (0 Add 1)
+    ; let addition: f64 = (*b + (0 + 1))
+    ; (*b + (0 + 1))
+    ; (0 + 1)
     mov rax, __?float64?__(0.0)
     movq xmm0, rax
     mov rax, __?float64?__(1.0)
@@ -597,9 +597,9 @@ main:
     ; let b: *f64 = &a
     lea rax, [rbp - 8]
     mov QWORD [rbp - 16], rax
-    ; let addition: f64 = ((0 Add 1) Add *b)
-    ; ((0 Add 1) Add *b)
-    ; (0 Add 1)
+    ; let addition: f64 = ((0 + 1) + *b)
+    ; ((0 + 1) + *b)
+    ; (0 + 1)
     mov rax, __?float64?__(0.0)
     movq xmm0, rax
     mov rax, __?float64?__(1.0)
@@ -656,9 +656,9 @@ main:
     ; let b: *f64 = &a
     lea rax, [rbp - 8]
     mov QWORD [rbp - 16], rax
-    ; let addition: f64 = ((*b Add *b) Add (*b Add *b))
-    ; ((*b Add *b) Add (*b Add *b))
-    ; (*b Add *b)
+    ; let addition: f64 = ((*b + *b) + (*b + *b))
+    ; ((*b + *b) + (*b + *b))
+    ; (*b + *b)
     mov rax, QWORD [rbp - 16]
     mov rax, QWORD [rax]
     movq xmm0, rax
@@ -667,7 +667,7 @@ main:
     movq xmm3, rdx
     addsd xmm0, xmm3
     movq xmm1, xmm0
-    ; (*b Add *b)
+    ; (*b + *b)
     mov rax, QWORD [rbp - 16]
     mov rax, QWORD [rax]
     movq xmm0, rax
@@ -735,11 +735,11 @@ main:
     ; let d: *f64 = &c
     lea rax, [rbp - 24]
     mov QWORD [rbp - 32], rax
-    ; let addition: f64 = ((((*d Add *b) Add (*b Add *d)) Add (*b Add *b)) Add ((*b Add (*b Add *b)) Add (*b Add (*d Add *b))))
-    ; ((((*d Add *b) Add (*b Add *d)) Add (*b Add *b)) Add ((*b Add (*b Add *b)) Add (*b Add (*d Add *b))))
-    ; (((*d Add *b) Add (*b Add *d)) Add (*b Add *b))
-    ; ((*d Add *b) Add (*b Add *d))
-    ; (*d Add *b)
+    ; let addition: f64 = ((((*d + *b) + (*b + *d)) + (*b + *b)) + ((*b + (*b + *b)) + (*b + (*d + *b))))
+    ; ((((*d + *b) + (*b + *d)) + (*b + *b)) + ((*b + (*b + *b)) + (*b + (*d + *b))))
+    ; (((*d + *b) + (*b + *d)) + (*b + *b))
+    ; ((*d + *b) + (*b + *d))
+    ; (*d + *b)
     mov rax, QWORD [rbp - 32]
     mov rax, QWORD [rax]
     movq xmm0, rax
@@ -748,7 +748,7 @@ main:
     movq xmm3, rdx
     addsd xmm0, xmm3
     movq xmm1, xmm0
-    ; (*b Add *d)
+    ; (*b + *d)
     mov rax, QWORD [rbp - 16]
     mov rax, QWORD [rax]
     movq xmm0, rax
@@ -762,7 +762,7 @@ main:
     movq rax, xmm0
     push rax
     xor rax, rax
-    ; (*b Add *b)
+    ; (*b + *b)
     mov rax, QWORD [rbp - 16]
     mov rax, QWORD [rax]
     movq xmm0, rax
@@ -781,9 +781,9 @@ main:
     movq rax, xmm0
     push rax
     xor rax, rax
-    ; ((*b Add (*b Add *b)) Add (*b Add (*d Add *b)))
-    ; (*b Add (*b Add *b))
-    ; (*b Add *b)
+    ; ((*b + (*b + *b)) + (*b + (*d + *b)))
+    ; (*b + (*b + *b))
+    ; (*b + *b)
     mov rax, QWORD [rbp - 16]
     mov rax, QWORD [rax]
     movq xmm0, rax
@@ -800,8 +800,8 @@ main:
     movq rdi, xmm2
     push rdi
     xor rdi, rdi
-    ; (*b Add (*d Add *b))
-    ; (*d Add *b)
+    ; (*b + (*d + *b))
+    ; (*d + *b)
     mov rax, QWORD [rbp - 32]
     mov rax, QWORD [rax]
     movq xmm0, rax

@@ -11,9 +11,9 @@ use crate::core::code_generator::registers::{ByteSize, FloatRegister, GeneralPur
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::static_type_context::StaticTypeContext;
 use crate::core::lexer::tokens::assignable_token::AssignableToken;
-use crate::core::lexer::tokens::assignable_tokens::boolean_token::Boolean;
-use crate::core::lexer::tokens::assignable_tokens::equation_parser::operator::Operator;
+use crate::core::lexer::tokens::assignable_tokens::equation_parser::operator::{Operator};
 use crate::core::lexer::tokens::name_token::NameToken;
+use crate::core::lexer::types::boolean::Boolean;
 use crate::core::lexer::types::float::Float;
 use crate::core::lexer::types::integer::Integer;
 use crate::core::lexer::types::type_token::{InferTypeError, TypeToken};
@@ -137,7 +137,7 @@ impl Expression {
         };
 
         let ty = &rhs.traverse_type(meta).ok_or(ASMGenerateError::InternalError("Could not traverse type".to_string()))?;
-        target.push_str(&ASMBuilder::ident_line(&self.operator.specific_operation(ty, &[destination_register.to_string(), source])?.inject_registers()));
+        target.push_str(&ASMBuilder::ident_line(&self.operator.specific_operation(ty, &[destination_register.to_string(), source], stack, meta)?.inject_registers()));
         Ok(())
     }
 
@@ -296,7 +296,7 @@ impl ToASM for Expression {
                         stack.register_to_use.pop();
 
                         let ty = &self.traverse_type(meta).ok_or(ASMGenerateError::InternalError("Could not traverse type".to_string()))?;
-                        target += &ASMBuilder::ident_line(&self.operator.specific_operation(ty, &[&register_b, &register_c])?.inject_registers());
+                        target += &ASMBuilder::ident_line(&self.operator.specific_operation(ty, &[&register_b, &register_c], stack, meta)?.inject_registers());
                         target += &ASMBuilder::mov_x_ident_line(register_a, register_b, if float_type.is_some() { Some(lhs_size) } else { None });
 
                         return Ok(target);
@@ -338,7 +338,7 @@ impl ToASM for Expression {
                         if rhs.is_pointer() {
                             target += &ASMBuilder::push(&rhs.to_asm(stack, meta)?);
                             let ty = &self.traverse_type(meta).ok_or(ASMGenerateError::InternalError("Could not traverse type".to_string()))?;
-                            target += &ASMBuilder::ident_line(&self.operator.specific_operation(ty, &[&destination_register, &target_register])?.inject_registers());
+                            target += &ASMBuilder::ident_line(&self.operator.specific_operation(ty, &[&destination_register, &target_register], stack, meta)?.inject_registers());
                         } else {
                             self.generate_rhs(stack, meta, &mut target, rhs, lhs_size, &destination_register, &target_register)?;
                         };
@@ -371,7 +371,7 @@ impl ToASM for Expression {
                         if rhs.is_pointer() {
                             target += &ASMBuilder::push(&rhs.to_asm(stack, meta)?);
                             let ty = &self.traverse_type(meta).ok_or(ASMGenerateError::InternalError("Could not traverse type".to_string()))?;
-                            target += &ASMBuilder::ident_line(&self.operator.specific_operation(ty, &[&destination_register, &target_register])?.inject_registers());
+                            target += &ASMBuilder::ident_line(&self.operator.specific_operation(ty, &[&destination_register, &target_register], stack, meta)?.inject_registers());
                         } else {
                             self.generate_rhs(stack, meta, &mut target, rhs, lhs_size, &destination_register, &target_register)?;
                         };
@@ -404,7 +404,7 @@ impl ToASM for Expression {
                         if lhs.is_pointer() {
                             target += &ASMBuilder::push(&lhs.to_asm(stack, meta)?);
                             let ty = &self.traverse_type(meta).ok_or(ASMGenerateError::InternalError("Could not traverse type".to_string()))?;
-                            target += &ASMBuilder::ident_line(&self.operator.specific_operation(ty, &[&register_a, &register_b])?.inject_registers());
+                            target += &ASMBuilder::ident_line(&self.operator.specific_operation(ty, &[&register_a, &register_b], stack, meta)?.inject_registers());
                         } else {
                             let source = if let Some(AssignableToken::FloatToken(f)) = &lhs.value.as_deref() {
                                 let destination_register = from_byte_size(f.byte_size(meta));
@@ -418,7 +418,7 @@ impl ToASM for Expression {
 
                             target += &ASMBuilder::mov_x_ident_line(&destination_register, source, if float_type.is_some() { Some(lhs_size) } else { None });
                             let ty = &self.traverse_type(meta).ok_or(ASMGenerateError::InternalError("Could not traverse type".to_string()))?;
-                            target += &ASMBuilder::ident_line(&self.operator.specific_operation(ty, &[&destination_register, &target_register])?.inject_registers());
+                            target += &ASMBuilder::ident_line(&self.operator.specific_operation(ty, &[&destination_register, &target_register], stack, meta)?.inject_registers());
                         };
                         stack.register_to_use.pop();
 
@@ -464,7 +464,7 @@ impl ToASM for Expression {
                         Self::pop_to_register(&mut target, &float_type, &register_a)?;
 
                         let ty = &self.traverse_type(meta).ok_or(ASMGenerateError::InternalError("Could not traverse type".to_string()))?;
-                        target += &ASMBuilder::ident_line(&self.operator.specific_operation(ty, &[&register_a, &register_b])?.inject_registers());
+                        target += &ASMBuilder::ident_line(&self.operator.specific_operation(ty, &[&register_a, &register_b], stack, meta)?.inject_registers());
                     }
                 }
             }

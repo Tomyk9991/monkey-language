@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
+
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::generator::Stack;
@@ -68,11 +69,11 @@ impl Castable<Float, Integer> for Float {
         match t1.byte_size() {
             8 if *t2 != Integer::I64 => {
                 target += &<Integer as Castable<Integer, Integer>>::cast_from_to(&Integer::I64, t2, &cast_from_register.to_string(), stack, meta)?;
-            },
+            }
             4 if *t2 != Integer::I32 => {
                 target += &<Integer as Castable<Integer, Integer>>::cast_from_to(&Integer::I32, t2, &cast_from_register.to_string(), stack, meta)?;
-            },
-            8 | 4 => { },
+            }
+            8 | 4 => {}
             l => unreachable!("Float cannot be of size: {}", l)
         }
 
@@ -144,7 +145,7 @@ impl Float {
 }
 
 impl OperatorToASM for Float {
-    fn operation_to_asm<T: Display>(&self, operator: &Operator, registers: &[T]) -> Result<AssemblerOperation, ASMGenerateError> {
+    fn operation_to_asm<T: Display>(&self, operator: &Operator, registers: &[T], stack: &mut Stack, meta: &mut MetaInfo) -> Result<AssemblerOperation, ASMGenerateError> {
         let suffix = match self {
             Float::Float32 => "ss",
             Float::Float64 => "sd"
@@ -152,10 +153,11 @@ impl OperatorToASM for Float {
 
         match operator {
             Operator::Noop => Err(ASMGenerateError::InternalError("Noop instruction is not supported on".to_string())),
-            Operator::Add => Ok(AssemblerOperation::two_operands(&format!("add{suffix}"), &registers[0], &registers[1]).into()),
-            Operator::Sub => Ok(AssemblerOperation::two_operands(&format!("sub{suffix}"), &registers[0], &registers[1]).into()),
-            Operator::Div => Ok(AssemblerOperation::two_operands(&format!("div{suffix}"), &registers[0], &registers[1]).into()),
-            Operator::Mul => Ok(AssemblerOperation::two_operands(&format!("mul{suffix}"), &registers[0], &registers[1]).into()),
+            Operator::Add | Operator::Sub | Operator::Div | Operator::Mul => Ok(AssemblerOperation::two_operands(
+                &format!("{}{suffix}", operator.to_asm(stack, meta)?),
+                &registers[0],
+                &registers[1]).into()
+            ),
             Operator::LeftShift => Err(ASMGenerateError::InternalError("Left Shift instruction is not supported on floats".to_string())),
             Operator::RightShift => Err(ASMGenerateError::InternalError("Left Shift instruction is not supported on floats".to_string())),
             _ => todo!()

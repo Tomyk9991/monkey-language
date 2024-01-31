@@ -176,13 +176,26 @@ impl EquationToken {
             return Err(Error::PositionNotInRange(self.pos));
         }
 
-        self.syntax_tree = self.parse_equality_expression()?;
+        self.syntax_tree = self.parse_bitwise_and()?;
 
         if self.pos as usize != self.source_code.chars().count() {
             return Err(Error::UndefinedSequence(self.source_code.chars().collect::<Vec<_>>()[self.pos as usize..].iter().collect::<String>()))
         }
 
         Ok(&self.syntax_tree)
+    }
+
+    fn parse_bitwise_and(&mut self) -> Result<Box<Expression>, Error> {
+        let mut x = self.parse_equality_expression()?;
+
+        loop {
+            if self.eat_multiple(Some("&")) {
+                let expression = self.parse_equality_expression()?;
+                x.set(Some(x.clone()), Operator::BitwiseAnd, Some(expression), None);
+            } else {
+                return Ok(x);
+            }
+        }
     }
 
     fn parse_equality_expression(&mut self) -> Result<Box<Expression>, Error> {
@@ -380,6 +393,7 @@ impl EquationToken {
 
         let start_pos: i32 = self.pos;
         if self.eat(Some(OPENING)) {
+            // todo: change this to latest parse_expression
             x = self.parse_expression()?;
 
             if !self.eat(Some(CLOSING)) {
@@ -399,7 +413,7 @@ impl EquationToken {
             } else if (self.ch >= Some('A') && self.ch <= Some('Z')) || (self.ch >= Some('a') && self.ch <= Some('z')) {
                 let mut ident = 0;
 
-                while ident != 0 || !self.is_operator_char() { // todo check for other values not allowed: let a = r);
+                while ident != 0 || !self.operator_sequence() {
                     match self.ch {
                         Some('(') => ident += 1,
                         Some(')') => ident -= 1,
@@ -445,7 +459,25 @@ impl EquationToken {
             Err(Error::SourceEmpty)
         }
     }
-    fn is_operator_char(&self) -> bool {
-        !(self.ch != Some('+') && self.ch != Some('-') && self.ch != Some('*') && self.ch != Some('/'))
+    fn operator_sequence(&mut self) -> bool {
+
+        static OPERATORS: [&'static str; 17] = ["+", "-", "*", "/", "<<", ">>", "<", ">", "<=", ">=", "==", "!=", "&", "^", "|", "&&", "||"];
+
+        for operator in OPERATORS {
+            let latest_ch = self.ch;
+            let latest_pos = self.pos;
+
+            if self.eat_multiple(Some(operator)) {
+                self.ch = latest_ch;
+                self.pos = latest_pos;
+
+                return true;
+            }
+
+            self.ch = latest_ch;
+            self.pos = latest_pos;
+        }
+
+        return false;
     }
 }

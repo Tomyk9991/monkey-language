@@ -25,7 +25,7 @@ printf("%f", (f64)a);
     println!("{}", asm_result);
 
     let expected = r#"
-; This assembly is targeted for the Windows Operating System
+    ; This assembly is targeted for the Windows Operating System
 segment .text
 global main
 
@@ -39,9 +39,9 @@ main:
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
     sub rsp, 36
-    ; let a: f32 = (5 Add (1 Mul 100))
-    ; (5 Add (1 Mul 100))
-    ; (1 Mul 100)
+    ; let a: f32 = (5 + (1 * 100))
+    ; (5 + (1 * 100))
+    ; (1 * 100)
     mov eax, __?float32?__(1.0)
     movd xmm0, eax
     mov eax, __?float32?__(100.0)
@@ -92,7 +92,7 @@ printf("%f", (f64)a);
     println!("{}", asm_result);
 
     let expected = r#"
-; This assembly is targeted for the Windows Operating System
+    ; This assembly is targeted for the Windows Operating System
 segment .text
 global main
 
@@ -106,9 +106,9 @@ main:
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
     sub rsp, 36
-    ; let a: f32 = ((5 Mul 1) Sub 100)
-    ; ((5 Mul 1) Sub 100)
-    ; (5 Mul 1)
+    ; let a: f32 = ((5 * 1) - 100)
+    ; ((5 * 1) - 100)
+    ; (5 * 1)
     mov eax, __?float32?__(5.0)
     movd xmm0, eax
     mov eax, __?float32?__(1.0)
@@ -156,7 +156,8 @@ printf("%f", (f64)a);
 
     println!("{}", asm_result);
 
-    let expected = r#"; This assembly is targeted for the Windows Operating System
+    let expected = r#"
+    ; This assembly is targeted for the Windows Operating System
 segment .text
 global main
 
@@ -170,12 +171,12 @@ main:
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
     sub rsp, 36
-    ; let a: f32 = (((((3.5 Add 1.2) Mul 4.8) Sub (9.6 Div 2.4)) Mul (((7.2 Add 3.6) Div 2.1) Sub (8.4 Mul 3.7))) Add (((6.3 Sub 2.1) Mul 3.8) Div (7.9 Add 4.2)))
-    ; (((((3.5 Add 1.2) Mul 4.8) Sub (9.6 Div 2.4)) Mul (((7.2 Add 3.6) Div 2.1) Sub (8.4 Mul 3.7))) Add (((6.3 Sub 2.1) Mul 3.8) Div (7.9 Add 4.2)))
-    ; ((((3.5 Add 1.2) Mul 4.8) Sub (9.6 Div 2.4)) Mul (((7.2 Add 3.6) Div 2.1) Sub (8.4 Mul 3.7)))
-    ; (((3.5 Add 1.2) Mul 4.8) Sub (9.6 Div 2.4))
-    ; ((3.5 Add 1.2) Mul 4.8)
-    ; (3.5 Add 1.2)
+    ; let a: f32 = (((((3.5 + 1.2) * 4.8) - (9.6 / 2.4)) * (((7.2 + 3.6) / 2.1) - (8.4 * 3.7))) + (((6.3 - 2.1) * 3.8) / (7.9 + 4.2)))
+    ; (((((3.5 + 1.2) * 4.8) - (9.6 / 2.4)) * (((7.2 + 3.6) / 2.1) - (8.4 * 3.7))) + (((6.3 - 2.1) * 3.8) / (7.9 + 4.2)))
+    ; ((((3.5 + 1.2) * 4.8) - (9.6 / 2.4)) * (((7.2 + 3.6) / 2.1) - (8.4 * 3.7)))
+    ; (((3.5 + 1.2) * 4.8) - (9.6 / 2.4))
+    ; ((3.5 + 1.2) * 4.8)
+    ; (3.5 + 1.2)
     mov eax, __?float32?__(3.5)
     movd xmm0, eax
     mov eax, __?float32?__(1.2)
@@ -188,7 +189,7 @@ main:
     movq rdi, xmm2
     push rdi
     xor rdi, rdi
-    ; (9.6 Div 2.4)
+    ; (9.6 / 2.4)
     mov eax, __?float32?__(9.6)
     movd xmm0, eax
     mov eax, __?float32?__(2.4)
@@ -205,9 +206,9 @@ main:
     movq rax, xmm0
     push rax
     xor rax, rax
-    ; (((7.2 Add 3.6) Div 2.1) Sub (8.4 Mul 3.7))
-    ; ((7.2 Add 3.6) Div 2.1)
-    ; (7.2 Add 3.6)
+    ; (((7.2 + 3.6) / 2.1) - (8.4 * 3.7))
+    ; ((7.2 + 3.6) / 2.1)
+    ; (7.2 + 3.6)
     mov eax, __?float32?__(7.2)
     movd xmm0, eax
     mov eax, __?float32?__(3.6)
@@ -220,7 +221,7 @@ main:
     movq rdi, xmm2
     push rdi
     xor rdi, rdi
-    ; (8.4 Mul 3.7)
+    ; (8.4 * 3.7)
     mov eax, __?float32?__(8.4)
     movd xmm0, eax
     mov eax, __?float32?__(3.7)
@@ -245,9 +246,9 @@ main:
     movq rax, xmm0
     push rax
     xor rax, rax
-    ; (((6.3 Sub 2.1) Mul 3.8) Div (7.9 Add 4.2))
-    ; ((6.3 Sub 2.1) Mul 3.8)
-    ; (6.3 Sub 2.1)
+    ; (((6.3 - 2.1) * 3.8) / (7.9 + 4.2))
+    ; ((6.3 - 2.1) * 3.8)
+    ; (6.3 - 2.1)
     mov eax, __?float32?__(6.3)
     movd xmm0, eax
     mov eax, __?float32?__(2.1)
@@ -260,7 +261,7 @@ main:
     movq rdi, xmm2
     push rdi
     xor rdi, rdi
-    ; (7.9 Add 4.2)
+    ; (7.9 + 4.2)
     mov eax, __?float32?__(7.9)
     movd xmm0, eax
     mov eax, __?float32?__(4.2)
@@ -336,12 +337,12 @@ main:
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
     sub rsp, 40
-    ; let a: f64 = (((((3.5 Add 1.2) Mul 4.8) Sub (9.6 Div 2.4)) Mul (((7.2 Add 3.6) Div 2.1) Sub (8.4 Mul 3.7))) Add (((6.3 Sub 2.1) Mul 3.8) Div (7.9 Add 4.2)))
-    ; (((((3.5 Add 1.2) Mul 4.8) Sub (9.6 Div 2.4)) Mul (((7.2 Add 3.6) Div 2.1) Sub (8.4 Mul 3.7))) Add (((6.3 Sub 2.1) Mul 3.8) Div (7.9 Add 4.2)))
-    ; ((((3.5 Add 1.2) Mul 4.8) Sub (9.6 Div 2.4)) Mul (((7.2 Add 3.6) Div 2.1) Sub (8.4 Mul 3.7)))
-    ; (((3.5 Add 1.2) Mul 4.8) Sub (9.6 Div 2.4))
-    ; ((3.5 Add 1.2) Mul 4.8)
-    ; (3.5 Add 1.2)
+    ; let a: f64 = (((((3.5 + 1.2) * 4.8) - (9.6 / 2.4)) * (((7.2 + 3.6) / 2.1) - (8.4 * 3.7))) + (((6.3 - 2.1) * 3.8) / (7.9 + 4.2)))
+    ; (((((3.5 + 1.2) * 4.8) - (9.6 / 2.4)) * (((7.2 + 3.6) / 2.1) - (8.4 * 3.7))) + (((6.3 - 2.1) * 3.8) / (7.9 + 4.2)))
+    ; ((((3.5 + 1.2) * 4.8) - (9.6 / 2.4)) * (((7.2 + 3.6) / 2.1) - (8.4 * 3.7)))
+    ; (((3.5 + 1.2) * 4.8) - (9.6 / 2.4))
+    ; ((3.5 + 1.2) * 4.8)
+    ; (3.5 + 1.2)
     mov rax, __?float64?__(3.5)
     movq xmm0, rax
     mov rax, __?float64?__(1.2)
@@ -354,7 +355,7 @@ main:
     movq rdi, xmm2
     push rdi
     xor rdi, rdi
-    ; (9.6 Div 2.4)
+    ; (9.6 / 2.4)
     mov rax, __?float64?__(9.6)
     movq xmm0, rax
     mov rax, __?float64?__(2.4)
@@ -371,9 +372,9 @@ main:
     movq rax, xmm0
     push rax
     xor rax, rax
-    ; (((7.2 Add 3.6) Div 2.1) Sub (8.4 Mul 3.7))
-    ; ((7.2 Add 3.6) Div 2.1)
-    ; (7.2 Add 3.6)
+    ; (((7.2 + 3.6) / 2.1) - (8.4 * 3.7))
+    ; ((7.2 + 3.6) / 2.1)
+    ; (7.2 + 3.6)
     mov rax, __?float64?__(7.2)
     movq xmm0, rax
     mov rax, __?float64?__(3.6)
@@ -386,7 +387,7 @@ main:
     movq rdi, xmm2
     push rdi
     xor rdi, rdi
-    ; (8.4 Mul 3.7)
+    ; (8.4 * 3.7)
     mov rax, __?float64?__(8.4)
     movq xmm0, rax
     mov rax, __?float64?__(3.7)
@@ -411,9 +412,9 @@ main:
     movq rax, xmm0
     push rax
     xor rax, rax
-    ; (((6.3 Sub 2.1) Mul 3.8) Div (7.9 Add 4.2))
-    ; ((6.3 Sub 2.1) Mul 3.8)
-    ; (6.3 Sub 2.1)
+    ; (((6.3 - 2.1) * 3.8) / (7.9 + 4.2))
+    ; ((6.3 - 2.1) * 3.8)
+    ; (6.3 - 2.1)
     mov rax, __?float64?__(6.3)
     movq xmm0, rax
     mov rax, __?float64?__(2.1)
@@ -426,7 +427,7 @@ main:
     movq rdi, xmm2
     push rdi
     xor rdi, rdi
-    ; (7.9 Add 4.2)
+    ; (7.9 + 4.2)
     mov rax, __?float64?__(7.9)
     movq xmm0, rax
     mov rax, __?float64?__(4.2)
@@ -498,9 +499,9 @@ main:
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
     sub rsp, 36
-    ; let a: f32 = ((5 Mul 1) Div 0)
-    ; ((5 Mul 1) Div 0)
-    ; (5 Mul 1)
+    ; let a: f32 = ((5 * 1) / 0)
+    ; ((5 * 1) / 0)
+    ; (5 * 1)
     mov eax, __?float32?__(5.0)
     movd xmm0, eax
     mov eax, __?float32?__(1.0)

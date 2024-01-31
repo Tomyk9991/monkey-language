@@ -145,11 +145,9 @@ impl ToASM for AssignableToken {
             AssignableToken::String(string) => Ok(string.to_asm(stack, meta)?),
             AssignableToken::FloatToken(float) => Ok(float.to_asm(stack, meta)?),
             AssignableToken::MethodCallToken(method_call) => Ok(method_call.to_asm(stack, meta)?),
-            token => Err(ASMGenerateError::AssignmentNotImplemented { assignable_token: (*token).clone() })
-            // AssignableToken::DoubleToken(_) => {}
-            // AssignableToken::BooleanToken(_) => {}
+            AssignableToken::BooleanToken(boolean) => Ok(boolean.to_asm(stack, meta)?),
             // AssignableToken::Object(_) => {}
-            // AssignableToken::BooleanEquation(_) => {}
+            token => Err(ASMGenerateError::AssignmentNotImplemented { assignable_token: (*token).clone() })
         }
     }
 

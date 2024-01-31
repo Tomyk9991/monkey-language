@@ -13,6 +13,7 @@ pub enum Operator {
     Add,
     Sub,
     Div,
+    Mul,
     LeftShift,
     RightShift,
     LessThan,
@@ -21,12 +22,12 @@ pub enum Operator {
     GreaterThanEqual,
     Equal,
     NotEqual,
-    Mul,
+    BitwiseAnd,
 }
 
 pub trait OperatorToASM {
     /// This function is used to convert an operator to an assembly instruction. First tuple element is a possible string of other instructions to the instruction.
-    fn operation_to_asm<T: Display>(&self, operator: &Operator, registers: &[T]) -> Result<AssemblerOperation, ASMGenerateError>;
+    fn operation_to_asm<T: Display>(&self, operator: &Operator, registers: &[T], stack: &mut Stack, meta: &mut MetaInfo) -> Result<AssemblerOperation, ASMGenerateError>;
 }
 
 impl Display for Operator {
@@ -45,6 +46,7 @@ impl Display for Operator {
             Operator::GreaterThanEqual => ">=",
             Operator::Equal => "==",
             Operator::NotEqual => "!=",
+            Operator::BitwiseAnd => "&"
         })
     }
 }
@@ -64,7 +66,8 @@ impl ToASM for Operator {
             Operator::LessThanEqual => "setle",
             Operator::GreaterThanEqual => "setge",
             Operator::Equal => "sete",
-            Operator::NotEqual => "setne"
+            Operator::NotEqual => "setne",
+            Operator::BitwiseAnd => "and",
         }.to_string())
     }
 
@@ -82,8 +85,8 @@ impl ToASM for Operator {
 }
 
 impl Operator {
-    pub fn specific_operation<T: Display>(&self, ty: &TypeToken, registers: &[T]) -> Result<AssemblerOperation, ASMGenerateError> {
-        ty.operation_to_asm(self, registers)
+    pub fn specific_operation<T: Display>(&self, ty: &TypeToken, registers: &[T], stack: &mut Stack, meta: &mut MetaInfo) -> Result<AssemblerOperation, ASMGenerateError> {
+        ty.operation_to_asm(self, registers, stack, meta)
     }
 }
 

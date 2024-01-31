@@ -1,13 +1,14 @@
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
-use crate::core::code_generator::{ASMGenerateError};
+use crate::core::code_generator::{ASMGenerateError, MetaInfo};
+use crate::core::code_generator::generator::Stack;
 
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::tokens::assignable_token::AssignableToken;
-use crate::core::lexer::tokens::assignable_tokens::boolean_token::Boolean;
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::operator::{AssemblerOperation, Operator, OperatorToASM};
 use crate::core::lexer::tokens::name_token::{NameToken, NameTokenErr};
+use crate::core::lexer::types::boolean::Boolean;
 use crate::core::lexer::types::cast_to::CastTo;
 use crate::core::lexer::types::float::Float;
 use crate::core::lexer::types::integer::Integer;
@@ -55,12 +56,12 @@ pub struct MethodCallArgumentTypeMismatch {
 }
 
 impl OperatorToASM for TypeToken {
-    fn operation_to_asm<T: Display>(&self, operator: &Operator, registers: &[T]) -> Result<AssemblerOperation, ASMGenerateError> {
+    fn operation_to_asm<T: Display>(&self, operator: &Operator, registers: &[T], stack: &mut Stack, meta: &mut MetaInfo) -> Result<AssemblerOperation, ASMGenerateError> {
 
         match self {
-            TypeToken::Integer(t) => t.operation_to_asm(operator, registers),
-            TypeToken::Float(t) => t.operation_to_asm(operator, registers),
-            TypeToken::Bool => Boolean::True.operation_to_asm(operator, registers),
+            TypeToken::Integer(t) => t.operation_to_asm(operator, registers, stack, meta),
+            TypeToken::Float(t) => t.operation_to_asm(operator, registers, stack, meta),
+            TypeToken::Bool => Boolean::True.operation_to_asm(operator, registers, stack, meta),
             TypeToken::Void => Err(ASMGenerateError::InternalError("Void cannot be operated on".to_string())),
             TypeToken::Custom(_) => todo!(),
         }

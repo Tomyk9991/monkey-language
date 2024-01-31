@@ -205,9 +205,9 @@ main:
     ; let a: f64 = 5
     mov rax, __?float64?__(5.0)
     mov QWORD [rbp - 8], rax
-    ; let b: f32 = (f32)(a Add 1)
+    ; let b: f32 = (f32)(a + 1)
     movd eax, xmm0
-    ; (a Add 1)
+    ; (a + 1)
     movq xmm0, QWORD [rbp - 8]
     mov rax, __?float64?__(1.0)
     movq xmm3, rax
@@ -273,8 +273,8 @@ main:
     ; let a: f64 = 5
     mov rax, __?float64?__(5.0)
     mov QWORD [rbp - 8], rax
-    ; let b: f32 = ((f32)a Add 1)
-    ; ((f32)a Add 1)
+    ; let b: f32 = ((f32)a + 1)
+    ; ((f32)a + 1)
     mov rax, QWORD [rbp - 8]
     movq xmm7, rax
     cvtsd2ss xmm7, xmm7
@@ -346,8 +346,8 @@ main:
     ; let b: f64 = 11.3
     mov rax, __?float64?__(11.3)
     mov QWORD [rbp - 16], rax
-    ; let c: f32 = ((f32)a Add (f32)b)
-    ; ((f32)a Add (f32)b)
+    ; let c: f32 = ((f32)a + (f32)b)
+    ; ((f32)a + (f32)b)
     mov rax, QWORD [rbp - 8]
     movq xmm7, rax
     cvtsd2ss xmm7, xmm7
@@ -417,8 +417,8 @@ main:
     ; let a: f64 = 5
     mov rax, __?float64?__(5.0)
     mov QWORD [rbp - 8], rax
-    ; let b: f32 = (1 Add (f32)a)
-    ; (1 Add (f32)a)
+    ; let b: f32 = (1 + (f32)a)
+    ; (1 + (f32)a)
     mov eax, __?float32?__(1.0)
     movd xmm0, eax
     mov rdx, QWORD [rbp - 8]
@@ -485,9 +485,9 @@ main:
     ; let a: f64 = 5
     mov rax, __?float64?__(5.0)
     mov QWORD [rbp - 8], rax
-    ; let b: f32 = ((f32)a Add (1 Add 5.1))
-    ; ((f32)a Add (1 Add 5.1))
-    ; (1 Add 5.1)
+    ; let b: f32 = ((f32)a + (1 + 5.1))
+    ; ((f32)a + (1 + 5.1))
+    ; (1 + 5.1)
     mov eax, __?float32?__(1.0)
     movd xmm0, eax
     mov eax, __?float32?__(5.1)
@@ -558,9 +558,9 @@ main:
     ; let a: f64 = 5
     mov rax, __?float64?__(5.0)
     mov QWORD [rbp - 8], rax
-    ; let b: f32 = ((1 Add 5.1) Add (f32)a)
-    ; ((1 Add 5.1) Add (f32)a)
-    ; (1 Add 5.1)
+    ; let b: f32 = ((1 + 5.1) + (f32)a)
+    ; ((1 + 5.1) + (f32)a)
+    ; (1 + 5.1)
     mov eax, __?float32?__(1.0)
     movd xmm0, eax
     mov eax, __?float32?__(5.1)
@@ -630,9 +630,9 @@ main:
     ; let a: f64 = 5
     mov rax, __?float64?__(5.0)
     mov QWORD [rbp - 8], rax
-    ; let b: f32 = (((f32)a Add (f32)a) Add ((f32)a Add (f32)a))
-    ; (((f32)a Add (f32)a) Add ((f32)a Add (f32)a))
-    ; ((f32)a Add (f32)a)
+    ; let b: f32 = (((f32)a + (f32)a) + ((f32)a + (f32)a))
+    ; (((f32)a + (f32)a) + ((f32)a + (f32)a))
+    ; ((f32)a + (f32)a)
     mov rax, QWORD [rbp - 8]
     movq xmm7, rax
     cvtsd2ss xmm7, xmm7
@@ -645,7 +645,7 @@ main:
     movd xmm3, edx
     addss xmm0, xmm3
     movq xmm1, xmm0
-    ; ((f32)a Add (f32)a)
+    ; ((f32)a + (f32)a)
     mov rax, QWORD [rbp - 8]
     movq xmm7, rax
     cvtsd2ss xmm7, xmm7
@@ -722,11 +722,11 @@ main:
     ; let d: f64 = 13
     mov rax, __?float64?__(13.0)
     mov QWORD [rbp - 16], rax
-    ; let addition: f32 = (((((f32)d Add (f32)b) Add ((f32)b Add (f32)d)) Add ((f32)b Add (f32)b)) Add (((f32)b Add ((f32)b Add (f32)b)) Add ((f32)b Add ((f32)d Add (f32)b))))
-    ; (((((f32)d Add (f32)b) Add ((f32)b Add (f32)d)) Add ((f32)b Add (f32)b)) Add (((f32)b Add ((f32)b Add (f32)b)) Add ((f32)b Add ((f32)d Add (f32)b))))
-    ; ((((f32)d Add (f32)b) Add ((f32)b Add (f32)d)) Add ((f32)b Add (f32)b))
-    ; (((f32)d Add (f32)b) Add ((f32)b Add (f32)d))
-    ; ((f32)d Add (f32)b)
+    ; let addition: f32 = (((((f32)d + (f32)b) + ((f32)b + (f32)d)) + ((f32)b + (f32)b)) + (((f32)b + ((f32)b + (f32)b)) + ((f32)b + ((f32)d + (f32)b))))
+    ; (((((f32)d + (f32)b) + ((f32)b + (f32)d)) + ((f32)b + (f32)b)) + (((f32)b + ((f32)b + (f32)b)) + ((f32)b + ((f32)d + (f32)b))))
+    ; ((((f32)d + (f32)b) + ((f32)b + (f32)d)) + ((f32)b + (f32)b))
+    ; (((f32)d + (f32)b) + ((f32)b + (f32)d))
+    ; ((f32)d + (f32)b)
     mov rax, QWORD [rbp - 16]
     movq xmm7, rax
     cvtsd2ss xmm7, xmm7
@@ -739,7 +739,7 @@ main:
     movd xmm3, edx
     addss xmm0, xmm3
     movq xmm1, xmm0
-    ; ((f32)b Add (f32)d)
+    ; ((f32)b + (f32)d)
     mov rax, QWORD [rbp - 8]
     movq xmm7, rax
     cvtsd2ss xmm7, xmm7
@@ -757,7 +757,7 @@ main:
     movq rax, xmm0
     push rax
     xor rax, rax
-    ; ((f32)b Add (f32)b)
+    ; ((f32)b + (f32)b)
     mov rax, QWORD [rbp - 8]
     movq xmm7, rax
     cvtsd2ss xmm7, xmm7
@@ -780,9 +780,9 @@ main:
     movq rax, xmm0
     push rax
     xor rax, rax
-    ; (((f32)b Add ((f32)b Add (f32)b)) Add ((f32)b Add ((f32)d Add (f32)b)))
-    ; ((f32)b Add ((f32)b Add (f32)b))
-    ; ((f32)b Add (f32)b)
+    ; (((f32)b + ((f32)b + (f32)b)) + ((f32)b + ((f32)d + (f32)b)))
+    ; ((f32)b + ((f32)b + (f32)b))
+    ; ((f32)b + (f32)b)
     mov rax, QWORD [rbp - 8]
     movq xmm7, rax
     cvtsd2ss xmm7, xmm7
@@ -805,8 +805,8 @@ main:
     movq rdi, xmm2
     push rdi
     xor rdi, rdi
-    ; ((f32)b Add ((f32)d Add (f32)b))
-    ; ((f32)d Add (f32)b)
+    ; ((f32)b + ((f32)d + (f32)b))
+    ; ((f32)d + (f32)b)
     mov rax, QWORD [rbp - 16]
     movq xmm7, rax
     cvtsd2ss xmm7, xmm7

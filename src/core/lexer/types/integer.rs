@@ -278,6 +278,8 @@ impl Integer {
 
             base_type_matrix.insert((TypeToken::Integer(ty.clone()), Operator::Equal, TypeToken::Integer(ty.clone())), TypeToken::Bool);
             base_type_matrix.insert((TypeToken::Integer(ty.clone()), Operator::NotEqual, TypeToken::Integer(ty.clone())), TypeToken::Bool);
+
+            base_type_matrix.insert((TypeToken::Integer(ty.clone()), Operator::BitwiseAnd, TypeToken::Integer(ty.clone())), TypeToken::Integer(ty.clone()));
         }
     }
 
@@ -297,7 +299,7 @@ impl Integer {
 }
 
 impl OperatorToASM for Integer {
-    fn operation_to_asm<T: Display>(&self, operator: &Operator, registers: &[T]) -> Result<AssemblerOperation, ASMGenerateError> {
+    fn operation_to_asm<T: Display>(&self, operator: &Operator, registers: &[T], stack: &mut Stack, meta: &mut MetaInfo) -> Result<AssemblerOperation, ASMGenerateError> {
         let prefix = if self.signed() { "i" } else { "" };
 
         let integer_size = self.byte_size();
@@ -336,9 +338,14 @@ impl OperatorToASM for Integer {
             }
             Operator::LessThan | Operator::GreaterThan | Operator::LessThanEqual | Operator::GreaterThanEqual | Operator::Equal | Operator::NotEqual => Ok(AssemblerOperation {
                 prefix: None,
-                operation: AssemblerOperation::compare(&operator.to_asm(&mut Default::default(), &mut Default::default())?, &registers[0], &registers[1])?,
+                operation: AssemblerOperation::compare(&operator.to_asm(stack, meta)?, &registers[0], &registers[1])?,
                 postfix: None,
             }),
+            Operator::BitwiseAnd => Ok(AssemblerOperation {
+                prefix: None,
+                operation: AssemblerOperation::two_operands(&operator.to_asm(stack, meta)?, &registers[0], &registers[1]),
+                postfix: None,
+            })
         }
     }
 }

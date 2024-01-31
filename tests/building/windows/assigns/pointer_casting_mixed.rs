@@ -155,9 +155,9 @@ main:
     ; let b: *f64 = &a
     lea rax, [rbp - 8]
     mov QWORD [rbp - 16], rax
-    ; let c: f32 = (((f32)*b Add (f32)*b) Mul (f32)*b)
-    ; (((f32)*b Add (f32)*b) Mul (f32)*b)
-    ; ((f32)*b Add (f32)*b)
+    ; let c: f32 = (((f32)*b + (f32)*b) * (f32)*b)
+    ; (((f32)*b + (f32)*b) * (f32)*b)
+    ; ((f32)*b + (f32)*b)
     mov rax, QWORD [rbp - 16]
     mov rax, QWORD [rax]
     movq xmm0, rax

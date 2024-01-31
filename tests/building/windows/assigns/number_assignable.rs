@@ -18,8 +18,8 @@ fn expression_assign() -> anyhow::Result<()> {
 
 
     let expected = r#"
-; let a: i32 = (5 Add 3)
-    ; (5 Add 3)
+; let a: i32 = (5 + 3)
+    ; (5 + 3)
     mov eax, 5
     add eax, 3
     mov DWORD [rbp - 4], eax
@@ -35,9 +35,9 @@ fn expression_assign() -> anyhow::Result<()> {
 
 
     let expected = r#"
-    ; let a: i32 = ((5 Add 2) Add 8)
-    ; ((5 Add 2) Add 8)
-    ; (5 Add 2)
+    ; let a: i32 = ((5 + 2) + 8)
+    ; ((5 + 2) + 8)
+    ; (5 + 2)
     mov eax, 5
     add eax, 2
     add eax, 8
@@ -53,9 +53,9 @@ fn expression_assign() -> anyhow::Result<()> {
     let asm_result = asm_from_assign_code(&code)?;
 
     let expected = r#"
-    ; let a: i32 = (5 Add (2 Add 8))
-    ; (5 Add (2 Add 8))
-    ; (2 Add 8)
+    ; let a: i32 = (5 + (2 + 8))
+    ; (5 + (2 + 8))
+    ; (2 + 8)
     mov eax, 2
     add eax, 8
     mov edx, eax
@@ -74,13 +74,13 @@ fn expression_assign() -> anyhow::Result<()> {
 
 
     let expected = r#"
-    ; let a: i32 = ((5 Add 3) Add (2 Add 8))
-    ; ((5 Add 3) Add (2 Add 8))
-    ; (5 Add 3)
+    ; let a: i32 = ((5 + 3) + (2 + 8))
+    ; ((5 + 3) + (2 + 8))
+    ; (5 + 3)
     mov eax, 5
     add eax, 3
     mov ecx, eax
-    ; (2 Add 8)
+    ; (2 + 8)
     mov eax, 2
     add eax, 8
     mov edi, eax
@@ -277,7 +277,7 @@ let addition = *b + 1;
     let asm_result = code_generator.generate()?;
 
     let expected = r#"
-; This assembly is targeted for the Windows Operating System
+    ; This assembly is targeted for the Windows Operating System
 segment .text
 global main
 
@@ -292,8 +292,8 @@ main:
     ; let b: *i32 = &a
     lea rax, [rbp - 4]
     mov QWORD [rbp - 12], rax
-    ; let addition: i32 = (*b Add 1)
-    ; (*b Add 1)
+    ; let addition: i32 = (*b + 1)
+    ; (*b + 1)
     mov rax, QWORD [rbp - 12]
     mov rax, QWORD [rax]
     add eax, 1
@@ -329,7 +329,7 @@ let addition = 1 + *b;
 
 
     let expected = r#"
-; This assembly is targeted for the Windows Operating System
+    ; This assembly is targeted for the Windows Operating System
 segment .text
 global main
 
@@ -344,8 +344,8 @@ main:
     ; let b: *i32 = &a
     lea rax, [rbp - 4]
     mov QWORD [rbp - 12], rax
-    ; let addition: i32 = (1 Add *b)
-    ; (1 Add *b)
+    ; let addition: i32 = (1 + *b)
+    ; (1 + *b)
     mov eax, 1
     mov rdx, QWORD [rbp - 12]
     mov rdx, QWORD [rdx]
@@ -353,7 +353,6 @@ main:
     mov DWORD [rbp - 16], eax
     leave
     ret
-
     "#;
 
     assert_eq!(expected.trim(), asm_result.trim());
@@ -382,7 +381,7 @@ let addition = *b + *b;
     println!("{}", asm_result);
 
     let expected = r#"
-; This assembly is targeted for the Windows Operating System
+    ; This assembly is targeted for the Windows Operating System
 segment .text
 global main
 
@@ -397,8 +396,8 @@ main:
     ; let b: *i32 = &a
     lea rax, [rbp - 4]
     mov QWORD [rbp - 12], rax
-    ; let addition: i32 = (*b Add *b)
-    ; (*b Add *b)
+    ; let addition: i32 = (*b + *b)
+    ; (*b + *b)
     mov rax, QWORD [rbp - 12]
     mov rax, QWORD [rax]
     mov rdx, QWORD [rbp - 12]
@@ -431,7 +430,7 @@ let addition = *b + (0 + 1);
     let asm_result = code_generator.generate()?;
 
     let expected = r#"
-; This assembly is targeted for the Windows Operating System
+    ; This assembly is targeted for the Windows Operating System
 segment .text
 global main
 
@@ -446,9 +445,9 @@ main:
     ; let b: *i32 = &a
     lea rax, [rbp - 4]
     mov QWORD [rbp - 12], rax
-    ; let addition: i32 = (*b Add (0 Add 1))
-    ; (*b Add (0 Add 1))
-    ; (0 Add 1)
+    ; let addition: i32 = (*b + (0 + 1))
+    ; (*b + (0 + 1))
+    ; (0 + 1)
     mov eax, 0
     add eax, 1
     mov edx, eax
@@ -486,7 +485,7 @@ let addition = (0 + 1) + *b;
     println!("{}", asm_result);
 
     let expected = r#"
-; This assembly is targeted for the Windows Operating System
+    ; This assembly is targeted for the Windows Operating System
 segment .text
 global main
 
@@ -501,9 +500,9 @@ main:
     ; let b: *i32 = &a
     lea rax, [rbp - 4]
     mov QWORD [rbp - 12], rax
-    ; let addition: i32 = ((0 Add 1) Add *b)
-    ; ((0 Add 1) Add *b)
-    ; (0 Add 1)
+    ; let addition: i32 = ((0 + 1) + *b)
+    ; ((0 + 1) + *b)
+    ; (0 + 1)
     mov eax, 0
     add eax, 1
     mov rdx, QWORD [rbp - 12]
@@ -539,7 +538,7 @@ let addition = (*b + *b) + (*b + *b);
     println!("{}", asm_result);
 
     let expected = r#"
-; This assembly is targeted for the Windows Operating System
+    ; This assembly is targeted for the Windows Operating System
 segment .text
 global main
 
@@ -554,16 +553,16 @@ main:
     ; let b: *i32 = &a
     lea rax, [rbp - 4]
     mov QWORD [rbp - 12], rax
-    ; let addition: i32 = ((*b Add *b) Add (*b Add *b))
-    ; ((*b Add *b) Add (*b Add *b))
-    ; (*b Add *b)
+    ; let addition: i32 = ((*b + *b) + (*b + *b))
+    ; ((*b + *b) + (*b + *b))
+    ; (*b + *b)
     mov rax, QWORD [rbp - 12]
     mov rax, QWORD [rax]
     mov rdx, QWORD [rbp - 12]
     mov rdx, QWORD [rdx]
     add eax, edx
     mov ecx, eax
-    ; (*b Add *b)
+    ; (*b + *b)
     mov rax, QWORD [rbp - 12]
     mov rax, QWORD [rax]
     mov rdx, QWORD [rbp - 12]
@@ -606,7 +605,7 @@ let addition = (((*d + *b) + (*b + *d)) + (*b + *b)) + ((*b + (*b + *b)) + (*b +
     println!("{}", asm_result);
 
     let expected = r#"
-; This assembly is targeted for the Windows Operating System
+    ; This assembly is targeted for the Windows Operating System
 segment .text
 global main
 
@@ -626,18 +625,18 @@ main:
     ; let d: *i32 = &c
     lea rax, [rbp - 16]
     mov QWORD [rbp - 24], rax
-    ; let addition: i32 = ((((*d Add *b) Add (*b Add *d)) Add (*b Add *b)) Add ((*b Add (*b Add *b)) Add (*b Add (*d Add *b))))
-    ; ((((*d Add *b) Add (*b Add *d)) Add (*b Add *b)) Add ((*b Add (*b Add *b)) Add (*b Add (*d Add *b))))
-    ; (((*d Add *b) Add (*b Add *d)) Add (*b Add *b))
-    ; ((*d Add *b) Add (*b Add *d))
-    ; (*d Add *b)
+    ; let addition: i32 = ((((*d + *b) + (*b + *d)) + (*b + *b)) + ((*b + (*b + *b)) + (*b + (*d + *b))))
+    ; ((((*d + *b) + (*b + *d)) + (*b + *b)) + ((*b + (*b + *b)) + (*b + (*d + *b))))
+    ; (((*d + *b) + (*b + *d)) + (*b + *b))
+    ; ((*d + *b) + (*b + *d))
+    ; (*d + *b)
     mov rax, QWORD [rbp - 24]
     mov rax, QWORD [rax]
     mov rdx, QWORD [rbp - 12]
     mov rdx, QWORD [rdx]
     add eax, edx
     mov ecx, eax
-    ; (*b Add *d)
+    ; (*b + *d)
     mov rax, QWORD [rbp - 12]
     mov rax, QWORD [rax]
     mov rdx, QWORD [rbp - 24]
@@ -648,7 +647,7 @@ main:
     mov eax, ecx
     push rax
     xor rax, rax
-    ; (*b Add *b)
+    ; (*b + *b)
     mov rax, QWORD [rbp - 12]
     mov rax, QWORD [rax]
     mov rdx, QWORD [rbp - 12]
@@ -661,9 +660,9 @@ main:
     add eax, edi
     push rax
     xor rax, rax
-    ; ((*b Add (*b Add *b)) Add (*b Add (*d Add *b)))
-    ; (*b Add (*b Add *b))
-    ; (*b Add *b)
+    ; ((*b + (*b + *b)) + (*b + (*d + *b)))
+    ; (*b + (*b + *b))
+    ; (*b + *b)
     mov rax, QWORD [rbp - 12]
     mov rax, QWORD [rax]
     mov rdx, QWORD [rbp - 12]
@@ -676,8 +675,8 @@ main:
     mov edi, eax
     push rdi
     xor rdi, rdi
-    ; (*b Add (*d Add *b))
-    ; (*d Add *b)
+    ; (*b + (*d + *b))
+    ; (*d + *b)
     mov rax, QWORD [rbp - 24]
     mov rax, QWORD [rax]
     mov rdx, QWORD [rbp - 12]
@@ -883,7 +882,8 @@ fn basic_add_different_type() -> anyhow::Result<()> {
 
     println!("{}", asm_result);
 
-    let expected = r#"; This assembly is targeted for the Windows Operating System
+    let expected = r#"
+    ; This assembly is targeted for the Windows Operating System
 segment .text
 global main
 
@@ -897,15 +897,16 @@ main:
     mov QWORD [rbp - 8], 512
     ; let b: i64 = 5
     mov QWORD [rbp - 16], 5
-    ; let c: i64 = (a Add b)
-    ; (a Add b)
+    ; let c: i64 = (a + b)
+    ; (a + b)
     mov rax, QWORD [rbp - 8]
     add rax, QWORD [rbp - 16]
     mov QWORD [rbp - 24], rax
     leave
-    ret"#;
+    ret
+    "#;
 
-    assert_eq!(expected, asm_result);
+    assert_eq!(expected.trim(), asm_result.trim());
 
     Ok(())
 }
@@ -935,7 +936,7 @@ let addition = (((*d + *b) + (*b + *d)) + (*b + *b)) + ((*b + (*b + *b)) + (*b +
     println!("{}", asm_result);
 
     let expected = r#"
-; This assembly is targeted for the Windows Operating System
+    ; This assembly is targeted for the Windows Operating System
 segment .text
 global main
 
@@ -955,18 +956,18 @@ main:
     ; let d: *i64 = &c
     lea rax, [rbp - 24]
     mov QWORD [rbp - 32], rax
-    ; let addition: i64 = ((((*d Add *b) Add (*b Add *d)) Add (*b Add *b)) Add ((*b Add (*b Add *b)) Add (*b Add (*d Add *b))))
-    ; ((((*d Add *b) Add (*b Add *d)) Add (*b Add *b)) Add ((*b Add (*b Add *b)) Add (*b Add (*d Add *b))))
-    ; (((*d Add *b) Add (*b Add *d)) Add (*b Add *b))
-    ; ((*d Add *b) Add (*b Add *d))
-    ; (*d Add *b)
+    ; let addition: i64 = ((((*d + *b) + (*b + *d)) + (*b + *b)) + ((*b + (*b + *b)) + (*b + (*d + *b))))
+    ; ((((*d + *b) + (*b + *d)) + (*b + *b)) + ((*b + (*b + *b)) + (*b + (*d + *b))))
+    ; (((*d + *b) + (*b + *d)) + (*b + *b))
+    ; ((*d + *b) + (*b + *d))
+    ; (*d + *b)
     mov rax, QWORD [rbp - 32]
     mov rax, QWORD [rax]
     mov rdx, QWORD [rbp - 16]
     mov rdx, QWORD [rdx]
     add rax, rdx
     mov rcx, rax
-    ; (*b Add *d)
+    ; (*b + *d)
     mov rax, QWORD [rbp - 16]
     mov rax, QWORD [rax]
     mov rdx, QWORD [rbp - 32]
@@ -977,7 +978,7 @@ main:
     mov rax, rcx
     push rax
     xor rax, rax
-    ; (*b Add *b)
+    ; (*b + *b)
     mov rax, QWORD [rbp - 16]
     mov rax, QWORD [rax]
     mov rdx, QWORD [rbp - 16]
@@ -990,9 +991,9 @@ main:
     add rax, rdi
     push rax
     xor rax, rax
-    ; ((*b Add (*b Add *b)) Add (*b Add (*d Add *b)))
-    ; (*b Add (*b Add *b))
-    ; (*b Add *b)
+    ; ((*b + (*b + *b)) + (*b + (*d + *b)))
+    ; (*b + (*b + *b))
+    ; (*b + *b)
     mov rax, QWORD [rbp - 16]
     mov rax, QWORD [rax]
     mov rdx, QWORD [rbp - 16]
@@ -1005,8 +1006,8 @@ main:
     mov rdi, rax
     push rdi
     xor rdi, rdi
-    ; (*b Add (*d Add *b))
-    ; (*d Add *b)
+    ; (*b + (*d + *b))
+    ; (*d + *b)
     mov rax, QWORD [rbp - 32]
     mov rax, QWORD [rax]
     mov rdx, QWORD [rbp - 16]
