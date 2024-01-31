@@ -246,7 +246,7 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
         (true, "1--1".to_string(), Some(Expression {
             lhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, prefix_arithmetic: None, value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: "1".to_string(), ty: Integer::I32 }))), positive: true })),
             operator: Operator::Sub,
-            rhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, prefix_arithmetic: None, value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: "1".to_string(), ty: Integer::I32 }))), positive: false })),
+            rhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, prefix_arithmetic: None, value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: "-1".to_string(), ty: Integer::I32 }))), positive: false })),
             value: None,
             positive: true,
             prefix_arithmetic: None,
@@ -254,15 +254,15 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
         (true, "1*-2".to_string(), Some(Expression {
             lhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: "1".to_string(), ty: Integer::I32 }))), positive: true, prefix_arithmetic: None })),
             operator: Operator::Mul,
-            rhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, prefix_arithmetic: None, value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: "2".to_string(), ty: Integer::I32 }))), positive: false })),
+            rhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, prefix_arithmetic: None, value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: "-2".to_string(), ty: Integer::I32 }))), positive: false })),
             value: None,
             positive: true,
             prefix_arithmetic: None,
         })),
         (true, "-(-1+-3)".to_string(), Some(Expression {
-            lhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, prefix_arithmetic: None, value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: "1".to_string(), ty: Integer::I32 }))), positive: false })),
+            lhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, prefix_arithmetic: None, value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: "-1".to_string(), ty: Integer::I32 }))), positive: false })),
             operator: Operator::Add,
-            rhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, prefix_arithmetic: None, value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: "3".to_string(), ty: Integer::I32 }))), positive: false })),
+            rhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, prefix_arithmetic: None, value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: "-3".to_string(), ty: Integer::I32 }))), positive: false })),
             value: None,
             positive: false,
             prefix_arithmetic: None,

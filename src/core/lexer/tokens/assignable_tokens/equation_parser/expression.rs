@@ -713,6 +713,14 @@ impl Expression {
     }
 
     pub fn flip_value(&mut self) {
+        if let Some(AssignableToken::IntegerToken(i)) = &mut self.value.as_deref_mut() {
+            i.value = "-".to_string() + &i.value;
+        }
+
+        if let Some(AssignableToken::FloatToken(f)) = &mut self.value.as_deref_mut() {
+            f.value *= -1.0;
+        }
+
         if let Some(v) = &mut self.value {
             self.positive = !self.positive;
         }

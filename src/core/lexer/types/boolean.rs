@@ -33,12 +33,13 @@ impl OperatorToASM for Boolean {
             Operator::GreaterThan => no_operation("greater than"),
             Operator::LessThanEqual => no_operation("less than equal"),
             Operator::GreaterThanEqual => no_operation("greater than equal"),
+            Operator::BitwiseXor => no_operation("bitwise xor"),
             Operator::Equal | Operator::NotEqual => Ok(AssemblerOperation {
                 prefix: None,
                 operation: AssemblerOperation::compare(&operator.to_asm(&mut Default::default(), &mut Default::default())?, &registers[0], &registers[1])?,
                 postfix: None,
             }),
-            Operator::BitwiseAnd => {
+            Operator::BitwiseAnd | Operator::BitwiseOr => {
                 Ok(AssemblerOperation {
                     prefix: None,
                     operation: AssemblerOperation::two_operands(&operator.to_asm(stack, meta)?, &registers[0], &registers[1]),
@@ -73,5 +74,6 @@ impl Castable<Boolean, Integer> for Boolean {
 impl Boolean {
     pub fn operation_matrix(base_type_matrix: &mut HashMap<(TypeToken, Operator, TypeToken), TypeToken>) {
         base_type_matrix.insert((TypeToken::Bool, Operator::BitwiseAnd, TypeToken::Bool), TypeToken::Bool);
+        base_type_matrix.insert((TypeToken::Bool, Operator::BitwiseOr, TypeToken::Bool), TypeToken::Bool);
     }
 }

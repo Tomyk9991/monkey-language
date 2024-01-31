@@ -1,13 +1,8 @@
 module monkey-language-project/std.monkey;
 
-let a: bool = (5 + 3) * 2 == 16;
-let c: bool = 5 < 3;
+let a = 5 | 3;
+let b = true | false;
 
-let first = 10;
-let second = 7;
-
-let b: i32 = first & second;
-let d: bool = true & true;
-
-printf("%d", (i32)d);
+printf("%d\n", a);
+printf("%d\n", (i32) b);
 ExitProcess(0);

@@ -280,6 +280,8 @@ impl Integer {
             base_type_matrix.insert((TypeToken::Integer(ty.clone()), Operator::NotEqual, TypeToken::Integer(ty.clone())), TypeToken::Bool);
 
             base_type_matrix.insert((TypeToken::Integer(ty.clone()), Operator::BitwiseAnd, TypeToken::Integer(ty.clone())), TypeToken::Integer(ty.clone()));
+            base_type_matrix.insert((TypeToken::Integer(ty.clone()), Operator::BitwiseXor, TypeToken::Integer(ty.clone())), TypeToken::Integer(ty.clone()));
+            base_type_matrix.insert((TypeToken::Integer(ty.clone()), Operator::BitwiseOr, TypeToken::Integer(ty.clone())), TypeToken::Integer(ty.clone()));
         }
     }
 
@@ -306,8 +308,11 @@ impl OperatorToASM for Integer {
 
         match operator {
             Operator::Noop => Err(ASMGenerateError::InternalError("Noop instruction is not supported".to_string())),
-            Operator::Add => Ok(AssemblerOperation::two_operands("add", &registers[0], &registers[1]).into()),
-            Operator::Sub => Ok(AssemblerOperation::two_operands("sub", &registers[0], &registers[1]).into()),
+            Operator::Add | Operator::Sub | Operator::BitwiseAnd | Operator::BitwiseXor | Operator::BitwiseOr => Ok(AssemblerOperation {
+                prefix: None,
+                operation: AssemblerOperation::two_operands(&operator.to_asm(stack, meta)?, &registers[0], &registers[1]),
+                postfix: None,
+            }),
             Operator::Div => Ok(AssemblerOperation {
                 prefix: Some(AssemblerOperation::save_rax_rcx_rdx(self.byte_size(), registers)?),
                 operation: format!("{prefix}div {}", GeneralPurposeRegister::Bit64(Bit64::Rcx).to_size_register(&ByteSize::try_from(integer_size)?)),
@@ -341,11 +346,6 @@ impl OperatorToASM for Integer {
                 operation: AssemblerOperation::compare(&operator.to_asm(stack, meta)?, &registers[0], &registers[1])?,
                 postfix: None,
             }),
-            Operator::BitwiseAnd => Ok(AssemblerOperation {
-                prefix: None,
-                operation: AssemblerOperation::two_operands(&operator.to_asm(stack, meta)?, &registers[0], &registers[1]),
-                postfix: None,
-            })
         }
     }
 }

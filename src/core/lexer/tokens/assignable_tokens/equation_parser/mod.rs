@@ -176,13 +176,39 @@ impl EquationToken {
             return Err(Error::PositionNotInRange(self.pos));
         }
 
-        self.syntax_tree = self.parse_bitwise_and()?;
+        self.syntax_tree = self.parse_bitwise_or()?;
 
         if self.pos as usize != self.source_code.chars().count() {
             return Err(Error::UndefinedSequence(self.source_code.chars().collect::<Vec<_>>()[self.pos as usize..].iter().collect::<String>()))
         }
 
         Ok(&self.syntax_tree)
+    }
+
+    fn parse_bitwise_or(&mut self) -> Result<Box<Expression>, Error> {
+        let mut x = self.parse_bitwise_xor()?;
+
+        loop {
+            if self.eat_multiple(Some("|")) {
+                let expression = self.parse_bitwise_xor()?;
+                x.set(Some(x.clone()), Operator::BitwiseOr, Some(expression), None);
+            } else {
+                return Ok(x);
+            }
+        }
+    }
+
+    fn parse_bitwise_xor(&mut self) -> Result<Box<Expression>, Error> {
+        let mut x = self.parse_bitwise_and()?;
+
+        loop {
+            if self.eat_multiple(Some("^")) {
+                let expression = self.parse_bitwise_and()?;
+                x.set(Some(x.clone()), Operator::BitwiseXor, Some(expression), None);
+            } else {
+                return Ok(x);
+            }
+        }
     }
 
     fn parse_bitwise_and(&mut self) -> Result<Box<Expression>, Error> {

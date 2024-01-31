@@ -23,6 +23,8 @@ pub enum Operator {
     Equal,
     NotEqual,
     BitwiseAnd,
+    BitwiseXor,
+    BitwiseOr,
 }
 
 pub trait OperatorToASM {
@@ -46,7 +48,9 @@ impl Display for Operator {
             Operator::GreaterThanEqual => ">=",
             Operator::Equal => "==",
             Operator::NotEqual => "!=",
-            Operator::BitwiseAnd => "&"
+            Operator::BitwiseAnd => "&",
+            Operator::BitwiseXor => "^",
+            Operator::BitwiseOr => "|",
         })
     }
 }
@@ -68,6 +72,8 @@ impl ToASM for Operator {
             Operator::Equal => "sete",
             Operator::NotEqual => "setne",
             Operator::BitwiseAnd => "and",
+            Operator::BitwiseXor => "xor",
+            Operator::BitwiseOr => "or",
         }.to_string())
     }
 
