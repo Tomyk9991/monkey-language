@@ -1,8 +1,11 @@
 use std::collections::HashMap;
 use std::fmt::Display;
+use crate::core::code_generator::registers::ByteSize;
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
+use crate::core::code_generator::register_destination::word_from_byte_size;
+use crate::core::code_generator::registers::{Bit32, GeneralPurposeRegister};
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::operator::{AssemblerOperation, Operator, OperatorToASM};
 use crate::core::lexer::types::cast_to::{Castable, CastTo};
 use crate::core::lexer::types::integer::Integer;
@@ -46,6 +49,75 @@ impl OperatorToASM for Boolean {
                     postfix: None,
                 })
             }
+            Operator::LogicalAnd => {
+                let eax = GeneralPurposeRegister::Bit32(Bit32::Eax);
+                let mut target = String::new();
+                let label1 = stack.create_label();
+                let label2 = stack.create_label();
+
+                let jump_instruction = operator.to_asm(stack, meta)?;
+                target += &ASMBuilder::line(&format!("cmp {}, 0", registers[0]));
+                target += &ASMBuilder::ident_line(&format!("{} {label1}", jump_instruction));
+
+                // if literal, put in register first
+                if !Self::is_stack_variable(registers) {
+                    target += &ASMBuilder::mov_ident_line(eax.to_size_register(&ByteSize::_1), &registers[1]);
+                    target += &ASMBuilder::ident_line(&format!("cmp {}, 0", eax.to_size_register(&ByteSize::_1)));
+                } else {
+                    target += &ASMBuilder::ident_line(&format!("cmp {}, 0", registers[1]));
+                }
+
+                target += &ASMBuilder::ident_line(&format!("{} {label1}", jump_instruction));
+                target += &ASMBuilder::mov_ident_line(&eax, 1);
+                target += &ASMBuilder::ident_line(&format!("jmp {label2}"));
+
+                target += &ASMBuilder::line(&format!("{label1}:"));
+                target += &ASMBuilder::mov_ident_line(eax, 0);
+
+                target += &ASMBuilder::push(&format!("{label2}:"));
+
+                Ok(AssemblerOperation {
+                    prefix: Some(AssemblerOperation::save_rax_rcx_rdx(1, registers)?),
+                    operation: target,
+                    postfix: Some(AssemblerOperation::load_rax_rcx_rdx(1, registers)?),
+                })
+            },
+            Operator::LogicalOr => {
+                let eax = GeneralPurposeRegister::Bit32(Bit32::Eax);
+                let mut target = String::new();
+                let label1 = stack.create_label();
+                let label2 = stack.create_label();
+                let label3 = stack.create_label();
+
+                let jump_instruction = operator.to_asm(stack, meta)?;
+                target += &ASMBuilder::line(&format!("cmp {}, 0", registers[0]));
+                target += &ASMBuilder::ident_line(&format!("{} {label1}", jump_instruction));
+
+                // if literal, put in register first
+                if !Self::is_stack_variable(registers) {
+                    target += &ASMBuilder::mov_ident_line(eax.to_size_register(&ByteSize::_1), &registers[1]);
+                    target += &ASMBuilder::ident_line(&format!("cmp {}, 0", eax.to_size_register(&ByteSize::_1)));
+                } else {
+                    target += &ASMBuilder::ident_line(&format!("cmp {}, 0", registers[1]));
+                }
+
+                target += &ASMBuilder::ident_line(&format!("je {label2}"));
+
+                target += &ASMBuilder::line(&format!("{label1}:"));
+                target += &ASMBuilder::mov_ident_line(&eax, 1);
+                target += &ASMBuilder::ident_line(&format!("jmp {label3}"));
+
+                target += &ASMBuilder::line(&format!("{label2}:"));
+                target += &ASMBuilder::mov_ident_line(eax, 0);
+
+                target += &ASMBuilder::push(&format!("{label3}:"));
+
+                Ok(AssemblerOperation {
+                    prefix: Some(AssemblerOperation::save_rax_rcx_rdx(1, registers)?),
+                    operation: target,
+                    postfix: Some(AssemblerOperation::load_rax_rcx_rdx(1, registers)?),
+                })
+            }
         }
     }
 }
@@ -75,5 +147,18 @@ impl Boolean {
     pub fn operation_matrix(base_type_matrix: &mut HashMap<(TypeToken, Operator, TypeToken), TypeToken>) {
         base_type_matrix.insert((TypeToken::Bool, Operator::BitwiseAnd, TypeToken::Bool), TypeToken::Bool);
         base_type_matrix.insert((TypeToken::Bool, Operator::BitwiseOr, TypeToken::Bool), TypeToken::Bool);
+
+        base_type_matrix.insert((TypeToken::Bool, Operator::LogicalAnd, TypeToken::Bool), TypeToken::Bool);
+        base_type_matrix.insert((TypeToken::Bool, Operator::LogicalOr, TypeToken::Bool), TypeToken::Bool);
+    }
+
+    fn is_stack_variable<T: Display>(registers: &[T]) -> bool {
+        for (_, word) in [8, 4, 2, 1].map(|a| (a, word_from_byte_size(a))) {
+            if registers[1].to_string().starts_with(&word) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

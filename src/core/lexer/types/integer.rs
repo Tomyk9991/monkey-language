@@ -308,6 +308,8 @@ impl OperatorToASM for Integer {
 
         match operator {
             Operator::Noop => Err(ASMGenerateError::InternalError("Noop instruction is not supported".to_string())),
+            Operator::LogicalAnd => Err(ASMGenerateError::InternalError("`Logical And` instruction is not supported".to_string())),
+            Operator::LogicalOr => Err(ASMGenerateError::InternalError("`Logical Or` instruction is not supported".to_string())),
             Operator::Add | Operator::Sub | Operator::BitwiseAnd | Operator::BitwiseXor | Operator::BitwiseOr => Ok(AssemblerOperation {
                 prefix: None,
                 operation: AssemblerOperation::two_operands(&operator.to_asm(stack, meta)?, &registers[0], &registers[1]),

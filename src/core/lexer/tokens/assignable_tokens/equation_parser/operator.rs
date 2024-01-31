@@ -25,6 +25,8 @@ pub enum Operator {
     BitwiseAnd,
     BitwiseXor,
     BitwiseOr,
+    LogicalAnd,
+    LogicalOr,
 }
 
 pub trait OperatorToASM {
@@ -51,6 +53,8 @@ impl Display for Operator {
             Operator::BitwiseAnd => "&",
             Operator::BitwiseXor => "^",
             Operator::BitwiseOr => "|",
+            Operator::LogicalAnd => "&&",
+            Operator::LogicalOr => "||"
         })
     }
 }
@@ -74,6 +78,8 @@ impl ToASM for Operator {
             Operator::BitwiseAnd => "and",
             Operator::BitwiseXor => "xor",
             Operator::BitwiseOr => "or",
+            Operator::LogicalAnd => "je",
+            Operator::LogicalOr => "jne"
         }.to_string())
     }
 

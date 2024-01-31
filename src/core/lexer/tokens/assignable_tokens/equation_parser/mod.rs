@@ -176,7 +176,7 @@ impl EquationToken {
             return Err(Error::PositionNotInRange(self.pos));
         }
 
-        self.syntax_tree = self.parse_bitwise_or()?;
+        self.syntax_tree = self.parse_logical_or()?;
 
         if self.pos as usize != self.source_code.chars().count() {
             return Err(Error::UndefinedSequence(self.source_code.chars().collect::<Vec<_>>()[self.pos as usize..].iter().collect::<String>()))
@@ -185,14 +185,45 @@ impl EquationToken {
         Ok(&self.syntax_tree)
     }
 
+    fn parse_logical_or(&mut self) -> Result<Box<Expression>, Error> {
+        let mut x = self.parse_logical_and()?;
+
+        loop {
+            if self.eat_multiple(Some("||")) {
+                let expression = self.parse_logical_and()?;
+                x.set(Some(x.clone()), Operator::LogicalOr, Some(expression), None);
+            } else {
+                return Ok(x);
+            }
+        }
+    }
+
+    fn parse_logical_and(&mut self) -> Result<Box<Expression>, Error> {
+        let mut x = self.parse_bitwise_or()?;
+
+        loop {
+            if self.eat_multiple(Some("&&")) {
+                let expression = self.parse_bitwise_or()?;
+                x.set(Some(x.clone()), Operator::LogicalAnd, Some(expression), None);
+            } else {
+                return Ok(x);
+            }
+        }
+    }
+
     fn parse_bitwise_or(&mut self) -> Result<Box<Expression>, Error> {
         let mut x = self.parse_bitwise_xor()?;
 
         loop {
-            if self.eat_multiple(Some("|")) {
+            let latest_ch = self.ch;
+            let latest_pos = self.pos;
+
+            if !self.eat_multiple(Some("||")) && self.eat_multiple(Some("|")) {
                 let expression = self.parse_bitwise_xor()?;
                 x.set(Some(x.clone()), Operator::BitwiseOr, Some(expression), None);
             } else {
+                self.ch = latest_ch;
+                self.pos = latest_pos;
                 return Ok(x);
             }
         }
@@ -215,10 +246,15 @@ impl EquationToken {
         let mut x = self.parse_equality_expression()?;
 
         loop {
-            if self.eat_multiple(Some("&")) {
+            let latest_ch = self.ch;
+            let latest_pos = self.pos;
+
+            if !self.eat_multiple(Some("&&")) && self.eat_multiple(Some("&")) {
                 let expression = self.parse_equality_expression()?;
                 x.set(Some(x.clone()), Operator::BitwiseAnd, Some(expression), None);
             } else {
+                self.ch = latest_ch;
+                self.pos = latest_pos;
                 return Ok(x);
             }
         }
@@ -487,7 +523,7 @@ impl EquationToken {
     }
     fn operator_sequence(&mut self) -> bool {
 
-        static OPERATORS: [&'static str; 17] = ["+", "-", "*", "/", "<<", ">>", "<", ">", "<=", ">=", "==", "!=", "&", "^", "|", "&&", "||"];
+        static OPERATORS: [&'static str; 17] = ["+", "-", "*", "/", "<<", ">>", "<", ">", "<=", ">=", "==", "!=", "&&", "||", "&", "^", "|"];
 
         for operator in OPERATORS {
             let latest_ch = self.ch;
