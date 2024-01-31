@@ -419,8 +419,17 @@ impl GeneralPurposeRegister {
 
                 }
             }
+            GeneralPurposeRegister::Float(v) => {
+                match v {
+                    FloatRegister::Xmm0 => GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::AL)),
+                    FloatRegister::Xmm1 => GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::CL)),
+                    FloatRegister::Xmm2 => GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::DIL)),
+                    FloatRegister::Xmm3 => GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::DL)),
+                    FloatRegister::Xmm4 => GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::AL)),
+                    _ => unreachable!("Rip. Didn't include all registers")
+                }
+            },
             GeneralPurposeRegister::Bit8(v) => GeneralPurposeRegister::Bit8(v.clone()),
-            GeneralPurposeRegister::Float(_) => unreachable!("Float register cannot be converted to 8 bit register"),
         }
     }
 

@@ -133,13 +133,21 @@ impl Float {
             base_type_matrix.insert((TypeToken::Float(ty.clone()), Operator::Sub, TypeToken::Float(ty.clone())), TypeToken::Float(ty.clone()));
             base_type_matrix.insert((TypeToken::Float(ty.clone()), Operator::Mul, TypeToken::Float(ty.clone())), TypeToken::Float(ty.clone()));
             base_type_matrix.insert((TypeToken::Float(ty.clone()), Operator::Div, TypeToken::Float(ty.clone())), TypeToken::Float(ty.clone()));
+
+            base_type_matrix.insert((TypeToken::Float(ty.clone()), Operator::LessThan, TypeToken::Float(ty.clone())), TypeToken::Bool);
+            base_type_matrix.insert((TypeToken::Float(ty.clone()), Operator::GreaterThan, TypeToken::Float(ty.clone())), TypeToken::Bool);
+            base_type_matrix.insert((TypeToken::Float(ty.clone()), Operator::LessThanEqual, TypeToken::Float(ty.clone())), TypeToken::Bool);
+            base_type_matrix.insert((TypeToken::Float(ty.clone()), Operator::GreaterThanEqual, TypeToken::Float(ty.clone())), TypeToken::Bool);
+
+            base_type_matrix.insert((TypeToken::Float(ty.clone()), Operator::Equal, TypeToken::Float(ty.clone())), TypeToken::Bool);
+            base_type_matrix.insert((TypeToken::Float(ty.clone()), Operator::NotEqual, TypeToken::Float(ty.clone())), TypeToken::Bool);
         }
     }
 
     pub fn byte_size(&self) -> usize {
         match self {
-            Float::Float32 => 4,
-            Float::Float64 => 8,
+            Float32 => 4,
+            Float64 => 8,
         }
     }
 }
@@ -147,8 +155,8 @@ impl Float {
 impl OperatorToASM for Float {
     fn operation_to_asm<T: Display>(&self, operator: &Operator, registers: &[T], stack: &mut Stack, meta: &mut MetaInfo) -> Result<AssemblerOperation, ASMGenerateError> {
         let suffix = match self {
-            Float::Float32 => "ss",
-            Float::Float64 => "sd"
+            Float32 => "ss",
+            Float64 => "sd"
         };
 
         match operator {
@@ -158,13 +166,27 @@ impl OperatorToASM for Float {
                 &registers[0],
                 &registers[1]).into()
             ),
+            Operator::Mod => Err(ASMGenerateError::InternalError("Modulo instruction is not supported on floats".to_string())),
             Operator::LeftShift => Err(ASMGenerateError::InternalError("Left Shift instruction is not supported on floats".to_string())),
             Operator::RightShift => Err(ASMGenerateError::InternalError("Left Shift instruction is not supported on floats".to_string())),
-            _ => todo!()
-            // Operator::LessThan => {}
-            // Operator::GreaterThan => {}
-            // Operator::LessThanEqual => {}
-            // Operator::GreaterThanEqual => {}
+            Operator::LessThan | Operator::GreaterThan | Operator::LessThanEqual | Operator::GreaterThanEqual | Operator::Equal | Operator::NotEqual => {
+                let float_operator = match operator {
+                    Operator::LessThan => "setb".to_string(),
+                    Operator::GreaterThan => "seta".to_string(),
+                    Operator::LessThanEqual => "setbe".to_string(),
+                    Operator::GreaterThanEqual => "setae".to_string(),
+                    Operator::Equal => "sete".to_string(),
+                    Operator::NotEqual => "setne".to_string(),
+                    _ => operator.to_asm(stack, meta)?
+                };
+
+                Ok(AssemblerOperation {
+                    prefix: None,
+                    operation: AssemblerOperation::compare_float(suffix, &float_operator, &registers[0], &registers[1])?,
+                    postfix: None,
+                })
+            },
+            a => Err(ASMGenerateError::InternalError(format!("`{a}` is not a supported operation on {self}")))
         }
     }
 }
@@ -174,8 +196,8 @@ impl FromStr for Float {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(match s {
-            "f32" => Float::Float32,
-            "f64" => Float::Float64,
+            "f32" => Float32,
+            "f64" => Float64,
             _ => return Err(InferTypeError::TypeNotAllowed(NameTokenErr::UnmatchedRegex { target_value: String::from(s) }))
         })
     }

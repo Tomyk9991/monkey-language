@@ -59,11 +59,16 @@ impl Expression {
     }
 
     fn iterator_from_type(&self, meta: &mut MetaInfo, lhs_size: usize) -> Result<(GeneralPurposeRegisterIterator, Option<Float>), ASMGenerateError> {
-        Ok(if let TypeToken::Float(f) = &self.traverse_type(meta).ok_or(ASMGenerateError::InternalError("Could not traverse type".to_string()))? {
-            (GeneralPurposeRegister::iter_float_register()?, Some(f.clone()))
-        } else {
-            (GeneralPurposeRegister::iter_from_byte_size(lhs_size)?, None)
-        })
+        if let Some(lhs) = &self.lhs {
+            let ty = &lhs.traverse_type(meta).ok_or(ASMGenerateError::InternalError("Could not traverse type".to_string()))?;
+            return Ok(if let TypeToken::Float(f) = ty {
+                (GeneralPurposeRegister::iter_float_register()?, Some(f.clone()))
+            } else {
+                (GeneralPurposeRegister::iter_from_byte_size(lhs_size)?, None)
+            })
+        }
+
+        Err(ASMGenerateError::InternalError("Internal error".to_string()))
     }
 
     fn latest_used_destination_register(&self, meta: &mut MetaInfo, target: &str, lhs_size: usize) -> Result<GeneralPurposeRegister, ASMGenerateError> {

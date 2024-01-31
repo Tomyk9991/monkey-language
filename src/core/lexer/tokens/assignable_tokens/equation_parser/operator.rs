@@ -122,6 +122,11 @@ impl From<String> for AssemblerOperation {
 }
 
 impl AssemblerOperation {
+    pub fn compare_float<P: Display, T: Display>(suffix: &str, instruction: &str, destination: &T, source: &P) -> Result<String, ASMGenerateError> {
+        let register_a = GeneralPurposeRegister::from_str(&destination.to_string())?.to_size_register(&ByteSize::_1);
+        Ok(format!("ucomi{} {}, {}\n    {} {}", suffix, destination, source, instruction, register_a))
+    }
+
     pub fn compare<P: Display, T: Display>(instruction: &str, destination: &T, source: &P) -> Result<String, ASMGenerateError> {
         let register_a = GeneralPurposeRegister::from_str(&destination.to_string())?.to_size_register(&ByteSize::_1);
         Ok(format!("cmp {}, {}\n    {} {}", destination, source, instruction, register_a))
