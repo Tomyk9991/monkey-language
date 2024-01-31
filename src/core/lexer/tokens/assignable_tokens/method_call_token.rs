@@ -3,6 +3,7 @@ use std::fmt::{Display, Formatter};
 use std::iter::Peekable;
 use std::slice::Iter;
 use std::str::FromStr;
+use crate::core::lexer::scope::PatternNotMatchedError;
 
 use crate::core::code_generator::{ASMGenerateError, conventions, MetaInfo};
 use crate::core::code_generator::asm_builder::ASMBuilder;
@@ -44,6 +45,12 @@ pub enum MethodCallTokenErr {
     DyckLanguageErr { target_value: String, ordering: Ordering },
     AssignableTokenErr(AssignableTokenErr),
     EmptyIterator(EmptyIteratorErr),
+}
+
+impl PatternNotMatchedError for MethodCallTokenErr {
+    fn is_pattern_not_matched_error(&self) -> bool {
+        matches!(self, MethodCallTokenErr::PatternNotMatched {..})
+    }
 }
 
 impl std::error::Error for MethodCallTokenErr {}

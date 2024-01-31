@@ -11,7 +11,7 @@ use crate::core::constants::OPENING_SCOPE;
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::errors::EmptyIteratorErr;
 use crate::core::lexer::levenshtein_distance::{ArgumentsIgnoreSummarizeTransform, EmptyParenthesesExpand, PatternedLevenshteinDistance, PatternedLevenshteinString, QuoteSummarizeTransform};
-use crate::core::lexer::scope::{Scope, ScopeError};
+use crate::core::lexer::scope::{PatternNotMatchedError, Scope, ScopeError};
 use crate::core::lexer::static_type_context::StaticTypeContext;
 use crate::core::lexer::token::Token;
 use crate::core::lexer::tokens::assignable_token::{AssignableToken, AssignableTokenErr};
@@ -49,6 +49,12 @@ pub enum IfDefinitionErr {
     AssignableTokenErr(AssignableTokenErr),
     ScopeErrorErr(ScopeError),
     EmptyIterator(EmptyIteratorErr),
+}
+
+impl PatternNotMatchedError for IfDefinitionErr {
+    fn is_pattern_not_matched_error(&self) -> bool {
+        matches!(self, IfDefinitionErr::PatternNotMatched {..})
+    }
 }
 
 impl From<AssignableTokenErr> for IfDefinitionErr {

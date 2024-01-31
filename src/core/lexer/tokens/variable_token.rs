@@ -13,6 +13,7 @@ use crate::core::code_generator::registers::{FloatRegister, GeneralPurposeRegist
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::errors::EmptyIteratorErr;
 use crate::core::lexer::levenshtein_distance::{MethodCallSummarizeTransform, PatternedLevenshteinDistance, PatternedLevenshteinString, QuoteSummarizeTransform};
+use crate::core::lexer::scope::PatternNotMatchedError;
 use crate::core::lexer::static_type_context::StaticTypeContext;
 use crate::core::lexer::tokens::assignable_token::{AssignableToken, AssignableTokenErr};
 use crate::core::lexer::tokens::name_token::{NameToken, NameTokenErr};
@@ -109,6 +110,12 @@ pub enum ParseVariableTokenErr {
     AssignableTokenErr(AssignableTokenErr),
     InferType(InferTypeError),
     EmptyIterator(EmptyIteratorErr),
+}
+
+impl PatternNotMatchedError for ParseVariableTokenErr {
+    fn is_pattern_not_matched_error(&self) -> bool {
+        matches!(self, ParseVariableTokenErr::PatternNotMatched {..})
+    }
 }
 
 impl Error for ParseVariableTokenErr {}

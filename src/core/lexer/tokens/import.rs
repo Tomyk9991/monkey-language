@@ -8,6 +8,7 @@ use crate::core::io::monkey_file::MonkeyFile;
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::errors::EmptyIteratorErr;
 use crate::core::lexer::levenshtein_distance::{PatternedLevenshteinDistance, PatternedLevenshteinString, QuoteSummarizeTransform};
+use crate::core::lexer::scope::PatternNotMatchedError;
 use crate::core::lexer::TryParse;
 
 #[derive(Debug, PartialEq, Clone)]
@@ -21,6 +22,12 @@ pub enum ImportTokenError {
     PatternNotMatched { target_value: String },
     EmptyIterator(EmptyIteratorErr),
     MonkeyFileRead(anyhow::Error)
+}
+
+impl PatternNotMatchedError for ImportTokenError {
+    fn is_pattern_not_matched_error(&self) -> bool {
+        matches!(self, ImportTokenError::PatternNotMatched {..})
+    }
 }
 
 impl Display for ImportToken {

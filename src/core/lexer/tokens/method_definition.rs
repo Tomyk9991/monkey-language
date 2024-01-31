@@ -1,5 +1,5 @@
 use crate::core::io::code_line::CodeLine;
-use crate::core::lexer::scope::{Scope, ScopeError};
+use crate::core::lexer::scope::{PatternNotMatchedError, Scope, ScopeError};
 use crate::core::lexer::token::Token;
 use crate::core::lexer::tokens::assignable_token::AssignableTokenErr;
 use crate::core::lexer::tokens::name_token::{NameToken, NameTokenErr};
@@ -36,6 +36,12 @@ pub enum MethodDefinitionErr {
     AssignableTokenErr(AssignableTokenErr),
     ScopeErrorErr(ScopeError),
     EmptyIterator(EmptyIteratorErr),
+}
+
+impl PatternNotMatchedError for MethodDefinitionErr {
+    fn is_pattern_not_matched_error(&self) -> bool {
+        matches!(self, MethodDefinitionErr::PatternNotMatched {..})
+    }
 }
 
 impl From<AssignableTokenErr> for MethodDefinitionErr {

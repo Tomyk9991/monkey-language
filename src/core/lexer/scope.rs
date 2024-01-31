@@ -47,6 +47,12 @@ pub enum ScopeError {
     EmptyIterator(EmptyIteratorErr)
 }
 
+impl PatternNotMatchedError for ScopeError {
+    fn is_pattern_not_matched_error(&self) -> bool {
+        matches!(self, ScopeError::ParsingError { .. })
+    }
+}
+
 impl Debug for ScopeError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self)
@@ -78,6 +84,12 @@ macro_rules! token_expand {
                 },
                 Err(err) => {
                     let c = *$code_lines_iterator.peek().ok_or(ScopeError::EmptyIterator(EmptyIteratorErr::default()))?;
+
+                    if !err.is_pattern_not_matched_error() {
+                        return Err(ScopeError::ParsingError {
+                            message: format!("Line: {:?}: {}", c.actual_line_number, err)
+                        })
+                    }
                     $pattern_distances.push((<$token_implementation>::distance_from_code_line(c), Box::new(err)))
                 }
             }
@@ -109,6 +121,10 @@ impl From<InferTypeError> for ScopeError {
     }
 }
 
+pub trait PatternNotMatchedError {
+    fn is_pattern_not_matched_error(&self) -> bool;
+}
+
 
 impl TryParse for Scope {
     type Output = Token;
@@ -122,9 +138,10 @@ impl TryParse for Scope {
         let mut pattern_distances: Vec<(usize, Box<dyn Error>)> = vec![];
         let code_line = *code_lines_iterator.peek().ok_or(ScopeError::EmptyIterator(EmptyIteratorErr))?;
 
+
         token_expand!(code_lines_iterator, pattern_distances,
             (ImportToken,               Import,             true),
-            (VariableToken::<'=', ';'>, Variable,           true),
+            (VariableToken<'=', ';'>,   Variable,           true),
             (MethodCallToken,           MethodCall,         true),
             (ScopeEnding,               ScopeClosing,       true),
             (IfDefinition,              IfDefinition,       false),
@@ -132,17 +149,16 @@ impl TryParse for Scope {
         );
 
 
-
-        pattern_distances.sort_by(|(nearest_a, _), (nearest_b, _)| (*nearest_a).cmp(nearest_b));
-
-
-        if let Some((nearest_pattern, err)) = pattern_distances.first() {
-            code_lines_iterator.next();
-
-            return Err(ScopeError::ParsingError {
-                message: format!("Code line: {:?} with distance: {}\n\t{}", code_line.actual_line_number, nearest_pattern, err)
-            });
-        }
+        // pattern_distances.sort_by(|(nearest_a, _), (nearest_b, _)| (*nearest_a).cmp(nearest_b));
+        //
+        //
+        // if let Some((nearest_pattern, err)) = pattern_distances.first() {
+        //     code_lines_iterator.next();
+        //
+        //     return Err(ScopeError::ParsingError {
+        //         message: format!("Code line: {:?} with distance: {}\n\t{}", code_line.actual_line_number, nearest_pattern, err)
+        //     });
+        // }
 
         Err(ScopeError::ParsingError {
             message: format!("Unexpected token: {:?}: {}", code_line.actual_line_number, code_line.line)

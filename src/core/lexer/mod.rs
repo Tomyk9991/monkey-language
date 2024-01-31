@@ -1,6 +1,7 @@
 use std::iter::Peekable;
 use std::slice::Iter;
 use crate::core::io::code_line::CodeLine;
+use crate::core::lexer::scope::PatternNotMatchedError;
 
 pub mod tokenizer;
 pub mod scope;
@@ -13,7 +14,7 @@ pub mod types;
 
 pub trait TryParse {
     type Output;
-    type Err;
+    type Err: PatternNotMatchedError;
 
     fn try_parse(code_lines_iterator: &mut Peekable<Iter<CodeLine>>) -> anyhow::Result<Self::Output, Self::Err>;
 }
