@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::fmt::Display;
+use std::str::FromStr;
 use crate::core::code_generator::registers::ByteSize;
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
@@ -61,7 +62,7 @@ impl OperatorToASM for Boolean {
                 target += &ASMBuilder::ident_line(&format!("{} {label1}", jump_instruction));
 
                 // if literal, put in register first
-                if !Self::is_stack_variable(registers) {
+                if !Self::is_stack_variable(&registers[1].to_string()) {
                     target += &ASMBuilder::mov_ident_line(eax.to_size_register(&ByteSize::_1), &registers[1]);
                     target += &ASMBuilder::ident_line(&format!("cmp {}, 0", eax.to_size_register(&ByteSize::_1)));
                 } else {
@@ -95,7 +96,7 @@ impl OperatorToASM for Boolean {
                 target += &ASMBuilder::ident_line(&format!("{} {label1}", jump_instruction));
 
                 // if literal, put in register first
-                if !Self::is_stack_variable(registers) {
+                if !Self::is_stack_variable(&registers[1].to_string()) {
                     target += &ASMBuilder::mov_ident_line(eax.to_size_register(&ByteSize::_1), &registers[1]);
                     target += &ASMBuilder::ident_line(&format!("cmp {}, 0", eax.to_size_register(&ByteSize::_1)));
                 } else {
@@ -137,7 +138,18 @@ impl Castable<Boolean, Integer> for Boolean {
         // no instruction is needed. just pretend the bool is an u8
         let mut target = String::new();
         target += &ASMBuilder::ident_comment_line(&format!("Cast: ({}) -> ({})", cast_to.from, cast_to.to));
-        target += &Integer::cast_from_to(&Integer::U8, t2, source, stack, meta)?;
+        if Self::is_stack_variable(source) || source == "0" || source == "1" || GeneralPurposeRegister::from_str(source).is_ok() {
+            let source = if let Ok(general_purpose_register) = GeneralPurposeRegister::from_str(source) {
+                general_purpose_register.to_size_register(&ByteSize::_1).to_string()
+            } else {
+                source.to_string()
+            };
+
+            target += &Integer::cast_from_to(&Integer::U8, t2, &source, stack, meta)?;
+        } else {
+            target += source;
+            target += &Integer::cast_from_to(&Integer::U8, t2, "al", stack, meta)?;
+        }
 
 
         Ok(target)
@@ -153,13 +165,13 @@ impl Boolean {
         base_type_matrix.insert((TypeToken::Bool, Operator::LogicalOr, TypeToken::Bool), TypeToken::Bool);
     }
 
-    fn is_stack_variable<T: Display>(registers: &[T]) -> bool {
+    fn is_stack_variable(value: &str) -> bool {
         for (_, word) in [8, 4, 2, 1].map(|a| (a, word_from_byte_size(a))) {
-            if registers[1].to_string().starts_with(&word) {
+            if value.starts_with(&word) {
                 return true;
             }
         }
 
-        return false;
+        false
     }
 }

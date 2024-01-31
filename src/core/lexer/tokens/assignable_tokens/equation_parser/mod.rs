@@ -119,7 +119,7 @@ impl EquationToken {
     }
 
     fn eat_multiple(&mut self, chars_to_eat: Option<&str>) -> bool {
-        return if let Some(chars_to_eat) = chars_to_eat {
+        if let Some(chars_to_eat) = chars_to_eat {
             while self.ch == Some(' ') {
                 self.next_char();
             }
@@ -459,7 +459,7 @@ impl EquationToken {
         let start_pos: i32 = self.pos;
         if self.eat(Some(OPENING)) {
             // todo: change this to latest parse_expression
-            x = self.parse_expression()?;
+            x = self.parse_logical_or()?;
 
             if !self.eat(Some(CLOSING)) {
                 return Err(Error::ParenExpected);
@@ -526,7 +526,7 @@ impl EquationToken {
     }
     fn operator_sequence(&mut self) -> bool {
 
-        static OPERATORS: [&'static str; 18] = ["+", "-", "*", "%", "/", "<<", ">>", "<", ">", "<=", ">=", "==", "!=", "&&", "||", "&", "^", "|"];
+        static OPERATORS: [&str; 18] = ["+", "-", "*", "%", "/", "<<", ">>", "<", ">", "<=", ">=", "==", "!=", "&&", "||", "&", "^", "|"];
 
         for operator in OPERATORS {
             let latest_ch = self.ch;
@@ -543,6 +543,6 @@ impl EquationToken {
             self.pos = latest_pos;
         }
 
-        return false;
+        false
     }
 }

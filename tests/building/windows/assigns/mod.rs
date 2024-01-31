@@ -5,3 +5,4 @@ mod pointer_casting_mixed;
 mod mixed_operations_float;
 mod mixed_operations_integer;
 mod casts;
+mod bool_assignable;

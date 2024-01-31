@@ -13,7 +13,7 @@ use crate::core::code_generator::registers::{FloatRegister, GeneralPurposeRegist
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::errors::EmptyIteratorErr;
 use crate::core::lexer::levenshtein_distance::{MethodCallSummarizeTransform, PatternedLevenshteinDistance, PatternedLevenshteinString, QuoteSummarizeTransform};
-use crate::core::lexer::static_type_context::{StaticTypeContext};
+use crate::core::lexer::static_type_context::StaticTypeContext;
 use crate::core::lexer::tokens::assignable_token::{AssignableToken, AssignableTokenErr};
 use crate::core::lexer::tokens::name_token::{NameToken, NameTokenErr};
 use crate::core::lexer::TryParse;
@@ -61,7 +61,6 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> InferType for VariableToken<
                     // let a: i64 = 5; instead of let a: i32 = 5;
                     if let Some(implicit_cast) = inferred_type.implicit_cast_to(&mut self.assignable, ty, &self.code_line)? {
                         self.ty = Some(implicit_cast);
-
                     } else {
                         return Err(InferTypeError::MismatchedTypes { expected: ty.clone(), actual: inferred_type.clone(), code_line: self.code_line.clone() });
                     }
@@ -78,7 +77,7 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> InferType for VariableToken<
                     define: self.define,
                     assignable: self.assignable.clone(),
                     mutability: self.mutability,
-                    code_line: self.code_line.clone()
+                    code_line: self.code_line.clone(),
                 });
 
                 Ok(())
@@ -180,7 +179,6 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for VariableToken<ASSI
         };
 
 
-
         if self.define && !self.assignable.is_stack_look_up(stack, meta) {
             if let Some((register, _)) = &written_float_register {
                 target += &ASMBuilder::mov_ident_line(destination, register);
@@ -190,14 +188,11 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for VariableToken<ASSI
         } else {
             let mut wrote_expression_to_target = false;
 
-            match &self.assignable {
-                AssignableToken::ArithmeticEquation(eq) => {
-                    if eq.value.is_none() {
-                        target += &eq.to_asm(stack, meta)?.to_string();
-                        wrote_expression_to_target = true;
-                    }
+            if let AssignableToken::ArithmeticEquation(eq) = &self.assignable {
+                if eq.value.is_none() {
+                    target += &eq.to_asm(stack, meta)?.to_string();
+                    wrote_expression_to_target = true;
                 }
-                _ => { }
             }
 
             let register_destination = register_destination::from_byte_size(self.assignable.byte_size(meta));
@@ -340,7 +335,7 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> VariableToken<ASSIGNMENT, SE
                         Ok(ty.clone())
                     } else {
                         Err(InferTypeError::NoTypePresent(v.name_token.clone(), self.code_line.clone()))
-                    }
+                    };
                 }
             }
             AssignableToken::ArithmeticEquation(expression) => {

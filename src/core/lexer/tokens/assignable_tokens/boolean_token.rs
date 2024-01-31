@@ -37,7 +37,7 @@ impl Display for BooleanToken {
 
 impl ToASM for BooleanToken {
     fn to_asm(&self, _stack: &mut Stack, _meta: &mut MetaInfo) -> Result<String, ASMGenerateError> {
-        return Ok((if self.value { "1" } else { "0" }).to_string())
+        Ok((if self.value { "1" } else { "0" }).to_string())
     }
 
     fn is_stack_look_up(&self, _stack: &mut Stack, _meta: &MetaInfo) -> bool {
@@ -45,7 +45,7 @@ impl ToASM for BooleanToken {
     }
 
     fn byte_size(&self, _meta: &mut MetaInfo) -> usize {
-        4
+        1
     }
 
     fn before_label(&self, _stack: &mut Stack, _meta: &mut MetaInfo) -> Option<Result<String, ASMGenerateError>> {

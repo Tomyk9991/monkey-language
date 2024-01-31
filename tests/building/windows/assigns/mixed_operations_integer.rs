@@ -606,3 +606,78 @@ main:
     assert_eq!(expected.trim(), asm_result.trim());
     Ok(())
 }
+
+#[test]
+fn mixed_operations_bool() -> anyhow::Result<()> {
+    let code = r#"
+let a: i32 = ((i32)(5 << 4 < 7) * 8 - 9 % 3) + 3;
+    "#;
+
+    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
+    let mut lexer = Lexer::from(monkey_file);
+    let top_level_scope = lexer.tokenize()?;
+
+    static_type_check(&top_level_scope)?;
+
+    let mut code_generator = ASMGenerator::from((top_level_scope, TargetOS::Windows));
+    let asm_result = code_generator.generate()?;
+
+
+    println!("{}", asm_result);
+
+    let expected = r#"
+    ; This assembly is targeted for the Windows Operating System
+segment .text
+global main
+
+
+main:
+    push rbp
+    mov rbp, rsp
+    ; Reserve stack space as MS convention. Shadow stacking
+    sub rsp, 36
+    ; let a: i32 = ((((i32)((5 << 4) < 7) * 8) - (9 % 3)) + 3)
+    ; ((((i32)((5 << 4) < 7) * 8) - (9 % 3)) + 3)
+    ; (((i32)((5 << 4) < 7) * 8) - (9 % 3))
+    ; ((i32)((5 << 4) < 7) * 8)
+    ; Cast: (bool) -> (i32)
+    ; ((5 << 4) < 7)
+    ; (5 << 4)
+    mov eax, 5
+    mov r14d, edx
+    mov r13d, eax
+    mov r12d, ecx
+    mov ecx, 4
+    mov edx, 0
+    shl eax, cl
+    mov edx, r14d
+    mov ecx, r12d
+    cmp eax, 7
+    setl al
+    ; Cast: (u8) -> (i32)
+    movzx eax, al
+    imul eax, 8
+    mov ecx, eax
+    ; (9 % 3)
+    mov eax, 9
+    mov r14d, edx
+    mov r13d, eax
+    mov r12d, ecx
+    mov ecx, 3
+    mov edx, 0
+    idiv ecx
+    mov eax, edx
+    mov edx, r14d
+    mov ecx, r12d
+    mov edi, eax
+    sub ecx, edi
+    mov eax, ecx
+    add eax, 3
+    mov DWORD [rbp - 4], eax
+    leave
+    ret
+    "#;
+
+    assert_eq!(expected.trim(), asm_result.trim());
+    Ok(())
+}

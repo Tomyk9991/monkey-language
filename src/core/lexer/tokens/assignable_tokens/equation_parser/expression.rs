@@ -144,7 +144,11 @@ impl Expression {
     fn move_result(stack: &mut Stack, target: &mut String, lhs_size: usize, float_type: &Option<Float>, destination_register: &GeneralPurposeRegister) -> Result<(), ASMGenerateError> {
         if stack.register_to_use.len() == 1 && !matches!(stack.register_to_use.last()?, GeneralPurposeRegister::Float(_)) {
             let last = Self::cut_last_register_to_size(stack, float_type)?;
-            let destination_register = destination_register.to_size_register(&last.size());
+            let destination_register = if float_type.is_none() {
+                destination_register.to_size_register(&last.size())
+            } else {
+                destination_register.clone()
+            };
             target.push_str(&ASMBuilder::mov_x_ident_line(last, destination_register, if float_type.is_some() { Some(lhs_size) } else { None }));
         } else {
             target.push_str(&ASMBuilder::mov_x_ident_line(stack.register_to_use.last()?, destination_register, if float_type.is_some() { Some(lhs_size) } else { None }));
