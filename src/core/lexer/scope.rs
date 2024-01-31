@@ -87,7 +87,7 @@ macro_rules! token_expand {
 
                     if !err.is_pattern_not_matched_error() {
                         return Err(ScopeError::ParsingError {
-                            message: format!("Line: {:?}: {}", c.actual_line_number, err)
+                            message: format!("{}", err)
                         })
                     }
                     $pattern_distances.push((<$token_implementation>::distance_from_code_line(c), Box::new(err)))

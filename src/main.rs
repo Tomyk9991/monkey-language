@@ -13,7 +13,7 @@ mod cli;
 mod utils;
 
 
-fn main() -> anyhow::Result<()> {
+fn run_compiler() -> anyhow::Result<()> {
     let only_write = false;
     let args = ProgramArgs::parse();
     let entry_point_file = args.input.clone();
@@ -77,6 +77,12 @@ fn main() -> anyhow::Result<()> {
     std::env::set_current_dir(s)?;
 
     Ok(())
+}
+
+fn main() {
+    if let Err(error) = run_compiler() {
+        eprintln!("{} {error}", "Error:".red());
+    }
 }
 
 #[cfg(target_os = "windows")]
