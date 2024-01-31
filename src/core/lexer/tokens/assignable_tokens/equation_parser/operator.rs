@@ -162,21 +162,23 @@ impl AssemblerOperation {
         let rdx = GeneralPurposeRegister::Bit64(Bit64::Rdx).to_size_register(&byte_size);
 
         if !registers.iter().map(|register| register.to_string()).any(|register| register == rdx.to_string()) {
-            postfix += &ASMBuilder::mov_ident_line(rdx, r14);
+            postfix += &ASMBuilder::ident(&format!("mov {}, {}", rdx, r14));
         }
 
         let rax = GeneralPurposeRegister::Bit64(Bit64::Rax).to_size_register(&byte_size);
         let r13 = GeneralPurposeRegister::Bit64(Bit64::R13).to_size_register(&byte_size);
 
         if !registers.iter().map(|register| register.to_string()).any(|register| register == rax.to_string()) {
-            postfix += &ASMBuilder::mov_ident_line(rax, r13);
+            postfix += &ASMBuilder::push(&format!("\n    mov {rax}, {r13}"));
         }
 
         let r12 = GeneralPurposeRegister::Bit64(Bit64::R12).to_size_register(&byte_size);
         let rcx = GeneralPurposeRegister::Bit64(Bit64::Rcx).to_size_register(&byte_size);
 
         if !registers.iter().map(|register| register.to_string()).any(|register| register == rcx.to_string()) {
-            postfix += &format!("    mov {rcx}, {r12}");
+            postfix += &format!("\n    mov {rcx}, {r12}");
+        } else {
+
         }
 
         Ok(postfix)

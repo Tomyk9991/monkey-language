@@ -141,7 +141,7 @@ impl Expression {
         Ok(())
     }
 
-    fn move_result(stack: &mut Stack, target: &mut String, lhs_size: usize, float_type: &Option<Float>, destination_register: &GeneralPurposeRegister) -> Result<(), ASMGenerateError> {
+    fn move_result(&self, _meta: &mut MetaInfo, stack: &mut Stack, target: &mut String, lhs_size: usize, float_type: &Option<Float>, destination_register: &GeneralPurposeRegister) -> Result<(), ASMGenerateError> {
         if stack.register_to_use.len() == 1 && !matches!(stack.register_to_use.last()?, GeneralPurposeRegister::Float(_)) {
             let last = Self::cut_last_register_to_size(stack, float_type)?;
             let destination_register = if float_type.is_none() {
@@ -349,7 +349,7 @@ impl ToASM for Expression {
                         };
                         stack.register_to_use.pop();
 
-                        Self::move_result(stack, &mut target, lhs_size, &float_type, &destination_register)?;
+                        self.move_result(meta, stack, &mut target, lhs_size, &float_type, &destination_register)?;
 
                         if stack.register_to_use.len() == 1 {
                             stack.register_to_use.pop();
@@ -381,8 +381,8 @@ impl ToASM for Expression {
                             self.generate_rhs(stack, meta, &mut target, rhs, lhs_size, &destination_register, &target_register)?;
                         };
                         stack.register_to_use.pop();
+                        self.move_result(meta, stack, &mut target, lhs_size, &float_type, &destination_register)?;
 
-                        Self::move_result(stack, &mut target, lhs_size, &float_type, &destination_register)?;
 
                         if stack.register_to_use.len() == 1 {
                             stack.register_to_use.pop();
@@ -426,8 +426,7 @@ impl ToASM for Expression {
                             target += &ASMBuilder::ident_line(&self.operator.specific_operation(ty, &[&destination_register, &target_register], stack, meta)?.inject_registers());
                         };
                         stack.register_to_use.pop();
-
-                        Self::move_result(stack, &mut target, lhs_size, &float_type, &register_a)?;
+                        self.move_result(meta, stack, &mut target, lhs_size, &float_type, &register_a)?;
 
                         if stack.register_to_use.len() == 1 {
                             stack.register_to_use.pop();
