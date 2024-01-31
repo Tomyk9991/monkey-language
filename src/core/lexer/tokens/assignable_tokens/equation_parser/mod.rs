@@ -341,6 +341,9 @@ impl EquationToken {
             } else if self.eat(Some('/')) {
                 let term = self.parse_factor()?;
                 x.set(Some(x.clone()), Operator::Div, Some(term), None);
+            } else if self.eat(Some('%')) {
+                let term = self.parse_factor()?;
+                x.set(Some(x.clone()), Operator::Mod, Some(term), None);
             } else {
                 return Ok(x);
             }
@@ -523,7 +526,7 @@ impl EquationToken {
     }
     fn operator_sequence(&mut self) -> bool {
 
-        static OPERATORS: [&'static str; 17] = ["+", "-", "*", "/", "<<", ">>", "<", ">", "<=", ">=", "==", "!=", "&&", "||", "&", "^", "|"];
+        static OPERATORS: [&'static str; 18] = ["+", "-", "*", "%", "/", "<<", ">>", "<", ">", "<=", ">=", "==", "!=", "&&", "||", "&", "^", "|"];
 
         for operator in OPERATORS {
             let latest_ch = self.ch;

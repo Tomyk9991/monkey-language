@@ -37,6 +37,7 @@ impl OperatorToASM for Boolean {
             Operator::LessThanEqual => no_operation("less than equal"),
             Operator::GreaterThanEqual => no_operation("greater than equal"),
             Operator::BitwiseXor => no_operation("bitwise xor"),
+            Operator::Mod => no_operation("modulo"),
             Operator::Equal | Operator::NotEqual => Ok(AssemblerOperation {
                 prefix: None,
                 operation: AssemblerOperation::compare(&operator.to_asm(&mut Default::default(), &mut Default::default())?, &registers[0], &registers[1])?,

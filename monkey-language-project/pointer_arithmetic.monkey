@@ -1,6 +1,8 @@
 module monkey-language-project/std.monkey;
 
-let b = false || false;
-printf("%d\n", (i32) b);
+let a = 11;
+let b = 2;
+let c = a % b;
+printf("%d\n", c);
 
 ExitProcess(0);

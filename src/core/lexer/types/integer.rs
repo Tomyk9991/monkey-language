@@ -268,6 +268,7 @@ impl Integer {
             base_type_matrix.insert((TypeToken::Integer(ty.clone()), Operator::Sub, TypeToken::Integer(ty.clone())), TypeToken::Integer(ty.clone()));
             base_type_matrix.insert((TypeToken::Integer(ty.clone()), Operator::Mul, TypeToken::Integer(ty.clone())), TypeToken::Integer(ty.clone()));
             base_type_matrix.insert((TypeToken::Integer(ty.clone()), Operator::Div, TypeToken::Integer(ty.clone())), TypeToken::Integer(ty.clone()));
+            base_type_matrix.insert((TypeToken::Integer(ty.clone()), Operator::Mod, TypeToken::Integer(ty.clone())), TypeToken::Integer(ty.clone()));
             base_type_matrix.insert((TypeToken::Integer(ty.clone()), Operator::LeftShift, TypeToken::Integer(ty.clone())), TypeToken::Integer(ty.clone()));
             base_type_matrix.insert((TypeToken::Integer(ty.clone()), Operator::RightShift, TypeToken::Integer(ty.clone())), TypeToken::Integer(ty.clone()));
 
@@ -315,11 +316,22 @@ impl OperatorToASM for Integer {
                 operation: AssemblerOperation::two_operands(&operator.to_asm(stack, meta)?, &registers[0], &registers[1]),
                 postfix: None,
             }),
-            Operator::Div => Ok(AssemblerOperation {
-                prefix: Some(AssemblerOperation::save_rax_rcx_rdx(self.byte_size(), registers)?),
-                operation: format!("{prefix}div {}", GeneralPurposeRegister::Bit64(Bit64::Rcx).to_size_register(&ByteSize::try_from(integer_size)?)),
-                postfix: Some(AssemblerOperation::load_rax_rcx_rdx(self.byte_size(), registers)?),
-            }),
+            Operator::Div | Operator::Mod => {
+                let operation_postfix = if *operator == Operator::Mod {
+                    let rax = GeneralPurposeRegister::Bit64(Bit64::Rax).to_size_register(&ByteSize::try_from(integer_size)?);
+                    let rdx = GeneralPurposeRegister::Bit64(Bit64::Rdx).to_size_register(&ByteSize::try_from(integer_size)?);
+
+                    format!("\n    mov {rax}, {rdx}")
+                } else {
+                    String::new()
+                };
+
+                Ok(AssemblerOperation {
+                    prefix: Some(AssemblerOperation::save_rax_rcx_rdx(self.byte_size(), registers)?),
+                    operation: format!("{prefix}div {}{}", GeneralPurposeRegister::Bit64(Bit64::Rcx).to_size_register(&ByteSize::try_from(integer_size)?), operation_postfix),
+                    postfix: Some(AssemblerOperation::load_rax_rcx_rdx(self.byte_size(), registers)?),
+                })
+            },
             Operator::Mul => if self.signed() {
                 Ok(AssemblerOperation::two_operands("imul", &registers[0], &registers[1]).into())
             } else {

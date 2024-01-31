@@ -13,6 +13,7 @@ pub enum Operator {
     Add,
     Sub,
     Div,
+    Mod,
     Mul,
     LeftShift,
     RightShift,
@@ -54,7 +55,8 @@ impl Display for Operator {
             Operator::BitwiseXor => "^",
             Operator::BitwiseOr => "|",
             Operator::LogicalAnd => "&&",
-            Operator::LogicalOr => "||"
+            Operator::LogicalOr => "||",
+            Operator::Mod => "%",
         })
     }
 }
@@ -79,7 +81,8 @@ impl ToASM for Operator {
             Operator::BitwiseXor => "xor",
             Operator::BitwiseOr => "or",
             Operator::LogicalAnd => "je",
-            Operator::LogicalOr => "jne"
+            Operator::LogicalOr => "jne",
+            Operator::Mod => "div",
         }.to_string())
     }
 
