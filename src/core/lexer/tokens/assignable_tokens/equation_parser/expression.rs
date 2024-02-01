@@ -72,7 +72,7 @@ impl Expression {
     }
 
     fn latest_used_destination_register(&self, meta: &mut MetaInfo, target: &str, lhs_size: usize) -> Result<GeneralPurposeRegister, ASMGenerateError> {
-        let pushing_register: GeneralPurposeRegister = if let Some(last_instruction) = extract_last_instruction(target) {
+        let pushing_register: GeneralPurposeRegister = if let Some(last_instruction) = extract_last_general_purpose_instruction(target) {
             let (mut i, _) = self.iterator_from_type(meta, lhs_size)?;
 
             if let Some(mut r) = i.nth(2) {
@@ -156,6 +156,12 @@ impl Expression {
             };
             target.push_str(&ASMBuilder::mov_x_ident_line(last, destination_register, if float_type.is_some() { Some(lhs_size) } else { None }));
         } else {
+            let last = Self::cut_last_register_to_size(stack, float_type)?;
+            let destination_register = if float_type.is_none() {
+                destination_register.to_size_register(&last.size())
+            } else {
+                destination_register.clone()
+            };
             target.push_str(&ASMBuilder::mov_x_ident_line(stack.register_to_use.last()?, destination_register, if float_type.is_some() { Some(lhs_size) } else { None }));
         }
         Ok(())
@@ -512,14 +518,15 @@ fn lhs_rhs_byte_sizes(a: &Expression, b: &Expression, meta: &mut MetaInfo) -> Re
     Ok((lhs_size, rhs_size))
 }
 
-fn extract_last_instruction(current_asm: &str) -> Option<String> {
-    let last_instruction = current_asm.lines()
-        .map(|a| a.trim())
-        .filter(|a| !a.starts_with(';'))
-        .last();
+fn extract_last_general_purpose_instruction(current_asm: &str) -> Option<String> {
+    for line in current_asm.lines().rev() {
+        let line = line.trim();
 
-    if let Some(last_instruction) = last_instruction {
-        return Some(last_instruction.to_string());
+        if line.starts_with(';') || line.contains("r12") || line.contains("r13") || line.contains("r14") || line.starts_with(".label") {
+            continue;
+        }
+
+        return Some(line.to_string());
     }
 
     None

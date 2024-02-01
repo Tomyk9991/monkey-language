@@ -1,8 +1,9 @@
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
-use crate::core::code_generator::generator::Stack;
+
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
+use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::registers::{Bit64, ByteSize, GeneralPurposeRegister};
 use crate::core::lexer::types::type_token::TypeToken;
 
@@ -64,7 +65,7 @@ impl Display for Operator {
 impl ToASM for Operator {
     fn to_asm(&self, _: &mut Stack, _: &mut MetaInfo) -> Result<String, ASMGenerateError> {
         Ok(match self {
-            Operator::Noop =>"noop",
+            Operator::Noop => "noop",
             Operator::Add => "add",
             Operator::Sub => "sub",
             Operator::Mul => "mul",
@@ -108,7 +109,7 @@ impl Operator {
 pub struct AssemblerOperation {
     pub prefix: Option<String>,
     pub operation: String,
-    pub postfix: Option<String>
+    pub postfix: Option<String>,
 }
 
 impl From<String> for AssemblerOperation {
@@ -116,7 +117,7 @@ impl From<String> for AssemblerOperation {
         Self {
             prefix: None,
             operation: value,
-            postfix: None
+            postfix: None,
         }
     }
 }
@@ -161,7 +162,7 @@ impl AssemblerOperation {
     pub fn load_rax_rcx_rdx<T: Display>(size: usize, registers: &[T]) -> Result<String, ASMGenerateError> {
         let byte_size = ByteSize::try_from(size)?;
 
-        let mut postfix = ASMBuilder::mov_ident_line(&registers[0],GeneralPurposeRegister::Bit64(Bit64::Rax).to_size_register(&byte_size));
+        let mut postfix = ASMBuilder::mov_ident_line(&registers[0], GeneralPurposeRegister::Bit64(Bit64::Rax).to_size_register(&byte_size));
 
         let r14 = GeneralPurposeRegister::Bit64(Bit64::R14).to_size_register(&byte_size);
         let rdx = GeneralPurposeRegister::Bit64(Bit64::Rdx).to_size_register(&byte_size);
@@ -182,8 +183,6 @@ impl AssemblerOperation {
 
         if !registers.iter().map(|register| register.to_string()).any(|register| register == rcx.to_string()) {
             postfix += &format!("\n    mov {rcx}, {r12}");
-        } else {
-
         }
 
         Ok(postfix)

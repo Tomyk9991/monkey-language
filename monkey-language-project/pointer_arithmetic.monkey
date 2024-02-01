@@ -1,9 +1,12 @@
 module monkey-language-project/std.monkey;
 
-fn a(): void {
-    if (1) {
-        let r: i32 = 5 <<< 3;
-    }
-}
+let a: i32 = 5;
+let b: i32 = 3;
+let c: i32 = 7;
+let d: i32 = 9;
+
+let result = (a == b && c != d && a >= b) || (c <= d && a < b && c > d);
+
+printf("%d", (i32) result);
 
 ExitProcess(0);

@@ -7,3 +7,4 @@ mod mixed_operations_integer;
 mod casts;
 mod bool_assignable;
 mod mixed_operations_bool;
+mod integer_compares;
