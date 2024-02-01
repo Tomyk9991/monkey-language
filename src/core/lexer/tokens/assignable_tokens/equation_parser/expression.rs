@@ -146,23 +146,34 @@ impl Expression {
         Ok(())
     }
 
-    fn move_result(&self, _meta: &mut MetaInfo, stack: &mut Stack, target: &mut String, lhs_size: usize, float_type: &Option<Float>, destination_register: &GeneralPurposeRegister) -> Result<(), ASMGenerateError> {
-        if stack.register_to_use.len() == 1 && !matches!(stack.register_to_use.last()?, GeneralPurposeRegister::Float(_)) {
-            let last = Self::cut_last_register_to_size(stack, float_type)?;
-            let destination_register = if float_type.is_none() {
-                destination_register.to_size_register(&last.size())
-            } else {
-                destination_register.clone()
-            };
-            target.push_str(&ASMBuilder::mov_x_ident_line(last, destination_register, if float_type.is_some() { Some(lhs_size) } else { None }));
+    fn move_result(&self, _meta: &mut MetaInfo, stack: &mut Stack, target: &mut String, lhs_size: usize, float_type: &Option<Float>, source_register: &GeneralPurposeRegister) -> Result<(), ASMGenerateError> {
+        let last = Self::cut_last_register_to_size(stack, float_type)?;
+        let source_register = if float_type.is_none() {
+            source_register.to_size_register(&last.size())
         } else {
-            let last = Self::cut_last_register_to_size(stack, float_type)?;
-            let destination_register = if float_type.is_none() {
-                destination_register.to_size_register(&last.size())
+            source_register.clone()
+        };
+
+        if stack.register_to_use.len() == 1 && !matches!(stack.register_to_use.last()?, GeneralPurposeRegister::Float(_)) {
+            let bool_destination;
+            let source_register = if last.size() == 1 {
+                bool_destination = true;
+                source_register.to_64_bit_register().to_size_register(&ByteSize::_1)
             } else {
-                destination_register.clone()
+                bool_destination = false;
+                source_register
             };
-            target.push_str(&ASMBuilder::mov_x_ident_line(stack.register_to_use.last()?, destination_register, if float_type.is_some() { Some(lhs_size) } else { None }));
+            target.push_str(&ASMBuilder::mov_x_ident_line(last, source_register, if float_type.is_some() && !bool_destination { Some(lhs_size) } else { None }));
+        } else {
+            let bool_destination;
+            let source_register = if stack.register_to_use.last()?.size() == 1 {
+                bool_destination = true;
+                source_register.to_64_bit_register().to_size_register(&ByteSize::_1)
+            } else {
+                bool_destination = false;
+                source_register
+            };
+            target.push_str(&ASMBuilder::mov_x_ident_line(stack.register_to_use.last()?, source_register, if float_type.is_some() && !bool_destination { Some(lhs_size) } else { None }));
         }
         Ok(())
     }
@@ -323,6 +334,7 @@ impl ToASM for Expression {
                         let (lhs_size, _) = lhs_rhs_byte_sizes(lhs, rhs, meta)?;
                         let (mut register_iterator, float_type) = self.iterator_from_type(meta, lhs_size)?;
                         let next_register = register_iterator.current();
+
 
                         // pushing twice. the last pop will move the arithmetic result into this register,
                         // basically eax or rax or anything similar where a result is expected

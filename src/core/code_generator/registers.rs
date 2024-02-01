@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
@@ -551,6 +552,28 @@ pub enum ByteSize {
     _4,
     _2,
     _1,
+}
+
+impl PartialEq<usize> for ByteSize {
+    fn eq(&self, other: &usize) -> bool {
+        match self {
+            ByteSize::_8 => 8,
+            ByteSize::_4 => 4,
+            ByteSize::_2 => 2,
+            ByteSize::_1 => 1,
+        }.eq(other)
+    }
+}
+
+impl PartialOrd<usize> for ByteSize {
+    fn partial_cmp(&self, other: &usize) -> Option<Ordering> {
+        match self {
+            ByteSize::_8 => 8,
+            ByteSize::_4 => 4,
+            ByteSize::_2 => 2,
+            ByteSize::_1 => 1,
+        }.partial_cmp(other)
+    }
 }
 
 impl TryFrom<usize> for ByteSize {
