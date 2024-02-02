@@ -115,6 +115,10 @@ impl TryParse for MethodDefinition {
             ["extern", "fn", name, "<", generic_type, ">", "(", arguments @ .., ")", ":", return_type, ";"] => (true, name, Some(generic_type) ,arguments, return_type),
             ["extern", "fn", name, "(", arguments @ .., ")", ":", return_type, ";"] => (true, name, None, arguments, return_type),
             ["fn", name, "(", arguments @ .., ")", ":", return_type, "{"] => (false, name, None, arguments, return_type),
+
+            ["extern", "fn", name, "<", generic_type, ">", "(", arguments @ .., ")", ":", ";"] => (true, name, Some(generic_type) ,arguments, &"void"),
+            ["extern", "fn", name, "(", arguments @ .., ")", ";"] => (true, name, None, arguments, &"void"),
+            ["fn", name, "(", arguments @ .., ")", "{"] => (false, name, None, arguments, &"void"),
             _ => return Err(MethodDefinitionErr::PatternNotMatched { target_value: method_header.line.to_string() })
         };
 
@@ -164,6 +168,10 @@ impl MethodDefinition {
     }
 
     pub fn method_label_name(&self) -> String {
+        if self.name.name == "main" {
+            return "main".to_string();
+        }
+
         let parameters = if self.arguments.len() == 0 {
             "void".to_string()
         } else {
@@ -173,7 +181,7 @@ impl MethodDefinition {
 
         let return_type = self.return_type.to_string();
 
-        format!("{}_{}#{}", self.name, parameters, return_type)
+        format!(".{}_{}~{}", self.name, parameters, return_type)
     }
 }
 

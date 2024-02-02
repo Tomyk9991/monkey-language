@@ -73,13 +73,19 @@ impl Stack {
 
     pub fn generate_scope(&mut self, tokens: &Vec<Token>, meta: &mut MetaInfo) -> Result<String, ASMGenerateError> {
         let mut target = String::new();
+        let mut prefix = String::new();
 
         self.begin_scope();
 
         for token in tokens {
-            target.push_str(&token.to_asm(self, meta)?);
+            target += &ASMBuilder::push(&token.to_asm(self, meta)?);
+
+            if let Some(Ok(prefix_asm)) = token.before_label(self, meta) {
+                prefix += &ASMBuilder::push(&prefix_asm);
+            }
         }
 
+        target.push_str(&prefix);
         target.push_str(&self.end_scope());
         Ok(target)
     }
@@ -110,6 +116,7 @@ impl Stack {
 pub struct ASMGenerator {
     top_level_scope: Scope,
     pub stack: Stack,
+    require_main: bool,
     target_os: TargetOS,
 }
 
@@ -141,52 +148,84 @@ impl ASMGenerator {
 
         boiler_plate += &ASMBuilder::line("");
 
-        let mut prefix = String::new();
-        let mut label_header: String = String::new();
-        let mut method_definitions = String::new();
+        if self.require_main {
+            // search for main function
+            let main_entry = self.top_level_scope.tokens.iter().filter(|a| matches!(a, Token::MethodDefinition(md) if md.name.name == "main")).collect::<Vec<&Token>>();
 
-        label_header += &ASMBuilder::line(&format!("{entry_point_label}:"));
-        label_header += &ASMBuilder::ident_line("push rbp");
-        label_header += &ASMBuilder::mov_ident_line("rbp", "rsp");
+            let value: Result<String, ASMGenerateError> = match main_entry.len() {
+                0 => return Err(ASMGenerateError::EntryPointNotFound),
+                1 => {
+                    if let Some(Token::MethodDefinition(main)) = main_entry.first() {
+                        if main.is_extern {
+                            return Err(ASMGenerateError::EntryPointNotFound);
+                        }
 
-        label_header += &ASMBuilder::ident(&ASMBuilder::comment_line("Reserve stack space as MS convention. Shadow stacking"));
+                        let mut meta = MetaInfo {
+                            code_line: main.code_line.clone(),
+                            target_os: self.target_os.clone(),
+                            static_type_information: StaticTypeContext::new(&self.top_level_scope.tokens),
+                        };
 
-        let mut stack_allocation = 32; // per default microsoft convention requires 32 byte as a shadow stack
-        let mut method_scope: String = String::new();
-
-
-
-        for token in &self.top_level_scope.tokens {
-            let mut meta = MetaInfo {
-                code_line: token.code_line(),
-                target_os: self.target_os.clone(),
-                static_type_information: StaticTypeContext::new(&self.top_level_scope.tokens),
+                        Ok(format!("{}{}", boiler_plate, &main.to_asm(&mut self.stack, &mut meta)?))
+                    } else {
+                        return Err(ASMGenerateError::EntryPointNotFound)
+                    }
+                }
+                _ => return Err(ASMGenerateError::MultipleEntryPointsFound(main_entry.iter().map(|t| t.code_line()).collect::<Vec<_>>()))
             };
 
-            if let Token::MethodDefinition(md) = token {
-                if !md.is_extern {
-                    method_definitions += &ASMBuilder::push(&md.to_asm(&mut self.stack, &mut meta)?);
+            Ok(value?)
+        } else {
+            let mut prefix = String::new();
+            let mut label_header: String = String::new();
+            let mut method_definitions = String::new();
+
+            label_header += &ASMBuilder::line(&format!("{entry_point_label}:"));
+            label_header += &ASMBuilder::ident_line("push rbp");
+            label_header += &ASMBuilder::mov_ident_line("rbp", "rsp");
+
+            label_header += &ASMBuilder::ident(&ASMBuilder::comment_line("Reserve stack space as MS convention. Shadow stacking"));
+
+            let mut stack_allocation = 32; // per default microsoft convention requires 32 byte as a shadow stack
+            let mut method_scope: String = String::new();
+
+
+
+            for token in &self.top_level_scope.tokens {
+                let mut meta = MetaInfo {
+                    code_line: token.code_line(),
+                    target_os: self.target_os.clone(),
+                    static_type_information: StaticTypeContext::new(&self.top_level_scope.tokens),
+                };
+
+                if let Token::MethodDefinition(md) = token {
+                    if !md.is_extern {
+                        meta.static_type_information.merge(StaticTypeContext::new(&md.stack));
+                        method_definitions += &ASMBuilder::push(&md.to_asm(&mut self.stack, &mut meta)?);
+                    }
+
+                    continue;
                 }
 
-                continue;
+                stack_allocation += token.byte_size(&mut meta);
+                method_scope += &ASMBuilder::push(&token.to_asm(&mut self.stack, &mut meta)?);
+
+                if let Some(Ok(prefix_asm)) = token.before_label(&mut self.stack, &mut meta) {
+                    prefix += &ASMBuilder::push(&(prefix_asm));
+                }
             }
 
-            stack_allocation += token.byte_size(&mut meta);
-            method_scope += &ASMBuilder::push(&token.to_asm(&mut self.stack, &mut meta)?);
-
-            if let Some(Ok(prefix_asm)) = token.before_label(&mut self.stack, &mut meta) {
-                prefix += &ASMBuilder::push(&(prefix_asm));
+            if !method_scope.trim_end().ends_with("call ProcessExit") {
+                method_scope += &ASMBuilder::ident_line("leave");
+                method_scope += &ASMBuilder::ident_line("ret");
             }
+
+            let stack_allocation_asm = ASMBuilder::ident_line(&format!("sub rsp, {}", stack_allocation));
+
+            Ok(format!("{}{}{}{}{}{}", boiler_plate, prefix, method_definitions, label_header, stack_allocation_asm, method_scope))
         }
 
-        if !method_scope.trim_end().ends_with("call ProcessExit") {
-            method_scope += &ASMBuilder::ident_line("leave");
-            method_scope += &ASMBuilder::ident_line("ret");
-        }
 
-        let stack_allocation_asm = ASMBuilder::ident_line(&format!("sub rsp, {}", stack_allocation));
-
-        Ok(format!("{}{}{}{}{}{}", boiler_plate, prefix, method_definitions, label_header, stack_allocation_asm, method_scope))
     }
 }
 
@@ -195,6 +234,18 @@ impl From<(Scope, TargetOS)> for ASMGenerator {
         ASMGenerator {
             top_level_scope: value.0,
             stack: Stack::default(),
+            require_main: false,
+            target_os: value.1,
+        }
+    }
+}
+
+impl From<(Scope, TargetOS, bool)> for ASMGenerator {
+    fn from(value: (Scope, TargetOS, bool)) -> Self {
+        ASMGenerator {
+            top_level_scope: value.0,
+            stack: Stack::default(),
+            require_main: value.2,
             target_os: value.1,
         }
     }

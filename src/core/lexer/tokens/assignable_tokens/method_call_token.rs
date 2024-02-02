@@ -220,7 +220,7 @@ impl MethodCallToken {
 
 impl ToASM for MethodCallToken {
     fn to_asm(&self, stack: &mut Stack, meta: &mut MetaInfo) -> Result<String, ASMGenerateError> {
-        let calling_convention = conventions::calling_convention(meta, &self.arguments, &self.name.name)?;
+        let calling_convention = conventions::calling_convention(stack, meta, &self.arguments, &self.name.name)?;
 
         let method_def = if let Some(method_def) = meta.static_type_information.methods.iter().find(|m| m.name.name == self.name.name) {
             method_def.clone()

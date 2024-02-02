@@ -55,7 +55,7 @@ pub trait Normalizable {
 
 impl Normalizable for Vec<CodeLine> {
     /// Splits the given vec of Code lines into multiple code lines if any separator tokens is found and inserts spaces.
-    /// Spaces are inserted in front of special characters like `;`, `(`, `)`, `:`, `,`, `{`, `}`.
+    /// Spaces are inserted in front of special characters like `;`, `(`, `)`, `:`, `,`, `{`, `}`, `<`, `>`.
     fn normalize(&mut self) {
         let opening_owned = OPENING_SCOPE.to_string();
         let closing_owned = CLOSING_SCOPE.to_string();
@@ -68,6 +68,8 @@ impl Normalizable for Vec<CodeLine> {
         let mut separators = vec![";"];
         separators.extend(ScopeSplitterIterator::default()
             .flat_map(|s| s.0));
+
+        println!("{:#?}", separators);
 
 
         let split_by_regex = separators.join("|");

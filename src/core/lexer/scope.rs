@@ -4,7 +4,6 @@ use std::iter::Peekable;
 use std::slice::Iter;
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::errors::EmptyIteratorErr;
-use crate::core::lexer::levenshtein_distance::PatternedLevenshteinDistance;
 use crate::core::lexer::static_type_context::StaticTypeContext;
 use crate::core::lexer::token::Token;
 use crate::core::lexer::tokenizer::{Lexer};
@@ -73,7 +72,7 @@ impl Display for ScopeError {
 impl Error for ScopeError {}
 
 macro_rules! token_expand {
-    ($code_lines_iterator: ident, $pattern_distances: ident, $(($token_implementation:ty, $token_type:ident, $iterates_over_same_scope:ident)),*) => {
+    ($code_lines_iterator: ident, $(($token_implementation:ty, $token_type:ident, $iterates_over_same_scope:ident)),*) => {
         $(
             match <$token_implementation as TryParse>::try_parse($code_lines_iterator) {
                 Ok(t) => {
@@ -83,14 +82,14 @@ macro_rules! token_expand {
                     return Ok(Token::$token_type(t))
                 },
                 Err(err) => {
-                    let c = *$code_lines_iterator.peek().ok_or(ScopeError::EmptyIterator(EmptyIteratorErr::default()))?;
+                    // let c = *$code_lines_iterator.peek().ok_or(ScopeError::EmptyIterator(EmptyIteratorErr::default()))?;
 
                     if !err.is_pattern_not_matched_error() {
                         return Err(ScopeError::ParsingError {
                             message: format!("{}", err)
                         })
                     }
-                    $pattern_distances.push((<$token_implementation>::distance_from_code_line(c), Box::new(err)))
+                    // $pattern_distances.push((<$token_implementation>::distance_from_code_line(c), Box::new(err)))
                 }
             }
         )*
@@ -135,11 +134,11 @@ impl TryParse for Scope {
     /// * Ok(Token) if the code lines iterator can be parsed into a scope
     /// * Err(ScopeError) if the code lines iterator cannot be parsed into a scope
     fn try_parse(code_lines_iterator: &mut Peekable<Iter<CodeLine>>) -> anyhow::Result<Self::Output, ScopeError> {
-        let mut pattern_distances: Vec<(usize, Box<dyn Error>)> = vec![];
+        // let mut pattern_distances: Vec<(usize, Box<dyn Error>)> = vec![];
         let code_line = *code_lines_iterator.peek().ok_or(ScopeError::EmptyIterator(EmptyIteratorErr))?;
 
 
-        token_expand!(code_lines_iterator, pattern_distances,
+        token_expand!(code_lines_iterator,
             (ImportToken,               Import,             true),
             (VariableToken<'=', ';'>,   Variable,           true),
             (MethodCallToken,           MethodCall,         true),
@@ -160,8 +159,9 @@ impl TryParse for Scope {
         //     });
         // }
 
+        let c = *code_lines_iterator.peek().ok_or(ScopeError::EmptyIterator(EmptyIteratorErr::default()))?;
         Err(ScopeError::ParsingError {
-            message: format!("Unexpected token: {:?}: {}", code_line.actual_line_number, code_line.line)
+            message: format!("Unexpected token: {:?}: {}", c.actual_line_number, code_line.line)
         })
     }
 }

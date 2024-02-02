@@ -1,9 +1,11 @@
 module monkey-language-project/std.monkey;
 
-fn testing(): void {
-    let a: i32 = 5;
+
+fn print_i32(b: i32) {
+    printf("%d\n", b);
 }
 
-testing();
-
-ExitProcess(0);
+fn main(): i32 {
+    let a = 5;
+    print_i32(a);
+}

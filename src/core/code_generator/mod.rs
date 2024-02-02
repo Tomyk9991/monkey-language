@@ -21,6 +21,8 @@ pub enum ASMGenerateError {
     _VariableAlreadyUsed { name: String, code_line: CodeLine },
     UnresolvedReference { name: String, code_line: CodeLine },
     CastUnsupported(CastToError, CodeLine),
+    EntryPointNotFound,
+    MultipleEntryPointsFound(Vec<CodeLine>),
     TypeNotInferrable(InferTypeError),
     InternalError(String),
     AssignmentNotImplemented { assignable_token: AssignableToken, },
@@ -43,6 +45,12 @@ impl Display for ASMGenerateError {
             ASMGenerateError::TypeNotInferrable(infer) => write!(f, "{}", infer),
             ASMGenerateError::InternalError(message) => write!(f, "Internal Error: {}", message),
             ASMGenerateError::CastUnsupported(cast_to, code_line) => write!(f, "Line: {:?}:\t{}", code_line.actual_line_number, cast_to),
+            ASMGenerateError::EntryPointNotFound => write!(f, "No entry point for the program was found. Consider adding `main` function"),
+            ASMGenerateError::MultipleEntryPointsFound(e) => write!(f, "Multiple entry points were found: [\n{}\n]", {
+                e.iter().map(|l| format!("\tLine: {:?}", l.actual_line_number))
+                    .collect::<Vec<String>>()
+                    .join(",\n")
+            })
         }
     }
 }

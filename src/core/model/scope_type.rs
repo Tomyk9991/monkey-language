@@ -27,7 +27,12 @@ impl Iterator for ScopeSplitterIterator {
         match self.current {
             0 => {
                 self.current += 1;
-                Some((vec![r"fn .*?\(.*?\):\s.*?\{", r"fn .*?\(.*?\):\s.*?\{.*?\}"], ScopeType::Fn))
+                Some((vec![
+                    r"fn .*?\(.*?\)\s\{",
+                    r"fn .*?\(.*?\)\s\{.*?\}",
+                    r"fn .*?\(.*?\):\s.*?\{",
+                    r"fn .*?\(.*?\):\s.*?\{.*?\}",
+                ], ScopeType::Fn))
             },
             1 => {
                 self.current += 1;

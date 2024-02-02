@@ -1,3 +1,4 @@
+use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::MetaInfo;
 use crate::core::code_generator::registers::{Bit64, FloatRegister, GeneralPurposeRegister};
 use crate::core::code_generator::target_os::TargetOS;
@@ -12,16 +13,16 @@ pub enum CallingRegister {
     Stack,
 }
 
-pub fn calling_convention(meta: &MetaInfo, calling_arguments: &[AssignableToken], method_name: &str) -> Result<Vec<Vec<CallingRegister>>, InferTypeError> {
+pub fn calling_convention(stack: &mut Stack, meta: &MetaInfo, calling_arguments: &[AssignableToken], method_name: &str) -> Result<Vec<Vec<CallingRegister>>, InferTypeError> {
     match meta.target_os {
-        TargetOS::Windows => windows_calling_convention(meta, calling_arguments, method_name),
+        TargetOS::Windows => windows_calling_convention(stack, meta, calling_arguments, method_name),
         TargetOS::Linux | TargetOS::WindowsSubsystemLinux => {
             unimplemented!("Linux calling convention not implemented yet");
         }
     }
 }
 
-fn windows_calling_convention(meta: &MetaInfo, calling_arguments: &[AssignableToken], method_name: &str) -> Result<Vec<Vec<CallingRegister>>, InferTypeError> {
+fn windows_calling_convention(_stack: &mut Stack, meta: &MetaInfo, calling_arguments: &[AssignableToken], method_name: &str) -> Result<Vec<Vec<CallingRegister>>, InferTypeError> {
     static FLOAT_ORDER: [CallingRegister; 4] = [
         CallingRegister::Register(GeneralPurposeRegister::Float(FloatRegister::Xmm0)),
         CallingRegister::Register(GeneralPurposeRegister::Float(FloatRegister::Xmm1)),
