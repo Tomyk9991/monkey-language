@@ -1,13 +1,14 @@
 use std::fmt::{Debug, Display, Formatter};
-use crate::core::lexer::tokens::import::ImportToken;
-use crate::core::code_generator::generator::{Stack};
+
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
+use crate::core::code_generator::generator::Stack;
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::static_type_context::StaticTypeContext;
-use crate::core::lexer::tokens::scope_ending::ScopeEnding;
-use crate::core::lexer::tokens::method_definition::MethodDefinition;
 use crate::core::lexer::tokens::assignable_tokens::method_call_token::MethodCallToken;
 use crate::core::lexer::tokens::if_definition::IfDefinition;
+use crate::core::lexer::tokens::import::ImportToken;
+use crate::core::lexer::tokens::method_definition::MethodDefinition;
+use crate::core::lexer::tokens::scope_ending::ScopeEnding;
 use crate::core::lexer::tokens::variable_token::VariableToken;
 use crate::core::lexer::types::type_token::InferTypeError;
 use crate::core::type_checker::InferType;
@@ -68,7 +69,7 @@ impl ToASM for Token {
             Token::MethodDefinition(method_def) => {
                 vec![&method_def.stack]
             }
-            _ => {vec![]}
+            _ => { vec![] }
         };
 
         for scope in scopes {
@@ -86,10 +87,10 @@ impl ToASM for Token {
             Token::Variable(variable) => variable.to_asm(stack, meta),
             Token::MethodCall(method_call_token) => method_call_token.to_asm(stack, meta),
             Token::IfDefinition(if_definition) => if_definition.to_asm(stack, meta),
-            Token::Import(import) => import.to_asm(stack,meta),
+            Token::Import(import) => import.to_asm(stack, meta),
             Token::MethodDefinition(md) if md.is_extern => Ok(String::new()),
+            Token::MethodDefinition(md) => md.to_asm(stack, meta),
             rest => Err(ASMGenerateError::NotImplemented { token: format!("{}", rest) }),
-            // Token::MethodDefinition(_) => {}
             // Token::ScopeClosing(_) => {}
         }
     }
@@ -110,9 +111,9 @@ impl ToASM for Token {
             Token::Variable(a) => a.byte_size(meta),
             Token::MethodCall(a) => a.byte_size(meta),
             Token::MethodDefinition(a) => a.byte_size(meta),
-            Token::Import(a) =>  a.byte_size(meta),
+            Token::Import(a) => a.byte_size(meta),
             Token::ScopeClosing(_) => 0,
-            Token::IfDefinition(a) =>  a.byte_size(meta)
+            Token::IfDefinition(a) => a.byte_size(meta)
         }
     }
 

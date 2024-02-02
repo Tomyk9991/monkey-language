@@ -11,6 +11,7 @@ use std::slice::Iter;
 use std::str::FromStr;
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
+use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::constants::FUNCTION_KEYWORD;
 use crate::core::lexer::errors::EmptyIteratorErr;
 use crate::core::lexer::levenshtein_distance::PatternedLevenshteinDistance;
@@ -161,11 +162,48 @@ impl MethodDefinition {
 
         Ok(type_arguments)
     }
+
+    pub fn method_label_name(&self) -> String {
+        let parameters = if self.arguments.len() == 0 {
+            "void".to_string()
+        } else {
+            self.arguments.iter().map(|a| a.1.to_string()).collect::<Vec<String>>().join("_")
+        }.replace("*", "ptr");
+
+
+        let return_type = self.return_type.to_string();
+
+        format!("{}_{}#{}", self.name, parameters, return_type)
+    }
 }
 
 impl ToASM for MethodDefinition {
-    fn to_asm(&self, _stack: &mut Stack, _meta: &mut MetaInfo) -> Result<String, ASMGenerateError> {
-        todo!()
+    fn to_asm(&self, stack: &mut Stack, meta: &mut MetaInfo) -> Result<String, ASMGenerateError> {
+        let mut label_header: String = String::new();
+        let mut prefix = String::new();
+
+        label_header += &ASMBuilder::line(&format!("{}:", self.method_label_name()));
+        label_header += &ASMBuilder::ident_line("push rbp");
+        label_header += &ASMBuilder::mov_ident_line("rbp", "rsp");
+
+        label_header += &ASMBuilder::ident(&ASMBuilder::comment_line("Reserve stack space as MS convention. Shadow stacking"));
+        let mut stack_allocation = 32; // per default microsoft convention requires 32 byte as a shadow stack
+        let mut method_scope: String = String::new();
+
+        for token in &self.stack {
+            stack_allocation += token.byte_size(meta);
+            method_scope += &ASMBuilder::push(&token.to_asm(stack, meta)?);
+
+            if let Some(Ok(prefix_asm)) = token.before_label(stack, meta) {
+                prefix += &ASMBuilder::push(&prefix_asm);
+            }
+        }
+
+        let stack_allocation_asm = ASMBuilder::ident_line(&format!("sub rsp, {}", stack_allocation));
+        let mut leave_statement = ASMBuilder::ident_line("leave");
+        leave_statement += &ASMBuilder::ident_line("ret");
+
+        Ok(format!("{}{}{}{}{}", prefix, label_header, stack_allocation_asm, method_scope, leave_statement))
     }
 
     fn is_stack_look_up(&self, _stack: &mut Stack, _meta: &MetaInfo) -> bool {

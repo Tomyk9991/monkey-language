@@ -142,8 +142,8 @@ impl ASMGenerator {
         boiler_plate += &ASMBuilder::line("");
 
         let mut prefix = String::new();
-
         let mut label_header: String = String::new();
+        let mut method_definitions = String::new();
 
         label_header += &ASMBuilder::line(&format!("{entry_point_label}:"));
         label_header += &ASMBuilder::ident_line("push rbp");
@@ -155,6 +155,7 @@ impl ASMGenerator {
         let mut method_scope: String = String::new();
 
 
+
         for token in &self.top_level_scope.tokens {
             let mut meta = MetaInfo {
                 code_line: token.code_line(),
@@ -162,6 +163,13 @@ impl ASMGenerator {
                 static_type_information: StaticTypeContext::new(&self.top_level_scope.tokens),
             };
 
+            if let Token::MethodDefinition(md) = token {
+                if !md.is_extern {
+                    method_definitions += &ASMBuilder::push(&md.to_asm(&mut self.stack, &mut meta)?);
+                }
+
+                continue;
+            }
 
             stack_allocation += token.byte_size(&mut meta);
             method_scope += &ASMBuilder::push(&token.to_asm(&mut self.stack, &mut meta)?);
@@ -178,7 +186,7 @@ impl ASMGenerator {
 
         let stack_allocation_asm = ASMBuilder::ident_line(&format!("sub rsp, {}", stack_allocation));
 
-        Ok(format!("{}{}{}{}{}", boiler_plate, prefix, label_header, stack_allocation_asm, method_scope))
+        Ok(format!("{}{}{}{}{}{}", boiler_plate, prefix, method_definitions, label_header, stack_allocation_asm, method_scope))
     }
 }
 

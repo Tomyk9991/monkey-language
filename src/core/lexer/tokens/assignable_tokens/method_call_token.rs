@@ -222,6 +222,13 @@ impl ToASM for MethodCallToken {
     fn to_asm(&self, stack: &mut Stack, meta: &mut MetaInfo) -> Result<String, ASMGenerateError> {
         let calling_convention = conventions::calling_convention(meta, &self.arguments, &self.name.name)?;
 
+        let method_def = if let Some(method_def) = meta.static_type_information.methods.iter().find(|m| m.name.name == self.name.name) {
+            method_def.clone()
+        } else {
+            return Err(InferTypeError::UnresolvedReference(self.name.to_string(), meta.code_line.clone()).into());
+        };
+
+
         let mut result = String::new();
         let zipped = calling_convention.iter().zip(&self.arguments);
 
@@ -260,7 +267,7 @@ impl ToASM for MethodCallToken {
             }
         }
         result += &ASMBuilder::ident(&ASMBuilder::comment_line(&self.to_string()));
-        result += &ASMBuilder::ident_line(&format!("call {}", self.name));
+        result += &ASMBuilder::ident_line(&format!("call {}", if method_def.is_extern { method_def.name.name } else { method_def.method_label_name() }));
 
         Ok(result)
     }
