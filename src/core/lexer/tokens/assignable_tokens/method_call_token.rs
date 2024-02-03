@@ -7,7 +7,7 @@ use crate::core::lexer::scope::PatternNotMatchedError;
 
 use crate::core::code_generator::{ASMGenerateError, conventions, MetaInfo};
 use crate::core::code_generator::asm_builder::ASMBuilder;
-use crate::core::code_generator::conventions::CallingRegister;
+use crate::core::code_generator::conventions::{CallingRegister, return_calling_convention};
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::registers::GeneralPurposeRegister;
 use crate::core::code_generator::target_os::TargetOS;
@@ -49,14 +49,16 @@ pub enum MethodCallTokenErr {
 
 impl PatternNotMatchedError for MethodCallTokenErr {
     fn is_pattern_not_matched_error(&self) -> bool {
-        matches!(self, MethodCallTokenErr::PatternNotMatched {..})
+        matches!(self, MethodCallTokenErr::PatternNotMatched {..}) || matches!(self, MethodCallTokenErr::NameTokenErr(_))
     }
 }
 
 impl std::error::Error for MethodCallTokenErr {}
 
 impl From<NameTokenErr> for MethodCallTokenErr {
-    fn from(value: NameTokenErr) -> Self { MethodCallTokenErr::NameTokenErr(value) }
+    fn from(value: NameTokenErr) -> Self {
+        MethodCallTokenErr::NameTokenErr(value)
+    }
 }
 
 impl From<AssignableTokenErr> for MethodCallTokenErr {
@@ -127,6 +129,7 @@ impl MethodCallToken {
                 code_line: code_line.clone(),
             })
         } else if let [name, "(", argument_segments @ .., ")", ";"] = &split[..] {
+            let name = NameToken::from_str(name, false)?;
             let joined = &argument_segments.join(" ");
             let argument_strings = dyck_language(joined, [vec!['{', '('], vec![','], vec!['}', ')']])?;
 
@@ -136,7 +139,7 @@ impl MethodCallToken {
                 .collect::<Result<Vec<_>, _>>()?;
 
             Ok(MethodCallToken {
-                name: NameToken::from_str(name, false)?,
+                name,
                 arguments,
                 code_line: code_line.clone(),
             })
@@ -306,6 +309,11 @@ impl ToASM for MethodCallToken {
         stack.label_count = count_before;
 
         if has_before_label_asm { Some(Ok(target)) } else { None }
+    }
+
+    fn multi_line_asm(&self, stack: &mut Stack, meta: &mut MetaInfo) -> Result<(bool, String, Option<GeneralPurposeRegister>), ASMGenerateError> {
+        // enables to cache registers before calling, and also restoring after
+        Ok((true, self.to_asm(stack, meta)?, Some(return_calling_convention(stack, meta)?)))
     }
 }
 

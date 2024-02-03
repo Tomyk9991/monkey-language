@@ -69,8 +69,6 @@ impl Normalizable for Vec<CodeLine> {
         separators.extend(ScopeSplitterIterator::default()
             .flat_map(|s| s.0));
 
-        println!("{:#?}", separators);
-
 
         let split_by_regex = separators.join("|");
         #[allow(clippy::unwrap_used)]

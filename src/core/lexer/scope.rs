@@ -14,6 +14,7 @@ use crate::core::lexer::tokens::scope_ending::ScopeEnding;
 use crate::core::lexer::tokens::variable_token::VariableToken;
 use crate::core::lexer::TryParse;
 use crate::core::lexer::tokens::import::ImportToken;
+use crate::core::lexer::tokens::return_token::ReturnToken;
 use crate::core::lexer::types::type_token::InferTypeError;
 
 /// Tokens inside scope
@@ -82,14 +83,11 @@ macro_rules! token_expand {
                     return Ok(Token::$token_type(t))
                 },
                 Err(err) => {
-                    // let c = *$code_lines_iterator.peek().ok_or(ScopeError::EmptyIterator(EmptyIteratorErr::default()))?;
-
                     if !err.is_pattern_not_matched_error() {
                         return Err(ScopeError::ParsingError {
                             message: format!("{}", err)
                         })
                     }
-                    // $pattern_distances.push((<$token_implementation>::distance_from_code_line(c), Box::new(err)))
                 }
             }
         )*
@@ -101,7 +99,8 @@ impl Debug for Scope {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "Scope: [\n{}]", self.tokens
             .iter()
-            .map(|token| format!("\t{:?}\n", token)).collect::<String>(),
+            .map(|token| format!("\t{:?}\n", token))
+            .collect::<String>(),
         )
     }
 }
@@ -110,7 +109,21 @@ impl Display for Scope {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "Scope: [\n{}]", self.tokens
             .iter()
-            .map(|token| format!("\t{}\n", token)).collect::<String>())
+            .map(|token| {
+                if let Token::MethodDefinition(md) = token {
+                    let postfix = if !md.is_extern {
+                        let mut target = String::new();
+                        for inner_token in &md.stack { target += &format!("\n\t\t{inner_token}"); }
+                        target
+                    } else {
+                        String::new()
+                    };
+                    format!("\t{}{postfix}\n", md)
+                } else {
+                    format!("\t{}\n", token)
+                }
+            })
+            .collect::<String>())
     }
 }
 
@@ -137,27 +150,15 @@ impl TryParse for Scope {
         // let mut pattern_distances: Vec<(usize, Box<dyn Error>)> = vec![];
         let code_line = *code_lines_iterator.peek().ok_or(ScopeError::EmptyIterator(EmptyIteratorErr))?;
 
-
         token_expand!(code_lines_iterator,
             (ImportToken,               Import,             true),
             (VariableToken<'=', ';'>,   Variable,           true),
             (MethodCallToken,           MethodCall,         true),
             (ScopeEnding,               ScopeClosing,       true),
+            (ReturnToken,               Return,             true),
             (IfDefinition,              IfDefinition,       false),
             (MethodDefinition,          MethodDefinition,   false)
         );
-
-
-        // pattern_distances.sort_by(|(nearest_a, _), (nearest_b, _)| (*nearest_a).cmp(nearest_b));
-        //
-        //
-        // if let Some((nearest_pattern, err)) = pattern_distances.first() {
-        //     code_lines_iterator.next();
-        //
-        //     return Err(ScopeError::ParsingError {
-        //         message: format!("Code line: {:?} with distance: {}\n\t{}", code_line.actual_line_number, nearest_pattern, err)
-        //     });
-        // }
 
         let c = *code_lines_iterator.peek().ok_or(ScopeError::EmptyIterator(EmptyIteratorErr::default()))?;
         Err(ScopeError::ParsingError {

@@ -5,6 +5,7 @@ use std::slice::Iter;
 use std::str::FromStr;
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::code_generator::generator::Stack;
+use crate::core::code_generator::registers::GeneralPurposeRegister;
 
 use crate::core::constants::{ELSE_KEYWORD, CLOSING_SCOPE, IF_KEYWORD};
 use crate::core::constants::OPENING_SCOPE;
@@ -222,6 +223,10 @@ impl ToASM for IfDefinition {
 
     fn before_label(&self, _stack: &mut Stack, _meta: &mut MetaInfo) -> Option<Result<String, ASMGenerateError>> {
         None
+    }
+
+    fn multi_line_asm(&self, _stack: &mut Stack, _meta: &mut MetaInfo) -> Result<(bool, String, Option<GeneralPurposeRegister>), ASMGenerateError> {
+        Ok((false, String::new(), None))
     }
 }
 

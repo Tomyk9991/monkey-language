@@ -10,6 +10,7 @@ use monkey_language::core::lexer::tokens::assignable_tokens::method_call_token::
 use monkey_language::core::lexer::tokens::if_definition::IfDefinition;
 use monkey_language::core::lexer::tokens::method_definition::MethodDefinition;
 use monkey_language::core::lexer::tokens::name_token::NameToken;
+use monkey_language::core::lexer::tokens::return_token::ReturnToken;
 use monkey_language::core::lexer::tokens::variable_token::VariableToken;
 use monkey_language::core::lexer::types::integer::Integer;
 use monkey_language::core::lexer::types::type_token::TypeToken;
@@ -117,7 +118,7 @@ fn infer_type_assignment_in_scope() -> anyhow::Result<()> {
 #[test]
 fn infer_type_assignment_in_scope_complex() -> anyhow::Result<()> {
     let function = r#"
-    fn constant_1(): i32 { }
+    fn constant_1(): i32 { return 5; }
     let a: i32 = 5;
     if (1) {
         let a = a / constant_1();
@@ -137,7 +138,10 @@ fn infer_type_assignment_in_scope_complex() -> anyhow::Result<()> {
             name: NameToken { name: "constant_1".to_string() },
             return_type: TypeToken::Integer(Integer::I32),
             arguments: vec![],
-            stack: vec![],
+            stack: vec![Token::Return(ReturnToken {
+                assignable: Some(AssignableToken::IntegerToken(IntegerToken { value: "5".to_string(), ty: Integer::I32 })),
+                code_line: CodeLine { line: "return 5 ;".to_string(), actual_line_number: 2..2, virtual_line_number: 2 },
+            })],
             is_extern: false,
             code_line: CodeLine { line: "fn constant_1 (  )  :  i32 {".to_string(), actual_line_number: 2..2, virtual_line_number: 1 },
         }),
@@ -149,7 +153,7 @@ fn infer_type_assignment_in_scope_complex() -> anyhow::Result<()> {
             assignable: AssignableToken::IntegerToken(IntegerToken { value: "5".to_string(), ty: Integer::I32 }),
             code_line: CodeLine { line: "let a :  i32 = 5 ;".to_string(),
                 actual_line_number: 3..3,
-                virtual_line_number: 3,
+                virtual_line_number: 4,
             },
         }),
         Token::IfDefinition(IfDefinition {
@@ -163,7 +167,7 @@ fn infer_type_assignment_in_scope_complex() -> anyhow::Result<()> {
                     code_line: CodeLine {
                         line: "let a = a / constant_1 (  )  ;".to_string(),
                         actual_line_number: 5..5,
-                        virtual_line_number: 5,
+                        virtual_line_number: 6,
                     },
                     assignable: AssignableToken::ArithmeticEquation(Expression {
                         lhs: Some(Box::new(Expression {
@@ -205,12 +209,12 @@ fn infer_type_assignment_in_scope_complex() -> anyhow::Result<()> {
                     code_line: CodeLine {
                         line: "let c = a ;".to_string(),
                         actual_line_number: 6..6,
-                        virtual_line_number: 6,
+                        virtual_line_number: 7,
                     },
                 }),
             ],
             else_stack: None,
-            code_line: CodeLine { line: "if  ( 1 )  {".to_string(), actual_line_number: 4..4, virtual_line_number: 4 },
+            code_line: CodeLine { line: "if  ( 1 )  {".to_string(), actual_line_number: 4..4, virtual_line_number: 5 },
         })
     ];
 
@@ -221,7 +225,7 @@ fn infer_type_assignment_in_scope_complex() -> anyhow::Result<()> {
 #[test]
 fn infer_type_assignment_in_scope_complex_in_method() -> anyhow::Result<()> {
     let function = r#"
-    fn constant_1(): i32 { }
+    fn constant_1(): i32 { return 5; }
     fn test(): i32 {
         if (1) {
             let a = a / constant_1();
@@ -246,7 +250,10 @@ fn infer_type_assignment_in_scope_complex_in_method() -> anyhow::Result<()> {
             name: NameToken { name: "constant_1".to_string() },
             return_type: TypeToken::Integer(Integer::I32),
             arguments: vec![],
-            stack: vec![],
+            stack: vec![Token::Return(ReturnToken {
+                assignable: Some(AssignableToken::IntegerToken(IntegerToken { value: "5".to_string(), ty: Integer::I32 })),
+                code_line: CodeLine { line: "return 5 ;".to_string(), actual_line_number: 2..2, virtual_line_number: 2 },
+            })],
             is_extern: false,
             code_line: CodeLine { line: "fn constant_1 (  )  :  i32 {".to_string(), actual_line_number: 2..2, virtual_line_number: 1 },
         }),
@@ -266,7 +273,7 @@ fn infer_type_assignment_in_scope_complex_in_method() -> anyhow::Result<()> {
                             code_line: CodeLine {
                                 line: "let a = a / constant_1 (  )  ;".to_string(),
                                 actual_line_number: 5..5,
-                                virtual_line_number: 5,
+                                virtual_line_number: 6,
                             },
                             assignable: AssignableToken::ArithmeticEquation(Expression {
                                 lhs: Some(Box::new(Expression {
@@ -308,19 +315,19 @@ fn infer_type_assignment_in_scope_complex_in_method() -> anyhow::Result<()> {
                             code_line: CodeLine {
                                 line: "let c = a ;".to_string(),
                                 actual_line_number: 6..6,
-                                virtual_line_number: 6,
+                                virtual_line_number: 7,
                             },
                         }),
                     ],
                     else_stack: None,
-                    code_line: CodeLine { line: "if  ( 1 )  {".to_string(), actual_line_number: 4..4, virtual_line_number: 4 },
+                    code_line: CodeLine { line: "if  ( 1 )  {".to_string(), actual_line_number: 4..4, virtual_line_number: 5 },
                 })
             ],
             is_extern: false,
             code_line: CodeLine {
                 line: "fn test (  )  :  i32 {".to_string(),
                 actual_line_number: 3..3,
-                virtual_line_number: 3,
+                virtual_line_number: 4,
             },
         }),
         Token::Variable(VariableToken {
@@ -331,7 +338,7 @@ fn infer_type_assignment_in_scope_complex_in_method() -> anyhow::Result<()> {
             assignable: AssignableToken::IntegerToken(IntegerToken { value: "5".to_string(), ty: Integer::I32 }),
             code_line: CodeLine { line: "let a :  i32 = 5 ;".to_string(),
                 actual_line_number: 10..10,
-                virtual_line_number: 9,
+                virtual_line_number: 10,
             },
         }),
     ];

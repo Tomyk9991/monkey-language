@@ -4,6 +4,7 @@ use std::str::FromStr;
 
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
+use crate::core::code_generator::registers::GeneralPurposeRegister;
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::static_type_context::StaticTypeContext;
 use crate::core::lexer::tokens::assignable_tokens::boolean_token::BooleanToken;
@@ -187,6 +188,19 @@ impl ToASM for AssignableToken {
             AssignableToken::NameToken(v) => v.before_label(stack, meta),
             AssignableToken::Object(v) => v.before_label(stack, meta),
             AssignableToken::ArithmeticEquation(v) => v.before_label(stack, meta),
+        }
+    }
+
+    fn multi_line_asm(&self, stack: &mut Stack, meta: &mut MetaInfo) -> Result<(bool, String, Option<GeneralPurposeRegister>), ASMGenerateError> {
+        match self {
+            AssignableToken::String(a) => a.multi_line_asm(stack, meta),
+            AssignableToken::IntegerToken(a) => a.multi_line_asm(stack, meta),
+            AssignableToken::FloatToken(a) => a.multi_line_asm(stack, meta),
+            AssignableToken::BooleanToken(a) => a.multi_line_asm(stack, meta),
+            AssignableToken::MethodCallToken(a) => a.multi_line_asm(stack, meta),
+            AssignableToken::NameToken(a) => a.multi_line_asm(stack, meta),
+            AssignableToken::Object(a) => a.multi_line_asm(stack, meta),
+            AssignableToken::ArithmeticEquation(a) => a.multi_line_asm(stack, meta),
         }
     }
 }

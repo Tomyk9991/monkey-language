@@ -47,6 +47,7 @@ impl Castable<Float, Integer> for Float {
         let _cast_to_register = last_register.to_size_register(&ByteSize::try_from(cast_to.to.byte_size())?);
 
         let mut target = String::new();
+
         target += &ASMBuilder::ident_comment_line(&format!("Cast: ({}) -> ({})", cast_to.from, cast_to.to));
 
         let mut is_stack_variable = false;
@@ -56,6 +57,7 @@ impl Castable<Float, Integer> for Float {
                 break;
             }
         }
+
 
 
         if IntegerToken::from_str(source).is_ok() || is_stack_variable {

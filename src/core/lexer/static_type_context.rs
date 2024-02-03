@@ -1,17 +1,24 @@
 use std::collections::HashMap;
-use std::ops::{Deref, DerefMut};
+use std::ops::{Deref, DerefMut, Range};
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::token::Token;
-use crate::core::lexer::tokens::method_definition::MethodDefinition;
+use crate::core::lexer::tokens::method_definition::{MethodDefinition};
 use crate::core::lexer::tokens::variable_token::VariableToken;
-use crate::core::lexer::types::type_token::InferTypeError;
+use crate::core::lexer::types::type_token::{InferTypeError, TypeToken};
 
+#[derive(Debug)]
+pub struct CurrentMethodInfo {
+    pub return_type: TypeToken,
+    pub method_header_line: Range<usize>,
+    pub method_name: String,
+}
 
 /// Contains all static type information about the provided scope
 /// At the moment variables and method definitions are included
 #[derive(Debug, Default)]
 pub struct StaticTypeContext {
     pub context: Vec<VariableToken<'=', ';'>>,
+    pub expected_return_type: Option<CurrentMethodInfo>,
     pub methods: Vec<MethodDefinition>
 }
 
@@ -23,20 +30,23 @@ impl StaticTypeContext {
     }
 
     pub fn colliding_symbols(&self) -> Result<(), InferTypeError> {
-        let mut hash_map: HashMap<&str, (usize, &CodeLine)> = HashMap::new();
+        for method in &self.methods {
+            let context = StaticTypeContext::new(&method.stack);
+            let mut hash_map: HashMap<&str, (usize, &CodeLine)> = HashMap::new();
 
-        for variable in &self.context {
-            if !variable.define { continue; }
-            if let Some((counter, _)) = hash_map.get_mut(variable.name_token.name.as_str()) {
-                *counter += 1;
-            } else {
-                hash_map.insert(&variable.name_token.name, (1, &variable.code_line));
+            for variable in &context.context {
+                if !variable.define { continue; }
+                if let Some((counter, _)) = hash_map.get_mut(variable.name_token.name.as_str()) {
+                    *counter += 1;
+                } else {
+                    hash_map.insert(&variable.name_token.name, (1, &variable.code_line));
+                }
             }
-        }
 
-        for (key, (value, code_line)) in &hash_map {
-            if *value > 1 {
-                return Err(InferTypeError::NameCollision(key.to_string(), (*code_line).clone()));
+            for (key, (value, code_line)) in &hash_map {
+                if *value > 1 {
+                    return Err(InferTypeError::NameCollision(key.to_string(), (*code_line).clone()));
+                }
             }
         }
 
@@ -74,13 +84,14 @@ impl StaticTypeContext {
                 Token::MethodDefinition(method_definition) => {
                     methods.push(method_definition.clone());
                 }
-                Token::ScopeClosing(_) | Token::MethodCall(_) | Token::IfDefinition(_) | Token::Import(_) => {}
+                Token::ScopeClosing(_) | Token::MethodCall(_) | Token::IfDefinition(_) | Token::Import(_) | Token::Return(_) => {}
             }
         }
 
 
         Self {
             context,
+            expected_return_type: None,
             methods,
         }
     }

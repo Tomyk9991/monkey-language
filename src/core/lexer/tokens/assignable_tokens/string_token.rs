@@ -4,6 +4,7 @@ use std::str::FromStr;
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
+use crate::core::code_generator::registers::GeneralPurposeRegister;
 
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub struct StringToken {
@@ -54,6 +55,10 @@ impl ToASM for StringToken {
         target += &ASMBuilder::ident_line(&format!("db {}, 0", tab_included));
 
         Some(Ok(target))
+    }
+
+    fn multi_line_asm(&self, _stack: &mut Stack, _meta: &mut MetaInfo) -> Result<(bool, String, Option<GeneralPurposeRegister>), ASMGenerateError> {
+        Ok((false, String::new(), None))
     }
 }
 

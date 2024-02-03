@@ -1,10 +1,10 @@
 use std::fmt::{Debug, Display, Formatter};
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::scope::Scope;
-use crate::core::lexer::static_type_context::{StaticTypeContext};
+use crate::core::lexer::static_type_context::{CurrentMethodInfo, StaticTypeContext};
 use crate::core::lexer::token::Token;
 use crate::core::lexer::tokens::name_token::NameToken;
-use crate::core::lexer::types::type_token::InferTypeError;
+use crate::core::lexer::types::type_token::{InferTypeError, TypeToken};
 
 #[derive(Debug)]
 pub enum StaticTypeCheckError {
@@ -36,12 +36,22 @@ pub fn static_type_check(scope: &Scope) -> Result<(), StaticTypeCheckError> {
     // check if a variable, which is not a defined variable has an invalid re-assignment
     // let a = 1.0;
     // a = 5;
+    // todo every path in "if" must have a return statement, if the method has a return type
     let mut type_context: StaticTypeContext = StaticTypeContext::new(&scope.tokens);
     type_context.colliding_symbols()?;
     static_type_check_rec(&scope.tokens, &mut type_context)
 }
 
 fn static_type_check_rec(scope: &Vec<Token>, type_context: &mut StaticTypeContext) -> Result<(), StaticTypeCheckError> {
+    if let Some(ty) = &type_context.expected_return_type {
+        if scope.len() == 0 && ty.return_type != TypeToken::Void {
+            return Err(StaticTypeCheckError::InferredError(InferTypeError::MethodReturnSignatureMismatch {
+                expected: ty.return_type.clone(),
+                method_name: ty.method_name.to_string(),
+                method_head_line: ty.method_header_line.clone(),
+            }))
+        }
+    }
     for token in scope {
         match token {
             Token::Variable(variable) if variable.define => {
@@ -102,6 +112,11 @@ fn static_type_check_rec(scope: &Vec<Token>, type_context: &mut StaticTypeContex
             }
             Token::MethodDefinition(method_definition) => {
                 let variables_len = type_context.context.len();
+                type_context.expected_return_type = Some(CurrentMethodInfo {
+                    return_type: method_definition.return_type.clone(),
+                    method_header_line: method_definition.code_line.actual_line_number.clone(),
+                    method_name: method_definition.name.name.to_string(),
+                });
 
                 static_type_check_rec(&method_definition.stack, type_context)?;
 
@@ -110,11 +125,30 @@ fn static_type_check_rec(scope: &Vec<Token>, type_context: &mut StaticTypeContex
                 for _ in 0..amount_pop {
                     let _ = type_context.context.pop();
                 }
+
+                type_context.expected_return_type = None;
             }
             Token::MethodCall(method_call) => {
                 method_call.type_check(type_context, &method_call.code_line)?
             },
-            Token::Variable(_) | Token::ScopeClosing(_) | Token::Import(_) => {}
+            Token::Return(return_statement) => {
+                if let Some(expected_return_type) = &type_context.expected_return_type {
+                    if let Some(assignable) = &return_statement.assignable {
+                        let actual_type = assignable.infer_type_with_context(type_context, &token.code_line())?;
+
+                        if expected_return_type.return_type != actual_type {
+                            return Err(StaticTypeCheckError::InferredError(InferTypeError::MethodReturnArgumentTypeMismatch {
+                                expected: expected_return_type.return_type.clone(),
+                                actual: actual_type,
+                                code_line: token.code_line(),
+                            }))
+                        }
+                    }
+                }
+            },
+            Token::Variable(_) | Token::ScopeClosing(_) | Token::Import(_) => {
+
+            }
         }
     }
 

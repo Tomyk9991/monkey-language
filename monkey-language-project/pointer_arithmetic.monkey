@@ -1,11 +1,14 @@
 module monkey-language-project/std.monkey;
 
-
-fn print_i32(b: i32) {
-    printf("%d\n", b);
-}
+fn constant_1(): i32 { return 30; }
 
 fn main(): i32 {
-    let a = 5;
-    print_i32(a);
+    let a: i32 = 5;
+    let b = 25 + constant_1();
+    let c = constant_1() + 25;
+
+    let d = b + c;
+    let e = constant_1() + constant_1();
+
+    return d;
 }

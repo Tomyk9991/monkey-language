@@ -124,6 +124,7 @@ impl ASMGenerator {
     pub fn generate(&mut self) -> Result<String, ASMGenerateError> {
         let mut boiler_plate = String::new();
         boiler_plate += &ASMBuilder::line(&format!("; This assembly is targeted for the {} Operating System", self.target_os));
+        let method_definitions = self.generate_method_definitions()?;
 
         let entry_point_label = if self.target_os == TargetOS::Windows {
             boiler_plate += &ASMBuilder::line("segment .text");
@@ -166,7 +167,9 @@ impl ASMGenerator {
                             static_type_information: StaticTypeContext::new(&self.top_level_scope.tokens),
                         };
 
-                        Ok(format!("{}{}", boiler_plate, &main.to_asm(&mut self.stack, &mut meta)?))
+                        meta.static_type_information.merge(StaticTypeContext::new(&main.stack));
+
+                        Ok(format!("{}{}{}", boiler_plate, method_definitions, &main.to_asm(&mut self.stack, &mut meta)?))
                     } else {
                         return Err(ASMGenerateError::EntryPointNotFound)
                     }
@@ -178,7 +181,6 @@ impl ASMGenerator {
         } else {
             let mut prefix = String::new();
             let mut label_header: String = String::new();
-            let mut method_definitions = String::new();
 
             label_header += &ASMBuilder::line(&format!("{entry_point_label}:"));
             label_header += &ASMBuilder::ident_line("push rbp");
@@ -197,13 +199,7 @@ impl ASMGenerator {
                     target_os: self.target_os.clone(),
                     static_type_information: StaticTypeContext::new(&self.top_level_scope.tokens),
                 };
-
-                if let Token::MethodDefinition(md) = token {
-                    if !md.is_extern {
-                        meta.static_type_information.merge(StaticTypeContext::new(&md.stack));
-                        method_definitions += &ASMBuilder::push(&md.to_asm(&mut self.stack, &mut meta)?);
-                    }
-
+                if let Token::MethodDefinition(_) = token {
                     continue;
                 }
 
@@ -224,8 +220,29 @@ impl ASMGenerator {
 
             Ok(format!("{}{}{}{}{}{}", boiler_plate, prefix, method_definitions, label_header, stack_allocation_asm, method_scope))
         }
+    }
 
+    fn generate_method_definitions(&mut self) -> Result<String, ASMGenerateError> {
+        let mut method_definitions = String::new();
 
+        for token in &self.top_level_scope.tokens {
+            let mut meta = MetaInfo {
+                code_line: token.code_line(),
+                target_os: self.target_os.clone(),
+                static_type_information: StaticTypeContext::new(&self.top_level_scope.tokens),
+            };
+
+            if let Token::MethodDefinition(md) = token {
+                if !md.is_extern && md.name.name != "main" {
+                    meta.static_type_information.merge(StaticTypeContext::new(&md.stack));
+                    method_definitions += &ASMBuilder::push(&md.to_asm(&mut self.stack, &mut meta)?);
+                }
+
+                continue;
+            }
+        }
+
+        Ok(format!("{method_definitions}"))
     }
 }
 

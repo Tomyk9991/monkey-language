@@ -98,6 +98,10 @@ impl ToASM for Operator {
     fn before_label(&self, _stack: &mut Stack, _meta: &mut MetaInfo) -> Option<Result<String, ASMGenerateError>> {
         None
     }
+
+    fn multi_line_asm(&self, _stack: &mut Stack, _meta: &mut MetaInfo) -> Result<(bool, String, Option<GeneralPurposeRegister>), ASMGenerateError> {
+        Ok((false, String::new(), None))
+    }
 }
 
 impl Operator {

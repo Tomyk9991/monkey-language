@@ -111,12 +111,32 @@ impl Expression {
     }
 
     fn generate_lhs(&self, stack: &mut Stack, meta: &mut MetaInfo, target: &mut String, lhs: &Expression, lhs_size: usize) -> Result<String, ASMGenerateError> {
-        let r = lhs.to_asm(stack, meta)?;
+        let mut r = lhs.to_asm(stack, meta)?;
+
 
         Ok(if let Some(PrefixArithmetic::Cast(_)) = lhs.prefix_arithmetic {
             target.push_str(&r);
             self.latest_used_destination_register(meta, &r, lhs_size)?.to_string()
         } else {
+
+            if let Ok((is_multi_line, code, general_purpose_register)) = lhs.multi_line_asm(stack, meta) {
+                if is_multi_line {
+                    if let Some(gpr) = general_purpose_register {
+                        let target_register = stack.register_to_use.last()?;
+                        println!("{}", target_register);
+
+                        target.push_str(&ASMBuilder::push_registers(&[&target_register]));
+
+                        target.push_str(&code);
+
+                        target.push_str(&ASMBuilder::mov_ident_line(&target_register, gpr.to_size_register(&target_register.size()).to_string()));
+                        target.push_str(&ASMBuilder::pop_registers(&[&target_register]));
+
+                        r = gpr.to_size_register(&ByteSize::try_from(lhs_size)?).to_string()
+                    }
+                }
+            }
+
             r
         })
     }
@@ -129,7 +149,22 @@ impl Expression {
             target.push_str(&ASMBuilder::mov_x_ident_line(target_register, destination_register, Some(f.byte_size(meta))));
             target_register.to_string()
         } else {
-            let r = rhs.to_asm(stack, meta)?;
+            let mut r = rhs.to_asm(stack, meta)?;
+
+            if let Ok((is_multi_line, code, general_purpose_register)) = rhs.multi_line_asm(stack, meta) {
+                if is_multi_line {
+                    if let Some(gpr) = general_purpose_register {
+                        target.push_str(&ASMBuilder::push_registers(&[target_register]));
+
+                        target.push_str(&code);
+
+                        target.push_str(&ASMBuilder::mov_ident_line(target_register, gpr.to_size_register(&destination_register.size()).to_string()));
+                        target.push_str(&ASMBuilder::pop_registers(&[target_register]));
+
+                        r = target_register.to_string()
+                    }
+                }
+            }
 
             if let Some(PrefixArithmetic::Cast(_)) = rhs.prefix_arithmetic {
                 target.push_str(&r);
@@ -142,7 +177,8 @@ impl Expression {
         };
 
         let ty = &rhs.traverse_type(meta).ok_or(ASMGenerateError::InternalError("Could not traverse type".to_string()))?;
-        target.push_str(&ASMBuilder::ident_line(&self.operator.specific_operation(ty, &[destination_register.to_string(), source], stack, meta)?.inject_registers()));
+        let operation = &self.operator.specific_operation(ty, &[destination_register.to_string(), source], stack, meta)?.inject_registers();
+        target.push_str(&ASMBuilder::ident_line(operation));
         Ok(())
     }
 
@@ -292,7 +328,15 @@ impl ToASM for Expression {
                 target += &ASMBuilder::push(&Self::prefix_arithmetic_to_asm(prefix_arithmetic, value, &stack.register_to_use.last().ok(), stack, meta)?);
                 if stack.register_to_use.len() == 1 { stack.register_to_use.pop(); }
             } else {
-                target += &value.to_asm(stack, meta)?;
+                if let Ok((is_multi_line, code, _register)) = &value.multi_line_asm(stack, meta) {
+                    if *is_multi_line {
+                        target += &ASMBuilder::push(code);
+                    } else {
+                        target += &value.to_asm(stack, meta)?;
+                    }
+                } else {
+                    target += &value.to_asm(stack, meta)?;
+                }
             }
 
             return Ok(target);
@@ -515,6 +559,14 @@ impl ToASM for Expression {
 
     fn before_label(&self, _stack: &mut Stack, _meta: &mut MetaInfo) -> Option<Result<String, ASMGenerateError>> {
         None
+    }
+
+    fn multi_line_asm(&self, stack: &mut Stack, meta: &mut MetaInfo) -> Result<(bool, String, Option<GeneralPurposeRegister>), ASMGenerateError> {
+        if let Some(value) = &self.value {
+            return value.multi_line_asm(stack, meta);
+        }
+
+        Ok((false, String::new(), None))
     }
 }
 

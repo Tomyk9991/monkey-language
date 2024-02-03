@@ -1,5 +1,6 @@
 use std::error::Error;
 use std::fmt::{Display, Formatter};
+use std::ops::Range;
 use std::str::FromStr;
 use crate::core::code_generator::{ASMGenerateError, MetaInfo};
 use crate::core::code_generator::generator::Stack;
@@ -42,6 +43,8 @@ pub enum InferTypeError {
     FloatTooSmall { ty: TypeToken, float: f64, code_line: CodeLine },
     MethodCallArgumentAmountMismatch { expected: usize, actual: usize, code_line: CodeLine },
     MethodCallArgumentTypeMismatch { info: Box<MethodCallArgumentTypeMismatch> },
+    MethodReturnArgumentTypeMismatch { expected: TypeToken, actual: TypeToken, code_line: CodeLine },
+    MethodReturnSignatureMismatch { expected: TypeToken, method_name: String, method_head_line: Range<usize> },
     MethodCallSignatureMismatch { signatures: Vec<Vec<TypeToken>>, method_name: NameToken, code_line: CodeLine, provided: Vec<TypeToken> },
     NameCollision(String, CodeLine),
     MismatchedTypes { expected: TypeToken, actual: TypeToken, code_line: CodeLine },
@@ -87,6 +90,8 @@ impl Display for InferTypeError {
             InferTypeError::TypeNotAllowed(ty) => write!(f, "This type is not allowed due to: {}", ty),
             InferTypeError::MethodCallArgumentAmountMismatch { expected, actual, code_line } => write!(f, "Line: {:?}: \tThe method expects {} parameter, but {} are provided", code_line.actual_line_number, expected, actual),
             InferTypeError::MethodCallArgumentTypeMismatch { info } => write!(f, "Line: {:?}: \t The {}. argument should be of type: `{}` but `{}` is provided", info.code_line.actual_line_number, info.nth_parameter, info.expected, info.actual),
+            InferTypeError::MethodReturnArgumentTypeMismatch { expected, actual, code_line } => write!(f, "Line: {:?}: \t The return type is: `{}` but `{}` is provided", code_line.actual_line_number, expected, actual),
+            InferTypeError::MethodReturnSignatureMismatch { expected, method_name, method_head_line } => write!(f, "Line: {method_head_line:?}: \tA return statement with type: `{expected}` is expected for the method: {method_name}"),
             InferTypeError::MethodCallSignatureMismatch { signatures, method_name, code_line, provided } => {
                 let provided_arguments = provided.iter().map(|a| a.to_string()).collect::<Vec<String>>().join(", ");
                 let signatures = signatures

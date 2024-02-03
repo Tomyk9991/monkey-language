@@ -12,6 +12,7 @@ use std::str::FromStr;
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
+use crate::core::code_generator::registers::GeneralPurposeRegister;
 use crate::core::constants::FUNCTION_KEYWORD;
 use crate::core::lexer::errors::EmptyIteratorErr;
 use crate::core::lexer::levenshtein_distance::PatternedLevenshteinDistance;
@@ -208,8 +209,7 @@ impl ToASM for MethodDefinition {
         }
 
         let stack_allocation_asm = ASMBuilder::ident_line(&format!("sub rsp, {}", stack_allocation));
-        let mut leave_statement = ASMBuilder::ident_line("leave");
-        leave_statement += &ASMBuilder::ident_line("ret");
+        let leave_statement = if self.return_type == TypeToken::Void { "leave\n    ret\n".to_string() } else { String::new() };
 
         Ok(format!("{}{}{}{}{}", prefix, label_header, stack_allocation_asm, method_scope, leave_statement))
     }
@@ -224,6 +224,10 @@ impl ToASM for MethodDefinition {
 
     fn before_label(&self, _stack: &mut Stack, _meta: &mut MetaInfo) -> Option<Result<String, ASMGenerateError>> {
         None
+    }
+
+    fn multi_line_asm(&self, _stack: &mut Stack, _meta: &mut MetaInfo) -> Result<(bool, String, Option<GeneralPurposeRegister>), ASMGenerateError> {
+        Ok((false, String::new(), None))
     }
 }
 

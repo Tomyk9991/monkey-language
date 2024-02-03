@@ -4,6 +4,7 @@ use std::str::{FromStr, ParseBoolError};
 
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::code_generator::generator::Stack;
+use crate::core::code_generator::registers::GeneralPurposeRegister;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct BooleanToken {
@@ -50,6 +51,10 @@ impl ToASM for BooleanToken {
 
     fn before_label(&self, _stack: &mut Stack, _meta: &mut MetaInfo) -> Option<Result<String, ASMGenerateError>> {
         None
+    }
+
+    fn multi_line_asm(&self, _stack: &mut Stack, _meta: &mut MetaInfo) -> Result<(bool, String, Option<GeneralPurposeRegister>), ASMGenerateError> {
+        Ok((false, String::new(), None))
     }
 }
 

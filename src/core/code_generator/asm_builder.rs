@@ -1,5 +1,7 @@
 use std::fmt::{Display, Formatter};
 
+use crate::core::code_generator::registers::{Bit64, GeneralPurposeRegister, GeneralPurposeRegisterIterator};
+
 /// A utility struct for construction asm related strings
 pub struct ASMBuilder;
 
@@ -34,6 +36,45 @@ impl ASMBuilder {
 
     pub fn ident_line(argument: &str) -> String {
         format!("{}{}\n", " ".repeat(4), argument)
+    }
+
+    pub fn push_registers(ignore_registers: &[&GeneralPurposeRegister]) -> String {
+        let mut general_purpose_registers = GeneralPurposeRegisterIterator::new(GeneralPurposeRegister::Bit64(Bit64::Rax))
+            .collect::<Vec<_>>();
+
+        general_purpose_registers.insert(0, GeneralPurposeRegister::Bit64(Bit64::Rax));
+
+        let mut target = String::new();
+        target += &Self::ident(&Self::comment_line("PushQ"));
+
+        for register in general_purpose_registers {
+            if ignore_registers.iter().any(|a| &&register.to_size_register(&a.size()) == a) {
+                continue;
+            }
+            target += &Self::ident_line(&format!("push {}", register));
+        }
+
+        target
+    }
+
+    pub fn pop_registers(ignore_registers: &[&GeneralPurposeRegister]) -> String {
+        let mut general_purpose_registers = GeneralPurposeRegisterIterator::new(GeneralPurposeRegister::Bit64(Bit64::Rax))
+            .collect::<Vec<GeneralPurposeRegister>>();
+        general_purpose_registers.insert(0, GeneralPurposeRegister::Bit64(Bit64::Rax));
+        general_purpose_registers.reverse();
+
+        let mut target = String::new();
+        target += &Self::ident(&Self::comment_line("PopQ"));
+
+        for register in &general_purpose_registers {
+            if ignore_registers.iter().any(|a| &&register.to_size_register(&a.size()) == a) {
+                continue;
+            }
+
+            target += &Self::ident_line(&format!("pop {register}"));
+        }
+
+        target
     }
 
     pub fn mov_line<T: Display, P: Display>(destination: T, source: P) -> String {

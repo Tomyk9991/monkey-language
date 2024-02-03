@@ -22,6 +22,15 @@ pub fn calling_convention(stack: &mut Stack, meta: &MetaInfo, calling_arguments:
     }
 }
 
+pub fn return_calling_convention(_stack: &mut Stack, meta: &MetaInfo) -> Result<GeneralPurposeRegister, InferTypeError> {
+    match meta.target_os {
+        TargetOS::Windows => Ok(GeneralPurposeRegister::Bit64(Bit64::Rax)),
+        TargetOS::Linux | TargetOS::WindowsSubsystemLinux => {
+            unimplemented!("Linux returning convention not implemented yet");
+        }
+    }
+}
+
 fn windows_calling_convention(_stack: &mut Stack, meta: &MetaInfo, calling_arguments: &[AssignableToken], method_name: &str) -> Result<Vec<Vec<CallingRegister>>, InferTypeError> {
     static FLOAT_ORDER: [CallingRegister; 4] = [
         CallingRegister::Register(GeneralPurposeRegister::Float(FloatRegister::Xmm0)),
