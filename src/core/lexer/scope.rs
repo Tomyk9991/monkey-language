@@ -160,7 +160,7 @@ impl TryParse for Scope {
             (MethodDefinition,          MethodDefinition,   false)
         );
 
-        let c = *code_lines_iterator.peek().ok_or(ScopeError::EmptyIterator(EmptyIteratorErr::default()))?;
+        let c = *code_lines_iterator.peek().ok_or(ScopeError::EmptyIterator(EmptyIteratorErr))?;
         Err(ScopeError::ParsingError {
             message: format!("Unexpected token: {:?}: {}", c.actual_line_number, code_line.line)
         })

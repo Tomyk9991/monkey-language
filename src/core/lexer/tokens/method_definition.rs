@@ -173,11 +173,11 @@ impl MethodDefinition {
             return "main".to_string();
         }
 
-        let parameters = if self.arguments.len() == 0 {
+        let parameters = if self.arguments.is_empty() {
             "void".to_string()
         } else {
             self.arguments.iter().map(|a| a.1.to_string()).collect::<Vec<String>>().join("_")
-        }.replace("*", "ptr");
+        }.replace('*', "ptr");
 
 
         let return_type = self.return_type.to_string();

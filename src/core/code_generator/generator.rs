@@ -242,7 +242,7 @@ impl ASMGenerator {
             }
         }
 
-        Ok(format!("{method_definitions}"))
+        Ok(method_definitions.to_string())
     }
 }
 

@@ -44,7 +44,7 @@ pub fn static_type_check(scope: &Scope) -> Result<(), StaticTypeCheckError> {
 
 fn static_type_check_rec(scope: &Vec<Token>, type_context: &mut StaticTypeContext) -> Result<(), StaticTypeCheckError> {
     if let Some(ty) = &type_context.expected_return_type {
-        if scope.len() == 0 && ty.return_type != TypeToken::Void {
+        if scope.is_empty() && ty.return_type != TypeToken::Void {
             return Err(StaticTypeCheckError::InferredError(InferTypeError::MethodReturnSignatureMismatch {
                 expected: ty.return_type.clone(),
                 method_name: ty.method_name.to_string(),

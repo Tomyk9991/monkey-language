@@ -112,7 +112,7 @@ impl ToASM for ReturnToken {
         target += &ASMBuilder::ident_line("leave");
         target += &ASMBuilder::ident_line("ret");
 
-        return Ok(target)
+        Ok(target)
     }
 
     fn is_stack_look_up(&self, stack: &mut Stack, meta: &MetaInfo) -> bool {
@@ -152,7 +152,7 @@ impl ReturnToken {
         if let ["return", assignable @ .., ";"] = &split[..] {
             let joined = &assignable.join(" ");
 
-            return Ok(ReturnToken {
+            Ok(ReturnToken {
                 assignable: Some(AssignableToken::from_str(joined)?),
                 code_line: code_line.clone(),
             })

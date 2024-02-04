@@ -95,7 +95,7 @@ impl ToASM for Token {
             Token::MethodDefinition(md) if md.is_extern => Ok(String::new()),
             Token::MethodDefinition(md) => md.to_asm(stack, meta),
             Token::Return(ret) => ret.to_asm(stack, meta),
-            Token::ScopeClosing(e) => return Err(ASMGenerateError::NotImplemented { token: format!("{}", e) })
+            Token::ScopeClosing(e) => Err(ASMGenerateError::NotImplemented { token: format!("{}", e) })
         }
     }
 
