@@ -393,6 +393,13 @@ pub fn dyck_language<T: ArrayOrObject<char>>(parameter_string: &str, values: [T;
             individual_parameters.push(value.to_string());
             current_start_index = index + 1;
         }
+
+        if counter < 0 {
+            return Err(DyckError {
+                target_value: parameter_string.to_string(),
+                ordering: Ordering::Less,
+            });
+        }
     }
 
     return match counter {

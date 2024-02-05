@@ -64,6 +64,7 @@ impl AssignableToken {
             return Ok(AssignableToken::BooleanToken(boolean_token));
         }
 
+
         match MethodCallToken::from_str(line) {
             Ok(method_call_token) => return Ok(AssignableToken::MethodCallToken(method_call_token)),
             Err(err) => {

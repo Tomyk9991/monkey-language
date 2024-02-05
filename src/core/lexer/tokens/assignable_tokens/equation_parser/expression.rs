@@ -758,7 +758,7 @@ impl Expression {
                                 value_type = new_ty;
                                 current_pointer_arithmetic = current_pointer_arithmetic.chars().collect::<Vec<char>>()[..current_pointer_arithmetic.len() - 1].iter().collect::<String>();
                             } else {
-                                return Err(InferTypeError::IllegalDereference(*value.clone(), code_line.clone()));
+                                return Err(InferTypeError::IllegalDereference(*value.clone(), value_type, code_line.clone()));
                             }
                         }
                         PrefixArithmetic::PointerArithmetic(PointerArithmetic::Ampersand) => {
@@ -766,7 +766,7 @@ impl Expression {
                         }
                         PrefixArithmetic::PointerArithmetic(PointerArithmetic::Asterics) => {
                             // just using & in front of non pointer types is illegal. Dereferencing non pointers doesnt make any sense
-                            return Err(InferTypeError::IllegalDereference(*value.clone(), code_line.clone()));
+                            return Err(InferTypeError::IllegalDereference(*value.clone(), value_type, code_line.clone()));
                         }
                         PrefixArithmetic::Cast(casting_to) => {
                             value_type = TypeToken::from_str(&casting_to.to_string())?;

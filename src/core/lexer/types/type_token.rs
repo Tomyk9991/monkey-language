@@ -37,7 +37,7 @@ pub enum InferTypeError {
     TypesNotCalculable(TypeToken, Operator, TypeToken, CodeLine),
     UnresolvedReference(String, CodeLine),
     TypeNotAllowed(NameTokenErr),
-    IllegalDereference(AssignableToken, CodeLine),
+    IllegalDereference(AssignableToken, TypeToken, CodeLine),
     NoTypePresent(NameToken, CodeLine),
     IntegerTooSmall { ty: TypeToken, literal: String ,code_line: CodeLine },
     FloatTooSmall { ty: TypeToken, float: f64, code_line: CodeLine },
@@ -103,7 +103,7 @@ impl Display for InferTypeError {
                 write!(f, "Line: {:?}: Arguments `({})` to the function `{}` are incorrect: Possible signatures are:\n{}", code_line.actual_line_number, provided_arguments, method_name.name, signatures)
             }
             InferTypeError::NoTypePresent(name, code_line) => write!(f, "Line: {:?}\tType not inferred: `{name}`", code_line.actual_line_number),
-            InferTypeError::IllegalDereference(assignable, code_line) => write!(f, "Line: {:?}\tType cannot be dereferenced: {assignable}", code_line.actual_line_number),
+            InferTypeError::IllegalDereference(assignable, ty, code_line) => write!(f, "Line: {:?}\tType `{ty}` cannot be dereferenced: {assignable}", code_line.actual_line_number),
             InferTypeError::IntegerTooSmall { ty, literal: integer, code_line } => write!(f, "Line: {:?}\t`{integer}` doesn't fit into the type `{ty}`", code_line.actual_line_number),
             InferTypeError::FloatTooSmall { ty, float, code_line } => write!(f, "Line: {:?}\t`{float}` doesn't fit into the type `{ty}`", code_line.actual_line_number),
         }
