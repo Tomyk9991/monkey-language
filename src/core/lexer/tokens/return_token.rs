@@ -102,7 +102,7 @@ impl ToASM for ReturnToken {
 
             let assignable_type = assignable.infer_type_with_context(&meta.static_type_information, &meta.code_line)?;
 
-            if matches!(assignable_type, TypeToken::Float(_)) || matches!(assignable_type, TypeToken::Integer(_)) || is_stack_variable {
+            if matches!(assignable_type, TypeToken::Float(_)) || matches!(assignable_type, TypeToken::Integer(_)) && !matches!(assignable, AssignableToken::ArithmeticEquation(_)) || is_stack_variable {
                 target += &ASMBuilder::mov_ident_line(destination_register.to_size_register(&ByteSize::try_from(source_size)?), source);
             } else {
                 target += &source;

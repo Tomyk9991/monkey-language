@@ -1,13 +1,18 @@
 use crate::core::code_generator::{MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::ASMGenerateError;
+use crate::core::code_generator::conventions::calling_convention_from;
 use crate::core::code_generator::registers::{Bit64, GeneralPurposeRegister};
 use crate::core::code_generator::target_os::TargetOS;
 use crate::core::lexer::scope::Scope;
 use crate::core::lexer::static_type_context::StaticTypeContext;
 use crate::core::lexer::token::Token;
+use crate::core::lexer::tokens::assignable_token::AssignableToken;
 use crate::core::lexer::tokens::name_token::NameToken;
+use crate::core::lexer::tokens::parameter_token::ParameterToken;
+use crate::core::lexer::tokens::variable_token::VariableToken;
 
+#[derive(Debug)]
 pub struct StackLocation {
     pub position: usize,
     pub size: usize,
@@ -38,6 +43,14 @@ pub struct Stack {
     pub label_count: usize,
     pub register_to_use: Vec<GeneralPurposeRegister>,
 }
+
+impl Stack {
+    pub fn clear_stack(&mut self) {
+        self.stack_position = 0;
+        self.variables.clear();
+    }
+}
+
 
 pub trait LastUnchecked<T> {
     type Error;
@@ -171,6 +184,7 @@ impl ASMGenerator {
                             return Err(ASMGenerateError::EntryPointNotFound);
                         }
 
+                        self.stack.clear_stack();
                         let mut meta = MetaInfo {
                             code_line: main.code_line.clone(),
                             target_os: self.target_os.clone(),
@@ -242,10 +256,42 @@ impl ASMGenerator {
                 static_type_information: StaticTypeContext::new(&self.top_level_scope.tokens),
             };
 
-            if let Token::MethodDefinition(md) = token {
-                if !md.is_extern && md.name.name != "main" {
-                    meta.static_type_information.merge(StaticTypeContext::new(&md.stack));
-                    method_definitions += &ASMBuilder::push(&md.to_asm(&mut self.stack, &mut meta)?);
+
+            if let Token::MethodDefinition(method_definition) = token {
+                if !method_definition.is_extern && method_definition.name.name != "main" {
+                    self.stack.clear_stack();
+
+                    let calling_convention = calling_convention_from(method_definition, &self.target_os);
+
+                    for (index, (argument_name, argument_type)) in method_definition.arguments.iter().enumerate() {
+                        let parameter_token = ParameterToken {
+                            name_token: argument_name.clone(),
+                            ty: argument_type.clone(),
+                            register: calling_convention[index][0].clone(),
+                            mutablility: false,
+                            code_line: method_definition.code_line.clone(),
+                        };
+
+                        self.stack.variables.push(StackLocation {
+                            position: self.stack.stack_position,
+                            size: argument_type.byte_size(),
+                            name: argument_name.clone(),
+                        });
+
+                        self.stack.stack_position += argument_type.byte_size();
+
+                        meta.static_type_information.context.push(VariableToken {
+                            name_token: argument_name.clone(),
+                            mutability: false,
+                            ty: Some(argument_type.clone()),
+                            define: true,
+                            assignable: AssignableToken::Parameter(parameter_token),
+                            code_line: method_definition.code_line.clone(),
+                        });
+                    }
+
+                    meta.static_type_information.merge(StaticTypeContext::new(&method_definition.stack));
+                    method_definitions += &ASMBuilder::push(&method_definition.to_asm(&mut self.stack, &mut meta)?);
                 }
 
                 continue;

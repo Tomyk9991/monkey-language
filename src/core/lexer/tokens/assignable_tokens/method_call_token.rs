@@ -255,7 +255,7 @@ impl ToASM for MethodCallToken {
                                     provided_type.as_ref().map(|provided_type| provided_type.byte_size())
                                 } else { None };
 
-                                result += &ASMBuilder::mov_x_ident_line(register, format!("{} ; Parameter ({})", parsed_argument.replace("DWORD", "QWORD"), argument), b);
+                                result += &ASMBuilder::mov_x_ident_line(register, format!("{} ; Parameter ({})", parsed_argument, argument), b);
                             }
                             CallingRegister::Stack => {
                                 result += &ASMBuilder::ident(&format!("push {}", parsed_argument.replace("DWORD", "QWORD")))

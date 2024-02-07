@@ -1,22 +1,26 @@
-use crate::core::io::code_line::CodeLine;
-use crate::core::lexer::scope::{PatternNotMatchedError, Scope, ScopeError};
-use crate::core::lexer::token::Token;
-use crate::core::lexer::tokens::assignable_token::AssignableTokenErr;
-use crate::core::lexer::tokens::name_token::{NameToken, NameTokenErr};
-use crate::core::lexer::TryParse;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::iter::Peekable;
 use std::slice::Iter;
 use std::str::FromStr;
-use crate::core::code_generator::generator::Stack;
+
+use crate::core::code_generator::conventions::calling_convention_from;
+
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
-use crate::core::code_generator::registers::GeneralPurposeRegister;
+use crate::core::code_generator::conventions::CallingRegister;
+use crate::core::code_generator::generator::Stack;
+use crate::core::code_generator::registers::{ByteSize, GeneralPurposeRegister};
 use crate::core::constants::FUNCTION_KEYWORD;
+use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::errors::EmptyIteratorErr;
-use crate::core::lexer::levenshtein_distance::PatternedLevenshteinDistance;
 use crate::core::lexer::levenshtein_distance::{ArgumentsIgnoreSummarizeTransform, EmptyParenthesesExpand, PatternedLevenshteinString, QuoteSummarizeTransform};
+use crate::core::lexer::levenshtein_distance::PatternedLevenshteinDistance;
+use crate::core::lexer::scope::{PatternNotMatchedError, Scope, ScopeError};
+use crate::core::lexer::token::Token;
+use crate::core::lexer::tokens::assignable_token::AssignableTokenErr;
+use crate::core::lexer::tokens::name_token::{NameToken, NameTokenErr};
+use crate::core::lexer::TryParse;
 use crate::core::lexer::types::type_token::{InferTypeError, TypeToken};
 
 /// Token for method definition. Pattern is `fn function_name(argument1, ..., argumentN): returnType { }`
@@ -27,7 +31,7 @@ pub struct MethodDefinition {
     pub arguments: Vec<(NameToken, TypeToken)>,
     pub stack: Vec<Token>,
     pub is_extern: bool,
-    pub code_line: CodeLine
+    pub code_line: CodeLine,
 }
 
 #[derive(Debug)]
@@ -87,7 +91,7 @@ impl Error for MethodDefinitionErr {}
 impl Display for MethodDefinitionErr {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", match self {
-            MethodDefinitionErr::PatternNotMatched { target_value}
+            MethodDefinitionErr::PatternNotMatched { target_value }
             => format!("Pattern not matched for: `{target_value}`\n\t fn function_name(argument1, ..., argumentN): returnType {{ }}"),
             MethodDefinitionErr::AssignableTokenErr(a) => a.to_string(),
             MethodDefinitionErr::NameTokenErr(a) => a.to_string(),
@@ -113,11 +117,11 @@ impl TryParse for MethodDefinition {
         // todo: check if parameter names are duplicates
 
         let (is_extern, fn_name, _generic_type, arguments, return_type) = match &split_ref[..] {
-            ["extern", "fn", name, "<", generic_type, ">", "(", arguments @ .., ")", ":", return_type, ";"] => (true, name, Some(generic_type) ,arguments, return_type),
+            ["extern", "fn", name, "<", generic_type, ">", "(", arguments @ .., ")", ":", return_type, ";"] => (true, name, Some(generic_type), arguments, return_type),
             ["extern", "fn", name, "(", arguments @ .., ")", ":", return_type, ";"] => (true, name, None, arguments, return_type),
             ["fn", name, "(", arguments @ .., ")", ":", return_type, "{"] => (false, name, None, arguments, return_type),
 
-            ["extern", "fn", name, "<", generic_type, ">", "(", arguments @ .., ")", ":", ";"] => (true, name, Some(generic_type) ,arguments, &"void"),
+            ["extern", "fn", name, "<", generic_type, ">", "(", arguments @ .., ")", ":", ";"] => (true, name, Some(generic_type), arguments, &"void"),
             ["extern", "fn", name, "(", arguments @ .., ")", ";"] => (true, name, None, arguments, &"void"),
             ["fn", name, "(", arguments @ .., ")", "{"] => (false, name, None, arguments, &"void"),
             _ => return Err(MethodDefinitionErr::PatternNotMatched { target_value: method_header.line.to_string() })
@@ -161,7 +165,7 @@ impl MethodDefinition {
             if let [name, ty] = &argument.split(':').collect::<Vec<&str>>()[..] {
                 type_arguments.push((NameToken::from_str(name, false)?, TypeToken::from_str(ty)?));
             } else {
-                return Err(MethodDefinitionErr::PatternNotMatched { target_value: method_header.line.clone() })
+                return Err(MethodDefinitionErr::PatternNotMatched { target_value: method_header.line.clone() });
             }
         }
 
@@ -195,9 +199,35 @@ impl ToASM for MethodDefinition {
         label_header += &ASMBuilder::ident_line("push rbp");
         label_header += &ASMBuilder::mov_ident_line("rbp", "rsp");
 
+
         label_header += &ASMBuilder::ident(&ASMBuilder::comment_line("Reserve stack space as MS convention. Shadow stacking"));
         let mut stack_allocation = 32; // per default microsoft convention requires 32 byte as a shadow stack
         let mut method_scope: String = String::new();
+
+        let calling_convention = calling_convention_from(self, &meta.target_os);
+        for (index, (argument_name, argument_type)) in self.arguments.iter().enumerate() {
+            if let Some(stack_location) = stack.variables.iter().rfind(|v| v.name.name == argument_name.name) {
+                let destination = stack_location.name.clone().to_asm(stack, meta)?;
+                let source = match &calling_convention[index][0] {
+                    CallingRegister::Register(r) => {
+                        if matches!(argument_type, TypeToken::Float(_)) {
+                            r.to_string()
+                        } else {
+                            r.to_size_register(&ByteSize::try_from(argument_type.byte_size())?).to_string()
+                        }
+                    }
+                    CallingRegister::Stack => "popppp".to_string()
+                };
+
+                method_scope.push_str(&ASMBuilder::mov_x_ident_line(destination, source, if let TypeToken::Float(f) = &argument_type {
+                    Some(f.byte_size())
+                } else {
+                    None
+                }));
+            } else {
+                return Err(ASMGenerateError::UnresolvedReference { name: argument_name.name.to_string(), code_line: self.code_line.clone()})
+            }
+        }
 
         for token in &self.stack {
             stack_allocation += token.byte_size(meta);
@@ -250,10 +280,10 @@ impl PatternedLevenshteinDistance for MethodDefinition {
                 vec![
                     Box::new(QuoteSummarizeTransform),
                     Box::new(EmptyParenthesesExpand),
-                    Box::new(ArgumentsIgnoreSummarizeTransform)
-                ]
+                    Box::new(ArgumentsIgnoreSummarizeTransform),
+                ],
             ),
-            method_header_pattern
+            method_header_pattern,
         )
     }
 }

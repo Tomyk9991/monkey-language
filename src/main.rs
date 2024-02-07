@@ -91,6 +91,7 @@ fn more_windows_errors(status: i32) -> Option<String> {
     match status {
         -1073741676 => Some("Integer division by zero".to_string()),
         -1073741675 => Some("Integer overflow".to_string()),
+        -1073741571 => Some("Stack overflow".to_string()),
         -1073741819 => Some("Pointing to invalid memory".to_string()),
         _ => None
     }

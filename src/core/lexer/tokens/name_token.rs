@@ -80,7 +80,7 @@ impl NameToken {
 }
 
 impl ToASM for NameToken {
-    fn to_asm(&self, stack: &mut Stack, meta: &mut MetaInfo) -> Result<String, crate::core::code_generator::ASMGenerateError> {
+    fn to_asm(&self, stack: &mut Stack, meta: &mut MetaInfo) -> Result<String, ASMGenerateError> {
         return if let Some(stack_location) = stack.variables.iter().rfind(|&variable| variable.name.name == self.name.as_str()) {
             if let Some(found_variable) = meta.static_type_information.context.iter().rfind(|v| v.name_token == *self) {
                 if let Some(ty) = &found_variable.ty {
@@ -88,7 +88,8 @@ impl ToASM for NameToken {
                     return Ok(format!("{operand_hint} [rbp - {}]", stack_location.position + stack_location.size));
                 }
             }
-            Ok(format!("DWORD [rbp - {}]", stack_location.position + stack_location.size))
+
+            return Ok(format!("DWORD [rbp - {}]", stack_location.position + stack_location.size));
         } else {
             Err(ASMGenerateError::UnresolvedReference { name: self.name.to_string(), code_line: meta.code_line.clone() })
         }

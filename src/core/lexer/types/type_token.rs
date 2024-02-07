@@ -94,11 +94,12 @@ impl Display for InferTypeError {
             InferTypeError::MethodReturnSignatureMismatch { expected, method_name, method_head_line } => write!(f, "Line: {method_head_line:?}: \tA return statement with type: `{expected}` is expected for the method: {method_name}"),
             InferTypeError::MethodCallSignatureMismatch { signatures, method_name, code_line, provided } => {
                 let provided_arguments = provided.iter().map(|a| a.to_string()).collect::<Vec<String>>().join(", ");
-                let signatures = signatures
+                let mut signatures = signatures
                     .iter()
                     .map(|v| format!("\t - ({})", v.iter().map(|t| t.to_string()).collect::<Vec<String>>().join(", ")))
-                    .collect::<Vec<String>>()
-                    .join(",\n");
+                    .collect::<Vec<String>>();
+                signatures.sort();
+                let signatures = signatures.join(",\n");
 
                 write!(f, "Line: {:?}: Arguments `({})` to the function `{}` are incorrect: Possible signatures are:\n{}", code_line.actual_line_number, provided_arguments, method_name.name, signatures)
             }

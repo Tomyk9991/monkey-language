@@ -34,6 +34,14 @@ impl StaticTypeContext {
             let context = StaticTypeContext::new(&method.stack);
             let mut hash_map: HashMap<&str, (usize, &CodeLine)> = HashMap::new();
 
+            for (argument_name, _) in &method.arguments {
+                if let Some((counter, _)) = hash_map.get_mut(argument_name.name.as_str()) {
+                    *counter += 1;
+                } else {
+                    hash_map.insert(&argument_name.name, (1, &method.code_line));
+                }
+            }
+
             for variable in &context.context {
                 if !variable.define { continue; }
                 if let Some((counter, _)) = hash_map.get_mut(variable.name_token.name.as_str()) {

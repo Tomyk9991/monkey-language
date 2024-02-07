@@ -1,21 +1,41 @@
+use std::fmt::{Display, Formatter};
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::MetaInfo;
 use crate::core::code_generator::registers::{Bit64, FloatRegister, GeneralPurposeRegister};
 use crate::core::code_generator::target_os::TargetOS;
 use crate::core::lexer::tokens::assignable_token::AssignableToken;
+use crate::core::lexer::tokens::method_definition::MethodDefinition;
 use crate::core::lexer::types::type_token::{InferTypeError, TypeToken};
 
 /// An enum representing the destination register. If its a register it contains the register
 /// For floats its for example a "rcx" or "rdx" for windows calling convention
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum CallingRegister {
     Register(GeneralPurposeRegister),
     Stack,
 }
 
+impl Display for CallingRegister {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", match self {
+            CallingRegister::Register(r) => r.to_string(),
+            CallingRegister::Stack => "[]".to_string()
+        })
+    }
+}
+
 pub fn calling_convention(stack: &mut Stack, meta: &MetaInfo, calling_arguments: &[AssignableToken], method_name: &str) -> Result<Vec<Vec<CallingRegister>>, InferTypeError> {
     match meta.target_os {
         TargetOS::Windows => windows_calling_convention(stack, meta, calling_arguments, method_name),
+        TargetOS::Linux | TargetOS::WindowsSubsystemLinux => {
+            unimplemented!("Linux calling convention not implemented yet");
+        }
+    }
+}
+
+pub fn calling_convention_from(method_definition: &MethodDefinition, target_os: &TargetOS) -> Vec<Vec<CallingRegister>> {
+    match target_os {
+        TargetOS::Windows => windows_calling_convention_from(method_definition),
         TargetOS::Linux | TargetOS::WindowsSubsystemLinux => {
             unimplemented!("Linux calling convention not implemented yet");
         }
@@ -83,4 +103,46 @@ fn windows_calling_convention(_stack: &mut Stack, meta: &MetaInfo, calling_argum
     }
 
     Ok(result)
+}
+
+fn windows_calling_convention_from(method_definition: &MethodDefinition) -> Vec<Vec<CallingRegister>> {
+    static FLOAT_ORDER: [CallingRegister; 4] = [
+        CallingRegister::Register(GeneralPurposeRegister::Float(FloatRegister::Xmm0)),
+        CallingRegister::Register(GeneralPurposeRegister::Float(FloatRegister::Xmm1)),
+        CallingRegister::Register(GeneralPurposeRegister::Float(FloatRegister::Xmm2)),
+        CallingRegister::Register(GeneralPurposeRegister::Float(FloatRegister::Xmm3))
+    ];
+    static POINTER_ORDER: [CallingRegister; 4] = [
+        CallingRegister::Register(GeneralPurposeRegister::Bit64(Bit64::Rcx)),
+        CallingRegister::Register(GeneralPurposeRegister::Bit64(Bit64::Rdx)),
+        CallingRegister::Register(GeneralPurposeRegister::Bit64(Bit64::R8)),
+        CallingRegister::Register(GeneralPurposeRegister::Bit64(Bit64::R9))
+    ];
+
+    let mut result = vec![];
+
+    for (index, (_, calling_type)) in method_definition.arguments.iter().enumerate() {
+        match calling_type {
+            TypeToken::Integer(_) | TypeToken::Bool | TypeToken::Custom(_) => {
+                if index < 4 {
+                    result.push(vec![POINTER_ORDER[index].clone()]);
+                } else {
+                    result.push(vec![CallingRegister::Stack]);
+                }
+            }
+            TypeToken::Float(_) => {
+                let mut r = vec![];
+                if index < 4 {
+                    r.push(FLOAT_ORDER[index].clone());
+                } else {
+                    r.push(CallingRegister::Stack);
+                }
+
+                result.push(r);
+            }
+            TypeToken::Void => {}
+        }
+    }
+
+    result
 }

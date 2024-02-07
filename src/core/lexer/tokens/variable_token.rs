@@ -251,6 +251,7 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for VariableToken<ASSI
             AssignableToken::NameToken(a) => a.multi_line_asm(stack, meta),
             AssignableToken::Object(a) => a.multi_line_asm(stack, meta),
             AssignableToken::ArithmeticEquation(a) => a.multi_line_asm(stack, meta),
+            AssignableToken::Parameter(r) => r.multi_line_asm(stack, meta),
         }
     }
 }

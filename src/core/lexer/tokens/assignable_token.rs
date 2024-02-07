@@ -16,6 +16,7 @@ use crate::core::lexer::tokens::assignable_tokens::method_call_token::{MethodCal
 use crate::core::lexer::tokens::assignable_tokens::object_token::ObjectToken;
 use crate::core::lexer::tokens::assignable_tokens::string_token::StringToken;
 use crate::core::lexer::tokens::name_token::NameToken;
+use crate::core::lexer::tokens::parameter_token::ParameterToken;
 use crate::core::lexer::types::type_token;
 use crate::core::lexer::types::type_token::{InferTypeError, TypeToken};
 
@@ -25,6 +26,7 @@ pub enum AssignableToken {
     String(StringToken),
     IntegerToken(IntegerToken),
     FloatToken(FloatToken),
+    Parameter(ParameterToken),
     BooleanToken(BooleanToken),
     MethodCallToken(MethodCallToken),
     NameToken(NameToken),
@@ -102,6 +104,7 @@ impl AssignableToken {
             AssignableToken::ArithmeticEquation(arithmetic_expression) => Ok(arithmetic_expression.traverse_type_resulted(context, code_line)?),
             AssignableToken::MethodCallToken(method_call) => Ok(method_call.infer_type_with_context(context, code_line)?),
             AssignableToken::NameToken(var) => Ok(var.infer_type_with_context(context, code_line)?),
+            AssignableToken::Parameter(r) => Ok(r.ty.clone())
         }
     }
 }
@@ -123,6 +126,7 @@ impl Display for AssignableToken {
             AssignableToken::NameToken(token) => format!("{}", token),
             AssignableToken::Object(token) => format!("{}", token),
             AssignableToken::ArithmeticEquation(token) => format!("{}", token),
+            AssignableToken::Parameter(r) => format!("{}", r)
         })
     }
 }
@@ -163,6 +167,7 @@ impl ToASM for AssignableToken {
             AssignableToken::NameToken(_) => true,
             AssignableToken::Object(_) => false,
             AssignableToken::ArithmeticEquation(a) => a.is_stack_look_up(stack, meta),
+            AssignableToken::Parameter(r) => r.is_stack_look_up(stack, meta),
         }
     }
 
@@ -176,6 +181,7 @@ impl ToASM for AssignableToken {
             AssignableToken::NameToken(a) => a.byte_size(meta),
             AssignableToken::Object(a) => a.byte_size(meta),
             AssignableToken::ArithmeticEquation(a) => a.byte_size(meta),
+            AssignableToken::Parameter(r) => r.ty.byte_size()
         }
     }
 
@@ -189,6 +195,7 @@ impl ToASM for AssignableToken {
             AssignableToken::NameToken(v) => v.before_label(stack, meta),
             AssignableToken::Object(v) => v.before_label(stack, meta),
             AssignableToken::ArithmeticEquation(v) => v.before_label(stack, meta),
+            AssignableToken::Parameter(r) => r.before_label(stack, meta)
         }
     }
 
@@ -202,6 +209,7 @@ impl ToASM for AssignableToken {
             AssignableToken::NameToken(a) => a.multi_line_asm(stack, meta),
             AssignableToken::Object(a) => a.multi_line_asm(stack, meta),
             AssignableToken::ArithmeticEquation(a) => a.multi_line_asm(stack, meta),
+            AssignableToken::Parameter(r) => r.multi_line_asm(stack, meta)
         }
     }
 }
