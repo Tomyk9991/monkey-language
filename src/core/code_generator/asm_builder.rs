@@ -1,10 +1,12 @@
 use std::fmt::{Display, Formatter};
+use std::str::FromStr;
 
 use crate::core::code_generator::registers::{Bit64, GeneralPurposeRegister, GeneralPurposeRegisterIterator};
 
 /// A utility struct for construction asm related strings
 pub struct ASMBuilder;
 
+#[derive(PartialEq)]
 pub enum MovInstruction {
     Mov,
     MovQ,
@@ -96,6 +98,10 @@ impl ASMBuilder {
             return String::new();
         }
 
+        if !source.starts_with("xmm") && !destination.starts_with("xmm") {
+            return Self::mov_instruction_ident_line(MovInstruction::Mov, destination, source);
+        }
+
         match byte_size {
             _ if source.starts_with("xmm") && destination.starts_with("xmm") => Self::mov_instruction_ident_line(MovInstruction::MovQ, destination, source),
             Some(8) => Self::mov_instruction_ident_line(MovInstruction::MovQ, destination, source),
@@ -107,7 +113,7 @@ impl ASMBuilder {
     fn mov_instruction_ident_line<T: Display, P: Display>(mov_instruction: MovInstruction, destination: T, source: P) -> String {
         let s = Self::mov_instruction_ident(mov_instruction, destination, source);
 
-        if s.ends_with('\n') {
+        if s.ends_with('\n') || s.is_empty() {
             s
         } else {
             format!("{s}\n")
@@ -117,6 +123,12 @@ impl ASMBuilder {
     pub fn mov_instruction_ident<T: Display, P: Display>(mov_instruction: MovInstruction, destination: T, source: P) -> String {
         let source = source.to_string();
         let destination = destination.to_string();
+
+        if let (Ok(dest), Ok(sour)) = (GeneralPurposeRegister::from_str(&destination), GeneralPurposeRegister::from_str(&source)) {
+            if mov_instruction == MovInstruction::Mov && dest.to_64_bit_register() == sour.to_64_bit_register() {
+                return String::new();
+            }
+        }
 
         if source == destination {
             return String::new();

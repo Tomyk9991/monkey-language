@@ -1,15 +1,10 @@
 module monkey-language-project/std.monkey;
 
-fn constant_1(): i32 { return 30; }
+fn f1(): f64 { return 13.0_f64; }
+fn f2(): f64 { return 5.0_f64; }
 
 fn main(): i32 {
-    let a: i32 = 5;
-    let b = 25 + constant_1();
-    let c = *constant_1() + 25;
-
-    let d = b + c;
-
-    let e = constant_1() + constant_1();
-
-    return e;
+    let addition = (((f1() + f2()) + (f2() + f1())) + (f2() + f2())) + ((f2() + (f2() + f2())) + (f2() + (f1() + f2())));
+    printf("value is: %f", addition);
+    return 0;
 }

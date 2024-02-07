@@ -237,7 +237,9 @@ impl Castable<Integer, Integer> for Integer {
             let destination_register = if cast_to.casting_down() { cast_from_register } else { cast_to_register };
             if instruction == "mov" {
                 if let Ok(source_register) = GeneralPurposeRegister::from_str(&source) {
-                    if destination_register.to_64_bit_register() == source_register.to_64_bit_register() {}
+                    if destination_register.to_64_bit_register() == source_register.to_64_bit_register() {
+
+                    }
                 } else {
                     target += &ASMBuilder::mov_ident_line(&destination_register, &source);
                 }

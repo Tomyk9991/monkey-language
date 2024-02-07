@@ -14,6 +14,16 @@ pub struct StackLocation {
     pub name: NameToken,
 }
 
+impl StackLocation {
+    pub fn new_anonymous_stack_location(position: usize, size: usize) -> StackLocation {
+        Self {
+            position,
+            size,
+            name: NameToken::uuid(),
+        }
+    }
+}
+
 
 #[derive(Default)]
 /// a struct representing the current stack pointer and variables in the stack

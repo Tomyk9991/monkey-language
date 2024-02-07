@@ -1,5 +1,6 @@
 use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
+
 use crate::core::io::code_line::{CodeLine, Normalizable};
 use crate::core::lexer::tokens::assignable_token::{AssignableToken, AssignableTokenErr};
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::expression::{Expression, PointerArithmetic, PrefixArithmetic};
@@ -29,10 +30,11 @@ pub enum Error {
     UndefinedSequence(String),
     FunctionNotFound,
     SourceEmpty,
-    NotAType(String), // Message
+    NotAType(String),
+    // Message
     TermNotParsable(String),
     ParenExpected,
-    CannotParse
+    CannotParse,
 }
 
 impl From<InferTypeError> for Error {
@@ -40,7 +42,7 @@ impl From<InferTypeError> for Error {
         match value {
             InferTypeError::TypeNotAllowed(t) => {
                 Error::NotAType(t.to_string())
-            },
+            }
             _ => unreachable!("Cannot reach this"),
         }
     }
@@ -78,7 +80,6 @@ impl std::error::Error for Error {}
 
 #[allow(clippy::should_implement_trait)]
 impl EquationToken {
-
     pub fn from_str(string: &str) -> Result<Expression, Error> {
         let mut s: EquationToken = EquationToken::new(string);
         let f = s.parse()?.clone();
@@ -179,7 +180,7 @@ impl EquationToken {
         self.syntax_tree = self.parse_logical_or()?;
 
         if self.pos as usize != self.source_code.chars().count() {
-            return Err(Error::UndefinedSequence(self.source_code.chars().collect::<Vec<_>>()[self.pos as usize..].iter().collect::<String>()))
+            return Err(Error::UndefinedSequence(self.source_code.chars().collect::<Vec<_>>()[self.pos as usize..].iter().collect::<String>()));
         }
 
         Ok(&self.syntax_tree)
@@ -390,7 +391,7 @@ impl EquationToken {
                     None
                 } else {
                     Some((current_string, end_position - starting_position + 1))
-                }
+                };
             }
 
             if !predicate(&current_string) {
@@ -427,9 +428,9 @@ impl EquationToken {
                     x.prefix_arithmetic = Some(PrefixArithmetic::Cast(TypeToken::from_str(&cast_type)?));
 
                     return Ok(x);
-                } else {
-                    self.previous_char_amount(amount_skip);
                 }
+
+                self.previous_char_amount(amount_skip);
                 // not a type cast, resume
             }
         }
@@ -464,7 +465,6 @@ impl EquationToken {
             if !self.eat(Some(CLOSING)) {
                 return Err(Error::ParenExpected);
             }
-
         } else if self.ch.is_some() {
             // digits only
             if self.ch >= Some('0') && self.ch <= Some('9') || self.ch == Some('.') {
@@ -483,7 +483,7 @@ impl EquationToken {
                         Some('(') => ident += 1,
                         Some(')') => ident -= 1,
                         None => break,
-                        _ => { }
+                        _ => {}
                     }
 
                     if ident == -1 {
@@ -522,10 +522,9 @@ impl EquationToken {
             Err(Error::UndefinedSequence(last_character.to_string()))
         } else {
             Err(Error::SourceEmpty)
-        }
+        };
     }
     fn operator_sequence(&mut self) -> bool {
-
         static OPERATORS: [&str; 18] = ["+", "-", "*", "%", "/", "<<", ">>", "<", ">", "<=", ">=", "==", "!=", "&&", "||", "&", "^", "|"];
 
         for operator in OPERATORS {

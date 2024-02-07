@@ -548,10 +548,10 @@ impl GeneralPurposeRegister {
 }
 
 pub enum ByteSize {
-    _8,
-    _4,
-    _2,
-    _1,
+    _8 = 8,
+    _4 = 4,
+    _2 = 2,
+    _1 = 1,
 }
 
 impl PartialEq<usize> for ByteSize {

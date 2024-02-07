@@ -2,9 +2,9 @@ use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
 
-use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
+use crate::core::code_generator::{ASMGenerateError, MetaInfo, register_destination, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
-use crate::core::code_generator::generator::{LastUnchecked, Stack};
+use crate::core::code_generator::generator::{LastUnchecked, Stack, StackLocation};
 use crate::core::code_generator::register_destination::from_byte_size;
 use crate::core::code_generator::registers::{ByteSize, FloatRegister, GeneralPurposeRegister, GeneralPurposeRegisterIterator};
 use crate::core::io::code_line::CodeLine;
@@ -110,6 +110,7 @@ impl Expression {
         Ok(last)
     }
 
+    /// Returning register or something that is assignable in a mov instruction
     fn generate_lhs(&self, stack: &mut Stack, meta: &mut MetaInfo, target: &mut String, lhs: &Expression, lhs_size: usize) -> Result<String, ASMGenerateError> {
         let mut r = lhs.to_asm(stack, meta)?;
 
@@ -122,14 +123,12 @@ impl Expression {
                 if is_multi_line {
                     if let Some(gpr) = general_purpose_register {
                         let target_register = stack.register_to_use.last()?;
-                        println!("{}", target_register);
-
-                        target.push_str(&ASMBuilder::push_registers(&[&target_register]));
+                        target.push_str(&ASMBuilder::push_registers(&[&target_register.to_64_bit_register()]));
 
                         target.push_str(&code);
 
-                        target.push_str(&ASMBuilder::mov_ident_line(&target_register, gpr.to_size_register(&target_register.size()).to_string()));
-                        target.push_str(&ASMBuilder::pop_registers(&[&target_register]));
+                        target.push_str(&ASMBuilder::mov_x_ident_line(&target_register, gpr.to_size_register(&ByteSize::try_from(lhs_size)?).to_string(), Some(lhs_size)));
+                        target.push_str(&ASMBuilder::pop_registers(&[&target_register.to_64_bit_register()]));
 
                         r = gpr.to_size_register(&ByteSize::try_from(lhs_size)?).to_string()
                     }
@@ -140,8 +139,11 @@ impl Expression {
         })
     }
 
+    /// returns all the assembly code to finish the operation
     #[allow(clippy::too_many_arguments)]
-    fn generate_rhs(&self, stack: &mut Stack, meta: &mut MetaInfo, target: &mut String, rhs: &Expression, lhs_size: usize, destination_register: &GeneralPurposeRegister, target_register: &GeneralPurposeRegister) -> Result<(), ASMGenerateError> {
+    fn generate_rhs(&self, stack: &mut Stack, meta: &mut MetaInfo, rhs: &Expression, lhs_size: usize, destination_register: &GeneralPurposeRegister, target_register: &GeneralPurposeRegister) -> Result<String, ASMGenerateError> {
+        let mut target = String::new();
+
         let source = if let Some(AssignableToken::FloatToken(f)) = &rhs.value.as_deref() {
             let destination_register = from_byte_size(f.byte_size(meta));
             target.push_str(&ASMBuilder::mov_ident_line(&destination_register, rhs.to_asm(stack, meta)?));
@@ -157,7 +159,10 @@ impl Expression {
 
                         target.push_str(&code);
 
-                        target.push_str(&ASMBuilder::mov_ident_line(target_register, gpr.to_size_register(&destination_register.size()).to_string()));
+                        let rhs_size = rhs.traverse_type_resulted(&meta.static_type_information, &meta.code_line)?
+                            .byte_size();
+
+                        target.push_str(&ASMBuilder::mov_x_ident_line(target_register, gpr.to_size_register(&ByteSize::try_from(rhs_size)?).to_string(), Some(lhs_size)));
                         target.push_str(&ASMBuilder::pop_registers(&[target_register]));
 
                         r = target_register.to_string()
@@ -178,7 +183,7 @@ impl Expression {
         let ty = &rhs.traverse_type(meta).ok_or(ASMGenerateError::InternalError("Could not traverse type".to_string()))?;
         let operation = &self.operator.specific_operation(ty, &[destination_register.to_string(), source], stack, meta)?.inject_registers();
         target.push_str(&ASMBuilder::ident_line(operation));
-        Ok(())
+        Ok(target)
     }
 
     fn move_result(&self, _meta: &mut MetaInfo, stack: &mut Stack, target: &mut String, lhs_size: usize, float_type: &Option<Float>, source_register: &GeneralPurposeRegister) -> Result<(), ASMGenerateError> {
@@ -281,7 +286,9 @@ impl Expression {
                 self.generate_lhs(stack, meta, &mut target, lhs, lhs_size)?
             };
 
-            target += &ASMBuilder::mov_x_ident_line(&destination_register, source, if float_type.is_some() { Some(lhs_size) } else { None });
+            if matches!(lhs.multi_line_asm(stack, meta)?, (false, _, _)) {
+                target += &ASMBuilder::mov_x_ident_line(&destination_register, source, if float_type.is_some() { Some(lhs_size) } else { None });
+            }
         };
         stack.register_to_use.pop();
 
@@ -294,7 +301,7 @@ impl Expression {
             let ty = &self.traverse_type(meta).ok_or(ASMGenerateError::InternalError("Could not traverse type".to_string()))?;
             target += &ASMBuilder::ident_line(&self.operator.specific_operation(ty, &[&destination_register, &target_register], stack, meta)?.inject_registers());
         } else {
-            self.generate_rhs(stack, meta, &mut target, rhs, lhs_size, &destination_register, &target_register)?;
+            target += &self.generate_rhs(stack, meta, rhs, lhs_size, &destination_register, &target_register)?;
         };
         stack.register_to_use.pop();
 
@@ -331,7 +338,7 @@ impl Expression {
             let ty = &self.traverse_type(meta).ok_or(ASMGenerateError::InternalError("Could not traverse type".to_string()))?;
             target += &ASMBuilder::ident_line(&self.operator.specific_operation(ty, &[&destination_register, &target_register], stack, meta)?.inject_registers());
         } else {
-            self.generate_rhs(stack, meta, &mut target, rhs, lhs_size, &destination_register, &target_register)?;
+            target += &self.generate_rhs(stack, meta, rhs, lhs_size, &destination_register, &target_register)?;
         };
         stack.register_to_use.pop();
         self.move_result(meta, stack, &mut target, lhs_size, &float_type, &destination_register)?;
@@ -691,6 +698,23 @@ impl Expression {
                 }
             }
             PrefixArithmetic::PointerArithmetic(PointerArithmetic::Ampersand) => {
+                if let (true, i_source, Some(gpr)) = value.multi_line_asm(stack, meta)? {
+                    target += &ASMBuilder::push(&i_source);
+                    // the result is in a register. this must be stored somewhere in memory, in order to be referenced
+                    // you cannot reference to a register, even if you could, this would be possibly overwritten in the next
+                    // instruction
+                    let byte_size = value.byte_size(meta);
+
+                    stack.variables.push(StackLocation::new_anonymous_stack_location(stack.stack_position, byte_size));
+                    stack.stack_position += byte_size;
+
+                    let offset = stack.stack_position;
+                    let anonymous_address = format!("{} [rbp - {}]", register_destination::word_from_byte_size(byte_size), offset);
+
+                    target += &ASMBuilder::mov_ident_line(&anonymous_address, gpr);
+                    inner_source = anonymous_address;
+                }
+
                 target += &ASMBuilder::ident_line(
                     &format!("lea {}, {}", register_64, inner_source.replace("QWORD ", "").replace("DWORD ", ""))
                 );

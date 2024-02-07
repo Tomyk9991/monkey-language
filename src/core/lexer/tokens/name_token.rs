@@ -1,5 +1,6 @@
 use std::error::Error;
 use std::fmt::{Display, Formatter};
+use uuid::Uuid;
 use crate::core::code_generator::register_destination::word_from_byte_size;
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
@@ -43,6 +44,12 @@ impl Display for NameTokenErr {
 }
 
 impl NameToken {
+    pub fn uuid() -> NameToken {
+        NameToken {
+            name: Uuid::new_v4().to_string(),
+        }
+    }
+    
     pub fn from_str(s: &str, allow_reserved: bool) -> Result<NameToken, NameTokenErr> {
         if !allow_reserved && KEYWORDS.iter().any(|keyword| keyword.to_lowercase() == s.to_lowercase()) {
             return Err(NameTokenErr::KeywordReserved(s.to_string()));

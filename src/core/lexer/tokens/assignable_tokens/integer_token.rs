@@ -64,8 +64,8 @@ impl FromStr for IntegerToken {
         let value: i128 = s.parse::<i128>()?;
 
         let final_type = match value {
-            -2147483648..=2147483647 => Integer::I32,
-            -9223372036854775808..=9223372036854775808 => Integer::I64,
+            -2_147_483_648..=2_147_483_647 => Integer::I32,
+            -9_223_372_036_854_775_808..=9_223_372_036_854_775_808 => Integer::I64,
             _ => return Err(NumberTokenErr::UnmatchedRegex)
         };
 

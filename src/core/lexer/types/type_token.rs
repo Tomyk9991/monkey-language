@@ -211,19 +211,19 @@ impl TypeToken {
                             integer_token.ty = desired.clone();
                             return Ok(Some(desired_type.clone()))
                         },
-                        Integer::I32 => if Self::in_range(-2147483648_i32, 2147483647_i32, Integer::from_number_str(&integer_token.value)) {
+                        Integer::I32 => if Self::in_range(-2_147_483_648_i32, 2_147_483_647_i32, Integer::from_number_str(&integer_token.value)) {
                             integer_token.ty = desired.clone();
                             return Ok(Some(desired_type.clone()))
                         },
-                        Integer::U32 => if Self::in_range(0_u32, 4294967295_u32, Integer::from_number_str(&integer_token.value)) {
+                        Integer::U32 => if Self::in_range(0_u32, 4_294_967_295_u32, Integer::from_number_str(&integer_token.value)) {
                             integer_token.ty = desired.clone();
                             return Ok(Some(desired_type.clone()))
                         },
-                        Integer::I64 => if Self::in_range(-9223372036854775808_i64, 9223372036854775807_i64, Integer::from_number_str(&integer_token.value)) {
+                        Integer::I64 => if Self::in_range(-9_223_372_036_854_775_808_i64, 9_223_372_036_854_775_807_i64, Integer::from_number_str(&integer_token.value)) {
                             integer_token.ty = desired.clone();
                             return Ok(Some(desired_type.clone()))
                         },
-                        Integer::U64 => if Self::in_range(0_u64, 18446744073709551615_u64, Integer::from_number_str(&integer_token.value)) {
+                        Integer::U64 => if Self::in_range(0_u64, 18_446_744_073_709_551_615_u64, Integer::from_number_str(&integer_token.value)) {
                             integer_token.ty = desired.clone();
                             return Ok(Some(desired_type.clone()))
                         },

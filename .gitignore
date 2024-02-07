@@ -1,4 +1,5 @@
 /target
 /monkey-language-project/target
 /.[iI]dea
-Cargo.lock
+/Cargo.lock
+/.fleet
