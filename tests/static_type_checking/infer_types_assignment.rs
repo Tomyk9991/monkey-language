@@ -3,6 +3,7 @@ use monkey_language::core::io::monkey_file::MonkeyFile;
 use monkey_language::core::lexer::token::Token;
 use monkey_language::core::lexer::tokenizer::Lexer;
 use monkey_language::core::lexer::tokens::assignable_token::AssignableToken;
+use monkey_language::core::lexer::tokens::assignable_tokens::boolean_token::BooleanToken;
 use monkey_language::core::lexer::tokens::assignable_tokens::equation_parser::expression::Expression;
 use monkey_language::core::lexer::tokens::assignable_tokens::equation_parser::operator::Operator;
 use monkey_language::core::lexer::tokens::assignable_tokens::integer_token::IntegerToken;
@@ -64,7 +65,7 @@ fn infer_type_assignment() -> anyhow::Result<()> {
 #[test]
 fn infer_type_assignment_in_scope() -> anyhow::Result<()> {
     let function = r#"
-        if (1) {
+        if (true) {
             let a = 1;
             let c = a;
         }
@@ -79,7 +80,7 @@ fn infer_type_assignment_in_scope() -> anyhow::Result<()> {
 
     let expected: Vec<Token> = vec![
         Token::IfDefinition(IfDefinition {
-            condition: AssignableToken::IntegerToken(IntegerToken { value: "1".to_string(), ty: Integer::I32 }),
+            condition: AssignableToken::BooleanToken(BooleanToken { value: true }),
             if_stack: vec![
                 Token::Variable(VariableToken {
                     name_token: NameToken { name: "a".to_string() },
@@ -107,7 +108,7 @@ fn infer_type_assignment_in_scope() -> anyhow::Result<()> {
                 }),
             ],
             else_stack: None,
-            code_line: CodeLine { line: "if  ( 1 )  {".to_string(), actual_line_number: 2..2, virtual_line_number: 1 },
+            code_line: CodeLine { line: "if  ( true )  {".to_string(), actual_line_number: 2..2, virtual_line_number: 1 },
         })
     ];
 
@@ -120,7 +121,7 @@ fn infer_type_assignment_in_scope_complex() -> anyhow::Result<()> {
     let function = r#"
     fn constant_1(): i32 { return 5; }
     let a: i32 = 5;
-    if (1) {
+    if (true) {
         let a = a / constant_1();
         let c = a;
     }
@@ -157,7 +158,7 @@ fn infer_type_assignment_in_scope_complex() -> anyhow::Result<()> {
             },
         }),
         Token::IfDefinition(IfDefinition {
-            condition: AssignableToken::IntegerToken(IntegerToken { value: "1".to_string(), ty: Integer::I32 }),
+            condition: AssignableToken::BooleanToken(BooleanToken { value: true }),
             if_stack: vec![
                 Token::Variable(VariableToken::<'=', ';'> {
                     name_token: NameToken { name: "a".to_string() },
@@ -214,7 +215,7 @@ fn infer_type_assignment_in_scope_complex() -> anyhow::Result<()> {
                 }),
             ],
             else_stack: None,
-            code_line: CodeLine { line: "if  ( 1 )  {".to_string(), actual_line_number: 4..4, virtual_line_number: 5 },
+            code_line: CodeLine { line: "if  ( true )  {".to_string(), actual_line_number: 4..4, virtual_line_number: 5 },
         })
     ];
 
@@ -227,7 +228,7 @@ fn infer_type_assignment_in_scope_complex_in_method() -> anyhow::Result<()> {
     let function = r#"
     fn constant_1(): i32 { return 5; }
     fn test(): i32 {
-        if (1) {
+        if (true) {
             let a = a / constant_1();
             let c = a;
         }
@@ -263,7 +264,7 @@ fn infer_type_assignment_in_scope_complex_in_method() -> anyhow::Result<()> {
             arguments: vec![],
             stack: vec![
                 Token::IfDefinition(IfDefinition {
-                    condition: AssignableToken::IntegerToken(IntegerToken { value: "1".to_string(), ty: Integer::I32 }),
+                    condition: AssignableToken::BooleanToken(BooleanToken { value: true }),
                     if_stack: vec![
                         Token::Variable(VariableToken::<'=', ';'> {
                             name_token: NameToken { name: "a".to_string() },
@@ -320,7 +321,7 @@ fn infer_type_assignment_in_scope_complex_in_method() -> anyhow::Result<()> {
                         }),
                     ],
                     else_stack: None,
-                    code_line: CodeLine { line: "if  ( 1 )  {".to_string(), actual_line_number: 4..4, virtual_line_number: 5 },
+                    code_line: CodeLine { line: "if  ( true )  {".to_string(), actual_line_number: 4..4, virtual_line_number: 5 },
                 })
             ],
             is_extern: false,

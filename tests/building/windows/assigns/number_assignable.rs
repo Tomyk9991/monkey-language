@@ -200,7 +200,7 @@ ExitProcess(*b);
     println!("{}", asm_result);
 
     let expected = r#"
-; This assembly is targeted for the Windows Operating System
+    ; This assembly is targeted for the Windows Operating System
 segment .text
 global main
 
@@ -243,12 +243,12 @@ main:
     mov rcx, QWORD [rbp - 52] ; Parameter (format)
     mov rax, QWORD [rbp - 12]
     mov rax, QWORD [rax]
-    mov rdx, rax ; Parameter (*b)
+    mov edx, eax ; Parameter (*b)
     ; printf(format, *b)
     call printf
     mov rax, QWORD [rbp - 12]
     mov rax, QWORD [rax]
-    mov rcx, rax ; Parameter (*b)
+    mov ecx, eax ; Parameter (*b)
     ; ExitProcess(*b)
     call ExitProcess
     leave

@@ -48,7 +48,7 @@ main:
     add eax, edx
     mov DWORD [rbp - 4], eax
     mov rcx, .label0 ; Parameter ("%d")
-    mov rdx, QWORD [rbp - 4] ; Parameter (a)
+    mov edx, DWORD [rbp - 4] ; Parameter (a)
     ; printf("%d", a)
     call printf
     leave
@@ -109,7 +109,7 @@ main:
     mov ecx, r12d
     mov DWORD [rbp - 4], eax
     mov rcx, .label0 ; Parameter ("%d")
-    mov rdx, QWORD [rbp - 4] ; Parameter (a)
+    mov edx, DWORD [rbp - 4] ; Parameter (a)
     ; printf("%d", a)
     call printf
     leave
@@ -163,7 +163,7 @@ main:
     sub eax, 100
     mov DWORD [rbp - 4], eax
     mov rcx, .label0 ; Parameter ("%d")
-    mov rdx, QWORD [rbp - 4] ; Parameter (a)
+    mov edx, DWORD [rbp - 4] ; Parameter (a)
     ; printf("%d", a)
     call printf
     leave
@@ -236,7 +236,7 @@ main:
     mov ecx, r12d
     mov DWORD [rbp - 4], eax
     mov rcx, .label0 ; Parameter ("%d")
-    mov rdx, QWORD [rbp - 4] ; Parameter (d)
+    mov edx, DWORD [rbp - 4] ; Parameter (d)
     ; printf("%d", d)
     call printf
     leave
@@ -373,7 +373,7 @@ main:
     add eax, edi
     mov DWORD [rbp - 4], eax
     mov rcx, .label0 ; Parameter ("%d")
-    mov rdx, QWORD [rbp - 4] ; Parameter (a)
+    mov edx, DWORD [rbp - 4] ; Parameter (a)
     ; printf("%d", a)
     call printf
     leave
@@ -596,7 +596,7 @@ main:
     mov ecx, r12d
     mov DWORD [rbp - 4], eax
     mov rcx, .label0 ; Parameter ("%d")
-    mov rdx, QWORD [rbp - 4] ; Parameter (a)
+    mov edx, DWORD [rbp - 4] ; Parameter (a)
     ; printf("%d", a)
     call printf
     leave

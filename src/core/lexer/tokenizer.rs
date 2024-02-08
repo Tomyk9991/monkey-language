@@ -1,5 +1,4 @@
 use crate::core::code_generator::conventions::calling_convention_from;
-use crate::core::code_generator::generator::StackLocation;
 use crate::core::code_generator::target_os::TargetOS;
 use crate::core::io::monkey_file::MonkeyFile;
 use crate::core::lexer::scope::{Scope, ScopeError};
@@ -40,7 +39,6 @@ impl Lexer {
 
         while iterator.peek().is_some() {
             let token = Scope::try_parse(&mut iterator)?;
-            println!("{}", token);
 
             if let Token::Import(imported_monkey_file) = token {
                 let inner_scope = Lexer::from(imported_monkey_file.monkey_file.clone()).tokenize()?;

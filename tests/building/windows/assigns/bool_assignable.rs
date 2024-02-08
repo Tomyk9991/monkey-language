@@ -293,10 +293,10 @@ main:
     ; Cast: (bool) -> (i32)
     ; Cast: (u8) -> (i32)
     movzx eax, al
-    mov rdx, rax ; Parameter ((i32)*b)
+    mov edx, eax ; Parameter ((i32)*b)
     ; printf(format, (i32)*b)
     call printf
-    mov rcx, 0 ; Parameter (0)
+    mov ecx, 0 ; Parameter (0)
     ; ExitProcess(0)
     call ExitProcess
     leave

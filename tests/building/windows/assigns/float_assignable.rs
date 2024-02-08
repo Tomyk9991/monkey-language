@@ -274,8 +274,7 @@ ExitProcess(0);
 
     println!("{}", asm_result);
 
-    let expected = r#"
-; This assembly is targeted for the Windows Operating System
+    let expected = r#"; This assembly is targeted for the Windows Operating System
 segment .text
 global main
 
@@ -325,7 +324,7 @@ main:
     mov rdx, rax ; Parameter (*b)
     ; printf(format, *b)
     call printf
-    mov rcx, 0 ; Parameter (0)
+    mov ecx, 0 ; Parameter (0)
     ; ExitProcess(0)
     call ExitProcess
     leave

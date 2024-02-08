@@ -239,6 +239,7 @@ impl ToASM for MethodCallToken {
             let (parsed_argument, provided_type) = match argument {
                 AssignableToken::ArithmeticEquation(_) => {
                     result += &ASMBuilder::push(&argument.to_asm(stack, meta)?);
+
                     let returning_register = GeneralPurposeRegister::Bit64(Bit64::Rax)
                         .to_size_register(&ByteSize::try_from(argument.infer_type_with_context(&meta.static_type_information, &meta.code_line)?.byte_size())?);
 
@@ -259,7 +260,13 @@ impl ToASM for MethodCallToken {
                                 } else { None };
 
                                 let ty = argument.infer_type_with_context(&meta.static_type_information, &self.code_line)?;
-                                result += &ASMBuilder::mov_x_ident_line(register.to_size_register(&ByteSize::try_from(ty.byte_size())?), format!("{} ; Parameter ({})", parsed_argument, argument), b);
+
+                                let destination = if matches!(ty, TypeToken::Float(_)) {
+                                    register.clone()
+                                } else {
+                                    register.to_size_register(&ByteSize::try_from(ty.byte_size())?)
+                                };
+                                result += &ASMBuilder::mov_x_ident_line(destination, format!("{} ; Parameter ({})", parsed_argument, argument), b);
                             }
                             CallingRegister::Stack => {
                                 result += &ASMBuilder::ident(&format!("push {}", parsed_argument.replace("DWORD", "QWORD")))

@@ -52,7 +52,7 @@ main:
     ; Cast: (bool) -> (i32)
     ; Cast: (u8) -> (i32)
     movzx eax, BYTE [rbp - 1]
-    mov rdx, rax ; Parameter ((i32)a)
+    mov edx, eax ; Parameter ((i32)a)
     ; printf("%d", (i32)a)
     call printf
     leave
@@ -109,7 +109,7 @@ main:
     ; Cast: (bool) -> (i32)
     ; Cast: (u8) -> (i32)
     movzx eax, BYTE [rbp - 1]
-    mov rdx, rax ; Parameter ((i32)a)
+    mov edx, eax ; Parameter ((i32)a)
     ; printf("%d", (i32)a)
     call printf
     leave
@@ -140,7 +140,8 @@ printf("%d", (i32)a);
 
     println!("{}", asm_result);
 
-    let expected = r#"; This assembly is targeted for the Windows Operating System
+    let expected = r#"
+    ; This assembly is targeted for the Windows Operating System
 segment .text
 global main
 
@@ -262,7 +263,7 @@ main:
     ; Cast: (bool) -> (i32)
     ; Cast: (u8) -> (i32)
     movzx eax, BYTE [rbp - 1]
-    mov rdx, rax ; Parameter ((i32)a)
+    mov edx, eax ; Parameter ((i32)a)
     ; printf("%d", (i32)a)
     call printf
     leave

@@ -89,7 +89,7 @@ fn infer_type() -> anyhow::Result<()> {
 #[test]
 fn infer_type_in_scope() -> anyhow::Result<()> {
     let function = r#"
-        if (1) {
+        if (true) {
             let a = 1;
             let b = 2.0;
             let c = true;
@@ -106,7 +106,7 @@ fn infer_type_in_scope() -> anyhow::Result<()> {
 
     let expected: Vec<Token> = vec![
         Token::IfDefinition(IfDefinition {
-            condition: AssignableToken::IntegerToken(IntegerToken { value: "1".to_string(), ty: Integer::I32  }),
+            condition: AssignableToken::BooleanToken(BooleanToken { value: true }),
             if_stack: vec![
                 Token::Variable(VariableToken {
                     name_token: NameToken { name: "a".to_string() },
@@ -158,7 +158,7 @@ fn infer_type_in_scope() -> anyhow::Result<()> {
                 }),
             ],
             else_stack: None,
-            code_line: CodeLine { line: "if  ( 1 )  {".to_string(), actual_line_number: 2..2, virtual_line_number: 1 },
+            code_line: CodeLine { line: "if  ( true )  {".to_string(), actual_line_number: 2..2, virtual_line_number: 1 },
         })
     ];
 
