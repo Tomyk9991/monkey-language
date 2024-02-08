@@ -1,8 +1,14 @@
+use crate::core::code_generator::conventions::calling_convention_from;
+use crate::core::code_generator::generator::StackLocation;
+use crate::core::code_generator::target_os::TargetOS;
 use crate::core::io::monkey_file::MonkeyFile;
 use crate::core::lexer::scope::{Scope, ScopeError};
 use crate::core::lexer::static_type_context::StaticTypeContext;
 use crate::core::lexer::token::Token;
+use crate::core::lexer::tokens::assignable_token::AssignableToken;
 use crate::core::lexer::tokens::method_definition::MethodDefinition;
+use crate::core::lexer::tokens::parameter_token::ParameterToken;
+use crate::core::lexer::tokens::variable_token::VariableToken;
 use crate::core::lexer::TryParse;
 use crate::core::lexer::types::type_token::InferTypeError;
 
@@ -34,6 +40,7 @@ impl Lexer {
 
         while iterator.peek().is_some() {
             let token = Scope::try_parse(&mut iterator)?;
+            println!("{}", token);
 
             if let Token::Import(imported_monkey_file) = token {
                 let inner_scope = Lexer::from(imported_monkey_file.monkey_file.clone()).tokenize()?;
@@ -63,7 +70,32 @@ impl Lexer {
         Self::infer_types(&mut scope.tokens, &mut type_context)?;
 
         for method in methods.iter_mut() {
+            let calling_convention = calling_convention_from(unsafe { &(*(*method)) }, &TargetOS::Windows);
+
+            for (index, (argument_name, argument_type)) in unsafe { &(*(*method)) }.arguments.iter().enumerate() {
+                let parameter_token = ParameterToken {
+                    name_token: argument_name.clone(),
+                    ty: argument_type.clone(),
+                    register: calling_convention[index][0].clone(),
+                    mutablility: false,
+                    code_line: unsafe { &(*(*method)) }.code_line.clone(),
+                };
+
+                type_context.context.push(VariableToken {
+                    name_token: argument_name.clone(),
+                    mutability: false,
+                    ty: Some(argument_type.clone()),
+                    define: true,
+                    assignable: AssignableToken::Parameter(parameter_token),
+                    code_line: unsafe { &(*(*method)) }.code_line.clone(),
+                });
+            }
+
             Scope::infer_type(unsafe { &mut (*(*method)).stack }, &mut type_context)?;
+
+            for _ in 0..unsafe { &(*(*method)) }.arguments.len() {
+                type_context.context.pop();
+            }
         }
 
         Ok(scope)

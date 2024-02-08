@@ -109,8 +109,9 @@ impl TryParse for IfDefinition {
 
         let mut requested_else_block = false;
 
-        if let ["if", "(", condition, ")", "{"] = &split_ref[..] {
-            let condition = AssignableToken::from_str(condition)?;
+        if let ["if", "(", condition@ .. , ")", "{"] = &split_ref[..] {
+            let condition = condition.join(" ");
+            let condition = AssignableToken::from_str(&condition)?;
 
             // consume the header
             let _ = code_lines_iterator.next();

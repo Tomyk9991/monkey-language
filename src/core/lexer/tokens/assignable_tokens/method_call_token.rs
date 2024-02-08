@@ -9,7 +9,7 @@ use crate::core::code_generator::{ASMGenerateError, conventions, MetaInfo};
 use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::conventions::{CallingRegister, return_calling_convention};
 use crate::core::code_generator::generator::Stack;
-use crate::core::code_generator::registers::GeneralPurposeRegister;
+use crate::core::code_generator::registers::{Bit64, ByteSize, GeneralPurposeRegister};
 use crate::core::code_generator::target_os::TargetOS;
 use crate::core::code_generator::ToASM;
 use crate::core::io::code_line::CodeLine;
@@ -239,7 +239,10 @@ impl ToASM for MethodCallToken {
             let (parsed_argument, provided_type) = match argument {
                 AssignableToken::ArithmeticEquation(_) => {
                     result += &ASMBuilder::push(&argument.to_asm(stack, meta)?);
-                    (String::from("rax"), argument.infer_type_with_context(&meta.static_type_information, &meta.code_line).ok())
+                    let returning_register = GeneralPurposeRegister::Bit64(Bit64::Rax)
+                        .to_size_register(&ByteSize::try_from(argument.infer_type_with_context(&meta.static_type_information, &meta.code_line)?.byte_size())?);
+
+                    (returning_register.to_string(), argument.infer_type_with_context(&meta.static_type_information, &meta.code_line).ok())
                 }
                 _ => {
                     (argument.to_asm(stack, meta)?.to_string(), argument.infer_type_with_context(&meta.static_type_information, &meta.code_line).ok())
@@ -255,7 +258,8 @@ impl ToASM for MethodCallToken {
                                     provided_type.as_ref().map(|provided_type| provided_type.byte_size())
                                 } else { None };
 
-                                result += &ASMBuilder::mov_x_ident_line(register, format!("{} ; Parameter ({})", parsed_argument, argument), b);
+                                let ty = argument.infer_type_with_context(&meta.static_type_information, &self.code_line)?;
+                                result += &ASMBuilder::mov_x_ident_line(register.to_size_register(&ByteSize::try_from(ty.byte_size())?), format!("{} ; Parameter ({})", parsed_argument, argument), b);
                             }
                             CallingRegister::Stack => {
                                 result += &ASMBuilder::ident(&format!("push {}", parsed_argument.replace("DWORD", "QWORD")))

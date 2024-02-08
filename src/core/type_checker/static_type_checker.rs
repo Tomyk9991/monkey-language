@@ -56,6 +56,7 @@ fn static_type_check_rec(scope: &Vec<Token>, type_context: &mut StaticTypeContex
             }));
         }
     }
+
     for token in scope {
         match token {
             Token::Variable(variable) if variable.define => {
@@ -93,6 +94,15 @@ fn static_type_check_rec(scope: &Vec<Token>, type_context: &mut StaticTypeContex
             }
             Token::IfDefinition(if_definition) => {
                 let variables_len = type_context.context.len();
+                let condition_type = if_definition.condition.infer_type_with_context(type_context, &if_definition.code_line)?;
+
+                if condition_type != TypeToken::Bool {
+                    return Err(StaticTypeCheckError::InferredError(InferTypeError::MismatchedTypes {
+                        expected: TypeToken::Bool,
+                        actual: condition_type,
+                        code_line: if_definition.code_line.clone(),
+                    }))
+                }
 
                 static_type_check_rec(&if_definition.if_stack, type_context)?;
 
