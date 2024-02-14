@@ -1,6 +1,6 @@
 use std::fmt::{Debug, Display, Formatter};
 
-use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
+use crate::core::code_generator::{ASMGenerateError, ASMOptions, ASMResult, MetaInfo, ToASM};
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::registers::GeneralPurposeRegister;
 use crate::core::io::code_line::CodeLine;
@@ -98,6 +98,47 @@ impl ToASM for Token {
             Token::ScopeClosing(e) => Err(ASMGenerateError::NotImplemented { token: format!("{}", e) })
         }
     }
+
+    fn to_asm_new<T: ASMOptions + 'static>(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
+        let variables_len = meta.static_type_information.len();
+
+        let scopes = match self {
+            Token::IfDefinition(if_def) => {
+                let mut res = vec![&if_def.if_stack];
+                if let Some(else_stack) = &if_def.else_stack {
+                    res.push(else_stack)
+                }
+
+                res
+            }
+            Token::MethodDefinition(method_def) => {
+                vec![&method_def.stack]
+            }
+            _ => { vec![] }
+        };
+
+        for scope in scopes {
+            let scoped_checker = StaticTypeContext::new(scope);
+            meta.static_type_information.merge(scoped_checker);
+
+            let amount_pop = meta.static_type_information.len() - variables_len;
+
+            for _ in 0..amount_pop {
+                let _ = meta.static_type_information.pop();
+            }
+        }
+
+        match self {
+            Token::Variable(variable) => variable.to_asm_new(stack, meta, options),
+            Token::MethodCall(method_call) => method_call.to_asm_new(stack, meta, options),
+            Token::Return(return_token) => return_token.to_asm_new(stack, meta, options),
+            Token::MethodDefinition(r) => unimplemented!("{r}: Not implemented"),
+            Token::Import(r) => unimplemented!("{r}: Not implemented"),
+            Token::ScopeClosing(r) => unimplemented!("{r}: Not implemented"),
+            Token::IfDefinition(r) => unimplemented!("{r}: Not implemented"),
+        }
+    }
+
 
     fn is_stack_look_up(&self, stack: &mut Stack, meta: &MetaInfo) -> bool {
         match self {

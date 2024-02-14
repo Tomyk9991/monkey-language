@@ -1,9 +1,10 @@
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
-use crate::core::code_generator::generator::Stack;
-use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
+
+use crate::core::code_generator::{ASMGenerateError, ASMOptions, ASMResult, MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
+use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::registers::GeneralPurposeRegister;
 
 #[derive(Debug, Eq, PartialEq, Clone)]
@@ -22,7 +23,7 @@ pub enum StringTokenErr {
     UnmatchedRegex,
 }
 
-impl Error for StringTokenErr { }
+impl Error for StringTokenErr {}
 
 impl Display for StringTokenErr {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -36,6 +37,11 @@ impl ToASM for StringToken {
     fn to_asm(&self, stack: &mut Stack, _meta: &mut MetaInfo) -> Result<String, ASMGenerateError> {
         Ok(stack.create_label())
     }
+
+    fn to_asm_new<T: ASMOptions>(&self, stack: &mut Stack, _meta: &mut MetaInfo, _options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
+        Ok(ASMResult::Inline(stack.create_label()))
+    }
+
 
     fn is_stack_look_up(&self, _stack: &mut Stack, _meta: &MetaInfo) -> bool {
         todo!()
@@ -67,7 +73,7 @@ impl ToASM for StringToken {
 /// replace_add_quote("\"Hallo \n Welt\"") returns
 /// \"Hallo\", 10, \"Welt\"
 fn replace_add_quote(value: &str, occurrence: &str, replace_value: usize) -> String {
-    format!("\"{}\"", value[1..value.len()-1].replace(occurrence, &format!("\", {}, \"", replace_value)))
+    format!("\"{}\"", value[1..value.len() - 1].replace(occurrence, &format!("\", {}, \"", replace_value)))
 }
 
 

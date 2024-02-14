@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter};
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::registers::GeneralPurposeRegister;
-use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
+use crate::core::code_generator::{ASMGenerateError, ASMOptions, ASMResult, MetaInfo, ToASM};
 use crate::core::code_generator::conventions::CallingRegister;
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::tokens::name_token::NameToken;
@@ -32,6 +32,10 @@ impl Display for ParameterToken {
 impl ToASM for ParameterToken {
     fn to_asm(&self, _stack: &mut Stack, _meta: &mut MetaInfo) -> Result<String, ASMGenerateError> {
         Ok(self.register.to_string())
+    }
+
+    fn to_asm_new<T: ASMOptions>(&self, _stack: &mut Stack, _meta: &mut MetaInfo, _options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
+        todo!()
     }
 
     fn is_stack_look_up(&self, _stack: &mut Stack, _meta: &MetaInfo) -> bool {

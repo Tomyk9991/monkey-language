@@ -24,7 +24,7 @@ let b: f32 = (f32) a;
     println!("{}", asm_result);
 
     let expected = r#"
-; This assembly is targeted for the Windows Operating System
+    ; This assembly is targeted for the Windows Operating System
 segment .text
 global main
 
@@ -38,11 +38,12 @@ main:
     mov rax, __?float64?__(5.0)
     mov QWORD [rbp - 8], rax
     ; let b: f32 = (f32)a
-    movd eax, xmm0
     mov rax, QWORD [rbp - 8]
     movq xmm7, rax
     cvtsd2ss xmm7, xmm7
     movd eax, xmm7
+    movd xmm0, eax
+    movd eax, xmm0
     mov DWORD [rbp - 12], eax
     leave
     ret
@@ -73,7 +74,7 @@ printf("%f", (f64)a);
     println!("{}", asm_result);
 
     let expected = r#"
-; This assembly is targeted for the Windows Operating System
+    ; This assembly is targeted for the Windows Operating System
 segment .text
 global main
 
@@ -90,13 +91,17 @@ main:
     ; let a: f32 = 5
     mov eax, __?float32?__(5.0)
     mov DWORD [rbp - 4], eax
-    mov rcx, .label0 ; Parameter ("%f")
+    ; Parameter ("%f")
+    mov rcx, .label0
     mov eax, DWORD [rbp - 4]
     movd xmm7, eax
     cvtss2sd xmm7, xmm7
     movq rax, xmm7
-    movq xmm1, rax ; Parameter ((f64)a)
-    mov rdx, rax ; Parameter ((f64)a)
+    movq xmm0, rax
+    ; Parameter ((f64)a)
+    movq xmm1, xmm0
+    ; Parameter ((f64)a)
+    movq rdx, xmm0
     ; printf("%f", (f64)a)
     call printf
     leave
@@ -128,7 +133,7 @@ printf("%f", (f64)(f32)a);
     println!("{}", asm_result);
 
     let expected = r#"
-; This assembly is targeted for the Windows Operating System
+    ; This assembly is targeted for the Windows Operating System
 segment .text
 global main
 
@@ -145,17 +150,22 @@ main:
     ; let a: f64 = 5
     mov rax, __?float64?__(5.0)
     mov QWORD [rbp - 8], rax
-    mov rcx, .label0 ; Parameter ("%f")
+    ; Parameter ("%f")
+    mov rcx, .label0
     mov rax, QWORD [rbp - 8]
     movq xmm7, rax
     cvtsd2ss xmm7, xmm7
     movd eax, xmm7
+    movd xmm0, eax
     movd eax, xmm7
     movd xmm7, eax
     cvtss2sd xmm7, xmm7
     movq rax, xmm7
-    movq xmm1, rax ; Parameter ((f64)(f32)a)
-    mov rdx, rax ; Parameter ((f64)(f32)a)
+    movq xmm0, rax
+    ; Parameter ((f64)(f32)a)
+    movq xmm1, xmm0
+    ; Parameter ((f64)(f32)a)
+    movq rdx, xmm0
     ; printf("%f", (f64)(f32)a)
     call printf
     leave
@@ -188,7 +198,7 @@ printf("%f", (f64) b);
     println!("{}", asm_result);
 
     let expected = r#"
-; This assembly is targeted for the Windows Operating System
+    ; This assembly is targeted for the Windows Operating System
 segment .text
 global main
 
@@ -206,24 +216,30 @@ main:
     mov rax, __?float64?__(5.0)
     mov QWORD [rbp - 8], rax
     ; let b: f32 = (f32)(a + 1)
-    movd eax, xmm0
     ; (a + 1)
-    movq xmm0, QWORD [rbp - 8]
-    mov rax, __?float64?__(1.0)
-    movq xmm3, rax
+    mov rax, QWORD [rbp - 8]
+    movq xmm0, rax
+    mov rdx, __?float64?__(1.0)
+    movq xmm3, rdx
     addsd xmm0, xmm3
     movq rax, xmm0
     movq xmm7, rax
     cvtsd2ss xmm7, xmm7
     movd eax, xmm7
+    movd xmm0, eax
+    movd eax, xmm0
     mov DWORD [rbp - 12], eax
-    mov rcx, .label0 ; Parameter ("%f")
+    ; Parameter ("%f")
+    mov rcx, .label0
     mov eax, DWORD [rbp - 12]
     movd xmm7, eax
     cvtss2sd xmm7, xmm7
     movq rax, xmm7
-    movq xmm1, rax ; Parameter ((f64)b)
-    mov rdx, rax ; Parameter ((f64)b)
+    movq xmm0, rax
+    ; Parameter ((f64)b)
+    movq xmm1, xmm0
+    ; Parameter ((f64)b)
+    movq rdx, xmm0
     ; printf("%f", (f64)b)
     call printf
     leave
@@ -256,7 +272,7 @@ printf("%f", (f64) b);
     println!("{}", asm_result);
 
     let expected = r#"
-; This assembly is targeted for the Windows Operating System
+    ; This assembly is targeted for the Windows Operating System
 segment .text
 global main
 
@@ -280,18 +296,22 @@ main:
     cvtsd2ss xmm7, xmm7
     movd eax, xmm7
     movd xmm0, eax
-    mov eax, __?float32?__(1.0)
-    movd xmm3, eax
+    mov edx, __?float32?__(1.0)
+    movd xmm3, edx
     addss xmm0, xmm3
     movd eax, xmm0
     mov DWORD [rbp - 12], eax
-    mov rcx, .label0 ; Parameter ("%f")
+    ; Parameter ("%f")
+    mov rcx, .label0
     mov eax, DWORD [rbp - 12]
     movd xmm7, eax
     cvtss2sd xmm7, xmm7
     movq rax, xmm7
-    movq xmm1, rax ; Parameter ((f64)b)
-    mov rdx, rax ; Parameter ((f64)b)
+    movq xmm0, rax
+    ; Parameter ((f64)b)
+    movq xmm1, xmm0
+    ; Parameter ((f64)b)
+    movq rdx, xmm0
     ; printf("%f", (f64)b)
     call printf
     leave
@@ -326,7 +346,7 @@ printf("%f", (f64) c);
     println!("{}", asm_result);
 
     let expected = r#"
-; This assembly is targeted for the Windows Operating System
+    ; This assembly is targeted for the Windows Operating System
 segment .text
 global main
 
@@ -361,13 +381,17 @@ main:
     addss xmm0, xmm3
     movd eax, xmm0
     mov DWORD [rbp - 20], eax
-    mov rcx, .label0 ; Parameter ("%f")
+    ; Parameter ("%f")
+    mov rcx, .label0
     mov eax, DWORD [rbp - 20]
     movd xmm7, eax
     cvtss2sd xmm7, xmm7
     movq rax, xmm7
-    movq xmm1, rax ; Parameter ((f64)c)
-    mov rdx, rax ; Parameter ((f64)c)
+    movq xmm0, rax
+    ; Parameter ((f64)c)
+    movq xmm1, xmm0
+    ; Parameter ((f64)c)
+    movq rdx, xmm0
     ; printf("%f", (f64)c)
     call printf
     leave
@@ -400,7 +424,7 @@ printf("%f", (f64) b);
     println!("{}", asm_result);
 
     let expected = r#"
-; This assembly is targeted for the Windows Operating System
+    ; This assembly is targeted for the Windows Operating System
 segment .text
 global main
 
@@ -429,13 +453,17 @@ main:
     addss xmm0, xmm3
     movd eax, xmm0
     mov DWORD [rbp - 12], eax
-    mov rcx, .label0 ; Parameter ("%f")
+    ; Parameter ("%f")
+    mov rcx, .label0
     mov eax, DWORD [rbp - 12]
     movd xmm7, eax
     cvtss2sd xmm7, xmm7
     movq rax, xmm7
-    movq xmm1, rax ; Parameter ((f64)b)
-    mov rdx, rax ; Parameter ((f64)b)
+    movq xmm0, rax
+    ; Parameter ((f64)b)
+    movq xmm1, xmm0
+    ; Parameter ((f64)b)
+    movq rdx, xmm0
     ; printf("%f", (f64)b)
     call printf
     leave
@@ -468,7 +496,7 @@ printf("%f", (f64) b);
     println!("{}", asm_result);
 
     let expected = r#"
-; This assembly is targeted for the Windows Operating System
+    ; This assembly is targeted for the Windows Operating System
 segment .text
 global main
 
@@ -490,8 +518,8 @@ main:
     ; (1 + 5.1)
     mov eax, __?float32?__(1.0)
     movd xmm0, eax
-    mov eax, __?float32?__(5.1)
-    movd xmm3, eax
+    mov edx, __?float32?__(5.1)
+    movd xmm3, edx
     addss xmm0, xmm3
     movq xmm3, xmm0
     mov rax, QWORD [rbp - 8]
@@ -502,13 +530,17 @@ main:
     addss xmm0, xmm3
     movd eax, xmm0
     mov DWORD [rbp - 12], eax
-    mov rcx, .label0 ; Parameter ("%f")
-    mov eax, DWORD [rbp - 12]
-    movd xmm7, eax
+    ; Parameter ("%f")
+    mov rcx, .label0
+    mov edx, DWORD [rbp - 12]
+    movd xmm7, edx
     cvtss2sd xmm7, xmm7
-    movq rax, xmm7
-    movq xmm1, rax ; Parameter ((f64)b)
-    mov rdx, rax ; Parameter ((f64)b)
+    movq rdx, xmm7
+    movq xmm3, rdx
+    ; Parameter ((f64)b)
+    movq xmm1, xmm3
+    ; Parameter ((f64)b)
+    movq rdx, xmm3
     ; printf("%f", (f64)b)
     call printf
     leave
@@ -563,8 +595,8 @@ main:
     ; (1 + 5.1)
     mov eax, __?float32?__(1.0)
     movd xmm0, eax
-    mov eax, __?float32?__(5.1)
-    movd xmm3, eax
+    mov edx, __?float32?__(5.1)
+    movd xmm3, edx
     addss xmm0, xmm3
     mov rdx, QWORD [rbp - 8]
     movq xmm7, rdx
@@ -574,13 +606,17 @@ main:
     addss xmm0, xmm3
     movd eax, xmm0
     mov DWORD [rbp - 12], eax
-    mov rcx, .label0 ; Parameter ("%f")
+    ; Parameter ("%f")
+    mov rcx, .label0
     mov eax, DWORD [rbp - 12]
     movd xmm7, eax
     cvtss2sd xmm7, xmm7
     movq rax, xmm7
-    movq xmm1, rax ; Parameter ((f64)b)
-    mov rdx, rax ; Parameter ((f64)b)
+    movq xmm0, rax
+    ; Parameter ((f64)b)
+    movq xmm1, xmm0
+    ; Parameter ((f64)b)
+    movq rdx, xmm0
     ; printf("%f", (f64)b)
     call printf
     leave
@@ -659,16 +695,19 @@ main:
     addss xmm0, xmm3
     movq xmm2, xmm0
     addss xmm1, xmm2
-    movq xmm0, xmm1
-    movd eax, xmm0
+    movd eax, xmm1
     mov DWORD [rbp - 12], eax
-    mov rcx, .label0 ; Parameter ("%f")
-    mov eax, DWORD [rbp - 12]
-    movd xmm7, eax
+    ; Parameter ("%f")
+    mov rcx, .label0
+    mov edi, DWORD [rbp - 12]
+    movd xmm7, edi
     cvtss2sd xmm7, xmm7
-    movq rax, xmm7
-    movq xmm1, rax ; Parameter ((f64)b)
-    mov rdx, rax ; Parameter ((f64)b)
+    movq rdi, xmm7
+    movq xmm2, rdi
+    ; Parameter ((f64)b)
+    movq xmm1, xmm2
+    ; Parameter ((f64)b)
+    movq rdx, xmm2
     ; printf("%f", (f64)b)
     call printf
     leave
@@ -753,10 +792,10 @@ main:
     addss xmm0, xmm3
     movq xmm2, xmm0
     addss xmm1, xmm2
-    movq xmm0, xmm1
-    movq rax, xmm0
-    push rax
-    xor rax, rax
+    movq xmm2, xmm1
+    movq rdi, xmm2
+    push rdi
+    xor rdi, rdi
     ; ((f32)b + (f32)b)
     mov rax, QWORD [rbp - 8]
     movq xmm7, rax
@@ -773,13 +812,14 @@ main:
     push rax
     xor rax, rax
     pop rdi
-    movd xmm2, edi
     pop rax
     movd xmm0, eax
+    movd xmm2, edi
     addss xmm0, xmm2
-    movq rax, xmm0
-    push rax
-    xor rax, rax
+    movq xmm2, xmm0
+    movq rdi, xmm2
+    push rdi
+    xor rdi, rdi
     ; (((f32)b + ((f32)b + (f32)b)) + ((f32)b + ((f32)d + (f32)b)))
     ; ((f32)b + ((f32)b + (f32)b))
     ; ((f32)b + (f32)b)
@@ -829,27 +869,31 @@ main:
     push rax
     xor rax, rax
     pop rdi
-    movd xmm2, edi
     pop rax
     movd xmm0, eax
+    movd xmm2, edi
     addss xmm0, xmm2
     movq rax, xmm0
     push rax
     xor rax, rax
     pop rdi
-    movd xmm2, edi
     pop rax
     movd xmm0, eax
+    movd xmm2, edi
     addss xmm0, xmm2
     movd eax, xmm0
     mov DWORD [rbp - 20], eax
-    mov rcx, .label0 ; Parameter ("%f")
-    mov eax, DWORD [rbp - 20]
-    movd xmm7, eax
+    ; Parameter ("%f")
+    mov rcx, .label0
+    mov edi, DWORD [rbp - 20]
+    movd xmm7, edi
     cvtss2sd xmm7, xmm7
-    movq rax, xmm7
-    movq xmm1, rax ; Parameter ((f64)addition)
-    mov rdx, rax ; Parameter ((f64)addition)
+    movq rdi, xmm7
+    movq xmm2, rdi
+    ; Parameter ((f64)addition)
+    movq xmm1, xmm2
+    ; Parameter ((f64)addition)
+    movq rdx, xmm2
     ; printf("%f", (f64)addition)
     call printf
     leave

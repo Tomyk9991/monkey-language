@@ -3,9 +3,10 @@ use std::fmt::{Display, Formatter};
 use std::iter::Peekable;
 use std::slice::Iter;
 use std::str::FromStr;
+use crate::core::code_generator::ASMResultVariance;
 use crate::core::lexer::scope::PatternNotMatchedError;
 
-use crate::core::code_generator::{ASMGenerateError, conventions, MetaInfo};
+use crate::core::code_generator::{ASMGenerateError, ASMOptions, ASMResult, ASMResultError, conventions, InterimResultOption, MetaInfo};
 use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::conventions::{CallingRegister, return_calling_convention};
 use crate::core::code_generator::generator::Stack;
@@ -238,7 +239,7 @@ impl ToASM for MethodCallToken {
         for (conventions, argument) in zipped {
             let (parsed_argument, provided_type) = match argument {
                 AssignableToken::ArithmeticEquation(_) => {
-                    result += &ASMBuilder::push(&argument.to_asm(stack, meta)?);
+                    result += &argument.to_asm(stack, meta)?;
 
                     let returning_register = GeneralPurposeRegister::Bit64(Bit64::Rax)
                         .to_size_register(&ByteSize::try_from(argument.infer_type_with_context(&meta.static_type_information, &meta.code_line)?.byte_size())?);
@@ -285,6 +286,58 @@ impl ToASM for MethodCallToken {
 
         Ok(result)
     }
+
+    fn to_asm_new<T: ASMOptions>(&self, stack: &mut Stack, meta: &mut MetaInfo, _options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
+        let calling_convention = conventions::calling_convention(stack, meta, &self.arguments, &self.name.name)?;
+
+        let method_def = if let Some(method_def) = meta.static_type_information.methods.iter().find(|m| m.name.name == self.name.name) {
+            method_def.clone()
+        } else {
+            return Err(InferTypeError::UnresolvedReference(self.name.to_string(), meta.code_line.clone()).into());
+        };
+
+
+        let mut target = String::new();
+        let zipped = calling_convention.iter().zip(&self.arguments);
+
+        for (conventions, argument) in zipped {
+            let provided_type = argument.infer_type_with_context(&meta.static_type_information, &meta.code_line)?;
+            let mut result_from_eval = GeneralPurposeRegister::Bit64(Bit64::Rax)
+                .to_size_register(&ByteSize::try_from(provided_type.byte_size())?);
+
+            let mut inline = false;
+            let mut assign = String::new();
+            match argument.to_asm_new(stack, meta, Some(InterimResultOption::from(&result_from_eval)))? {
+                ASMResult::Inline(source) => { inline = true; assign = source; },
+                ASMResult::MultilineResulted(source, r) => {
+                    target += &source;
+                    result_from_eval = r;
+                }
+                ASMResult::Multiline(_) => return Err(ASMGenerateError::ASMResult(ASMResultError::UnexpectedVariance {
+                    expected: vec![ASMResultVariance::Inline, ASMResultVariance::MultilineResulted],
+                    actual: ASMResultVariance::Multiline,
+                    token: "Expression".to_string(),
+                }))
+            }
+
+            for convention in conventions {
+                match convention {
+                    CallingRegister::Register(register_convention) => {
+                        target += &ASMBuilder::ident(&ASMBuilder::comment_line(&format!("Parameter ({argument})")));
+                        let register_convention_sized = register_convention.to_size_register_ignore_float(&ByteSize::try_from(provided_type.byte_size())?);
+                        target += &ASMBuilder::mov_x_ident_line(register_convention_sized, if inline { assign.clone() } else { result_from_eval.to_string() }, Some(provided_type.byte_size()))
+                    }
+                    CallingRegister::Stack => {}
+                }
+            }
+        }
+
+        target += &ASMBuilder::ident(&ASMBuilder::comment_line(&self.to_string()));
+        target += &ASMBuilder::ident_line(&format!("call {}", if method_def.is_extern { method_def.name.name } else { method_def.method_label_name() }));
+
+        Ok(ASMResult::Multiline(target))
+    }
+
 
     fn is_stack_look_up(&self, _stack: &mut Stack, _meta: &MetaInfo) -> bool {
         true

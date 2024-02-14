@@ -3,7 +3,7 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 use crate::core::code_generator::generator::Stack;
-use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
+use crate::core::code_generator::{ASMGenerateError, ASMOptions, ASMResult, MetaInfo, ToASM};
 use crate::core::code_generator::registers::GeneralPurposeRegister;
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::tokens::assignable_token::AssignableTokenErr;
@@ -93,6 +93,10 @@ impl FromStr for ObjectToken {
 
 impl ToASM for ObjectToken {
     fn to_asm(&self, _stack: &mut Stack, _meta: &mut MetaInfo) -> Result<String, ASMGenerateError> {
+        todo!()
+    }
+
+    fn to_asm_new<T: ASMOptions>(&self, _stack: &mut Stack, _meta: &mut MetaInfo, _options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
         todo!()
     }
 

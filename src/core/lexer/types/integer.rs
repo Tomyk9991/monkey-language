@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
-use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
+use crate::core::code_generator::{ASMGenerateError, ASMResult, MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::register_destination::word_from_byte_size;
@@ -38,7 +38,7 @@ impl Castable<Integer, Float> for Integer {
         }
     }
 
-    fn cast_from_to(t1: &Integer, t2: &Float, source: &str, stack: &mut Stack, meta: &mut MetaInfo) -> Result<String, ASMGenerateError> {
+    fn cast_from_to(t1: &Integer, t2: &Float, source: &str, stack: &mut Stack, meta: &mut MetaInfo) -> Result<ASMResult, ASMGenerateError> {
         let cast_to = CastTo {
             from: TypeToken::Integer(t1.clone()),
             to: TypeToken::Float(t2.clone()),
@@ -51,7 +51,7 @@ impl Castable<Integer, Float> for Integer {
             .clone();
 
         let mut cast_from_register = last_register.to_size_register(&ByteSize::try_from(cast_to.from.byte_size())?);
-        let _cast_to_register = last_register.to_size_register(&ByteSize::try_from(cast_to.to.byte_size())?);
+        let cast_to_register = last_register.to_size_register(&ByteSize::try_from(cast_to.to.byte_size())?);
 
         let mut target = String::new();
         target += &ASMBuilder::ident_comment_line(&format!("Cast: ({}) -> ({})", cast_to.from, cast_to.to));
@@ -65,7 +65,12 @@ impl Castable<Integer, Float> for Integer {
         }
 
         if *t1 != Integer::U32 { // Convert to unsigned U32
-            target += &<Integer as Castable<Integer, Integer>>::cast_from_to(t1, &Integer::U32, source, stack, meta)?;
+            match &<Integer as Castable<Integer, Integer>>::cast_from_to(t1, &Integer::U32, source, stack, meta)? {
+                ASMResult::Inline(t) => target += t,
+                ASMResult::MultilineResulted(r, _) => target += r,
+                ASMResult::Multiline(r) => target += r,
+            }
+
             cast_from_register = last_register.to_size_register(&ByteSize::_4);
         } else if IntegerToken::from_str(source).is_ok() || is_stack_variable {
             target += &ASMBuilder::mov_ident_line(&cast_from_register, source);
@@ -73,9 +78,9 @@ impl Castable<Integer, Float> for Integer {
 
 
         target += &ASMBuilder::ident_line(&format!("{instruction} {}, {}", GeneralPurposeRegister::Float(FloatRegister::Xmm7), &cast_from_register));
-        target += &ASMBuilder::mov_x_ident_line(_cast_to_register, &GeneralPurposeRegister::Float(FloatRegister::Xmm7), Some(cast_to.to.byte_size()));
+        target += &ASMBuilder::mov_x_ident_line(&cast_to_register, &GeneralPurposeRegister::Float(FloatRegister::Xmm7), Some(cast_to.to.byte_size()));
 
-        Ok(target)
+        Ok(ASMResult::MultilineResulted(target, cast_to_register))
     }
 }
 
@@ -187,7 +192,7 @@ impl Castable<Integer, Integer> for Integer {
     }
 
 
-    fn cast_from_to(i1: &Integer, i2: &Integer, source: &str, stack: &mut Stack, meta: &mut MetaInfo) -> Result<String, ASMGenerateError> {
+    fn cast_from_to(i1: &Integer, i2: &Integer, source: &str, stack: &mut Stack, meta: &mut MetaInfo) -> Result<ASMResult, ASMGenerateError> {
         let mut source = source.to_string();
 
         let cast_to = CastTo {
@@ -228,11 +233,12 @@ impl Castable<Integer, Integer> for Integer {
             // conversion complete, we need this
             target += &ASMBuilder::ident_line(&format!("mov {}, {}", &cast_from_register, r14));
 
-            return Ok(target);
+            return Ok(ASMResult::MultilineResulted(target, cast_from_register));
         }
 
         if IntegerToken::from_str(&source).is_ok() {
             target += &ASMBuilder::mov_ident_line(&cast_from_register, &source);
+            Ok(ASMResult::MultilineResulted(target, cast_from_register))
         } else {
             let destination_register = if cast_to.casting_down() { cast_from_register } else { cast_to_register };
             if instruction == "mov" {
@@ -246,10 +252,9 @@ impl Castable<Integer, Integer> for Integer {
             } else {
                 target += &ASMBuilder::ident_line(&format!("{instruction} {}, {}", destination_register, source));
             }
+
+            Ok(ASMResult::MultilineResulted(target, destination_register))
         }
-
-
-        Ok(target)
     }
 }
 
@@ -313,16 +318,14 @@ impl OperatorToASM for Integer {
             Operator::Noop => Err(ASMGenerateError::InternalError("Noop instruction is not supported".to_string())),
             Operator::LogicalAnd => Err(ASMGenerateError::InternalError("`Logical And` instruction is not supported".to_string())),
             Operator::LogicalOr => Err(ASMGenerateError::InternalError("`Logical Or` instruction is not supported".to_string())),
-            Operator::Add | Operator::Sub | Operator::BitwiseAnd | Operator::BitwiseXor | Operator::BitwiseOr => Ok(AssemblerOperation {
-                prefix: None,
-                operation: AssemblerOperation::two_operands(&operator.to_asm(stack, meta)?, &registers[0], &registers[1]),
-                postfix: None,
-            }),
+            Operator::Add | Operator::Sub | Operator::BitwiseAnd | Operator::BitwiseXor | Operator::BitwiseOr => Ok(
+                AssemblerOperation::two_operands(&operator.to_asm(stack, meta)?, &registers[0], &registers[1])?
+            ),
             Operator::Div | Operator::Mod => {
+                let rax = GeneralPurposeRegister::Bit64(Bit64::Rax).to_size_register(&ByteSize::try_from(integer_size)?);
+                let rdx = GeneralPurposeRegister::Bit64(Bit64::Rdx).to_size_register(&ByteSize::try_from(integer_size)?);
+                
                 let operation_postfix = if *operator == Operator::Mod {
-                    let rax = GeneralPurposeRegister::Bit64(Bit64::Rax).to_size_register(&ByteSize::try_from(integer_size)?);
-                    let rdx = GeneralPurposeRegister::Bit64(Bit64::Rdx).to_size_register(&ByteSize::try_from(integer_size)?);
-
                     format!("\n    mov {rax}, {rdx}")
                 } else {
                     String::new()
@@ -332,15 +335,17 @@ impl OperatorToASM for Integer {
                     prefix: Some(AssemblerOperation::save_rax_rcx_rdx(self.byte_size(), registers)?),
                     operation: format!("{prefix}div {}{}", GeneralPurposeRegister::Bit64(Bit64::Rcx).to_size_register(&ByteSize::try_from(integer_size)?), operation_postfix),
                     postfix: Some(AssemblerOperation::load_rax_rcx_rdx(self.byte_size(), registers)?),
+                    result_expected: rax,
                 })
             },
             Operator::Mul => if self.signed() {
-                Ok(AssemblerOperation::two_operands("imul", &registers[0], &registers[1]).into())
+                AssemblerOperation::two_operands("imul", &registers[0], &registers[1])
             } else {
                 Ok(AssemblerOperation {
                     prefix: Some(AssemblerOperation::save_rax_rcx_rdx(self.byte_size(), registers)?),
                     operation: format!("{prefix}mul, {}", &GeneralPurposeRegister::Bit64(Bit64::Rdx).to_size_register(&ByteSize::try_from(integer_size)?)),
                     postfix: Some(AssemblerOperation::load_rax_rcx_rdx(self.byte_size(), registers)?),
+                    result_expected: GeneralPurposeRegister::Bit64(Bit64::Rax).to_size_register(&ByteSize::try_from(integer_size)?),
                 })
             },
             Operator::LeftShift => {
@@ -348,6 +353,7 @@ impl OperatorToASM for Integer {
                     prefix: Some(AssemblerOperation::save_rax_rcx_rdx(self.byte_size(), registers)?),
                     operation: format!("shl {}, cl", &registers[0]),
                     postfix: Some(AssemblerOperation::load_rax_rcx_rdx(self.byte_size(), registers)?),
+                    result_expected: GeneralPurposeRegister::from_str(&registers[0].to_string()).map_err(|_| ASMGenerateError::InternalError(format!("Cannot build {} from register", &registers[0])))?,
                 })
             }
             Operator::RightShift => {
@@ -355,12 +361,14 @@ impl OperatorToASM for Integer {
                     prefix: Some(AssemblerOperation::save_rax_rcx_rdx(self.byte_size(), registers)?),
                     operation: format!("shr {}, cl", &registers[0]),
                     postfix: Some(AssemblerOperation::load_rax_rcx_rdx(self.byte_size(), registers)?),
+                    result_expected: GeneralPurposeRegister::from_str(&registers[0].to_string()).map_err(|_| ASMGenerateError::InternalError(format!("Cannot build {} from register", &registers[0])))?,
                 })
             }
             Operator::LessThan | Operator::GreaterThan | Operator::LessThanEqual | Operator::GreaterThanEqual | Operator::Equal | Operator::NotEqual => Ok(AssemblerOperation {
                 prefix: None,
                 operation: AssemblerOperation::compare(&operator.to_asm(stack, meta)?, &registers[0], &registers[1])?,
                 postfix: None,
+                result_expected: GeneralPurposeRegister::from_str(&registers[0].to_string()).map_err(|_| ASMGenerateError::InternalError(format!("Cannot build {} from register", &registers[0])))?.to_size_register(&ByteSize::_1),
             }),
         }
     }

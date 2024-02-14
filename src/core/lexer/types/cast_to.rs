@@ -3,7 +3,7 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 use crate::core::lexer::types::float::Float;
 use crate::core::code_generator::generator::Stack;
-use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
+use crate::core::code_generator::{ASMGenerateError, ASMOptions, ASMResult, MetaInfo, ToASM};
 use crate::core::code_generator::registers::GeneralPurposeRegister;
 use crate::core::lexer::types::boolean::Boolean;
 use crate::core::lexer::types::integer::Integer;
@@ -26,7 +26,7 @@ pub enum CastToError {
 
 pub trait Castable<T, K> {
     fn add_casts(cast_matrix: &mut HashMap<(TypeToken, TypeToken), &'static str>);
-    fn cast_from_to(t1: &T, t2: &K, source: &str, stack: &mut Stack, meta: &mut MetaInfo) -> Result<String, ASMGenerateError>;
+    fn cast_from_to(t1: &T, t2: &K, source: &str, stack: &mut Stack, meta: &mut MetaInfo) -> Result<ASMResult, ASMGenerateError>;
 }
 
 
@@ -54,6 +54,10 @@ impl ToASM for CastTo {
         }
 
         Err(ASMGenerateError::CastUnsupported(CastToError::CastUnsupported(self.clone()), meta.code_line.clone()))
+    }
+
+    fn to_asm_new<T: ASMOptions>(&self, _stack: &mut Stack, _meta: &mut MetaInfo, _options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
+        todo!()
     }
 
     fn is_stack_look_up(&self, _stack: &mut Stack, _meta: &MetaInfo) -> bool {

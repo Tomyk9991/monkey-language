@@ -157,6 +157,10 @@ impl TypeToken {
         }
     }
 
+    pub fn is_float(&self) -> bool {
+        matches!(self, TypeToken::Float(_))
+    }
+
     /// removes * from type
     pub fn pop_pointer(&self) -> Option<TypeToken> {
         if let TypeToken::Custom(name_token) = self {

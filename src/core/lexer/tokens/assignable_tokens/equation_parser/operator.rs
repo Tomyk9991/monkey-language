@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
-use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
+use crate::core::code_generator::{ASMGenerateError, ASMOptions, ASMResult, MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::registers::{Bit64, ByteSize, GeneralPurposeRegister};
@@ -87,6 +87,10 @@ impl ToASM for Operator {
         }.to_string())
     }
 
+    fn to_asm_new<T: ASMOptions>(&self, _stack: &mut Stack, _meta: &mut MetaInfo, _options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
+        todo!()
+    }
+
     fn is_stack_look_up(&self, _stack: &mut Stack, _meta: &MetaInfo) -> bool {
         false
     }
@@ -105,8 +109,8 @@ impl ToASM for Operator {
 }
 
 impl Operator {
-    pub fn specific_operation<T: Display>(&self, ty: &TypeToken, registers: &[T], stack: &mut Stack, meta: &mut MetaInfo) -> Result<AssemblerOperation, ASMGenerateError> {
-        ty.operation_to_asm(self, registers, stack, meta)
+    pub fn specific_operation<T: Display>(&self, rhs_type: &TypeToken, registers: &[T], stack: &mut Stack, meta: &mut MetaInfo) -> Result<AssemblerOperation, ASMGenerateError> {
+        rhs_type.operation_to_asm(self, registers, stack, meta)
     }
 }
 
@@ -114,17 +118,9 @@ pub struct AssemblerOperation {
     pub prefix: Option<String>,
     pub operation: String,
     pub postfix: Option<String>,
+    pub result_expected: GeneralPurposeRegister,
 }
 
-impl From<String> for AssemblerOperation {
-    fn from(value: String) -> Self {
-        Self {
-            prefix: None,
-            operation: value,
-            postfix: None,
-        }
-    }
-}
 
 impl AssemblerOperation {
     pub fn compare_float<P: Display, T: Display>(suffix: &str, instruction: &str, destination: &T, source: &P) -> Result<String, ASMGenerateError> {
@@ -137,8 +133,13 @@ impl AssemblerOperation {
         Ok(format!("cmp {}, {}\n    {} {}", destination, source, instruction, register_a))
     }
 
-    pub fn two_operands<T: Display, P: Display>(instruction: &str, register_a: &T, register_b: &P) -> String {
-        format!("{instruction} {register_a}, {register_b}")
+    pub fn two_operands<T: Display, P: Display>(instruction: &str, register_a: &T, register_b: &P) -> Result<AssemblerOperation, ASMGenerateError> {
+        Ok(AssemblerOperation {
+            prefix: None,
+            operation: format!("{instruction} {register_a}, {register_b}"),
+            postfix: None,
+            result_expected: GeneralPurposeRegister::from_str(&register_a.to_string()).map_err(|_| ASMGenerateError::InternalError(format!("Cannot build register from {}", register_a)))?,
+        })
     }
 
     pub fn save_rax_rcx_rdx<T: Display>(size: usize, registers: &[T]) -> Result<String, ASMGenerateError> {
@@ -156,8 +157,8 @@ impl AssemblerOperation {
         let rcx = GeneralPurposeRegister::Bit64(Bit64::Rcx).to_size_register(&byte_size);
         prefix += &ASMBuilder::mov_ident_line(r12, &rcx);
 
-        prefix += &ASMBuilder::mov_ident_line(rcx, &registers[1]);
-        prefix += &ASMBuilder::mov_ident_line(rax, &registers[0]);
+        prefix += &ASMBuilder::mov_ident_line(rcx, &registers[0]);
+        prefix += &ASMBuilder::mov_ident_line(rax, &registers[1]);
         prefix += &ASMBuilder::mov_ident_line(rdx, 0);
 
         Ok(prefix)
@@ -179,7 +180,7 @@ impl AssemblerOperation {
         let r13 = GeneralPurposeRegister::Bit64(Bit64::R13).to_size_register(&byte_size);
 
         if !registers.iter().map(|register| register.to_string()).any(|register| register == rax.to_string()) {
-            postfix += &ASMBuilder::push(&format!("\n    mov {rax}, {r13}"));
+            postfix += &format!("\n    mov {rax}, {r13}");
         }
 
         let r12 = GeneralPurposeRegister::Bit64(Bit64::R12).to_size_register(&byte_size);
@@ -192,19 +193,37 @@ impl AssemblerOperation {
         Ok(postfix)
     }
 
-    pub fn inject_registers(&self) -> String {
+    pub fn inject_registers_new(&self) -> (String, GeneralPurposeRegister) {
         let mut result = String::new();
 
         if let Some(prefix) = &self.prefix {
-            result += &ASMBuilder::push(prefix);
+            result += prefix;
             result += &ASMBuilder::ident_line(&self.operation);
         } else {
-            result += &ASMBuilder::push(&self.operation);
+            result += &self.operation;
         }
 
 
         if let Some(postfix) = &self.postfix {
-            result += &ASMBuilder::push(postfix);
+            result += postfix;
+        }
+
+        (result, self.result_expected.clone())
+    }
+
+    pub fn inject_registers(&self) -> String {
+        let mut result = String::new();
+
+        if let Some(prefix) = &self.prefix {
+            result += prefix;
+            result += &ASMBuilder::ident_line(&self.operation);
+        } else {
+            result += &self.operation;
+        }
+
+
+        if let Some(postfix) = &self.postfix {
+            result += postfix;
         }
 
         result

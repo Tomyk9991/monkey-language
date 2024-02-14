@@ -1,4 +1,4 @@
-use crate::core::code_generator::{MetaInfo, ToASM};
+use crate::core::code_generator::{InterimResultOption, MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::ASMGenerateError;
 use crate::core::code_generator::conventions::calling_convention_from;
@@ -101,10 +101,10 @@ impl Stack {
         self.begin_scope();
 
         for token in tokens {
-            target += &ASMBuilder::push(&token.to_asm(self, meta)?);
+            target += &token.to_asm(self, meta)?;
 
             if let Some(Ok(prefix_asm)) = token.before_label(self, meta) {
-                prefix += &ASMBuilder::push(&prefix_asm);
+                prefix += &prefix_asm;
             }
         }
 
@@ -228,10 +228,11 @@ impl ASMGenerator {
                 }
 
                 stack_allocation += token.byte_size(&mut meta);
-                method_scope += &ASMBuilder::push(&token.to_asm(&mut self.stack, &mut meta)?);
+                // method_scope += &token.to_asm(&mut self.stack, &mut meta)?;
+                method_scope += &token.to_asm_new::<InterimResultOption>(&mut self.stack, &mut meta, None)?.to_string();
 
                 if let Some(Ok(prefix_asm)) = token.before_label(&mut self.stack, &mut meta) {
-                    prefix += &ASMBuilder::push(&(prefix_asm));
+                    prefix += &prefix_asm;
                 }
             }
 
@@ -291,7 +292,7 @@ impl ASMGenerator {
                     }
 
                     meta.static_type_information.merge(StaticTypeContext::new(&method_definition.stack));
-                    method_definitions += &ASMBuilder::push(&method_definition.to_asm(&mut self.stack, &mut meta)?);
+                    method_definitions += &method_definition.to_asm(&mut self.stack, &mut meta)?;
                 }
 
                 continue;

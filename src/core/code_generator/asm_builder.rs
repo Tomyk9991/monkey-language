@@ -24,10 +24,6 @@ impl Display for MovInstruction {
 }
 
 impl ASMBuilder {
-    pub fn push(argument: &str) -> String {
-        argument.to_string()
-    }
-
     pub fn comment_line(argument: &str) -> String {
         format!("; {}\n", argument)
     }

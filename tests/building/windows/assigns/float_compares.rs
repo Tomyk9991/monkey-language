@@ -57,91 +57,109 @@ main:
     mov DWORD [rbp - 8], eax
     ; let c: bool = (a > b)
     ; (a > b)
-    movd xmm0, DWORD [rbp - 4]
-    ucomiss xmm0, DWORD [rbp - 8]
+    mov eax, DWORD [rbp - 4]
+    movd xmm0, eax
+    mov edx, DWORD [rbp - 8]
+    movd xmm3, edx
+    ucomiss xmm0, xmm3
     seta al
     mov BYTE [rbp - 9], al
     ; let d: bool = (5 > 3)
     ; (5 > 3)
     mov eax, __?float32?__(5.0)
     movd xmm0, eax
-    mov eax, __?float32?__(3.0)
-    movd xmm3, eax
+    mov edx, __?float32?__(3.0)
+    movd xmm3, edx
     ucomiss xmm0, xmm3
     seta al
     mov BYTE [rbp - 10], al
     ; let e: bool = (a < b)
     ; (a < b)
-    movd xmm0, DWORD [rbp - 4]
-    ucomiss xmm0, DWORD [rbp - 8]
+    mov eax, DWORD [rbp - 4]
+    movd xmm0, eax
+    mov edx, DWORD [rbp - 8]
+    movd xmm3, edx
+    ucomiss xmm0, xmm3
     setb al
     mov BYTE [rbp - 11], al
     ; let f: bool = (5 < 3)
     ; (5 < 3)
     mov eax, __?float32?__(5.0)
     movd xmm0, eax
-    mov eax, __?float32?__(3.0)
-    movd xmm3, eax
+    mov edx, __?float32?__(3.0)
+    movd xmm3, edx
     ucomiss xmm0, xmm3
     setb al
     mov BYTE [rbp - 12], al
     ; let g: bool = (a <= b)
     ; (a <= b)
-    movd xmm0, DWORD [rbp - 4]
-    ucomiss xmm0, DWORD [rbp - 8]
+    mov eax, DWORD [rbp - 4]
+    movd xmm0, eax
+    mov edx, DWORD [rbp - 8]
+    movd xmm3, edx
+    ucomiss xmm0, xmm3
     setbe al
     mov BYTE [rbp - 13], al
     ; let h: bool = (5 <= 3)
     ; (5 <= 3)
     mov eax, __?float32?__(5.0)
     movd xmm0, eax
-    mov eax, __?float32?__(3.0)
-    movd xmm3, eax
+    mov edx, __?float32?__(3.0)
+    movd xmm3, edx
     ucomiss xmm0, xmm3
     setbe al
     mov BYTE [rbp - 14], al
     ; let i: bool = (a >= b)
     ; (a >= b)
-    movd xmm0, DWORD [rbp - 4]
-    ucomiss xmm0, DWORD [rbp - 8]
+    mov eax, DWORD [rbp - 4]
+    movd xmm0, eax
+    mov edx, DWORD [rbp - 8]
+    movd xmm3, edx
+    ucomiss xmm0, xmm3
     setae al
     mov BYTE [rbp - 15], al
     ; let j: bool = (5 >= 3)
     ; (5 >= 3)
     mov eax, __?float32?__(5.0)
     movd xmm0, eax
-    mov eax, __?float32?__(3.0)
-    movd xmm3, eax
+    mov edx, __?float32?__(3.0)
+    movd xmm3, edx
     ucomiss xmm0, xmm3
     setae al
     mov BYTE [rbp - 16], al
     ; let k: bool = (a == b)
     ; (a == b)
-    movd xmm0, DWORD [rbp - 4]
-    ucomiss xmm0, DWORD [rbp - 8]
+    mov eax, DWORD [rbp - 4]
+    movd xmm0, eax
+    mov edx, DWORD [rbp - 8]
+    movd xmm3, edx
+    ucomiss xmm0, xmm3
     sete al
     mov BYTE [rbp - 17], al
     ; let l: bool = (5 == 3)
     ; (5 == 3)
     mov eax, __?float32?__(5.0)
     movd xmm0, eax
-    mov eax, __?float32?__(3.0)
-    movd xmm3, eax
+    mov edx, __?float32?__(3.0)
+    movd xmm3, edx
     ucomiss xmm0, xmm3
     sete al
     mov BYTE [rbp - 18], al
     ; let m: bool = (a != b)
     ; (a != b)
-    movd xmm0, DWORD [rbp - 4]
-    ucomiss xmm0, DWORD [rbp - 8]
+    mov eax, DWORD [rbp - 4]
+    movd xmm0, eax
+    mov edx, DWORD [rbp - 8]
+    movd xmm3, edx
+    ucomiss xmm0, xmm3
     setne al
     mov BYTE [rbp - 19], al
     ; let n: bool = (5 != 3)
     ; (5 != 3)
     mov eax, __?float32?__(5.0)
     movd xmm0, eax
-    mov eax, __?float32?__(3.0)
-    movd xmm3, eax
+    mov edx, __?float32?__(3.0)
+    movd xmm3, edx
     ucomiss xmm0, xmm3
     setne al
     mov BYTE [rbp - 20], al
@@ -208,91 +226,109 @@ main:
     mov QWORD [rbp - 16], rax
     ; let c: bool = (a > b)
     ; (a > b)
-    movq xmm0, QWORD [rbp - 8]
-    ucomisd xmm0, QWORD [rbp - 16]
+    mov rax, QWORD [rbp - 8]
+    movq xmm0, rax
+    mov rdx, QWORD [rbp - 16]
+    movq xmm3, rdx
+    ucomisd xmm0, xmm3
     seta al
     mov BYTE [rbp - 17], al
     ; let d: bool = (5 > 3)
     ; (5 > 3)
     mov rax, __?float64?__(5.0)
     movq xmm0, rax
-    mov rax, __?float64?__(3.0)
-    movq xmm3, rax
+    mov rdx, __?float64?__(3.0)
+    movq xmm3, rdx
     ucomisd xmm0, xmm3
     seta al
     mov BYTE [rbp - 18], al
     ; let e: bool = (a < b)
     ; (a < b)
-    movq xmm0, QWORD [rbp - 8]
-    ucomisd xmm0, QWORD [rbp - 16]
+    mov rax, QWORD [rbp - 8]
+    movq xmm0, rax
+    mov rdx, QWORD [rbp - 16]
+    movq xmm3, rdx
+    ucomisd xmm0, xmm3
     setb al
     mov BYTE [rbp - 19], al
     ; let f: bool = (5 < 3)
     ; (5 < 3)
     mov rax, __?float64?__(5.0)
     movq xmm0, rax
-    mov rax, __?float64?__(3.0)
-    movq xmm3, rax
+    mov rdx, __?float64?__(3.0)
+    movq xmm3, rdx
     ucomisd xmm0, xmm3
     setb al
     mov BYTE [rbp - 20], al
     ; let g: bool = (a <= b)
     ; (a <= b)
-    movq xmm0, QWORD [rbp - 8]
-    ucomisd xmm0, QWORD [rbp - 16]
+    mov rax, QWORD [rbp - 8]
+    movq xmm0, rax
+    mov rdx, QWORD [rbp - 16]
+    movq xmm3, rdx
+    ucomisd xmm0, xmm3
     setbe al
     mov BYTE [rbp - 21], al
     ; let h: bool = (5 <= 3)
     ; (5 <= 3)
     mov rax, __?float64?__(5.0)
     movq xmm0, rax
-    mov rax, __?float64?__(3.0)
-    movq xmm3, rax
+    mov rdx, __?float64?__(3.0)
+    movq xmm3, rdx
     ucomisd xmm0, xmm3
     setbe al
     mov BYTE [rbp - 22], al
     ; let i: bool = (a >= b)
     ; (a >= b)
-    movq xmm0, QWORD [rbp - 8]
-    ucomisd xmm0, QWORD [rbp - 16]
+    mov rax, QWORD [rbp - 8]
+    movq xmm0, rax
+    mov rdx, QWORD [rbp - 16]
+    movq xmm3, rdx
+    ucomisd xmm0, xmm3
     setae al
     mov BYTE [rbp - 23], al
     ; let j: bool = (5 >= 3)
     ; (5 >= 3)
     mov rax, __?float64?__(5.0)
     movq xmm0, rax
-    mov rax, __?float64?__(3.0)
-    movq xmm3, rax
+    mov rdx, __?float64?__(3.0)
+    movq xmm3, rdx
     ucomisd xmm0, xmm3
     setae al
     mov BYTE [rbp - 24], al
     ; let k: bool = (a == b)
     ; (a == b)
-    movq xmm0, QWORD [rbp - 8]
-    ucomisd xmm0, QWORD [rbp - 16]
+    mov rax, QWORD [rbp - 8]
+    movq xmm0, rax
+    mov rdx, QWORD [rbp - 16]
+    movq xmm3, rdx
+    ucomisd xmm0, xmm3
     sete al
     mov BYTE [rbp - 25], al
     ; let l: bool = (5 == 3)
     ; (5 == 3)
     mov rax, __?float64?__(5.0)
     movq xmm0, rax
-    mov rax, __?float64?__(3.0)
-    movq xmm3, rax
+    mov rdx, __?float64?__(3.0)
+    movq xmm3, rdx
     ucomisd xmm0, xmm3
     sete al
     mov BYTE [rbp - 26], al
     ; let m: bool = (a != b)
     ; (a != b)
-    movq xmm0, QWORD [rbp - 8]
-    ucomisd xmm0, QWORD [rbp - 16]
+    mov rax, QWORD [rbp - 8]
+    movq xmm0, rax
+    mov rdx, QWORD [rbp - 16]
+    movq xmm3, rdx
+    ucomisd xmm0, xmm3
     setne al
     mov BYTE [rbp - 27], al
     ; let n: bool = (5 != 3)
     ; (5 != 3)
     mov rax, __?float64?__(5.0)
     movq xmm0, rax
-    mov rax, __?float64?__(3.0)
-    movq xmm3, rax
+    mov rdx, __?float64?__(3.0)
+    movq xmm3, rdx
     ucomisd xmm0, xmm3
     setne al
     mov BYTE [rbp - 28], al
@@ -321,7 +357,8 @@ fn compare_changed() -> anyhow::Result<()> {
     let mut code_generator = ASMGenerator::from((top_level_scope, TargetOS::Windows));
     let asm_result = code_generator.generate()?;
 
-    let expected = r#"; This assembly is targeted for the Windows Operating System
+    let expected = r#"
+    ; This assembly is targeted for the Windows Operating System
 segment .text
 global main
 
@@ -336,26 +373,25 @@ main:
     ; (3 == 3)
     mov eax, __?float32?__(3.0)
     movd xmm0, eax
-    mov eax, __?float32?__(3.0)
-    movd xmm3, eax
+    mov edx, __?float32?__(3.0)
+    movd xmm3, edx
     ucomiss xmm0, xmm3
     sete al
-    movd ecx, xmm0
+    mov cl, al
     ; (7 != 9)
     mov eax, __?float32?__(7.0)
     movd xmm0, eax
-    mov eax, __?float32?__(9.0)
-    movd xmm3, eax
+    mov edx, __?float32?__(9.0)
+    movd xmm3, edx
     ucomiss xmm0, xmm3
     setne al
-    movd edi, xmm0
+    mov dil, al
     mov r14b, dl
     mov r13b, al
     mov r12b, cl
-    mov cl, dil
-    mov al, ch
+    mov al, dil
     mov dl, 0
-    cmp ch, 0
+    cmp cl, 0
     je .label0
     mov al, dil
     cmp al, 0
@@ -365,37 +401,34 @@ main:
 .label0:
     mov eax, 0
 .label1:
-    mov ch, al
+    mov cl, al
     mov dl, r14b
     mov al, r13b
-    mov cl, r12b
-    mov al, ch
-    mov BYTE [rbp - 1], al
+    mov BYTE [rbp - 1], cl
     ; let b: bool = ((3 == 3) && (7 != 9))
     ; ((3 == 3) && (7 != 9))
     ; (3 == 3)
     mov rax, __?float64?__(3.0)
     movq xmm0, rax
-    mov rax, __?float64?__(3.0)
-    movq xmm3, rax
+    mov rdx, __?float64?__(3.0)
+    movq xmm3, rdx
     ucomisd xmm0, xmm3
     sete al
-    movq rcx, xmm0
+    mov cl, al
     ; (7 != 9)
     mov rax, __?float64?__(7.0)
     movq xmm0, rax
-    mov rax, __?float64?__(9.0)
-    movq xmm3, rax
+    mov rdx, __?float64?__(9.0)
+    movq xmm3, rdx
     ucomisd xmm0, xmm3
     setne al
-    movq rdi, xmm0
+    mov dil, al
     mov r14b, dl
     mov r13b, al
     mov r12b, cl
-    mov cl, dil
-    mov al, ch
+    mov al, dil
     mov dl, 0
-    cmp ch, 0
+    cmp cl, 0
     je .label2
     mov al, dil
     cmp al, 0
@@ -405,12 +438,10 @@ main:
 .label2:
     mov eax, 0
 .label3:
-    mov ch, al
+    mov cl, al
     mov dl, r14b
     mov al, r13b
-    mov cl, r12b
-    mov al, ch
-    mov BYTE [rbp - 2], al
+    mov BYTE [rbp - 2], cl
     leave
     ret
     "#;
@@ -468,22 +499,27 @@ main:
     ; (((a == b) && (c != d)) && (a >= b))
     ; ((a == b) && (c != d))
     ; (a == b)
-    movd xmm0, DWORD [rbp - 4]
-    ucomiss xmm0, DWORD [rbp - 8]
+    mov eax, DWORD [rbp - 4]
+    movd xmm0, eax
+    mov edx, DWORD [rbp - 8]
+    movd xmm3, edx
+    ucomiss xmm0, xmm3
     sete al
-    mov ch, al
+    mov cl, al
     ; (c != d)
-    movd xmm0, DWORD [rbp - 12]
-    ucomiss xmm0, DWORD [rbp - 16]
+    mov eax, DWORD [rbp - 12]
+    movd xmm0, eax
+    mov edx, DWORD [rbp - 16]
+    movd xmm3, edx
+    ucomiss xmm0, xmm3
     setne al
     mov dil, al
     mov r14b, dl
     mov r13b, al
     mov r12b, cl
-    mov cl, dil
-    mov al, ch
+    mov al, dil
     mov dl, 0
-    cmp ch, 0
+    cmp cl, 0
     je .label0
     mov al, dil
     cmp al, 0
@@ -493,16 +529,18 @@ main:
 .label0:
     mov eax, 0
 .label1:
-    mov ch, al
+    mov cl, al
     mov dl, r14b
     mov al, r13b
-    mov cl, r12b
-    mov al, ch
-    push rax
-    xor rax, rax
+    mov dil, cl
+    push rdi
+    xor rdi, rdi
     ; (a >= b)
-    movd xmm0, DWORD [rbp - 4]
-    ucomiss xmm0, DWORD [rbp - 8]
+    mov eax, DWORD [rbp - 4]
+    movd xmm0, eax
+    mov edx, DWORD [rbp - 8]
+    movd xmm3, edx
+    ucomiss xmm0, xmm3
     setae al
     push rax
     xor rax, rax
@@ -511,7 +549,8 @@ main:
     mov r14b, dl
     mov r13b, al
     mov r12b, cl
-    mov cl, dil
+    mov cl, al
+    mov al, dil
     mov dl, 0
     cmp al, 0
     je .label2
@@ -525,27 +564,33 @@ main:
 .label3:
     mov dl, r14b
     mov cl, r12b
-    push rax
-    xor rax, rax
+    mov dil, al
+    push rdi
+    xor rdi, rdi
     ; (((c <= d) && (a < b)) && (c > d))
     ; ((c <= d) && (a < b))
     ; (c <= d)
-    movd xmm0, DWORD [rbp - 12]
-    ucomiss xmm0, DWORD [rbp - 16]
+    mov eax, DWORD [rbp - 12]
+    movd xmm0, eax
+    mov edx, DWORD [rbp - 16]
+    movd xmm3, edx
+    ucomiss xmm0, xmm3
     setbe al
-    mov ch, al
+    mov cl, al
     ; (a < b)
-    movd xmm0, DWORD [rbp - 4]
-    ucomiss xmm0, DWORD [rbp - 8]
+    mov eax, DWORD [rbp - 4]
+    movd xmm0, eax
+    mov edx, DWORD [rbp - 8]
+    movd xmm3, edx
+    ucomiss xmm0, xmm3
     setb al
     mov dil, al
     mov r14b, dl
     mov r13b, al
     mov r12b, cl
-    mov cl, dil
-    mov al, ch
+    mov al, dil
     mov dl, 0
-    cmp ch, 0
+    cmp cl, 0
     je .label4
     mov al, dil
     cmp al, 0
@@ -555,16 +600,18 @@ main:
 .label4:
     mov eax, 0
 .label5:
-    mov ch, al
+    mov cl, al
     mov dl, r14b
     mov al, r13b
-    mov cl, r12b
-    mov al, ch
-    push rax
-    xor rax, rax
+    mov dil, cl
+    push rdi
+    xor rdi, rdi
     ; (c > d)
-    movd xmm0, DWORD [rbp - 12]
-    ucomiss xmm0, DWORD [rbp - 16]
+    mov eax, DWORD [rbp - 12]
+    movd xmm0, eax
+    mov edx, DWORD [rbp - 16]
+    movd xmm3, edx
+    ucomiss xmm0, xmm3
     seta al
     push rax
     xor rax, rax
@@ -573,7 +620,8 @@ main:
     mov r14b, dl
     mov r13b, al
     mov r12b, cl
-    mov cl, dil
+    mov cl, al
+    mov al, dil
     mov dl, 0
     cmp al, 0
     je .label6
@@ -594,7 +642,8 @@ main:
     mov r14b, dl
     mov r13b, al
     mov r12b, cl
-    mov cl, dil
+    mov cl, al
+    mov al, dil
     mov dl, 0
     cmp al, 0
     jne .label8
@@ -667,22 +716,27 @@ main:
     ; (((a == b) && (c != d)) && (a >= b))
     ; ((a == b) && (c != d))
     ; (a == b)
-    movq xmm0, QWORD [rbp - 8]
-    ucomisd xmm0, QWORD [rbp - 16]
+    mov rax, QWORD [rbp - 8]
+    movq xmm0, rax
+    mov rdx, QWORD [rbp - 16]
+    movq xmm3, rdx
+    ucomisd xmm0, xmm3
     sete al
-    mov ch, al
+    mov cl, al
     ; (c != d)
-    movq xmm0, QWORD [rbp - 24]
-    ucomisd xmm0, QWORD [rbp - 32]
+    mov rax, QWORD [rbp - 24]
+    movq xmm0, rax
+    mov rdx, QWORD [rbp - 32]
+    movq xmm3, rdx
+    ucomisd xmm0, xmm3
     setne al
     mov dil, al
     mov r14b, dl
     mov r13b, al
     mov r12b, cl
-    mov cl, dil
-    mov al, ch
+    mov al, dil
     mov dl, 0
-    cmp ch, 0
+    cmp cl, 0
     je .label0
     mov al, dil
     cmp al, 0
@@ -692,16 +746,18 @@ main:
 .label0:
     mov eax, 0
 .label1:
-    mov ch, al
+    mov cl, al
     mov dl, r14b
     mov al, r13b
-    mov cl, r12b
-    mov al, ch
-    push rax
-    xor rax, rax
+    mov dil, cl
+    push rdi
+    xor rdi, rdi
     ; (a >= b)
-    movq xmm0, QWORD [rbp - 8]
-    ucomisd xmm0, QWORD [rbp - 16]
+    mov rax, QWORD [rbp - 8]
+    movq xmm0, rax
+    mov rdx, QWORD [rbp - 16]
+    movq xmm3, rdx
+    ucomisd xmm0, xmm3
     setae al
     push rax
     xor rax, rax
@@ -710,7 +766,8 @@ main:
     mov r14b, dl
     mov r13b, al
     mov r12b, cl
-    mov cl, dil
+    mov cl, al
+    mov al, dil
     mov dl, 0
     cmp al, 0
     je .label2
@@ -724,27 +781,33 @@ main:
 .label3:
     mov dl, r14b
     mov cl, r12b
-    push rax
-    xor rax, rax
+    mov dil, al
+    push rdi
+    xor rdi, rdi
     ; (((c <= d) && (a < b)) && (c > d))
     ; ((c <= d) && (a < b))
     ; (c <= d)
-    movq xmm0, QWORD [rbp - 24]
-    ucomisd xmm0, QWORD [rbp - 32]
+    mov rax, QWORD [rbp - 24]
+    movq xmm0, rax
+    mov rdx, QWORD [rbp - 32]
+    movq xmm3, rdx
+    ucomisd xmm0, xmm3
     setbe al
-    mov ch, al
+    mov cl, al
     ; (a < b)
-    movq xmm0, QWORD [rbp - 8]
-    ucomisd xmm0, QWORD [rbp - 16]
+    mov rax, QWORD [rbp - 8]
+    movq xmm0, rax
+    mov rdx, QWORD [rbp - 16]
+    movq xmm3, rdx
+    ucomisd xmm0, xmm3
     setb al
     mov dil, al
     mov r14b, dl
     mov r13b, al
     mov r12b, cl
-    mov cl, dil
-    mov al, ch
+    mov al, dil
     mov dl, 0
-    cmp ch, 0
+    cmp cl, 0
     je .label4
     mov al, dil
     cmp al, 0
@@ -754,16 +817,18 @@ main:
 .label4:
     mov eax, 0
 .label5:
-    mov ch, al
+    mov cl, al
     mov dl, r14b
     mov al, r13b
-    mov cl, r12b
-    mov al, ch
-    push rax
-    xor rax, rax
+    mov dil, cl
+    push rdi
+    xor rdi, rdi
     ; (c > d)
-    movq xmm0, QWORD [rbp - 24]
-    ucomisd xmm0, QWORD [rbp - 32]
+    mov rax, QWORD [rbp - 24]
+    movq xmm0, rax
+    mov rdx, QWORD [rbp - 32]
+    movq xmm3, rdx
+    ucomisd xmm0, xmm3
     seta al
     push rax
     xor rax, rax
@@ -772,7 +837,8 @@ main:
     mov r14b, dl
     mov r13b, al
     mov r12b, cl
-    mov cl, dil
+    mov cl, al
+    mov al, dil
     mov dl, 0
     cmp al, 0
     je .label6
@@ -793,7 +859,8 @@ main:
     mov r14b, dl
     mov r13b, al
     mov r12b, cl
-    mov cl, dil
+    mov cl, al
+    mov al, dil
     mov dl, 0
     cmp al, 0
     jne .label8

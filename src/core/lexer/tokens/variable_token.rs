@@ -6,10 +6,10 @@ use std::str::FromStr;
 
 use anyhow::Context;
 
-use crate::core::code_generator::{ASMGenerateError, MetaInfo, register_destination, ToASM};
+use crate::core::code_generator::{ASMGenerateError, ASMOptions, ASMResult, InterimResultOption, MetaInfo, register_destination, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::generator::{Stack, StackLocation};
-use crate::core::code_generator::registers::{FloatRegister, GeneralPurposeRegister};
+use crate::core::code_generator::registers::{Bit64, ByteSize, FloatRegister, GeneralPurposeRegister};
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::errors::EmptyIteratorErr;
 use crate::core::lexer::levenshtein_distance::{MethodCallSummarizeTransform, PatternedLevenshteinDistance, PatternedLevenshteinString, QuoteSummarizeTransform};
@@ -210,9 +210,9 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for VariableToken<ASSI
 
             if !wrote_expression_to_target {
                 if self.assignable.prefix_arithmetic().is_some() {
-                    target += &ASMBuilder::push(&self.assignable.to_asm(stack, meta)?);
+                    target += &self.assignable.to_asm(stack, meta)?;
                 } else if let AssignableToken::MethodCallToken(method_call_token) = &self.assignable {
-                    target += &ASMBuilder::push(&method_call_token.to_asm(stack, meta)?)
+                    target += &method_call_token.to_asm(stack, meta)?
                 } else {
                     target += &ASMBuilder::mov_ident_line(&register_destination, self.assignable.to_asm(stack, meta)?);
                 };
@@ -225,16 +225,66 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for VariableToken<ASSI
         Ok(target)
     }
 
+    fn to_asm_new<T: ASMOptions>(&self, stack: &mut Stack, meta: &mut MetaInfo, _options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
+        let mut target = String::new();
+        target += &ASMBuilder::ident(&ASMBuilder::comment_line(&format!("{}", self)));
+
+        let i = GeneralPurposeRegister::iter_from_byte_size(self.assignable.byte_size(meta))?.current();
+        let result = self.assignable.to_asm_new(stack, meta, Some(InterimResultOption {
+            general_purpose_register: i.clone(),
+        }))?;
+
+        let destination = if self.define {
+            let byte_size = self.assignable.byte_size(meta);
+
+            stack.variables.push(StackLocation { position: stack.stack_position, size: byte_size, name: self.name_token.clone() });
+            stack.stack_position += byte_size;
+
+            let offset = stack.stack_position;
+            format!("{} [rbp - {}]", register_destination::word_from_byte_size(byte_size), offset)
+        } else {
+            self.name_token.to_asm(stack, meta)?
+        };
+
+        match result {
+            ASMResult::Inline(source) => {
+                if self.assignable.is_stack_look_up(stack, meta) {
+                    target += &ASMBuilder::mov_x_ident_line(&i, source, Some(i.size() as usize));
+                    target += &ASMBuilder::mov_ident_line(destination, &i);
+                } else {
+                    target += &ASMBuilder::mov_ident_line(destination, source);
+                }
+            },
+            ASMResult::MultilineResulted(source, mut register) => {
+                target += &source;
+
+                if let AssignableToken::ArithmeticEquation(expr) = &self.assignable {
+                    let final_type = expr.traverse_type(meta).ok_or(ASMGenerateError::InternalError("Cannot infer type".to_string()))?;
+                    let r = GeneralPurposeRegister::Bit64(Bit64::Rax).to_size_register(&ByteSize::try_from(final_type.byte_size())?);
+
+                    if let TypeToken::Float(s) = final_type {
+                        target += &ASMBuilder::mov_x_ident_line(&r, register, Some(s.byte_size()));
+                        register = r;
+                    }
+                }
+
+                target += &ASMBuilder::mov_ident_line(destination, register);
+            }
+            ASMResult::Multiline(source) => {
+                target += &source;
+            }
+        }
+
+        Ok(ASMResult::Multiline(target))
+    }
+
+
     fn is_stack_look_up(&self, stack: &mut Stack, meta: &MetaInfo) -> bool {
         self.assignable.is_stack_look_up(stack, meta)
     }
 
     fn byte_size(&self, _meta: &mut MetaInfo) -> usize {
-        if let Some(ty) = &self.ty {
-            ty.byte_size()
-        } else {
-            0
-        }
+        self.ty.as_ref().map_or(0, |ty| ty.byte_size())
     }
 
     fn before_label(&self, stack: &mut Stack, meta: &mut MetaInfo) -> Option<Result<String, ASMGenerateError>> {

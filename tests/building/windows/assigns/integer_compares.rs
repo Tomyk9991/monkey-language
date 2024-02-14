@@ -1077,7 +1077,7 @@ main:
     mov eax, 3
     cmp eax, 3
     sete al
-    mov ch, al
+    mov cl, al
     ; (7 != 9)
     mov eax, 7
     cmp eax, 9
@@ -1086,10 +1086,9 @@ main:
     mov r14b, dl
     mov r13b, al
     mov r12b, cl
-    mov cl, dil
-    mov al, ch
+    mov al, dil
     mov dl, 0
-    cmp ch, 0
+    cmp cl, 0
     je .label0
     mov al, dil
     cmp al, 0
@@ -1099,12 +1098,10 @@ main:
 .label0:
     mov eax, 0
 .label1:
-    mov ch, al
+    mov cl, al
     mov dl, r14b
     mov al, r13b
-    mov cl, r12b
-    mov al, ch
-    mov BYTE [rbp - 1], al
+    mov BYTE [rbp - 1], cl
     leave
     ret
     "#;
@@ -1161,7 +1158,7 @@ main:
     mov eax, DWORD [rbp - 4]
     cmp eax, DWORD [rbp - 8]
     sete al
-    mov ch, al
+    mov cl, al
     ; (c != d)
     mov eax, DWORD [rbp - 12]
     cmp eax, DWORD [rbp - 16]
@@ -1170,10 +1167,9 @@ main:
     mov r14b, dl
     mov r13b, al
     mov r12b, cl
-    mov cl, dil
-    mov al, ch
+    mov al, dil
     mov dl, 0
-    cmp ch, 0
+    cmp cl, 0
     je .label0
     mov al, dil
     cmp al, 0
@@ -1183,13 +1179,12 @@ main:
 .label0:
     mov eax, 0
 .label1:
-    mov ch, al
+    mov cl, al
     mov dl, r14b
     mov al, r13b
-    mov cl, r12b
-    mov al, ch
-    push rax
-    xor rax, rax
+    mov dil, cl
+    push rdi
+    xor rdi, rdi
     ; (a >= b)
     mov eax, DWORD [rbp - 4]
     cmp eax, DWORD [rbp - 8]
@@ -1201,7 +1196,8 @@ main:
     mov r14b, dl
     mov r13b, al
     mov r12b, cl
-    mov cl, dil
+    mov cl, al
+    mov al, dil
     mov dl, 0
     cmp al, 0
     je .label2
@@ -1215,15 +1211,16 @@ main:
 .label3:
     mov dl, r14b
     mov cl, r12b
-    push rax
-    xor rax, rax
+    mov dil, al
+    push rdi
+    xor rdi, rdi
     ; (((c <= d) && (a < b)) && (c > d))
     ; ((c <= d) && (a < b))
     ; (c <= d)
     mov eax, DWORD [rbp - 12]
     cmp eax, DWORD [rbp - 16]
     setle al
-    mov ch, al
+    mov cl, al
     ; (a < b)
     mov eax, DWORD [rbp - 4]
     cmp eax, DWORD [rbp - 8]
@@ -1232,10 +1229,9 @@ main:
     mov r14b, dl
     mov r13b, al
     mov r12b, cl
-    mov cl, dil
-    mov al, ch
+    mov al, dil
     mov dl, 0
-    cmp ch, 0
+    cmp cl, 0
     je .label4
     mov al, dil
     cmp al, 0
@@ -1245,13 +1241,12 @@ main:
 .label4:
     mov eax, 0
 .label5:
-    mov ch, al
+    mov cl, al
     mov dl, r14b
     mov al, r13b
-    mov cl, r12b
-    mov al, ch
-    push rax
-    xor rax, rax
+    mov dil, cl
+    push rdi
+    xor rdi, rdi
     ; (c > d)
     mov eax, DWORD [rbp - 12]
     cmp eax, DWORD [rbp - 16]
@@ -1263,7 +1258,8 @@ main:
     mov r14b, dl
     mov r13b, al
     mov r12b, cl
-    mov cl, dil
+    mov cl, al
+    mov al, dil
     mov dl, 0
     cmp al, 0
     je .label6
@@ -1284,7 +1280,8 @@ main:
     mov r14b, dl
     mov r13b, al
     mov r12b, cl
-    mov cl, dil
+    mov cl, al
+    mov al, dil
     mov dl, 0
     cmp al, 0
     jne .label8

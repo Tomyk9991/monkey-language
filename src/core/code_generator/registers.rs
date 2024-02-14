@@ -248,10 +248,10 @@ impl Iterator for GeneralPurposeRegisterIterator {
                     Bit8::Single(n) => {
                         match n {
                             NibbleRegister::AL => {
-                                self.current = GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::CH));
-                                Some(GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::CH)))
+                                self.current = GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::CL));
+                                Some(GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::CL)))
                             }
-                            NibbleRegister::CH => {
+                            NibbleRegister::CL => {
                                 self.current = GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::DIL));
                                 Some(GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::DIL)))
                             },
@@ -324,8 +324,23 @@ impl GeneralPurposeRegister {
        }
     }
 
-    pub fn iter_float_register() -> Result<GeneralPurposeRegisterIterator, ASMGenerateError> {
-        Ok(GeneralPurposeRegisterIterator::new(GeneralPurposeRegister::Float(FloatRegister::Xmm0)))
+    pub fn is_float_register(&self) -> bool {
+        matches!(self, GeneralPurposeRegister::Float(_))
+    }
+
+    pub fn to_float_register(&self) -> GeneralPurposeRegister {
+        match self {
+            GeneralPurposeRegister::Bit64(a) => {
+                match a {
+                    Bit64::Rax => GeneralPurposeRegister::Float(FloatRegister::Xmm0),
+                    Bit64::Rcx => GeneralPurposeRegister::Float(FloatRegister::Xmm1),
+                    Bit64::Rdi => GeneralPurposeRegister::Float(FloatRegister::Xmm2),
+                    Bit64::Rdx => GeneralPurposeRegister::Float(FloatRegister::Xmm3),
+                    _ => GeneralPurposeRegister::Float(FloatRegister::Xmm7),
+                }
+            },
+            a => a.to_64_bit_register().to_float_register()
+        }
     }
 
     pub fn to_16_bit_register(&self) -> GeneralPurposeRegister {
@@ -538,6 +553,20 @@ impl GeneralPurposeRegister {
 
     /// Converts a general purpose register to the provided size
     pub fn to_size_register(&self, size: &ByteSize) -> GeneralPurposeRegister {
+        match size {
+            ByteSize::_8 => self.to_64_bit_register(),
+            ByteSize::_4 => self.to_32_bit_register(),
+            ByteSize::_2 => self.to_16_bit_register(),
+            ByteSize::_1 => self.to_8_bit_register(),
+        }
+    }
+
+    /// Converts a general purpose register to the provided size
+    pub fn to_size_register_ignore_float(&self, size: &ByteSize) -> GeneralPurposeRegister {
+        if let GeneralPurposeRegister::Float(float) = self {
+            return GeneralPurposeRegister::Float(float.clone())
+        }
+
         match size {
             ByteSize::_8 => self.to_64_bit_register(),
             ByteSize::_4 => self.to_32_bit_register(),

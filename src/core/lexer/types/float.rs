@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
-use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
+use crate::core::code_generator::{ASMGenerateError, ASMResult, MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::register_destination::word_from_byte_size;
@@ -31,7 +31,7 @@ impl Castable<Float, Integer> for Float {
         }
     }
 
-    fn cast_from_to(t1: &Float, t2: &Integer, source: &str, stack: &mut Stack, meta: &mut MetaInfo) -> Result<String, ASMGenerateError> {
+    fn cast_from_to(t1: &Float, t2: &Integer, source: &str, stack: &mut Stack, meta: &mut MetaInfo) -> Result<ASMResult, ASMGenerateError> {
         let cast_to = CastTo {
             from: TypeToken::Float(t1.clone()),
             to: TypeToken::Integer(t2.clone()),
@@ -70,16 +70,42 @@ impl Castable<Float, Integer> for Float {
 
         match t1.byte_size() {
             8 if *t2 != Integer::I64 => {
-                target += &<Integer as Castable<Integer, Integer>>::cast_from_to(&Integer::I64, t2, &cast_from_register.to_string(), stack, meta)?;
+                match <Integer as Castable<Integer, Integer>>::cast_from_to(&Integer::I64, t2, &cast_from_register.to_string(), stack, meta)? {
+                    ASMResult::Inline(r) => {
+                        target += &r;
+                        return Ok(ASMResult::Inline(target))
+                    },
+                    ASMResult::MultilineResulted(r, g) => {
+                        target += &r;
+                        return Ok(ASMResult::MultilineResulted(target, g))
+                    },
+                    ASMResult::Multiline(r) => {
+                        target += &r;
+                        return Ok(ASMResult::Multiline(target))
+                    }
+                };
             }
             4 if *t2 != Integer::I32 => {
-                target += &<Integer as Castable<Integer, Integer>>::cast_from_to(&Integer::I32, t2, &cast_from_register.to_string(), stack, meta)?;
+                match <Integer as Castable<Integer, Integer>>::cast_from_to(&Integer::I32, t2, &cast_from_register.to_string(), stack, meta)? {
+                    ASMResult::Inline(r) => {
+                        target += &r;
+                        return Ok(ASMResult::Inline(target))
+                    },
+                    ASMResult::MultilineResulted(r, g) => {
+                        target += &r;
+                        return Ok(ASMResult::MultilineResulted(target, g))
+                    },
+                    ASMResult::Multiline(r) => {
+                        target += &r;
+                        return Ok(ASMResult::Multiline(target))
+                    }
+                };
             }
             8 | 4 => {}
             l => unreachable!("Float cannot be of size: {}", l)
         }
 
-        Ok(target)
+        Ok(ASMResult::MultilineResulted(target, cast_from_register))
     }
 }
 
@@ -89,7 +115,7 @@ impl Castable<Float, Float> for Float {
         cast_matrix.insert((TypeToken::Float(Float64), TypeToken::Float(Float32)), "cvtsd2ss");
     }
 
-    fn cast_from_to(t1: &Float, t2: &Float, source: &str, stack: &mut Stack, meta: &mut MetaInfo) -> Result<String, ASMGenerateError> {
+    fn cast_from_to(t1: &Float, t2: &Float, source: &str, stack: &mut Stack, meta: &mut MetaInfo) -> Result<ASMResult, ASMGenerateError> {
         let cast_to = CastTo {
             from: TypeToken::Float(t1.clone()),
             to: TypeToken::Float(t2.clone()),
@@ -110,7 +136,7 @@ impl Castable<Float, Float> for Float {
         if let Ok(general_purpose_register) = GeneralPurposeRegister::from_str(source) {
             target += &ASMBuilder::mov_x_ident_line(&cast_from_register, general_purpose_register, Some(cast_to.from.byte_size()));
         } else if source.trim().starts_with(';') {
-            target += &ASMBuilder::push(source);
+            target += source;
         } else {
             target += &ASMBuilder::mov_ident_line(&cast_from_register, source);
         }
@@ -120,9 +146,9 @@ impl Castable<Float, Float> for Float {
 
         // actual cast
         target += &ASMBuilder::ident_line(&format!("{instruction} {}, {}", FloatRegister::Xmm7, FloatRegister::Xmm7));
-        target += &ASMBuilder::mov_x_ident_line(cast_to_register, FloatRegister::Xmm7, Some(cast_to.to.byte_size()));
+        target += &ASMBuilder::mov_x_ident_line(&cast_to_register, FloatRegister::Xmm7, Some(cast_to.to.byte_size()));
 
-        Ok(target)
+        Ok(ASMResult::MultilineResulted(target, cast_to_register))
     }
 }
 
@@ -163,10 +189,10 @@ impl OperatorToASM for Float {
 
         match operator {
             Operator::Noop => Err(ASMGenerateError::InternalError("Noop instruction is not supported on".to_string())),
-            Operator::Add | Operator::Sub | Operator::Div | Operator::Mul => Ok(AssemblerOperation::two_operands(
+            Operator::Add | Operator::Sub | Operator::Div | Operator::Mul => AssemblerOperation::two_operands(
                 &format!("{}{suffix}", operator.to_asm(stack, meta)?),
                 &registers[0],
-                &registers[1]).into()
+                &registers[1]
             ),
             Operator::Mod => Err(ASMGenerateError::InternalError("Modulo instruction is not supported on floats".to_string())),
             Operator::LeftShift => Err(ASMGenerateError::InternalError("Left Shift instruction is not supported on floats".to_string())),
@@ -182,10 +208,13 @@ impl OperatorToASM for Float {
                     _ => operator.to_asm(stack, meta)?
                 };
 
+                let first_register = GeneralPurposeRegister::from_str(&registers[0].to_string()).map_err(|_| ASMGenerateError::InternalError(format!("Cannot build {} from register", &registers[0])))?;
+
                 Ok(AssemblerOperation {
                     prefix: None,
                     operation: AssemblerOperation::compare_float(suffix, &float_operator, &registers[0], &registers[1])?,
                     postfix: None,
+                    result_expected: first_register.to_64_bit_register().to_size_register(&ByteSize::_1),
                 })
             },
             a => Err(ASMGenerateError::InternalError(format!("`{a}` is not a supported operation on {self}")))

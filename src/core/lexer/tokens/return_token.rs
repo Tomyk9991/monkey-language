@@ -4,7 +4,7 @@ use std::iter::Peekable;
 use std::slice::Iter;
 use std::str::FromStr;
 use crate::core::code_generator::generator::Stack;
-use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
+use crate::core::code_generator::{ASMGenerateError, ASMOptions, ASMResult, ASMResultError, ASMResultVariance, InterimResultOption, MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::conventions::return_calling_convention;
 use crate::core::code_generator::register_destination::word_from_byte_size;
@@ -113,6 +113,40 @@ impl ToASM for ReturnToken {
         target += &ASMBuilder::ident_line("ret");
 
         Ok(target)
+    }
+
+    fn to_asm_new<T: ASMOptions>(&self, stack: &mut Stack, meta: &mut MetaInfo, _options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
+        let mut target = String::new();
+        target += &ASMBuilder::ident(&ASMBuilder::comment_line(&format!("{}", self)));
+
+        if let Some(assignable) = &self.assignable {
+            let destination_register = return_calling_convention(stack, meta)?.to_size_register_ignore_float(
+                &ByteSize::try_from(meta.static_type_information.expected_return_type.as_ref().map_or(8, |t| t.return_type.byte_size()))?
+            );
+            let options = InterimResultOption {
+                general_purpose_register: destination_register.clone(),
+            };
+
+            let source = assignable.to_asm_new(stack, meta, Some(options))?;
+
+            match source {
+                ASMResult::Inline(source) => target += &ASMBuilder::mov_ident_line(destination_register, source),
+                ASMResult::MultilineResulted(source, _) => {
+                    target += &source;
+                }
+                ASMResult::Multiline(_) => return Err(ASMGenerateError::ASMResult(ASMResultError::UnexpectedVariance {
+                    expected: vec![ASMResultVariance::Inline, ASMResultVariance::MultilineResulted],
+                    actual: ASMResultVariance::Multiline,
+                    token: "Return".to_string(),
+                }))
+
+            }
+        }
+
+        target += &ASMBuilder::ident_line("leave");
+        target += &ASMBuilder::ident_line("ret");
+
+        Ok(ASMResult::Multiline(target))
     }
 
     fn is_stack_look_up(&self, stack: &mut Stack, meta: &MetaInfo) -> bool {

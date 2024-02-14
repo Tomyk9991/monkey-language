@@ -146,7 +146,21 @@ fn static_type_check_rec(scope: &Vec<Token>, type_context: &mut StaticTypeContex
 
                 static_type_check_rec(&method_definition.stack, type_context)?;
 
-                let amount_pop = (type_context.context.len() - variables_len) + &method_definition.arguments.len();
+                if let [.., last] = &method_definition.stack[..] {
+                    if !matches!(last, Token::Return(_)) {
+                        if let Some(expected_return_type) = &type_context.expected_return_type {
+                            return Err(StaticTypeCheckError::InferredError(InferTypeError::MethodReturnSignatureMismatch {
+                                expected: expected_return_type.return_type.clone(),
+                                method_name: expected_return_type.method_name.to_string(),
+                                method_head_line: expected_return_type.method_header_line.to_owned(),
+                            }))
+                        }
+                    }
+                }
+
+
+
+                let amount_pop = (type_context.context.len() - variables_len) + method_definition.arguments.len();
 
                 for _ in 0..amount_pop {
                     let _ = type_context.context.pop();

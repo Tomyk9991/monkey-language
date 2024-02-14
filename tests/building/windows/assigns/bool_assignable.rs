@@ -125,13 +125,13 @@ main:
     ; (true | true)
     mov al, 1
     or al, 1
-    mov ch, al
+    mov cl, al
     ; (false | false)
     mov al, 0
     or al, 0
     mov dil, al
-    or ch, dil
-    mov al, ch
+    or cl, dil
+    mov al, cl
     mov BYTE [rbp - 1], al
     "#;
 
@@ -202,7 +202,7 @@ main:
     ; let a: bool = true
     mov BYTE [rbp - 1], 1
     ; let b: *bool = &a
-    lea rax, BYTE [rbp - 1]
+    lea rax, [rbp - 1]
     mov QWORD [rbp - 9], rax
     leave
     ret
@@ -246,8 +246,7 @@ ExitProcess(0);
 
     println!("{}", asm_result);
 
-    let expected = r#"
-    ; This assembly is targeted for the Windows Operating System
+    let expected = r#"; This assembly is targeted for the Windows Operating System
 segment .text
 global main
 
@@ -264,7 +263,7 @@ main:
     ; let a: bool = true
     mov BYTE [rbp - 1], 1
     ; let b: *bool = &a
-    lea rax, BYTE [rbp - 1]
+    lea rax, [rbp - 1]
     mov QWORD [rbp - 9], rax
     ; let c: **bool = &b
     lea rax, [rbp - 9]
@@ -287,16 +286,19 @@ main:
     mov BYTE [rbp - 35], al
     ; let format: *string = "Das ist ein Test %f"
     mov QWORD [rbp - 43], .label0
-    mov rcx, QWORD [rbp - 43] ; Parameter (format)
+    ; Parameter (format)
+    mov rcx, QWORD [rbp - 43]
     mov rax, QWORD [rbp - 9]
     mov rax, QWORD [rax]
     ; Cast: (bool) -> (i32)
     ; Cast: (u8) -> (i32)
     movzx eax, al
-    mov edx, eax ; Parameter ((i32)*b)
+    ; Parameter ((i32)*b)
+    mov edx, eax
     ; printf(format, (i32)*b)
     call printf
-    mov ecx, 0 ; Parameter (0)
+    ; Parameter (0)
+    mov ecx, 0
     ; ExitProcess(0)
     call ExitProcess
     leave
@@ -338,7 +340,7 @@ main:
     ; let a: bool = true
     mov BYTE [rbp - 1], 1
     ; let b: *bool = &a
-    lea rax, BYTE [rbp - 1]
+    lea rax, [rbp - 1]
     mov QWORD [rbp - 9], rax
     ; let and: bool = (*b & false)
     ; (*b & false)
@@ -390,7 +392,7 @@ main:
     ; let a: bool = false
     mov BYTE [rbp - 1], 0
     ; let b: *bool = &a
-    lea rax, BYTE [rbp - 1]
+    lea rax, [rbp - 1]
     mov QWORD [rbp - 9], rax
     ; let addition: bool = (true | *b)
     ; (true | *b)
@@ -442,7 +444,7 @@ main:
     ; let a: bool = true
     mov BYTE [rbp - 1], 1
     ; let b: *bool = &a
-    lea rax, BYTE [rbp - 1]
+    lea rax, [rbp - 1]
     mov QWORD [rbp - 9], rax
     ; let addition: bool = (*b | *b)
     ; (*b | *b)
@@ -491,7 +493,7 @@ main:
     ; let a: bool = true
     mov BYTE [rbp - 1], 1
     ; let b: *bool = &a
-    lea rax, BYTE [rbp - 1]
+    lea rax, [rbp - 1]
     mov QWORD [rbp - 9], rax
     ; let addition: bool = (*b | (false | true))
     ; (*b | (false | true))
@@ -546,7 +548,7 @@ main:
     ; let a: bool = true
     mov BYTE [rbp - 1], 1
     ; let b: *bool = &a
-    lea rax, BYTE [rbp - 1]
+    lea rax, [rbp - 1]
     mov QWORD [rbp - 9], rax
     ; let addition: bool = ((false | true) | *b)
     ; ((false | true) | *b)
@@ -599,7 +601,7 @@ main:
     ; let a: bool = true
     mov BYTE [rbp - 1], 1
     ; let b: *bool = &a
-    lea rax, BYTE [rbp - 1]
+    lea rax, [rbp - 1]
     mov QWORD [rbp - 9], rax
     ; let addition: bool = ((*b | *b) & (*b | *b))
     ; ((*b | *b) & (*b | *b))
@@ -609,7 +611,7 @@ main:
     mov rdx, QWORD [rbp - 9]
     mov rdx, QWORD [rdx]
     or al, dl
-    mov ch, al
+    mov cl, al
     ; (*b | *b)
     mov rax, QWORD [rbp - 9]
     mov rax, QWORD [rax]
@@ -617,9 +619,8 @@ main:
     mov rdx, QWORD [rdx]
     or al, dl
     mov dil, al
-    and ch, dil
-    mov al, ch
-    mov BYTE [rbp - 10], al
+    and cl, dil
+    mov BYTE [rbp - 10], cl
     leave
     ret
     "#;
@@ -666,12 +667,12 @@ main:
     ; let a: bool = true
     mov BYTE [rbp - 1], 1
     ; let b: *bool = &a
-    lea rax, BYTE [rbp - 1]
+    lea rax, [rbp - 1]
     mov QWORD [rbp - 9], rax
     ; let c: bool = true
     mov BYTE [rbp - 10], 1
     ; let d: *bool = &c
-    lea rax, BYTE [rbp - 10]
+    lea rax, [rbp - 10]
     mov QWORD [rbp - 18], rax
     ; let addition: bool = ((((*d | *b) | (*b | *d)) | (*b | *b)) | ((*b | (*b | *b)) | (*b | (*d | *b))))
     ; ((((*d | *b) | (*b | *d)) | (*b | *b)) | ((*b | (*b | *b)) | (*b | (*d | *b))))
@@ -683,7 +684,7 @@ main:
     mov rdx, QWORD [rbp - 9]
     mov rdx, QWORD [rdx]
     or al, dl
-    mov ch, al
+    mov cl, al
     ; (*b | *d)
     mov rax, QWORD [rbp - 9]
     mov rax, QWORD [rax]
@@ -691,10 +692,10 @@ main:
     mov rdx, QWORD [rdx]
     or al, dl
     mov dil, al
-    or ch, dil
-    mov al, ch
-    push rax
-    xor rax, rax
+    or cl, dil
+    mov dil, cl
+    push rdi
+    xor rdi, rdi
     ; (*b | *b)
     mov rax, QWORD [rbp - 9]
     mov rax, QWORD [rax]
@@ -706,8 +707,9 @@ main:
     pop rdi
     pop rax
     or al, dil
-    push rax
-    xor rax, rax
+    mov dil, al
+    push rdi
+    xor rdi, rdi
     ; ((*b | (*b | *b)) | (*b | (*d | *b)))
     ; (*b | (*b | *b))
     ; (*b | *b)

@@ -3,7 +3,7 @@ use std::fmt::Display;
 use std::str::FromStr;
 use crate::core::code_generator::registers::ByteSize;
 use crate::core::code_generator::generator::Stack;
-use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
+use crate::core::code_generator::{ASMGenerateError, ASMResult, MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::register_destination::word_from_byte_size;
 use crate::core::code_generator::registers::{Bit32, GeneralPurposeRegister};
@@ -43,13 +43,10 @@ impl OperatorToASM for Boolean {
                 prefix: None,
                 operation: AssemblerOperation::compare(&operator.to_asm(&mut Default::default(), &mut Default::default())?, &registers[0], &registers[1])?,
                 postfix: None,
+                result_expected: GeneralPurposeRegister::from_str(&registers[0].to_string()).map_err(|_| ASMGenerateError::InternalError(format!("Cannot build {} from register", &registers[0])))?,
             }),
             Operator::BitwiseAnd | Operator::BitwiseOr => {
-                Ok(AssemblerOperation {
-                    prefix: None,
-                    operation: AssemblerOperation::two_operands(&operator.to_asm(stack, meta)?, &registers[0], &registers[1]),
-                    postfix: None,
-                })
+                AssemblerOperation::two_operands(&operator.to_asm(stack, meta)?, &registers[0], &registers[1])
             }
             Operator::LogicalAnd => {
                 let eax = GeneralPurposeRegister::Bit32(Bit32::Eax);
@@ -76,12 +73,13 @@ impl OperatorToASM for Boolean {
                 target += &ASMBuilder::line(&format!("{label1}:"));
                 target += &ASMBuilder::mov_ident_line(eax, 0);
 
-                target += &ASMBuilder::push(&format!("{label2}:"));
+                target += &format!("{label2}:");
 
                 Ok(AssemblerOperation {
                     prefix: Some(AssemblerOperation::save_rax_rcx_rdx(1, registers)?),
                     operation: target,
                     postfix: Some(AssemblerOperation::load_rax_rcx_rdx(1, registers)?),
+                    result_expected: GeneralPurposeRegister::from_str(&registers[0].to_string()).map_err(|_| ASMGenerateError::InternalError(format!("Cannot build register from {}", registers[0])))?,
                 })
             },
             Operator::LogicalOr => {
@@ -112,12 +110,13 @@ impl OperatorToASM for Boolean {
                 target += &ASMBuilder::line(&format!("{label2}:"));
                 target += &ASMBuilder::mov_ident_line(eax, 0);
 
-                target += &ASMBuilder::push(&format!("{label3}:"));
+                target += &format!("{label3}:");
 
                 Ok(AssemblerOperation {
                     prefix: Some(AssemblerOperation::save_rax_rcx_rdx(1, registers)?),
                     operation: target,
                     postfix: Some(AssemblerOperation::load_rax_rcx_rdx(1, registers)?),
+                    result_expected: GeneralPurposeRegister::from_str(&registers[0].to_string()).map_err(|_| ASMGenerateError::InternalError(format!("Cannot build register from {}", registers[0])))?,
                 })
             }
         }
@@ -129,7 +128,7 @@ impl Castable<Boolean, Integer> for Boolean {
         cast_matrix.insert((TypeToken::Bool, TypeToken::Integer(Integer::I32)), "movzx");
     }
 
-    fn cast_from_to(_: &Boolean, t2: &Integer, source: &str, stack: &mut Stack, meta: &mut MetaInfo) -> Result<String, ASMGenerateError> {
+    fn cast_from_to(_: &Boolean, t2: &Integer, source: &str, stack: &mut Stack, meta: &mut MetaInfo) -> Result<ASMResult, ASMGenerateError> {
         let cast_to = CastTo {
             from: TypeToken::Bool,
             to: TypeToken::Integer(t2.clone()),
@@ -145,14 +144,37 @@ impl Castable<Boolean, Integer> for Boolean {
                 source.to_string()
             };
 
-            target += &Integer::cast_from_to(&Integer::U8, t2, &source, stack, meta)?;
+            match Integer::cast_from_to(&Integer::U8, t2, &source, stack, meta)? {
+                ASMResult::Inline(r) => {
+                    target += &r;
+                    Ok(ASMResult::Inline(target))
+                }
+                ASMResult::MultilineResulted(r, g) => {
+                    target += &r;
+                    Ok(ASMResult::MultilineResulted(target, g))
+                }
+                ASMResult::Multiline(r) => {
+                    target += &r;
+                    Ok(ASMResult::Multiline(target))
+                }
+            }
         } else {
             target += source;
-            target += &Integer::cast_from_to(&Integer::U8, t2, "al", stack, meta)?;
+            match Integer::cast_from_to(&Integer::U8, t2, "al", stack, meta)? {
+                ASMResult::Inline(r) => {
+                    target += &r;
+                    Ok(ASMResult::Inline(target))
+                }
+                ASMResult::MultilineResulted(r, g) => {
+                    target += &r;
+                    Ok(ASMResult::MultilineResulted(target, g))
+                }
+                ASMResult::Multiline(r) => {
+                    target += &r;
+                    Ok(ASMResult::Multiline(target))
+                }
+            }
         }
-
-
-        Ok(target)
     }
 }
 

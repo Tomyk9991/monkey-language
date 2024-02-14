@@ -232,6 +232,8 @@ fn infer_type_assignment_in_scope_complex_in_method() -> anyhow::Result<()> {
             let a = a / constant_1();
             let c = a;
         }
+
+        return 0;
     }
 
     let a: i32 = 5;
@@ -322,6 +324,13 @@ fn infer_type_assignment_in_scope_complex_in_method() -> anyhow::Result<()> {
                     ],
                     else_stack: None,
                     code_line: CodeLine { line: "if  ( true )  {".to_string(), actual_line_number: 4..4, virtual_line_number: 5 },
+                }),
+                Token::Return(ReturnToken {
+                    assignable: Some(AssignableToken::IntegerToken(IntegerToken { value: "0".to_string(), ty: Integer::I32 })),
+                    code_line: CodeLine { line: "return 0 ;".to_string(),
+                        actual_line_number: 9..9,
+                        virtual_line_number: 9,
+                    },
                 })
             ],
             is_extern: false,
@@ -338,8 +347,8 @@ fn infer_type_assignment_in_scope_complex_in_method() -> anyhow::Result<()> {
             define: true,
             assignable: AssignableToken::IntegerToken(IntegerToken { value: "5".to_string(), ty: Integer::I32 }),
             code_line: CodeLine { line: "let a :  i32 = 5 ;".to_string(),
-                actual_line_number: 10..10,
-                virtual_line_number: 10,
+                actual_line_number: 12..12,
+                virtual_line_number: 11,
             },
         }),
     ];

@@ -6,7 +6,7 @@ use std::str::FromStr;
 
 use crate::core::code_generator::conventions::calling_convention_from;
 
-use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
+use crate::core::code_generator::{ASMGenerateError, ASMOptions, ASMResult, InterimResultOption, MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::conventions::CallingRegister;
 use crate::core::code_generator::generator::Stack;
@@ -17,6 +17,7 @@ use crate::core::lexer::errors::EmptyIteratorErr;
 use crate::core::lexer::levenshtein_distance::{ArgumentsIgnoreSummarizeTransform, EmptyParenthesesExpand, PatternedLevenshteinString, QuoteSummarizeTransform};
 use crate::core::lexer::levenshtein_distance::PatternedLevenshteinDistance;
 use crate::core::lexer::scope::{PatternNotMatchedError, Scope, ScopeError};
+use crate::core::lexer::static_type_context::CurrentMethodInfo;
 use crate::core::lexer::token::Token;
 use crate::core::lexer::tokens::assignable_token::AssignableTokenErr;
 use crate::core::lexer::tokens::name_token::{NameToken, NameTokenErr};
@@ -229,19 +230,36 @@ impl ToASM for MethodDefinition {
             }
         }
 
+        meta.static_type_information.expected_return_type = Some(CurrentMethodInfo {
+            return_type: self.return_type.clone(),
+            method_header_line: self.code_line.actual_line_number.clone(),
+            method_name: self.name.name.to_string(),
+        });
+
         for token in &self.stack {
             stack_allocation += token.byte_size(meta);
-            method_scope += &ASMBuilder::push(&token.to_asm(stack, meta)?);
+            // if let Token::Variable(_) = &token {
+            //     method_scope += &token.to_asm_new::<InterimResultOption>(stack, meta, None)?.to_string();
+            // } else {
+            //     method_scope += &token.to_asm(stack, meta)?;
+            // }
+            method_scope += &token.to_asm_new::<InterimResultOption>(stack, meta, None)?.to_string();
 
             if let Some(Ok(prefix_asm)) = token.before_label(stack, meta) {
-                prefix += &ASMBuilder::push(&prefix_asm);
+                prefix += &prefix_asm;
             }
         }
+
+        meta.static_type_information.expected_return_type = None;
 
         let stack_allocation_asm = ASMBuilder::ident_line(&format!("sub rsp, {}", stack_allocation));
         let leave_statement = if self.return_type == TypeToken::Void { "leave\n    ret\n".to_string() } else { String::new() };
 
         Ok(format!("{}{}{}{}{}", prefix, label_header, stack_allocation_asm, method_scope, leave_statement))
+    }
+
+    fn to_asm_new<T: ASMOptions>(&self, _stack: &mut Stack, _meta: &mut MetaInfo, _options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
+        todo!()
     }
 
     fn is_stack_look_up(&self, _stack: &mut Stack, _meta: &MetaInfo) -> bool {
