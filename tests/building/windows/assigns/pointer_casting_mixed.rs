@@ -43,12 +43,13 @@ main:
     lea rax, [rbp - 8]
     mov QWORD [rbp - 16], rax
     ; let c: f32 = (f32)*b
-    movd eax, xmm0
     mov rax, QWORD [rbp - 16]
     mov rax, QWORD [rax]
     movq xmm7, rax
     cvtsd2ss xmm7, xmm7
     movd eax, xmm7
+    movd xmm0, eax
+    movd eax, xmm0
     mov DWORD [rbp - 20], eax
     leave
     ret
@@ -101,13 +102,14 @@ main:
     lea rax, [rbp - 16]
     mov QWORD [rbp - 24], rax
     ; let d: f32 = (f32)**c
-    movd eax, xmm0
     mov rax, QWORD [rbp - 24]
     mov rax, QWORD [rax]
     mov rax, QWORD [rax]
     movq xmm7, rax
     cvtsd2ss xmm7, xmm7
     movd eax, xmm7
+    movd xmm0, eax
+    movd eax, xmm0
     mov DWORD [rbp - 28], eax
     leave
     ret
@@ -160,14 +162,12 @@ main:
     ; ((f32)*b + (f32)*b)
     mov rax, QWORD [rbp - 16]
     mov rax, QWORD [rax]
-    movq xmm0, rax
     movq xmm7, rax
     cvtsd2ss xmm7, xmm7
     movd eax, xmm7
     movd xmm0, eax
     mov rdx, QWORD [rbp - 16]
     mov rdx, QWORD [rdx]
-    movq xmm3, rdx
     movq xmm7, rdx
     cvtsd2ss xmm7, xmm7
     movd edx, xmm7
@@ -175,7 +175,6 @@ main:
     addss xmm0, xmm3
     mov rdx, QWORD [rbp - 16]
     mov rdx, QWORD [rdx]
-    movq xmm3, rdx
     movq xmm7, rdx
     cvtsd2ss xmm7, xmm7
     movd edx, xmm7

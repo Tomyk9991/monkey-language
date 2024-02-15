@@ -185,8 +185,8 @@ impl ASMOptions for PrepareRegisterOption {
 }
 
 pub trait ToASM {
-    /// Generates a String that represents the token in assembler language
     fn to_asm(&self, stack: &mut Stack, meta: &mut MetaInfo) -> Result<String, ASMGenerateError>;
+    /// Generates a String that represents the token in assembler language
     fn to_asm_new<T: ASMOptions + 'static>(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<T>) -> Result<ASMResult, ASMGenerateError>;
     /// returns a bool, if the current implementor needs to look up it's state in the stack
     fn is_stack_look_up(&self, stack: &mut Stack, meta: &MetaInfo) -> bool;

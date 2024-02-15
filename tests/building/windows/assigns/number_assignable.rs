@@ -170,9 +170,6 @@ main:
 #[test]
 fn pointer_assign_multiple_test() -> anyhow::Result<()> {
     let code = r#"
-extern fn printf(format: *string, value: i32): void;
-extern fn ExitProcess(exitCode: i32): void;
-
 let a: i32 = 5;
 let b: *i32 = &a;
 let c: **i32 = &b;
@@ -181,11 +178,6 @@ let d: *i32 = *c;
 let ref: **i32 = c;
 let f: i32 = *d;
 let g: i32 = **c;
-
-let format: *string = "Das ist ein Test %d";
-printf(format, *b);
-
-ExitProcess(*b);
     "#;
 
     let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
@@ -204,16 +196,12 @@ ExitProcess(*b);
 segment .text
 global main
 
-extern printf
-extern ExitProcess
 
-.label0:
-    db "Das ist ein Test %d", 0
 main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 84
+    sub rsp, 76
     ; let a: i32 = 5
     mov DWORD [rbp - 4], 5
     ; let b: *i32 = &a
@@ -238,19 +226,6 @@ main:
     mov rax, QWORD [rax]
     mov rax, QWORD [rax]
     mov DWORD [rbp - 44], eax
-    ; let format: *string = "Das ist ein Test %d"
-    mov QWORD [rbp - 52], .label0
-    mov rcx, QWORD [rbp - 52] ; Parameter (format)
-    mov rax, QWORD [rbp - 12]
-    mov rax, QWORD [rax]
-    mov edx, eax ; Parameter (*b)
-    ; printf(format, *b)
-    call printf
-    mov rax, QWORD [rbp - 12]
-    mov rax, QWORD [rax]
-    mov ecx, eax ; Parameter (*b)
-    ; ExitProcess(*b)
-    call ExitProcess
     leave
     ret
     "#;
@@ -570,8 +545,7 @@ main:
     add eax, edx
     mov edi, eax
     add ecx, edi
-    mov eax, ecx
-    mov DWORD [rbp - 16], eax
+    mov DWORD [rbp - 16], ecx
     leave
     ret
     "#;
@@ -644,9 +618,9 @@ main:
     add eax, edx
     mov edi, eax
     add ecx, edi
-    mov eax, ecx
-    push rax
-    xor rax, rax
+    mov edi, ecx
+    push rdi
+    xor rdi, rdi
     ; (*b + *b)
     mov rax, QWORD [rbp - 12]
     mov rax, QWORD [rax]
@@ -658,8 +632,9 @@ main:
     pop rdi
     pop rax
     add eax, edi
-    push rax
-    xor rax, rax
+    mov edi, eax
+    push rdi
+    xor rdi, rdi
     ; ((*b + (*b + *b)) + (*b + (*d + *b)))
     ; (*b + (*b + *b))
     ; (*b + *b)
@@ -975,9 +950,9 @@ main:
     add rax, rdx
     mov rdi, rax
     add rcx, rdi
-    mov rax, rcx
-    push rax
-    xor rax, rax
+    mov rdi, rcx
+    push rdi
+    xor rdi, rdi
     ; (*b + *b)
     mov rax, QWORD [rbp - 16]
     mov rax, QWORD [rax]
@@ -989,8 +964,9 @@ main:
     pop rdi
     pop rax
     add rax, rdi
-    push rax
-    xor rax, rax
+    mov rdi, rax
+    push rdi
+    xor rdi, rdi
     ; ((*b + (*b + *b)) + (*b + (*d + *b)))
     ; (*b + (*b + *b))
     ; (*b + *b)

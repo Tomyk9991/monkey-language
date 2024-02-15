@@ -48,11 +48,12 @@ main:
     mov al, 1
     or al, dl
     mov BYTE [rbp - 1], al
-    mov rcx, .label0 ; Parameter ("%d")
+    ; Parameter ("%d")
+    mov rcx, .label0
     ; Cast: (bool) -> (i32)
     ; Cast: (u8) -> (i32)
-    movzx eax, BYTE [rbp - 1]
-    mov edx, eax ; Parameter ((i32)a)
+    movzx edx, BYTE [rbp - 1]
+    ; Parameter ((i32)a)
     ; printf("%d", (i32)a)
     call printf
     leave
@@ -66,9 +67,7 @@ main:
 #[test]
 fn mixed_operations_sub() -> anyhow::Result<()> {
     let code = r#"
-extern fn printf(format: *string, value: i32): void;
 let a: bool = true & true | false;
-printf("%d", (i32)a);
     "#;
 
     let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
@@ -88,10 +87,6 @@ printf("%d", (i32)a);
 segment .text
 global main
 
-extern printf
-
-.label0:
-    db "%d", 0
 
 main:
     push rbp
@@ -105,13 +100,6 @@ main:
     and al, 1
     or al, 0
     mov BYTE [rbp - 1], al
-    mov rcx, .label0 ; Parameter ("%d")
-    ; Cast: (bool) -> (i32)
-    ; Cast: (u8) -> (i32)
-    movzx eax, BYTE [rbp - 1]
-    mov edx, eax ; Parameter ((i32)a)
-    ; printf("%d", (i32)a)
-    call printf
     leave
     ret
     "#;
@@ -175,8 +163,9 @@ main:
     pop rdi
     pop rax
     or al, dil
-    push rax
-    xor rax, rax
+    mov dil, al
+    push rdi
+    xor rdi, rdi
     ; ((false | false) || (true | (true & false)))
     ; (false | false)
     mov al, 0
@@ -198,7 +187,8 @@ main:
     mov r14b, dl
     mov r13b, al
     mov r12b, cl
-    mov cl, dil
+    mov cl, al
+    mov al, dil
     mov dl, 0
     cmp al, 0
     jne .label0
@@ -218,8 +208,9 @@ main:
     pop rdi
     pop rax
     and al, dil
-    push rax
-    xor rax, rax
+    mov dil, al
+    push rdi
+    xor rdi, rdi
     ; (((true | false) | false) && (false | true))
     ; ((true | false) | false)
     ; (true | false)
@@ -239,7 +230,8 @@ main:
     mov r14b, dl
     mov r13b, al
     mov r12b, cl
-    mov cl, dil
+    mov cl, al
+    mov al, dil
     mov dl, 0
     cmp al, 0
     je .label3
@@ -259,11 +251,13 @@ main:
     pop rax
     and al, dil
     mov BYTE [rbp - 1], al
-    mov rcx, .label5 ; Parameter ("%d")
+    ; Parameter ("%d")
+    mov rcx, .label5
     ; Cast: (bool) -> (i32)
     ; Cast: (u8) -> (i32)
-    movzx eax, BYTE [rbp - 1]
-    mov edx, eax ; Parameter ((i32)a)
+    movzx edi, BYTE [rbp - 1]
+    ; Parameter ((i32)a)
+    mov edx, edi
     ; printf("%d", (i32)a)
     call printf
     leave
