@@ -7,14 +7,12 @@ use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::{ASMGenerateError, ASMOptions, ASMResult, ASMResultError, ASMResultVariance, InterimResultOption, MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::conventions::return_calling_convention;
-use crate::core::code_generator::register_destination::word_from_byte_size;
 use crate::core::code_generator::registers::{ByteSize, GeneralPurposeRegister};
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::errors::EmptyIteratorErr;
 use crate::core::lexer::scope::PatternNotMatchedError;
 use crate::core::lexer::tokens::assignable_token::{AssignableToken, AssignableTokenErr};
 use crate::core::lexer::TryParse;
-use crate::core::lexer::types::type_token::TypeToken;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct ReturnToken {
@@ -82,40 +80,7 @@ impl TryParse for ReturnToken {
 }
 
 impl ToASM for ReturnToken {
-    fn to_asm(&self, stack: &mut Stack, meta: &mut MetaInfo) -> Result<String, ASMGenerateError> {
-        let mut target = String::new();
-        target += &ASMBuilder::ident(&ASMBuilder::comment_line(&format!("{}", self)));
-
-        if let Some(assignable) = &self.assignable {
-            let destination_register = return_calling_convention(stack, meta)?;
-            let source = assignable.to_asm(stack, meta)?;
-
-            let mut is_stack_variable = false;
-            let mut source_size = 8;
-            for (size, word) in [8, 4, 2, 1].map(|a| (a, word_from_byte_size(a))) {
-                if source.starts_with(&word) {
-                    source_size = size;
-                    is_stack_variable = true;
-                    break;
-                }
-            }
-
-            let assignable_type = assignable.infer_type_with_context(&meta.static_type_information, &meta.code_line)?;
-
-            if matches!(assignable_type, TypeToken::Float(_)) || matches!(assignable_type, TypeToken::Integer(_)) && !matches!(assignable, AssignableToken::ArithmeticEquation(_)) || is_stack_variable {
-                target += &ASMBuilder::mov_ident_line(destination_register.to_size_register(&ByteSize::try_from(source_size)?), source);
-            } else {
-                target += &source;
-            }
-        }
-
-        target += &ASMBuilder::ident_line("leave");
-        target += &ASMBuilder::ident_line("ret");
-
-        Ok(target)
-    }
-
-    fn to_asm_new<T: ASMOptions>(&self, stack: &mut Stack, meta: &mut MetaInfo, _options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
+    fn to_asm<T: ASMOptions>(&self, stack: &mut Stack, meta: &mut MetaInfo, _options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
         let mut target = String::new();
         target += &ASMBuilder::ident(&ASMBuilder::comment_line(&format!("{}", self)));
 
@@ -127,7 +92,7 @@ impl ToASM for ReturnToken {
                 general_purpose_register: destination_register.clone(),
             };
 
-            let source = assignable.to_asm_new(stack, meta, Some(options))?;
+            let source = assignable.to_asm(stack, meta, Some(options))?;
 
             match source {
                 ASMResult::Inline(source) => target += &ASMBuilder::mov_ident_line(destination_register, source),

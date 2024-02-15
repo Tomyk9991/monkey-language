@@ -6,10 +6,10 @@ use std::str::FromStr;
 
 use anyhow::Context;
 
-use crate::core::code_generator::{ASMGenerateError, ASMOptions, ASMResult, InterimResultOption, MetaInfo, register_destination, ToASM};
+use crate::core::code_generator::{ASMGenerateError, ASMOptions, ASMResult, ASMResultError, ASMResultVariance, InterimResultOption, MetaInfo, register_destination, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::generator::{Stack, StackLocation};
-use crate::core::code_generator::registers::{Bit64, ByteSize, FloatRegister, GeneralPurposeRegister};
+use crate::core::code_generator::registers::{Bit64, ByteSize, GeneralPurposeRegister};
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::errors::EmptyIteratorErr;
 use crate::core::lexer::levenshtein_distance::{MethodCallSummarizeTransform, PatternedLevenshteinDistance, PatternedLevenshteinString, QuoteSummarizeTransform};
@@ -160,77 +160,12 @@ impl Display for ParseVariableTokenErr {
 }
 
 impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for VariableToken<ASSIGNMENT, SEPARATOR> {
-    fn to_asm(&self, stack: &mut Stack, meta: &mut MetaInfo) -> Result<String, ASMGenerateError> {
-        let mut target = String::new();
-        target += &ASMBuilder::ident(&ASMBuilder::comment_line(&format!("{}", self)));
-
-        let mut written_float_register = None;
-
-        if let AssignableToken::FloatToken(f) = &self.assignable {
-            let s = GeneralPurposeRegister::iter_from_byte_size(f.byte_size(meta))?.current();
-            target += &ASMBuilder::mov_ident_line(&s, f.to_asm(stack, meta)?);
-
-            written_float_register = Some((s, f.ty.clone()));
-        }
-
-        let destination = if self.define {
-            let byte_size = self.assignable.byte_size(meta);
-
-            stack.variables.push(StackLocation { position: stack.stack_position, name: self.name_token.clone(), size: byte_size });
-            stack.stack_position += byte_size;
-
-            let offset = stack.stack_position;
-            format!("{} [rbp - {}]", register_destination::word_from_byte_size(byte_size), offset)
-        } else {
-            self.name_token.to_asm(stack, meta)?
-        };
-
-
-        if self.define && !self.assignable.is_stack_look_up(stack, meta) {
-            if let Some((register, _)) = &written_float_register {
-                target += &ASMBuilder::mov_ident_line(destination, register);
-            } else {
-                target += &ASMBuilder::mov_ident_line(destination, self.assignable.to_asm(stack, meta)?);
-            }
-        } else {
-            let mut wrote_expression_to_target = false;
-
-            if let AssignableToken::ArithmeticEquation(eq) = &self.assignable {
-                if eq.value.is_none() {
-                    target += &eq.to_asm(stack, meta)?.to_string();
-                    wrote_expression_to_target = true;
-                }
-            }
-
-            let register_destination = register_destination::from_byte_size(self.assignable.byte_size(meta));
-
-            if let Some(TypeToken::Float(float_type)) = &self.ty {
-                target += &ASMBuilder::mov_x_ident_line(&register_destination, format!("{}", FloatRegister::Xmm0), Some(float_type.byte_size()));
-            }
-
-            if !wrote_expression_to_target {
-                if self.assignable.prefix_arithmetic().is_some() {
-                    target += &self.assignable.to_asm(stack, meta)?;
-                } else if let AssignableToken::MethodCallToken(method_call_token) = &self.assignable {
-                    target += &method_call_token.to_asm(stack, meta)?
-                } else {
-                    target += &ASMBuilder::mov_ident_line(&register_destination, self.assignable.to_asm(stack, meta)?);
-                };
-            }
-
-            target += &ASMBuilder::mov_ident_line(destination, register_destination);
-        }
-
-
-        Ok(target)
-    }
-
-    fn to_asm_new<T: ASMOptions>(&self, stack: &mut Stack, meta: &mut MetaInfo, _options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
+    fn to_asm<T: ASMOptions + 'static>(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
         let mut target = String::new();
         target += &ASMBuilder::ident(&ASMBuilder::comment_line(&format!("{}", self)));
 
         let i = GeneralPurposeRegister::iter_from_byte_size(self.assignable.byte_size(meta))?.current();
-        let result = self.assignable.to_asm_new(stack, meta, Some(InterimResultOption {
+        let result = self.assignable.to_asm(stack, meta, Some(InterimResultOption {
             general_purpose_register: i.clone(),
         }))?;
 
@@ -243,7 +178,20 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for VariableToken<ASSI
             let offset = stack.stack_position;
             format!("{} [rbp - {}]", register_destination::word_from_byte_size(byte_size), offset)
         } else {
-            self.name_token.to_asm(stack, meta)?
+            match self.name_token.to_asm(stack, meta, options)? {
+                ASMResult::Inline(r) => r,
+                ASMResult::MultilineResulted(t, r) => {
+                    target += &t;
+                    r.to_string()
+                }
+                ASMResult::Multiline(_) => {
+                    return Err(ASMGenerateError::ASMResult(ASMResultError::UnexpectedVariance {
+                        expected: vec![ASMResultVariance::MultilineResulted, ASMResultVariance::Inline],
+                        actual: ASMResultVariance::Multiline,
+                        token: "variable token".to_string(),
+                    }))
+                }
+            }
         };
 
         match result {

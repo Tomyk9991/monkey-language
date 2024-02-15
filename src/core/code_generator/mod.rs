@@ -121,14 +121,14 @@ impl Display for ASMResultError {
 
 impl Error for ASMResultError { }
 
-pub trait ASMOptions {
+pub trait ASMOptions: Clone {
     fn transform(&self, _stack: &mut Stack, _meta: &mut MetaInfo) -> Result<ASMResult, ASMGenerateError> {
         Ok(ASMResult::Inline(String::new()))
     }
 }
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct InterimResultOption {
     pub general_purpose_register: GeneralPurposeRegister
 }
@@ -145,6 +145,7 @@ impl From<&GeneralPurposeRegister> for InterimResultOption {
 
 /// Builds the assembly instructions to load a float token into a general purpose register
 /// and finally to a register, where a float operation can be operated on
+#[derive(Clone)]
 pub struct PrepareRegisterOption {
     pub general_purpose_register: GeneralPurposeRegister,
     pub assignable_token: Option<AssignableToken>,
@@ -157,7 +158,7 @@ impl ASMOptions for PrepareRegisterOption {
             let general_purpose_register_sized = self.general_purpose_register.to_size_register(&ByteSize::try_from(size)?);
             let float_register = &self.general_purpose_register.to_float_register();
 
-            let mut target = match float_token.to_asm_new(stack, meta, Some(InterimResultOption::from(&general_purpose_register_sized)))? {
+            let mut target = match float_token.to_asm(stack, meta, Some(InterimResultOption::from(&general_purpose_register_sized)))? {
                 ASMResult::Inline(t) | ASMResult::MultilineResulted(t, _) | ASMResult::Multiline(t) => t
             };
 
@@ -170,7 +171,7 @@ impl ASMOptions for PrepareRegisterOption {
             let general_purpose_register_sized = self.general_purpose_register.to_size_register(&ByteSize::try_from(size)?);
             let float_register = &self.general_purpose_register.to_float_register();
 
-            let mut target = match name_token.to_asm_new::<InterimResultOption>(stack, meta, None)? {
+            let mut target = match name_token.to_asm::<InterimResultOption>(stack, meta, None)? {
                 ASMResult::Inline(t) | ASMResult::MultilineResulted(t, _) | ASMResult::Multiline(t) => {
                     ASMBuilder::mov_ident_line(&general_purpose_register_sized, t)
                 }
@@ -185,9 +186,8 @@ impl ASMOptions for PrepareRegisterOption {
 }
 
 pub trait ToASM {
-    fn to_asm(&self, stack: &mut Stack, meta: &mut MetaInfo) -> Result<String, ASMGenerateError>;
     /// Generates a String that represents the token in assembler language
-    fn to_asm_new<T: ASMOptions + 'static>(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<T>) -> Result<ASMResult, ASMGenerateError>;
+    fn to_asm<T: ASMOptions + 'static>(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<T>) -> Result<ASMResult, ASMGenerateError>;
     /// returns a bool, if the current implementor needs to look up it's state in the stack
     fn is_stack_look_up(&self, stack: &mut Stack, meta: &MetaInfo) -> bool;
     /// returns the size in byte to indicate how much space on the stack must be reserved

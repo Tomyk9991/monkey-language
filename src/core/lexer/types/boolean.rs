@@ -3,7 +3,7 @@ use std::fmt::Display;
 use std::str::FromStr;
 use crate::core::code_generator::registers::ByteSize;
 use crate::core::code_generator::generator::Stack;
-use crate::core::code_generator::{ASMGenerateError, ASMResult, MetaInfo, ToASM};
+use crate::core::code_generator::{ASMGenerateError, ASMResult, InterimResultOption, MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::register_destination::word_from_byte_size;
 use crate::core::code_generator::registers::{Bit32, GeneralPurposeRegister};
@@ -41,12 +41,12 @@ impl OperatorToASM for Boolean {
             Operator::Mod => no_operation("modulo"),
             Operator::Equal | Operator::NotEqual => Ok(AssemblerOperation {
                 prefix: None,
-                operation: AssemblerOperation::compare(&operator.to_asm(&mut Default::default(), &mut Default::default())?, &registers[0], &registers[1])?,
+                operation: AssemblerOperation::compare(&operator.to_asm::<InterimResultOption>(&mut Default::default(), &mut Default::default(), None)?.to_string(), &registers[0], &registers[1])?,
                 postfix: None,
                 result_expected: GeneralPurposeRegister::from_str(&registers[0].to_string()).map_err(|_| ASMGenerateError::InternalError(format!("Cannot build {} from register", &registers[0])))?,
             }),
             Operator::BitwiseAnd | Operator::BitwiseOr => {
-                AssemblerOperation::two_operands(&operator.to_asm(stack, meta)?, &registers[0], &registers[1])
+                AssemblerOperation::two_operands(&operator.to_asm::<InterimResultOption>(stack, meta, None)?.to_string(), &registers[0], &registers[1])
             }
             Operator::LogicalAnd => {
                 let eax = GeneralPurposeRegister::Bit32(Bit32::Eax);
@@ -54,7 +54,7 @@ impl OperatorToASM for Boolean {
                 let label1 = stack.create_label();
                 let label2 = stack.create_label();
 
-                let jump_instruction = operator.to_asm(stack, meta)?;
+                let jump_instruction = operator.to_asm::<InterimResultOption>(stack, meta, None)?.to_string();
                 target += &ASMBuilder::line(&format!("cmp {}, 0", registers[0]));
                 target += &ASMBuilder::ident_line(&format!("{} {label1}", jump_instruction));
 
@@ -89,7 +89,7 @@ impl OperatorToASM for Boolean {
                 let label2 = stack.create_label();
                 let label3 = stack.create_label();
 
-                let jump_instruction = operator.to_asm(stack, meta)?;
+                let jump_instruction = operator.to_asm::<InterimResultOption>(stack, meta, None)?.to_string();
                 target += &ASMBuilder::line(&format!("cmp {}, 0", registers[0]));
                 target += &ASMBuilder::ident_line(&format!("{} {label1}", jump_instruction));
 

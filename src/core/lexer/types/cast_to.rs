@@ -31,8 +31,7 @@ pub trait Castable<T, K> {
 
 
 impl ToASM for CastTo {
-    /// returns the needed instruction to actually convert
-    fn to_asm(&self, _stack: &mut Stack, meta: &mut MetaInfo) -> Result<String, ASMGenerateError> {
+    fn to_asm<T: ASMOptions>(&self, _stack: &mut Stack, meta: &mut MetaInfo, _options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
         // from, to, instruction
         let mut cast_to_matrix: HashMap<(TypeToken, TypeToken), &'static str> = HashMap::new();
 
@@ -50,14 +49,10 @@ impl ToASM for CastTo {
 
 
         if let Some(v) = cast_to_matrix.get(&(self.from.clone(), self.to.clone())) {
-            return Ok(v.to_string())
+            return Ok(ASMResult::Inline(v.to_string()))
         }
 
         Err(ASMGenerateError::CastUnsupported(CastToError::CastUnsupported(self.clone()), meta.code_line.clone()))
-    }
-
-    fn to_asm_new<T: ASMOptions>(&self, _stack: &mut Stack, _meta: &mut MetaInfo, _options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
-        todo!()
     }
 
     fn is_stack_look_up(&self, _stack: &mut Stack, _meta: &MetaInfo) -> bool {

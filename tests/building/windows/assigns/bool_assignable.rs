@@ -57,15 +57,34 @@ main:
     let a: bool = true | false;
     "#;
 
-    let asm_result = asm_from_assign_code(&code)?;
+    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
+    let mut lexer = Lexer::from(monkey_file);
+    let top_level_scope = lexer.tokenize()?;
+
+    static_type_check(&top_level_scope)?;
+
+    let mut code_generator = ASMGenerator::from((top_level_scope, TargetOS::Windows));
+    let asm_result = code_generator.generate()?;
 
 
     let expected = r#"
+    ; This assembly is targeted for the Windows Operating System
+segment .text
+global main
+
+
+main:
+    push rbp
+    mov rbp, rsp
+    ; Reserve stack space as MS convention. Shadow stacking
+    sub rsp, 33
     ; let a: bool = (true | false)
     ; (true | false)
     mov al, 1
     or al, 0
     mov BYTE [rbp - 1], al
+    leave
+    ret
     "#;
 
     println!("{}", asm_result);
@@ -75,17 +94,36 @@ main:
     let a: bool = (true | true) | false;
     "#;
 
-    let asm_result = asm_from_assign_code(&code)?;
+    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
+    let mut lexer = Lexer::from(monkey_file);
+    let top_level_scope = lexer.tokenize()?;
+
+    static_type_check(&top_level_scope)?;
+
+    let mut code_generator = ASMGenerator::from((top_level_scope, TargetOS::Windows));
+    let asm_result = code_generator.generate()?;
 
 
     let expected = r#"
-        ; let a: bool = ((true | true) | false)
+    ; This assembly is targeted for the Windows Operating System
+segment .text
+global main
+
+
+main:
+    push rbp
+    mov rbp, rsp
+    ; Reserve stack space as MS convention. Shadow stacking
+    sub rsp, 33
+    ; let a: bool = ((true | true) | false)
     ; ((true | true) | false)
     ; (true | true)
     mov al, 1
     or al, 1
     or al, 0
     mov BYTE [rbp - 1], al
+    leave
+    ret
     "#;
 
     println!("{}", asm_result);
@@ -95,9 +133,26 @@ main:
     let a: bool = false | (true | true);
     "#;
 
-    let asm_result = asm_from_assign_code(&code)?;
+    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
+    let mut lexer = Lexer::from(monkey_file);
+    let top_level_scope = lexer.tokenize()?;
+
+    static_type_check(&top_level_scope)?;
+
+    let mut code_generator = ASMGenerator::from((top_level_scope, TargetOS::Windows));
+    let asm_result = code_generator.generate()?;
 
     let expected = r#"
+    ; This assembly is targeted for the Windows Operating System
+segment .text
+global main
+
+
+main:
+    push rbp
+    mov rbp, rsp
+    ; Reserve stack space as MS convention. Shadow stacking
+    sub rsp, 33
     ; let a: bool = (false | (true | true))
     ; (false | (true | true))
     ; (true | true)
@@ -107,6 +162,8 @@ main:
     mov al, 0
     or al, dl
     mov BYTE [rbp - 1], al
+    leave
+    ret
     "#;
 
     println!("{}", asm_result);
@@ -116,10 +173,27 @@ main:
     let a: bool = (true | true) | (false | false);
     "#;
 
-    let asm_result = asm_from_assign_code(&code)?;
+    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
+    let mut lexer = Lexer::from(monkey_file);
+    let top_level_scope = lexer.tokenize()?;
+
+    static_type_check(&top_level_scope)?;
+
+    let mut code_generator = ASMGenerator::from((top_level_scope, TargetOS::Windows));
+    let asm_result = code_generator.generate()?;
 
 
     let expected = r#"
+    ; This assembly is targeted for the Windows Operating System
+segment .text
+global main
+
+
+main:
+    push rbp
+    mov rbp, rsp
+    ; Reserve stack space as MS convention. Shadow stacking
+    sub rsp, 33
     ; let a: bool = ((true | true) | (false | false))
     ; ((true | true) | (false | false))
     ; (true | true)
@@ -131,8 +205,9 @@ main:
     or al, 0
     mov dil, al
     or cl, dil
-    mov al, cl
-    mov BYTE [rbp - 1], al
+    mov BYTE [rbp - 1], cl
+    leave
+    ret
     "#;
 
 
@@ -143,12 +218,31 @@ main:
     let a: bool = true;
     "#;
 
-    let asm_result = asm_from_assign_code(&code)?;
+    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
+    let mut lexer = Lexer::from(monkey_file);
+    let top_level_scope = lexer.tokenize()?;
+
+    static_type_check(&top_level_scope)?;
+
+    let mut code_generator = ASMGenerator::from((top_level_scope, TargetOS::Windows));
+    let asm_result = code_generator.generate()?;
 
 
     let expected = r#"
+    ; This assembly is targeted for the Windows Operating System
+segment .text
+global main
+
+
+main:
+    push rbp
+    mov rbp, rsp
+    ; Reserve stack space as MS convention. Shadow stacking
+    sub rsp, 33
     ; let a: bool = true
     mov BYTE [rbp - 1], 1
+    leave
+    ret
     "#;
 
     println!("{}", asm_result);
@@ -158,13 +252,32 @@ main:
     let a: bool = (true);
     "#;
 
-    let asm_result = asm_from_assign_code(&code)?;
+    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
+    let mut lexer = Lexer::from(monkey_file);
+    let top_level_scope = lexer.tokenize()?;
+
+    static_type_check(&top_level_scope)?;
+
+    let mut code_generator = ASMGenerator::from((top_level_scope, TargetOS::Windows));
+    let asm_result = code_generator.generate()?;
 
 
     let expected = r#"
+    ; This assembly is targeted for the Windows Operating System
+segment .text
+global main
+
+
+main:
+    push rbp
+    mov rbp, rsp
+    ; Reserve stack space as MS convention. Shadow stacking
+    sub rsp, 33
     ; let a: bool = true
     mov al, 1
     mov BYTE [rbp - 1], al
+    leave
+    ret
     "#;
 
     println!("{}", asm_result);
@@ -824,49 +937,33 @@ fn bool_assign() -> anyhow::Result<()> {
     let a: bool = false;
     "#;
 
-    let asm_result = asm_from_assign_code(&code)?;
-
-    let expected = r#"
-    ; let a: bool = false
-    mov BYTE [rbp - 1], 0
-    "#;
-
-    println!("{}", asm_result);
-    assert_eq!(expected.trim(), asm_result.trim());
-    Ok(())
-}
-
-fn asm_from_assign_code(code: &str) -> anyhow::Result<String> {
     let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
     let mut lexer = Lexer::from(monkey_file);
     let top_level_scope = lexer.tokenize()?;
 
     static_type_check(&top_level_scope)?;
 
-    let mut asm_result = String::new();
+    let mut code_generator = ASMGenerator::from((top_level_scope, TargetOS::Windows));
+    let asm_result = code_generator.generate()?;
 
-    if let [token] = &top_level_scope.tokens[..] {
-        let mut stack = Stack::default();
-        let mut meta = MetaInfo {
-            code_line: Default::default(),
-            target_os: TargetOS::Windows,
-            static_type_information: Default::default(),
-        };
-
-        if let Token::Variable(variable_token) = token {
-            let asm = token.to_asm(&mut stack, &mut meta)?;
-
-            if let AssignableToken::String(string) = &variable_token.assignable {
-                let s = string.before_label(&mut stack, &mut meta);
-                if let Some(s) = s {
-                    asm_result += &s?;
-                }
-            }
-
-            asm_result += &asm;
-        }
-    }
+    let expected = r#"
+    ; This assembly is targeted for the Windows Operating System
+segment .text
+global main
 
 
-    return Ok(asm_result);
+main:
+    push rbp
+    mov rbp, rsp
+    ; Reserve stack space as MS convention. Shadow stacking
+    sub rsp, 33
+    ; let a: bool = false
+    mov BYTE [rbp - 1], 0
+    leave
+    ret
+    "#;
+
+    println!("{}", asm_result);
+    assert_eq!(expected.trim(), asm_result.trim());
+    Ok(())
 }

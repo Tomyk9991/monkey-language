@@ -11,7 +11,6 @@ use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::conventions::{CallingRegister, return_calling_convention};
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::registers::{Bit64, ByteSize, GeneralPurposeRegister};
-use crate::core::code_generator::target_os::TargetOS;
 use crate::core::code_generator::ToASM;
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::errors::EmptyIteratorErr;
@@ -223,71 +222,7 @@ impl MethodCallToken {
 }
 
 impl ToASM for MethodCallToken {
-    fn to_asm(&self, stack: &mut Stack, meta: &mut MetaInfo) -> Result<String, ASMGenerateError> {
-        let calling_convention = conventions::calling_convention(stack, meta, &self.arguments, &self.name.name)?;
-
-        let method_def = if let Some(method_def) = meta.static_type_information.methods.iter().find(|m| m.name.name == self.name.name) {
-            method_def.clone()
-        } else {
-            return Err(InferTypeError::UnresolvedReference(self.name.to_string(), meta.code_line.clone()).into());
-        };
-
-
-        let mut result = String::new();
-        let zipped = calling_convention.iter().zip(&self.arguments);
-
-        for (conventions, argument) in zipped {
-            let (parsed_argument, provided_type) = match argument {
-                AssignableToken::ArithmeticEquation(_) => {
-                    result += &argument.to_asm(stack, meta)?;
-
-                    let returning_register = GeneralPurposeRegister::Bit64(Bit64::Rax)
-                        .to_size_register(&ByteSize::try_from(argument.infer_type_with_context(&meta.static_type_information, &meta.code_line)?.byte_size())?);
-
-                    (returning_register.to_string(), argument.infer_type_with_context(&meta.static_type_information, &meta.code_line).ok())
-                }
-                _ => {
-                    (argument.to_asm(stack, meta)?.to_string(), argument.infer_type_with_context(&meta.static_type_information, &meta.code_line).ok())
-                }
-            };
-
-            match meta.target_os {
-                TargetOS::Windows => {
-                    for convention in conventions {
-                        match convention {
-                            CallingRegister::Register(register) => {
-                                let b = if let GeneralPurposeRegister::Float(_) = register {
-                                    provided_type.as_ref().map(|provided_type| provided_type.byte_size())
-                                } else { None };
-
-                                let ty = argument.infer_type_with_context(&meta.static_type_information, &self.code_line)?;
-
-                                let destination = if matches!(ty, TypeToken::Float(_)) {
-                                    register.clone()
-                                } else {
-                                    register.to_size_register(&ByteSize::try_from(ty.byte_size())?)
-                                };
-                                result += &ASMBuilder::mov_x_ident_line(destination, format!("{} ; Parameter ({})", parsed_argument, argument), b);
-                            }
-                            CallingRegister::Stack => {
-                                result += &ASMBuilder::ident(&format!("push {}", parsed_argument.replace("DWORD", "QWORD")))
-                            }
-                        }
-                    }
-                }
-
-                TargetOS::WindowsSubsystemLinux | TargetOS::Linux => {
-                    unimplemented!("Not implemented for linux yet");
-                }
-            }
-        }
-        result += &ASMBuilder::ident(&ASMBuilder::comment_line(&self.to_string()));
-        result += &ASMBuilder::ident_line(&format!("call {}", if method_def.is_extern { method_def.name.name } else { method_def.method_label_name() }));
-
-        Ok(result)
-    }
-
-    fn to_asm_new<T: ASMOptions>(&self, stack: &mut Stack, meta: &mut MetaInfo, _options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
+    fn to_asm<T: ASMOptions>(&self, stack: &mut Stack, meta: &mut MetaInfo, _options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
         let calling_convention = conventions::calling_convention(stack, meta, &self.arguments, &self.name.name)?;
 
         let method_def = if let Some(method_def) = meta.static_type_information.methods.iter().find(|m| m.name.name == self.name.name) {
@@ -307,7 +242,7 @@ impl ToASM for MethodCallToken {
 
             let mut inline = false;
             let mut assign = String::new();
-            match argument.to_asm_new(stack, meta, Some(InterimResultOption::from(&result_from_eval)))? {
+            match argument.to_asm(stack, meta, Some(InterimResultOption::from(&result_from_eval)))? {
                 ASMResult::Inline(source) => { inline = true; assign = source; },
                 ASMResult::MultilineResulted(source, r) => {
                     target += &source;
@@ -377,7 +312,7 @@ impl ToASM for MethodCallToken {
 
     fn multi_line_asm(&self, stack: &mut Stack, meta: &mut MetaInfo) -> Result<(bool, String, Option<GeneralPurposeRegister>), ASMGenerateError> {
         // enables to cache registers before calling, and also restoring after
-        Ok((true, self.to_asm(stack, meta)?, Some(return_calling_convention(stack, meta)?)))
+        Ok((true, String::from("lkek"), Some(return_calling_convention(stack, meta)?)))
     }
 }
 

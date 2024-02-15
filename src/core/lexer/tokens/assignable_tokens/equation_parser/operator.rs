@@ -63,8 +63,8 @@ impl Display for Operator {
 }
 
 impl ToASM for Operator {
-    fn to_asm(&self, _: &mut Stack, _: &mut MetaInfo) -> Result<String, ASMGenerateError> {
-        Ok(match self {
+    fn to_asm<T: ASMOptions>(&self, _stack: &mut Stack, _meta: &mut MetaInfo, _options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
+        Ok(ASMResult::Inline(match self {
             Operator::Noop => "noop",
             Operator::Add => "add",
             Operator::Sub => "sub",
@@ -84,11 +84,7 @@ impl ToASM for Operator {
             Operator::LogicalAnd => "je",
             Operator::LogicalOr => "jne",
             Operator::Mod => "div",
-        }.to_string())
-    }
-
-    fn to_asm_new<T: ASMOptions>(&self, _stack: &mut Stack, _meta: &mut MetaInfo, _options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
-        todo!()
+        }.to_string()))
     }
 
     fn is_stack_look_up(&self, _stack: &mut Stack, _meta: &MetaInfo) -> bool {
@@ -193,7 +189,7 @@ impl AssemblerOperation {
         Ok(postfix)
     }
 
-    pub fn inject_registers_new(&self) -> (String, GeneralPurposeRegister) {
+    pub fn inject_registers(&self) -> (String, GeneralPurposeRegister) {
         let mut result = String::new();
 
         if let Some(prefix) = &self.prefix {
@@ -209,23 +205,5 @@ impl AssemblerOperation {
         }
 
         (result, self.result_expected.clone())
-    }
-
-    pub fn inject_registers(&self) -> String {
-        let mut result = String::new();
-
-        if let Some(prefix) = &self.prefix {
-            result += prefix;
-            result += &ASMBuilder::ident_line(&self.operation);
-        } else {
-            result += &self.operation;
-        }
-
-
-        if let Some(postfix) = &self.postfix {
-            result += postfix;
-        }
-
-        result
     }
 }

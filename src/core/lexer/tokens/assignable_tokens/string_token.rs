@@ -34,11 +34,7 @@ impl Display for StringTokenErr {
 }
 
 impl ToASM for StringToken {
-    fn to_asm(&self, stack: &mut Stack, _meta: &mut MetaInfo) -> Result<String, ASMGenerateError> {
-        Ok(stack.create_label())
-    }
-
-    fn to_asm_new<T: ASMOptions>(&self, stack: &mut Stack, _meta: &mut MetaInfo, _options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
+    fn to_asm<T: ASMOptions>(&self, stack: &mut Stack, _meta: &mut MetaInfo, _options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
         Ok(ASMResult::Inline(stack.create_label()))
     }
 

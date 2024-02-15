@@ -37,11 +37,7 @@ impl Display for BooleanToken {
 }
 
 impl ToASM for BooleanToken {
-    fn to_asm(&self, _stack: &mut Stack, _meta: &mut MetaInfo) -> Result<String, ASMGenerateError> {
-        Ok((if self.value { "1" } else { "0" }).to_string())
-    }
-
-    fn to_asm_new<T: ASMOptions>(&self, _stack: &mut Stack, _meta: &mut MetaInfo, _options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
+    fn to_asm<T: ASMOptions>(&self, _stack: &mut Stack, _meta: &mut MetaInfo, _options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
         Ok(ASMResult::Inline((if self.value { "1" } else { "0" }).to_string()))
     }
 

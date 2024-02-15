@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
-use crate::core::code_generator::{ASMGenerateError, ASMResult, MetaInfo, ToASM};
+use crate::core::code_generator::{ASMGenerateError, ASMResult, InterimResultOption, MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::register_destination::word_from_byte_size;
@@ -37,7 +37,7 @@ impl Castable<Float, Integer> for Float {
             to: TypeToken::Integer(t2.clone()),
         };
 
-        let instruction = cast_to.to_asm(stack, meta)?;
+        let instruction = cast_to.to_asm::<InterimResultOption>(stack, meta, None)?.to_string();
         let last_register = stack.register_to_use
             .last()
             .unwrap_or(&GeneralPurposeRegister::Bit64(Bit64::Rax))
@@ -121,7 +121,7 @@ impl Castable<Float, Float> for Float {
             to: TypeToken::Float(t2.clone()),
         };
 
-        let instruction = cast_to.to_asm(stack, meta)?;
+        let instruction = cast_to.to_asm::<InterimResultOption>(stack, meta, None)?.to_string();
         let last_register = stack.register_to_use
             .last()
             .unwrap_or(&GeneralPurposeRegister::Bit64(Bit64::Rax));
@@ -190,7 +190,7 @@ impl OperatorToASM for Float {
         match operator {
             Operator::Noop => Err(ASMGenerateError::InternalError("Noop instruction is not supported on".to_string())),
             Operator::Add | Operator::Sub | Operator::Div | Operator::Mul => AssemblerOperation::two_operands(
-                &format!("{}{suffix}", operator.to_asm(stack, meta)?),
+                &format!("{}{suffix}", operator.to_asm::<InterimResultOption>(stack, meta, None)?.to_string()),
                 &registers[0],
                 &registers[1]
             ),
@@ -205,7 +205,7 @@ impl OperatorToASM for Float {
                     Operator::GreaterThanEqual => "setae".to_string(),
                     Operator::Equal => "sete".to_string(),
                     Operator::NotEqual => "setne".to_string(),
-                    _ => operator.to_asm(stack, meta)?
+                    _ => operator.to_asm::<InterimResultOption>(stack, meta, None)?.to_string()
                 };
 
                 let first_register = GeneralPurposeRegister::from_str(&registers[0].to_string()).map_err(|_| ASMGenerateError::InternalError(format!("Cannot build {} from register", &registers[0])))?;

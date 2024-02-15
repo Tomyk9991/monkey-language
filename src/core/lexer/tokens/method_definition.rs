@@ -192,7 +192,7 @@ impl MethodDefinition {
 }
 
 impl ToASM for MethodDefinition {
-    fn to_asm(&self, stack: &mut Stack, meta: &mut MetaInfo) -> Result<String, ASMGenerateError> {
+    fn to_asm<T: ASMOptions + 'static>(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
         let mut label_header: String = String::new();
         let mut prefix = String::new();
 
@@ -208,7 +208,7 @@ impl ToASM for MethodDefinition {
         let calling_convention = calling_convention_from(self, &meta.target_os);
         for (index, (argument_name, argument_type)) in self.arguments.iter().enumerate() {
             if let Some(stack_location) = stack.variables.iter().rfind(|v| v.name.name == argument_name.name) {
-                let destination = stack_location.name.clone().to_asm(stack, meta)?;
+                let destination = stack_location.name.clone().to_asm(stack, meta, options.clone())?;
                 let source = match &calling_convention[index][0] {
                     CallingRegister::Register(r) => {
                         if matches!(argument_type, TypeToken::Float(_)) {
@@ -238,12 +238,7 @@ impl ToASM for MethodDefinition {
 
         for token in &self.stack {
             stack_allocation += token.byte_size(meta);
-            // if let Token::Variable(_) = &token {
-            //     method_scope += &token.to_asm_new::<InterimResultOption>(stack, meta, None)?.to_string();
-            // } else {
-            //     method_scope += &token.to_asm(stack, meta)?;
-            // }
-            method_scope += &token.to_asm_new::<InterimResultOption>(stack, meta, None)?.to_string();
+            method_scope += &token.to_asm::<InterimResultOption>(stack, meta, None)?.to_string();
 
             if let Some(Ok(prefix_asm)) = token.before_label(stack, meta) {
                 prefix += &prefix_asm;
@@ -255,11 +250,7 @@ impl ToASM for MethodDefinition {
         let stack_allocation_asm = ASMBuilder::ident_line(&format!("sub rsp, {}", stack_allocation));
         let leave_statement = if self.return_type == TypeToken::Void { "leave\n    ret\n".to_string() } else { String::new() };
 
-        Ok(format!("{}{}{}{}{}", prefix, label_header, stack_allocation_asm, method_scope, leave_statement))
-    }
-
-    fn to_asm_new<T: ASMOptions>(&self, _stack: &mut Stack, _meta: &mut MetaInfo, _options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
-        todo!()
+        Ok(ASMResult::Multiline(format!("{}{}{}{}{}", prefix, label_header, stack_allocation_asm, method_scope, leave_statement)))
     }
 
     fn is_stack_look_up(&self, _stack: &mut Stack, _meta: &MetaInfo) -> bool {

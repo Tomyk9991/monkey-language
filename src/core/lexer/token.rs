@@ -58,7 +58,7 @@ impl Token {
 }
 
 impl ToASM for Token {
-    fn to_asm(&self, stack: &mut Stack, meta: &mut MetaInfo) -> Result<String, ASMGenerateError> {
+    fn to_asm<T: ASMOptions + 'static>(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
         let variables_len = meta.static_type_information.len();
 
         let scopes = match self {
@@ -88,54 +88,13 @@ impl ToASM for Token {
         }
 
         match self {
-            Token::Variable(variable) => variable.to_asm(stack, meta),
-            Token::MethodCall(method_call_token) => method_call_token.to_asm(stack, meta),
-            Token::IfDefinition(if_definition) => if_definition.to_asm(stack, meta),
-            Token::Import(import) => import.to_asm(stack, meta),
-            Token::MethodDefinition(md) if md.is_extern => Ok(String::new()),
-            Token::MethodDefinition(md) => md.to_asm(stack, meta),
-            Token::Return(ret) => ret.to_asm(stack, meta),
-            Token::ScopeClosing(e) => Err(ASMGenerateError::NotImplemented { token: format!("{}", e) })
-        }
-    }
-
-    fn to_asm_new<T: ASMOptions + 'static>(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
-        let variables_len = meta.static_type_information.len();
-
-        let scopes = match self {
-            Token::IfDefinition(if_def) => {
-                let mut res = vec![&if_def.if_stack];
-                if let Some(else_stack) = &if_def.else_stack {
-                    res.push(else_stack)
-                }
-
-                res
-            }
-            Token::MethodDefinition(method_def) => {
-                vec![&method_def.stack]
-            }
-            _ => { vec![] }
-        };
-
-        for scope in scopes {
-            let scoped_checker = StaticTypeContext::new(scope);
-            meta.static_type_information.merge(scoped_checker);
-
-            let amount_pop = meta.static_type_information.len() - variables_len;
-
-            for _ in 0..amount_pop {
-                let _ = meta.static_type_information.pop();
-            }
-        }
-
-        match self {
-            Token::Variable(variable) => variable.to_asm_new(stack, meta, options),
-            Token::MethodCall(method_call) => method_call.to_asm_new(stack, meta, options),
-            Token::Return(return_token) => return_token.to_asm_new(stack, meta, options),
-            Token::MethodDefinition(r) => unimplemented!("{r}: Not implemented"),
-            Token::Import(r) => unimplemented!("{r}: Not implemented"),
-            Token::ScopeClosing(r) => unimplemented!("{r}: Not implemented"),
-            Token::IfDefinition(r) => unimplemented!("{r}: Not implemented"),
+            Token::Variable(variable) => variable.to_asm(stack, meta, options),
+            Token::MethodCall(method_call) => method_call.to_asm(stack, meta, options),
+            Token::Return(return_token) => return_token.to_asm(stack, meta, options),
+            Token::MethodDefinition(return_token) => return_token.to_asm(stack, meta, options),
+            Token::Import(import_token) => import_token.to_asm(stack, meta, options),
+            Token::IfDefinition(if_token) => if_token.to_asm(stack, meta, options),
+            Token::ScopeClosing(_) => Ok(ASMResult::Inline(String::new())),
         }
     }
 

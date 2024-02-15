@@ -14,16 +14,33 @@ fn expression_assign() -> anyhow::Result<()> {
     let a: i32 = 5 + 3;
     "#;
 
-    let asm_result = asm_from_assign_code(&code)?;
+    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
+    let mut lexer = Lexer::from(monkey_file);
+    let top_level_scope = lexer.tokenize()?;
+
+    static_type_check(&top_level_scope)?;
+
+    let mut code_generator = ASMGenerator::from((top_level_scope, TargetOS::Windows));
+    let asm_result = code_generator.generate()?;
 
 
-    let expected = r#"
-; let a: i32 = (5 + 3)
+    let expected = r#"; This assembly is targeted for the Windows Operating System
+segment .text
+global main
+
+
+main:
+    push rbp
+    mov rbp, rsp
+    ; Reserve stack space as MS convention. Shadow stacking
+    sub rsp, 36
+    ; let a: i32 = (5 + 3)
     ; (5 + 3)
     mov eax, 5
     add eax, 3
     mov DWORD [rbp - 4], eax
-    "#;
+    leave
+    ret"#;
 
     assert_eq!(expected.trim(), asm_result.trim());
 
@@ -31,10 +48,27 @@ fn expression_assign() -> anyhow::Result<()> {
     let a: i32 = (5 + 2) + 8;
     "#;
 
-    let asm_result = asm_from_assign_code(&code)?;
+    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
+    let mut lexer = Lexer::from(monkey_file);
+    let top_level_scope = lexer.tokenize()?;
+
+    static_type_check(&top_level_scope)?;
+
+    let mut code_generator = ASMGenerator::from((top_level_scope, TargetOS::Windows));
+    let asm_result = code_generator.generate()?;
 
 
     let expected = r#"
+    ; This assembly is targeted for the Windows Operating System
+segment .text
+global main
+
+
+main:
+    push rbp
+    mov rbp, rsp
+    ; Reserve stack space as MS convention. Shadow stacking
+    sub rsp, 36
     ; let a: i32 = ((5 + 2) + 8)
     ; ((5 + 2) + 8)
     ; (5 + 2)
@@ -42,7 +76,9 @@ fn expression_assign() -> anyhow::Result<()> {
     add eax, 2
     add eax, 8
     mov DWORD [rbp - 4], eax
-    "#;
+    leave
+    ret
+"#;
 
     assert_eq!(expected.trim(), asm_result.trim());
 
@@ -50,9 +86,26 @@ fn expression_assign() -> anyhow::Result<()> {
     let a: i32 = 5 + (2 + 8);
     "#;
 
-    let asm_result = asm_from_assign_code(&code)?;
+    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
+    let mut lexer = Lexer::from(monkey_file);
+    let top_level_scope = lexer.tokenize()?;
+
+    static_type_check(&top_level_scope)?;
+
+    let mut code_generator = ASMGenerator::from((top_level_scope, TargetOS::Windows));
+    let asm_result = code_generator.generate()?;
 
     let expected = r#"
+    ; This assembly is targeted for the Windows Operating System
+segment .text
+global main
+
+
+main:
+    push rbp
+    mov rbp, rsp
+    ; Reserve stack space as MS convention. Shadow stacking
+    sub rsp, 36
     ; let a: i32 = (5 + (2 + 8))
     ; (5 + (2 + 8))
     ; (2 + 8)
@@ -62,6 +115,8 @@ fn expression_assign() -> anyhow::Result<()> {
     mov eax, 5
     add eax, edx
     mov DWORD [rbp - 4], eax
+    leave
+    ret
     "#;
 
     assert_eq!(expected.trim(), asm_result.trim());
@@ -70,10 +125,26 @@ fn expression_assign() -> anyhow::Result<()> {
     let a: i32 = (5 + 3) + (2 + 8);
     "#;
 
-    let asm_result = asm_from_assign_code(&code)?;
+    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
+    let mut lexer = Lexer::from(monkey_file);
+    let top_level_scope = lexer.tokenize()?;
+
+    static_type_check(&top_level_scope)?;
+
+    let mut code_generator = ASMGenerator::from((top_level_scope, TargetOS::Windows));
+    let asm_result = code_generator.generate()?;
 
 
-    let expected = r#"
+    let expected = r#"; This assembly is targeted for the Windows Operating System
+segment .text
+global main
+
+
+main:
+    push rbp
+    mov rbp, rsp
+    ; Reserve stack space as MS convention. Shadow stacking
+    sub rsp, 36
     ; let a: i32 = ((5 + 3) + (2 + 8))
     ; ((5 + 3) + (2 + 8))
     ; (5 + 3)
@@ -85,8 +156,9 @@ fn expression_assign() -> anyhow::Result<()> {
     add eax, 8
     mov edi, eax
     add ecx, edi
-    mov eax, ecx
-    mov DWORD [rbp - 4], eax
+    mov DWORD [rbp - 4], ecx
+    leave
+    ret
     "#;
 
 
@@ -97,12 +169,31 @@ fn expression_assign() -> anyhow::Result<()> {
     let a: i32 = 6;
     "#;
 
-    let asm_result = asm_from_assign_code(&code)?;
+    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
+    let mut lexer = Lexer::from(monkey_file);
+    let top_level_scope = lexer.tokenize()?;
+
+    static_type_check(&top_level_scope)?;
+
+    let mut code_generator = ASMGenerator::from((top_level_scope, TargetOS::Windows));
+    let asm_result = code_generator.generate()?;
 
 
     let expected = r#"
+    ; This assembly is targeted for the Windows Operating System
+segment .text
+global main
+
+
+main:
+    push rbp
+    mov rbp, rsp
+    ; Reserve stack space as MS convention. Shadow stacking
+    sub rsp, 36
     ; let a: i32 = 6
     mov DWORD [rbp - 4], 6
+    leave
+    ret
     "#;
 
     assert_eq!(expected.trim(), asm_result.trim());
@@ -111,14 +202,33 @@ fn expression_assign() -> anyhow::Result<()> {
     let a: i32 = (6);
     "#;
 
-    let asm_result = asm_from_assign_code(&code)?;
+    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
+    let mut lexer = Lexer::from(monkey_file);
+    let top_level_scope = lexer.tokenize()?;
+
+    static_type_check(&top_level_scope)?;
+
+    let mut code_generator = ASMGenerator::from((top_level_scope, TargetOS::Windows));
+    let asm_result = code_generator.generate()?;
 
 
     let expected = r#"
+    ; This assembly is targeted for the Windows Operating System
+segment .text
+global main
+
+
+main:
+    push rbp
+    mov rbp, rsp
+    ; Reserve stack space as MS convention. Shadow stacking
+    sub rsp, 36
     ; let a: i32 = 6
     mov eax, 6
     mov DWORD [rbp - 4], eax
-    "#;
+    leave
+    ret
+"#;
 
     assert_eq!(expected.trim(), asm_result.trim());
     Ok(())
@@ -747,12 +857,30 @@ fn i32_assign() -> anyhow::Result<()> {
     let a: i32 = 512;
     "#;
 
-    let asm_result = asm_from_assign_code(&code)?;
+    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
+    let mut lexer = Lexer::from(monkey_file);
+    let top_level_scope = lexer.tokenize()?;
+
+    static_type_check(&top_level_scope)?;
+
+    let mut code_generator = ASMGenerator::from((top_level_scope, TargetOS::Windows));
+    let asm_result = code_generator.generate()?;
 
     let expected = r#"
-; let a: i32 = 512
+    ; This assembly is targeted for the Windows Operating System
+segment .text
+global main
+
+
+main:
+    push rbp
+    mov rbp, rsp
+    ; Reserve stack space as MS convention. Shadow stacking
+    sub rsp, 36
+    ; let a: i32 = 512
     mov DWORD [rbp - 4], 512
-    "#;
+    leave
+    ret"#;
 
     assert_eq!(expected.trim(), asm_result.trim());
     Ok(())
@@ -1010,40 +1138,4 @@ main:
 
     assert_eq!(expected.trim(), asm_result.trim());
     Ok(())
-}
-
-
-fn asm_from_assign_code(code: &str) -> anyhow::Result<String> {
-    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
-    let mut lexer = Lexer::from(monkey_file);
-    let top_level_scope = lexer.tokenize()?;
-
-    static_type_check(&top_level_scope)?;
-
-    let mut asm_result = String::new();
-
-    if let [token] = &top_level_scope.tokens[..] {
-        let mut stack = Stack::default();
-        let mut meta = MetaInfo {
-            code_line: Default::default(),
-            target_os: TargetOS::Windows,
-            static_type_information: Default::default(),
-        };
-
-        if let Token::Variable(variable_token) = token {
-            let asm = token.to_asm(&mut stack, &mut meta)?;
-
-            if let AssignableToken::String(string) = &variable_token.assignable {
-                let s = string.before_label(&mut stack, &mut meta);
-                if let Some(s) = s {
-                    asm_result += &s?;
-                }
-            }
-
-            asm_result += &asm;
-        }
-    }
-
-
-    return Ok(asm_result);
 }

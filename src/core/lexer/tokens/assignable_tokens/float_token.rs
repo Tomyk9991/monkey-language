@@ -24,19 +24,7 @@ impl Display for FloatToken {
 }
 
 impl ToASM for FloatToken {
-    fn to_asm(&self, _stack: &mut Stack, _meta: &mut MetaInfo) -> Result<String, ASMGenerateError> {
-        let value_str = if !self.value.to_string().contains('.') {
-            format!("{}.0", self.value)
-        } else {
-            self.value.to_string()
-        };
-        match self.ty {
-            Float::Float32 => Ok(format!("__?float32?__({})", value_str)),
-            Float::Float64 => Ok(format!("__?float64?__({})", value_str)),
-        }
-    }
-
-    fn to_asm_new<T: ASMOptions + 'static>(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
+    fn to_asm<T: ASMOptions + 'static>(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
         if let Some(options) = options {
             let any_t = &options as &dyn Any;
             if let Some(concrete_type) = any_t.downcast_ref::<InterimResultOption>() {

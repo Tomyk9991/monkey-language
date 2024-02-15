@@ -3,7 +3,7 @@ use std::fmt::{Display, Formatter};
 use std::iter::Peekable;
 use std::slice::Iter;
 use std::str::FromStr;
-use crate::core::code_generator::{ASMGenerateError, ASMOptions, ASMResult, MetaInfo, ToASM};
+use crate::core::code_generator::{ASMGenerateError, ASMOptions, ASMResult, ASMResultError, ASMResultVariance, InterimResultOption, MetaInfo, ToASM};
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::registers::GeneralPurposeRegister;
 
@@ -177,7 +177,7 @@ impl TryParse for IfDefinition {
 
 
 impl ToASM for IfDefinition {
-    fn to_asm(&self, stack: &mut Stack, meta: &mut MetaInfo) -> Result<String, ASMGenerateError> {
+    fn to_asm<T: ASMOptions + 'static>(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
         let mut target = String::new();
 
         target.push_str(&format!("    ; if condition ({})\n", self.condition));
@@ -192,30 +192,38 @@ impl ToASM for IfDefinition {
         };
 
         target.push_str(&format!("    ; if {} > 0 => run if stack: \n", self.condition));
-        target.push_str(&format!("    cmp {}, 0\n", &self.condition.to_asm(stack, meta)?));
+        let result = format!("    cmp {}, 0\n", match &self.condition.to_asm(stack, meta, options.clone())? {
+            ASMResult::Inline(t) => t.to_owned(),
+            ASMResult::MultilineResulted(t, r) => {
+                target += t;
+                r.to_string()
+            }
+            ASMResult::Multiline(_) => return Err(ASMResultError::UnexpectedVariance {
+                expected: vec![ASMResultVariance::Inline, ASMResultVariance::MultilineResulted],
+                actual: ASMResultVariance::Multiline,
+                token: "if token".to_string(),
+            }.into())
+        });
+        target += &result;
 
 
         target.push_str(&format!("    je {}\n", jump_label));
 
 
         target.push_str("    ; if branch\n");
-        target.push_str(&stack.generate_scope(&self.if_stack, meta)?);
+        target.push_str(&stack.generate_scope(&self.if_stack, meta, options)?);
         target.push_str(&format!("    jmp {}\n", continue_label));
 
 
         if let Some(else_stack) = &self.else_stack {
             target.push_str(&format!("{}:\n", else_label));
             target.push_str(&format!("    ; else branch \"{}\"\n", self));
-            target.push_str(&stack.generate_scope(else_stack, meta)?);
+            target.push_str(&stack.generate_scope::<InterimResultOption>(else_stack, meta, None)?);
         }
 
         target.push_str(&format!("{}:\n", continue_label));
         target.push_str(&format!("    ; Continue after \"{}\"\n", self));
-        Ok(target)
-    }
-
-    fn to_asm_new<T: ASMOptions>(&self, _stack: &mut Stack, _meta: &mut MetaInfo, _options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
-        todo!()
+        Ok(ASMResult::Multiline(target))
     }
 
     fn is_stack_look_up(&self, _stack: &mut Stack, _meta: &MetaInfo) -> bool {

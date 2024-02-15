@@ -1,4 +1,4 @@
-use crate::core::code_generator::{InterimResultOption, MetaInfo, ToASM};
+use crate::core::code_generator::{ASMOptions, ASMResult, InterimResultOption, MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::ASMGenerateError;
 use crate::core::code_generator::conventions::calling_convention_from;
@@ -94,14 +94,18 @@ impl Stack {
     }
 
 
-    pub fn generate_scope(&mut self, tokens: &Vec<Token>, meta: &mut MetaInfo) -> Result<String, ASMGenerateError> {
+    pub fn generate_scope<T: ASMOptions + 'static>(&mut self, tokens: &Vec<Token>, meta: &mut MetaInfo, options: Option<T>) -> Result<String, ASMGenerateError> {
         let mut target = String::new();
         let mut prefix = String::new();
 
         self.begin_scope();
 
         for token in tokens {
-            target += &token.to_asm(self, meta)?;
+            target += match &token.to_asm(self, meta, options.clone())? {
+                ASMResult::Inline(t) => t,
+                ASMResult::MultilineResulted(t, _) => t,
+                ASMResult::Multiline(t) => t
+            };
 
             if let Some(Ok(prefix_asm)) = token.before_label(self, meta) {
                 prefix += &prefix_asm;
@@ -193,7 +197,7 @@ impl ASMGenerator {
 
                         meta.static_type_information.merge(StaticTypeContext::new(&main.stack));
 
-                        Ok(format!("{}{}{}", boiler_plate, method_definitions, &main.to_asm(&mut self.stack, &mut meta)?))
+                        Ok(format!("{}{}{}", boiler_plate, method_definitions, &main.to_asm::<InterimResultOption>(&mut self.stack, &mut meta, None)?))
                     } else {
                         return Err(ASMGenerateError::EntryPointNotFound)
                     }
@@ -229,7 +233,7 @@ impl ASMGenerator {
 
                 stack_allocation += token.byte_size(&mut meta);
                 // method_scope += &token.to_asm(&mut self.stack, &mut meta)?;
-                method_scope += &token.to_asm_new::<InterimResultOption>(&mut self.stack, &mut meta, None)?.to_string();
+                method_scope += &token.to_asm::<InterimResultOption>(&mut self.stack, &mut meta, None)?.to_string();
 
                 if let Some(Ok(prefix_asm)) = token.before_label(&mut self.stack, &mut meta) {
                     prefix += &prefix_asm;
@@ -292,7 +296,11 @@ impl ASMGenerator {
                     }
 
                     meta.static_type_information.merge(StaticTypeContext::new(&method_definition.stack));
-                    method_definitions += &method_definition.to_asm(&mut self.stack, &mut meta)?;
+                    method_definitions += match &method_definition.to_asm::<InterimResultOption>(&mut self.stack, &mut meta, None)? {
+                        ASMResult::Inline(t) => t,
+                        ASMResult::MultilineResulted(t, _) => t,
+                        ASMResult::Multiline(t) => t
+                    }
                 }
 
                 continue;

@@ -143,29 +143,16 @@ impl Display for AssignableTokenErr {
 }
 
 impl ToASM for AssignableToken {
-    fn to_asm(&self, stack: &mut Stack, meta: &mut MetaInfo) -> Result<String, ASMGenerateError> {
-        match &self {
-            AssignableToken::IntegerToken(token) => Ok(token.to_asm(stack, meta)?),
-            AssignableToken::NameToken(variable) => Ok(variable.to_asm(stack, meta)?),
-            AssignableToken::ArithmeticEquation(expression) => Ok(expression.to_asm(stack, meta)?),
-            AssignableToken::String(string) => Ok(string.to_asm(stack, meta)?),
-            AssignableToken::FloatToken(float) => Ok(float.to_asm(stack, meta)?),
-            AssignableToken::MethodCallToken(method_call) => Ok(method_call.to_asm(stack, meta)?),
-            AssignableToken::BooleanToken(boolean) => Ok(boolean.to_asm(stack, meta)?),
-            // AssignableToken::Object(_) => {}
-            token => Err(ASMGenerateError::AssignmentNotImplemented { assignable_token: (*token).clone() })
-        }
-    }
 
-    fn to_asm_new<T: ASMOptions + 'static>(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
+    fn to_asm<T: ASMOptions + 'static>(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
         match &self {
-            AssignableToken::IntegerToken(token) => Ok(token.to_asm_new(stack, meta, options)?),
-            AssignableToken::NameToken(variable) => Ok(variable.to_asm_new(stack, meta, options)?),
-            AssignableToken::ArithmeticEquation(expression) => Ok(expression.to_asm_new(stack, meta, options)?),
-            AssignableToken::String(string) => Ok(string.to_asm_new(stack, meta, options)?),
-            AssignableToken::FloatToken(float) => Ok(float.to_asm_new(stack, meta, options)?),
-            AssignableToken::MethodCallToken(method_call) => Ok(method_call.to_asm_new(stack, meta, options)?),
-            AssignableToken::BooleanToken(boolean) => Ok(boolean.to_asm_new(stack, meta, options)?),
+            AssignableToken::IntegerToken(token) => Ok(token.to_asm(stack, meta, options)?),
+            AssignableToken::NameToken(variable) => Ok(variable.to_asm(stack, meta, options)?),
+            AssignableToken::ArithmeticEquation(expression) => Ok(expression.to_asm(stack, meta, options)?),
+            AssignableToken::String(string) => Ok(string.to_asm(stack, meta, options)?),
+            AssignableToken::FloatToken(float) => Ok(float.to_asm(stack, meta, options)?),
+            AssignableToken::MethodCallToken(method_call) => Ok(method_call.to_asm(stack, meta, options)?),
+            AssignableToken::BooleanToken(boolean) => Ok(boolean.to_asm(stack, meta, options)?),
             // AssignableToken::Object(_) => {}
             token => Err(ASMGenerateError::AssignmentNotImplemented { assignable_token: (*token).clone() })
         }

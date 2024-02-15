@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
-use crate::core::code_generator::{ASMGenerateError, ASMResult, MetaInfo, ToASM};
+use crate::core::code_generator::{ASMGenerateError, ASMResult, InterimResultOption, MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::register_destination::word_from_byte_size;
@@ -44,7 +44,7 @@ impl Castable<Integer, Float> for Integer {
             to: TypeToken::Float(t2.clone()),
         };
 
-        let instruction = cast_to.to_asm(stack, meta)?;
+        let instruction = cast_to.to_asm::<InterimResultOption>(stack, meta, None)?;
         let last_register = stack.register_to_use
             .last()
             .unwrap_or(&GeneralPurposeRegister::Bit64(Bit64::Rax))
@@ -200,7 +200,7 @@ impl Castable<Integer, Integer> for Integer {
             to: TypeToken::Integer(i2.clone()),
         };
 
-        let instruction = cast_to.to_asm(stack, meta)?;
+        let instruction = cast_to.to_asm::<InterimResultOption>(stack, meta, None)?.to_string();
         let last_register = stack.register_to_use
             .last()
             .unwrap_or(&GeneralPurposeRegister::Bit64(Bit64::Rax));
@@ -319,7 +319,7 @@ impl OperatorToASM for Integer {
             Operator::LogicalAnd => Err(ASMGenerateError::InternalError("`Logical And` instruction is not supported".to_string())),
             Operator::LogicalOr => Err(ASMGenerateError::InternalError("`Logical Or` instruction is not supported".to_string())),
             Operator::Add | Operator::Sub | Operator::BitwiseAnd | Operator::BitwiseXor | Operator::BitwiseOr => Ok(
-                AssemblerOperation::two_operands(&operator.to_asm(stack, meta)?, &registers[0], &registers[1])?
+                AssemblerOperation::two_operands(&operator.to_asm::<InterimResultOption>(stack, meta, None)?.to_string(), &registers[0], &registers[1])?
             ),
             Operator::Div | Operator::Mod => {
                 let rax = GeneralPurposeRegister::Bit64(Bit64::Rax).to_size_register(&ByteSize::try_from(integer_size)?);
@@ -366,7 +366,7 @@ impl OperatorToASM for Integer {
             }
             Operator::LessThan | Operator::GreaterThan | Operator::LessThanEqual | Operator::GreaterThanEqual | Operator::Equal | Operator::NotEqual => Ok(AssemblerOperation {
                 prefix: None,
-                operation: AssemblerOperation::compare(&operator.to_asm(stack, meta)?, &registers[0], &registers[1])?,
+                operation: AssemblerOperation::compare(&operator.to_asm::<InterimResultOption>(stack, meta, None)?.to_string(), &registers[0], &registers[1])?,
                 postfix: None,
                 result_expected: GeneralPurposeRegister::from_str(&registers[0].to_string()).map_err(|_| ASMGenerateError::InternalError(format!("Cannot build {} from register", &registers[0])))?.to_size_register(&ByteSize::_1),
             }),
