@@ -1,5 +1,6 @@
-use crate::core::code_generator::{ASMOptions, ASMResult, InterimResultOption, MetaInfo, ToASM};
+use crate::core::code_generator::{ASMOptions, ASMResult, MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
+use crate::core::code_generator::asm_result::InterimResultOption;
 use crate::core::code_generator::ASMGenerateError;
 use crate::core::code_generator::conventions::calling_convention_from;
 use crate::core::code_generator::registers::{Bit64, GeneralPurposeRegister};

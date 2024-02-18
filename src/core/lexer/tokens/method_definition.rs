@@ -6,8 +6,9 @@ use std::str::FromStr;
 
 use crate::core::code_generator::conventions::calling_convention_from;
 
-use crate::core::code_generator::{ASMGenerateError, ASMOptions, ASMResult, InterimResultOption, MetaInfo, ToASM};
+use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
+use crate::core::code_generator::asm_result::{ASMOptions, ASMResult, InterimResultOption};
 use crate::core::code_generator::conventions::CallingRegister;
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::registers::{ByteSize, GeneralPurposeRegister};
@@ -185,7 +186,7 @@ impl MethodDefinition {
         }.replace('*', "ptr");
 
 
-        let return_type = self.return_type.to_string();
+        let return_type = self.return_type.to_string().replace('*', "ptr");
 
         format!(".{}_{}~{}", self.name, parameters, return_type)
     }

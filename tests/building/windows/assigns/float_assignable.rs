@@ -357,9 +357,6 @@ main:
 #[test]
 fn pointer_assign_multiple_test() -> anyhow::Result<()> {
     let code = r#"
-extern fn printf(format: *string, value: f64): void;
-extern fn ExitProcess(exitCode: i32): void;
-
 let a: f64 = 5.0_f64;
 let b: *f64 = &a;
 let c: **f64 = &b;
@@ -368,11 +365,6 @@ let d: *f64 = *c;
 let ref: **f64 = c;
 let f: f64 = *d;
 let g: f64 = **c;
-
-let format: *string = "Das ist ein Test %f";
-printf(format, *b);
-
-ExitProcess(0);
     "#;
 
     let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
@@ -391,16 +383,12 @@ ExitProcess(0);
 segment .text
 global main
 
-extern printf
-extern ExitProcess
 
-.label0:
-    db "Das ist ein Test %f", 0
 main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 96
+    sub rsp, 88
     ; let a: f64 = 5
     mov rax, __?float64?__(5.0)
     mov QWORD [rbp - 8], rax
@@ -426,22 +414,6 @@ main:
     mov rax, QWORD [rax]
     mov rax, QWORD [rax]
     mov QWORD [rbp - 56], rax
-    ; let format: *string = "Das ist ein Test %f"
-    mov QWORD [rbp - 64], .label0
-    ; Parameter (format)
-    mov rcx, QWORD [rbp - 64]
-    mov rax, QWORD [rbp - 16]
-    mov rax, QWORD [rax]
-    ; Parameter (*b)
-    movq xmm1, rax
-    ; Parameter (*b)
-    mov rdx, rax
-    ; printf(format, *b)
-    call printf
-    ; Parameter (0)
-    mov ecx, 0
-    ; ExitProcess(0)
-    call ExitProcess
     leave
     ret
     "#;

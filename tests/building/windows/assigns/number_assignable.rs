@@ -1,12 +1,8 @@
-use monkey_language::core::code_generator::generator::{ASMGenerator, Stack};
-use monkey_language::core::code_generator::MetaInfo;
+use monkey_language::core::code_generator::generator::ASMGenerator;
 use monkey_language::core::code_generator::target_os::TargetOS;
 use monkey_language::core::io::monkey_file::MonkeyFile;
-use monkey_language::core::lexer::token::Token;
 use monkey_language::core::lexer::tokenizer::Lexer;
-use monkey_language::core::lexer::tokens::assignable_token::AssignableToken;
 use monkey_language::core::type_checker::static_type_checker::static_type_check;
-use monkey_language::core::code_generator::ToASM;
 
 #[test]
 fn expression_assign() -> anyhow::Result<()> {

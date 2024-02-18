@@ -612,8 +612,9 @@ main:
     mov ecx, r12d
     mov edi, eax
     sub ecx, edi
-    add ecx, 3
-    mov DWORD [rbp - 4], ecx
+    mov eax, ecx
+    add eax, 3
+    mov DWORD [rbp - 4], eax
     leave
     ret
     "#;

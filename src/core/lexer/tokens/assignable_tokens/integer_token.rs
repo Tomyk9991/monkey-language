@@ -3,7 +3,8 @@ use std::fmt::{Display, Formatter};
 use std::num::{ParseFloatError, ParseIntError};
 use std::str::FromStr;
 use crate::core::code_generator::generator::Stack;
-use crate::core::code_generator::{ASMGenerateError, ASMOptions, ASMResult, MetaInfo, ToASM};
+use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
+use crate::core::code_generator::asm_result::{ASMOptions, ASMResult};
 use crate::core::code_generator::registers::GeneralPurposeRegister;
 use crate::core::lexer::types::integer::Integer;
 

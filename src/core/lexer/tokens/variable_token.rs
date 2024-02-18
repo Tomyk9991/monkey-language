@@ -6,8 +6,9 @@ use std::str::FromStr;
 
 use anyhow::Context;
 
-use crate::core::code_generator::{ASMGenerateError, ASMOptions, ASMResult, ASMResultError, ASMResultVariance, InterimResultOption, MetaInfo, register_destination, ToASM};
+use crate::core::code_generator::{ASMGenerateError, MetaInfo, register_destination, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
+use crate::core::code_generator::asm_result::{ASMOptions, ASMResult, ASMResultError, ASMResultVariance, InterimResultOption};
 use crate::core::code_generator::generator::{Stack, StackLocation};
 use crate::core::code_generator::registers::{Bit64, ByteSize, GeneralPurposeRegister};
 use crate::core::io::code_line::CodeLine;

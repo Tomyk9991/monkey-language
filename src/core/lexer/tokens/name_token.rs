@@ -4,7 +4,8 @@ use std::fmt::{Display, Formatter};
 
 use uuid::Uuid;
 
-use crate::core::code_generator::{ASMGenerateError, ASMOptions, ASMResult, MetaInfo, PrepareRegisterOption, ToASM};
+use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
+use crate::core::code_generator::asm_result::{ASMOptions, ASMResult, PrepareRegisterOption};
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::register_destination::word_from_byte_size;
 use crate::core::code_generator::registers::GeneralPurposeRegister;

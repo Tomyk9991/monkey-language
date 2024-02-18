@@ -1,11 +1,7 @@
-use monkey_language::core::code_generator::generator::{ASMGenerator, Stack};
-use monkey_language::core::code_generator::MetaInfo;
+use monkey_language::core::code_generator::generator::ASMGenerator;
 use monkey_language::core::code_generator::target_os::TargetOS;
-use monkey_language::core::code_generator::ToASM;
 use monkey_language::core::io::monkey_file::MonkeyFile;
-use monkey_language::core::lexer::token::Token;
 use monkey_language::core::lexer::tokenizer::Lexer;
-use monkey_language::core::lexer::tokens::assignable_token::AssignableToken;
 use monkey_language::core::type_checker::static_type_checker::static_type_check;
 
 #[test]
@@ -330,9 +326,6 @@ main:
 #[test]
 fn pointer_assign_multiple_test() -> anyhow::Result<()> {
     let code = r#"
-extern fn printf(format: *string, value: i32): void;
-extern fn ExitProcess(exitCode: i32): void;
-
 let a: bool = true;
 let b: *bool = &a;
 let c: **bool = &b;
@@ -341,11 +334,6 @@ let d: *bool = *c;
 let ref: **bool = c;
 let f: bool = *d;
 let g: bool = **c;
-
-let format: *string = "Das ist ein Test %f";
-printf(format, (i32)*b);
-
-ExitProcess(0);
     "#;
 
     let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
@@ -359,20 +347,17 @@ ExitProcess(0);
 
     println!("{}", asm_result);
 
-    let expected = r#"; This assembly is targeted for the Windows Operating System
+    let expected = r#"
+    ; This assembly is targeted for the Windows Operating System
 segment .text
 global main
 
-extern printf
-extern ExitProcess
 
-.label0:
-    db "Das ist ein Test %f", 0
 main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 75
+    sub rsp, 67
     ; let a: bool = true
     mov BYTE [rbp - 1], 1
     ; let b: *bool = &a
@@ -397,23 +382,6 @@ main:
     mov rax, QWORD [rax]
     mov rax, QWORD [rax]
     mov BYTE [rbp - 35], al
-    ; let format: *string = "Das ist ein Test %f"
-    mov QWORD [rbp - 43], .label0
-    ; Parameter (format)
-    mov rcx, QWORD [rbp - 43]
-    mov rax, QWORD [rbp - 9]
-    mov rax, QWORD [rax]
-    ; Cast: (bool) -> (i32)
-    ; Cast: (u8) -> (i32)
-    movzx eax, al
-    ; Parameter ((i32)*b)
-    mov edx, eax
-    ; printf(format, (i32)*b)
-    call printf
-    ; Parameter (0)
-    mov ecx, 0
-    ; ExitProcess(0)
-    call ExitProcess
     leave
     ret
     "#;

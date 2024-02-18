@@ -1,13 +1,14 @@
+use std::any::Any;
 use std::cmp::Ordering;
 use std::fmt::{Display, Formatter};
 use std::iter::Peekable;
 use std::slice::Iter;
 use std::str::FromStr;
-use crate::core::code_generator::ASMResultVariance;
 use crate::core::lexer::scope::PatternNotMatchedError;
 
-use crate::core::code_generator::{ASMGenerateError, ASMOptions, ASMResult, ASMResultError, conventions, InterimResultOption, MetaInfo};
+use crate::core::code_generator::{ASMGenerateError, conventions, MetaInfo};
 use crate::core::code_generator::asm_builder::ASMBuilder;
+use crate::core::code_generator::asm_result::{ASMOptions, ASMResult, ASMResultError, ASMResultVariance, InExpressionMethodCall, InterimResultOption};
 use crate::core::code_generator::conventions::{CallingRegister, return_calling_convention};
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::registers::{Bit64, ByteSize, GeneralPurposeRegister};
@@ -222,17 +223,31 @@ impl MethodCallToken {
 }
 
 impl ToASM for MethodCallToken {
-    fn to_asm<T: ASMOptions>(&self, stack: &mut Stack, meta: &mut MetaInfo, _options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
+    fn to_asm<T: ASMOptions + 'static>(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
         let calling_convention = conventions::calling_convention(stack, meta, &self.arguments, &self.name.name)?;
 
-        let method_def = if let Some(method_def) = meta.static_type_information.methods.iter().find(|m| m.name.name == self.name.name) {
-            method_def.clone()
-        } else {
-            return Err(InferTypeError::UnresolvedReference(self.name.to_string(), meta.code_line.clone()).into());
-        };
-
+        let method_def = meta.static_type_information.methods.iter().find(|m| m.name.name == self.name.name)
+            .ok_or(ASMGenerateError::TypeNotInferrable(InferTypeError::UnresolvedReference(self.name.to_string(), meta.code_line.clone())))?.clone();
+        let rax = GeneralPurposeRegister::Bit64(Bit64::Rax);
 
         let mut target = String::new();
+
+
+        let is_direction_method_call = if let Some(options) = options {
+            let any_t = &options as &dyn Any;
+            !any_t.downcast_ref::<InExpressionMethodCall>().is_some()
+        } else {
+            true
+        };
+
+        if !is_direction_method_call {
+            if method_def.return_type != TypeToken::Void {
+                target += &ASMBuilder::push_registers(&[&rax]);
+            } else {
+                target += &ASMBuilder::push_registers(&[]);
+            }
+        }
+
         let zipped = calling_convention.iter().zip(&self.arguments);
 
         for (conventions, argument) in zipped {
@@ -251,7 +266,7 @@ impl ToASM for MethodCallToken {
                 ASMResult::Multiline(_) => return Err(ASMGenerateError::ASMResult(ASMResultError::UnexpectedVariance {
                     expected: vec![ASMResultVariance::Inline, ASMResultVariance::MultilineResulted],
                     actual: ASMResultVariance::Multiline,
-                    token: "Expression".to_string(),
+                    token: "Method call".to_string(),
                 }))
             }
 
@@ -270,7 +285,20 @@ impl ToASM for MethodCallToken {
         target += &ASMBuilder::ident(&ASMBuilder::comment_line(&self.to_string()));
         target += &ASMBuilder::ident_line(&format!("call {}", if method_def.is_extern { method_def.name.name } else { method_def.method_label_name() }));
 
-        Ok(ASMResult::Multiline(target))
+        if !is_direction_method_call {
+            if method_def.return_type != TypeToken::Void {
+                target += &ASMBuilder::pop_registers(&[&rax]);
+            } else {
+                target += &ASMBuilder::pop_registers(&[]);
+            }
+        }
+
+
+        if method_def.return_type != TypeToken::Void {
+            Ok(ASMResult::MultilineResulted(target, rax.to_size_register(&ByteSize::try_from(method_def.return_type.byte_size())?)))
+        } else {
+            Ok(ASMResult::Multiline(target))
+        }
     }
 
 

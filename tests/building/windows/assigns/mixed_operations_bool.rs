@@ -7,9 +7,8 @@ use monkey_language::core::type_checker::static_type_checker::static_type_check;
 #[test]
 fn mixed_operations_mul() -> anyhow::Result<()> {
     let code = r#"
-extern fn printf(format: *string, value: i32): void;
 let a: bool = true | true & true;
-printf("%d", (i32)a);
+let s = (i32)a;
     "#;
 
     let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
@@ -29,16 +28,12 @@ printf("%d", (i32)a);
 segment .text
 global main
 
-extern printf
-
-.label0:
-    db "%d", 0
 
 main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 33
+    sub rsp, 37
     ; let a: bool = (true | (true & true))
     ; (true | (true & true))
     ; (true & true)
@@ -48,14 +43,11 @@ main:
     mov al, 1
     or al, dl
     mov BYTE [rbp - 1], al
-    ; Parameter ("%d")
-    mov rcx, .label0
+    ; let s: i32 = (i32)a
     ; Cast: (bool) -> (i32)
     ; Cast: (u8) -> (i32)
     movzx edx, BYTE [rbp - 1]
-    ; Parameter ((i32)a)
-    ; printf("%d", (i32)a)
-    call printf
+    mov DWORD [rbp - 5], edx
     leave
     ret
     "#;
@@ -113,7 +105,7 @@ fn mixed_operations() -> anyhow::Result<()> {
     let code = r#"
 extern fn printf(format: *string, value: i32): void;
 let a: bool = ((true | true) & false | (true & true)) & ((false | false) || true | (true & false)) & ((true | false) | false && (false | true));
-printf("%d", (i32)a);
+let s = (i32)a;
     "#;
 
     let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
@@ -135,14 +127,11 @@ global main
 
 extern printf
 
-.label5:
-    db "%d", 0
-
 main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 33
+    sub rsp, 37
     ; let a: bool = (((((true | true) & false) | (true & true)) & ((false | false) || (true | (true & false)))) & (((true | false) | false) && (false | true)))
     ; (((((true | true) & false) | (true & true)) & ((false | false) || (true | (true & false)))) & (((true | false) | false) && (false | true)))
     ; ((((true | true) & false) | (true & true)) & ((false | false) || (true | (true & false))))
@@ -251,15 +240,11 @@ main:
     pop rax
     and al, dil
     mov BYTE [rbp - 1], al
-    ; Parameter ("%d")
-    mov rcx, .label5
+    ; let s: i32 = (i32)a
     ; Cast: (bool) -> (i32)
     ; Cast: (u8) -> (i32)
     movzx edi, BYTE [rbp - 1]
-    ; Parameter ((i32)a)
-    mov edx, edi
-    ; printf("%d", (i32)a)
-    call printf
+    mov DWORD [rbp - 5], edi
     leave
     ret
     "#;

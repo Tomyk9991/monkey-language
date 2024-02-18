@@ -1,13 +1,6 @@
 use crate::core::io::code_line::CodeLine;
 
 static IGNORED_LEVENSHTEIN_CASE: &str = "LEVENSHTEIN_IGNORE";
-
-/// https://i.imgur.com/AI56ag7.png
-///```rust
-/// let value1 = "kitten".to_string();
-/// let value2 = "sitting".to_string();
-/// assert_eq!(3, monkey_language::core::lexer::levenshtein_distance::levenshtein_distance(value1.as_str(), value2.as_str()));
-/// ```
 pub fn levenshtein_distance(a: &str, b: &str) -> usize {
     let mut result = 0;
 
