@@ -24,6 +24,7 @@ use crate::core::lexer::tokens::assignable_token::AssignableTokenErr;
 use crate::core::lexer::tokens::name_token::{NameToken, NameTokenErr};
 use crate::core::lexer::TryParse;
 use crate::core::lexer::types::type_token::{InferTypeError, TypeToken};
+use crate::utils::math;
 
 /// Token for method definition. Pattern is `fn function_name(argument1, ..., argumentN): returnType { }`
 #[derive(Debug, PartialEq, Clone)]
@@ -248,7 +249,7 @@ impl ToASM for MethodDefinition {
 
         meta.static_type_information.expected_return_type = None;
 
-        let stack_allocation_asm = ASMBuilder::ident_line(&format!("sub rsp, {}", stack_allocation));
+        let stack_allocation_asm = ASMBuilder::ident_line(&format!("sub rsp, {}", math::lowest_power_of_2_gt_n(stack_allocation)));
         let leave_statement = if self.return_type == TypeToken::Void { "leave\n    ret\n".to_string() } else { String::new() };
 
         Ok(ASMResult::Multiline(format!("{}{}{}{}{}", prefix, label_header, stack_allocation_asm, method_scope, leave_statement)))

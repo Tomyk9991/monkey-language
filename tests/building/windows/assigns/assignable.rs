@@ -31,7 +31,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 40
+    sub rsp, 64
     ; let a: *string = "Hallo"
     mov QWORD [rbp - 8], .label0
     leave

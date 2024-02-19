@@ -32,7 +32,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 36
+    sub rsp, 64
     ; let a: i32 = (5 + (1 * 100))
     ; (5 + (1 * 100))
     ; (1 * 100)
@@ -78,7 +78,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 36
+    sub rsp, 64
     ; let a: i32 = ((5 * 1) / 100)
     ; ((5 * 1) / 100)
     ; (5 * 1)
@@ -130,7 +130,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 36
+    sub rsp, 64
     ; let a: i32 = ((5 * 1) - 100)
     ; ((5 * 1) - 100)
     ; (5 * 1)
@@ -173,7 +173,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 36
+    sub rsp, 64
     ; let d: i32 = (((6 - 2) * 3) / (7 + 4))
     ; (((6 - 2) * 3) / (7 + 4))
     ; ((6 - 2) * 3)
@@ -237,7 +237,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 36
+    sub rsp, 64
     ; let a: i32 = (((((3 + 1) * 4) - (9 / 2)) * (((7 + 3) / 2) - (8 * 3))) + (((6 - 2) * 3) / (7 + 4)))
     ; (((((3 + 1) * 4) - (9 / 2)) * (((7 + 3) / 2) - (8 * 3))) + (((6 - 2) * 3) / (7 + 4)))
     ; ((((3 + 1) * 4) - (9 / 2)) * (((7 + 3) / 2) - (8 * 3)))
@@ -369,7 +369,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 40
+    sub rsp, 64
     ; let a: f64 = (((((3.5 + 1.2) * 4.8) - (9.6 / 2.4)) * (((7.2 + 3.6) / 2.1) - (8.4 * 3.7))) + (((6.3 - 2.1) * 3.8) / (7.9 + 4.2)))
     ; (((((3.5 + 1.2) * 4.8) - (9.6 / 2.4)) * (((7.2 + 3.6) / 2.1) - (8.4 * 3.7))) + (((6.3 - 2.1) * 3.8) / (7.9 + 4.2)))
     ; ((((3.5 + 1.2) * 4.8) - (9.6 / 2.4)) * (((7.2 + 3.6) / 2.1) - (8.4 * 3.7)))
@@ -522,7 +522,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 36
+    sub rsp, 64
     ; let a: i32 = ((5 * 1) / 0)
     ; ((5 * 1) / 0)
     ; (5 * 1)
@@ -574,7 +574,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 36
+    sub rsp, 64
     ; let a: i32 = ((((i32)((5 << 4) < 7) * 8) - (9 % 3)) + 3)
     ; ((((i32)((5 << 4) < 7) * 8) - (9 % 3)) + 3)
     ; (((i32)((5 << 4) < 7) * 8) - (9 % 3))
@@ -612,9 +612,8 @@ main:
     mov ecx, r12d
     mov edi, eax
     sub ecx, edi
-    mov eax, ecx
-    add eax, 3
-    mov DWORD [rbp - 4], eax
+    add ecx, 3
+    mov DWORD [rbp - 4], ecx
     leave
     ret
     "#;

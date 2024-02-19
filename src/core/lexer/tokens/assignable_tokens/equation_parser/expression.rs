@@ -2,10 +2,10 @@ use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
 
-use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
+use crate::core::code_generator::{ASMGenerateError, MetaInfo, register_destination, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::asm_result::{ASMOptions, ASMResult, ASMResultVariance, InExpressionMethodCall, InterimResultOption, PrepareRegisterOption};
-use crate::core::code_generator::generator::{LastUnchecked, Stack};
+use crate::core::code_generator::generator::{LastUnchecked, Stack, StackLocation};
 use crate::core::code_generator::registers::{ByteSize, FloatRegister, GeneralPurposeRegister, GeneralPurposeRegisterIterator};
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::static_type_context::StaticTypeContext;
@@ -184,15 +184,9 @@ impl Expression {
             assignable_token: lhs.value.clone().map(|value| value.as_ref().clone()),
         }))? {
             ASMResult::Inline(inline) => target += &ASMBuilder::mov_x_ident_line(&destination_register, inline, Some(rhs.byte_size(meta))),
-            ASMResult::MultilineResulted(s, mut new_register) => {
+            ASMResult::MultilineResulted(s, new_register) => {
                 target += &s;
                 let final_ty = self.traverse_type_resulted(&meta.static_type_information, &meta.code_line)?;
-
-                if new_register.to_64_bit_register() != destination_register.to_64_bit_register() {
-                    target += &ASMBuilder::mov_x_ident_line(&destination_register, &new_register, Some(final_ty.byte_size()));
-                    new_register = destination_register;
-                }
-
                 let maybe_new_register = if final_ty.is_float() { new_register.to_float_register() } else { new_register.clone() };
 
                 target += &ASMBuilder::mov_x_ident_line(&maybe_new_register, new_register, Some(final_ty.byte_size()));
@@ -219,12 +213,6 @@ impl Expression {
             ASMResult::MultilineResulted(s, mut new_register) => {
                 target += &s;
                 let final_ty = self.traverse_type_resulted(&meta.static_type_information, &meta.code_line)?;
-
-                if new_register.to_64_bit_register() != target_register.to_64_bit_register() {
-                    target += &ASMBuilder::mov_x_ident_line(&target_register, &new_register, Some(final_ty.byte_size()));
-                    new_register = target_register;
-                }
-
                 let maybe_new_register = if final_ty.is_float() { new_register.to_float_register() } else { new_register.clone() };
 
 
@@ -268,15 +256,9 @@ impl Expression {
             assignable_token: lhs.value.clone().map(|value| value.as_ref().clone()),
         }))? {
             ASMResult::Inline(inline) => target += &ASMBuilder::mov_x_ident_line(&destination_register, inline, Some(rhs.byte_size(meta))),
-            ASMResult::MultilineResulted(s, mut new_register) => {
+            ASMResult::MultilineResulted(s, new_register) => {
                 target += &s;
                 let final_ty = self.traverse_type_resulted(&meta.static_type_information, &meta.code_line)?;
-
-                if new_register.to_64_bit_register() != destination_register.to_64_bit_register() {
-                    target += &ASMBuilder::mov_x_ident_line(&destination_register, &new_register, Some(final_ty.byte_size()));
-                    new_register = destination_register;
-                }
-
                 let maybe_new_register = if final_ty.is_float() { new_register.to_float_register() } else { new_register.clone() };
 
                 target += &ASMBuilder::mov_x_ident_line(&maybe_new_register, new_register, Some(final_ty.byte_size()));
@@ -302,12 +284,6 @@ impl Expression {
             ASMResult::MultilineResulted(s, mut new_register) => {
                 target += &s;
                 let final_ty = self.traverse_type_resulted(&meta.static_type_information, &meta.code_line)?;
-
-                if new_register.to_64_bit_register() != target_register.to_64_bit_register() {
-                    target += &ASMBuilder::mov_x_ident_line(&target_register, &new_register, Some(final_ty.byte_size()));
-                    new_register = target_register;
-                }
-
                 let maybe_new_register = if final_ty.is_float() { new_register.to_float_register() } else { new_register.clone() };
 
                 target += &ASMBuilder::mov_x_ident_line(&maybe_new_register, &new_register, Some(final_ty.byte_size()));
@@ -727,6 +703,19 @@ impl Expression {
             PrefixArithmetic::PointerArithmetic(pointer_arithmetic) => {
                 match pointer_arithmetic {
                     PointerArithmetic::Ampersand => {
+                        // trying to to lea rax, rax. this is not good
+                        // you must write to a anonymous stack position and dereference that one
+                        if GeneralPurposeRegister::from_str(&register_or_stack_address).is_ok() {
+                            let byte_size = value.infer_type_with_context(&meta.static_type_information, &meta.code_line)?.byte_size();
+                            let stack_address = stack.variables.push(StackLocation::new_anonymous_stack_location(stack.stack_position, byte_size));
+                            stack.stack_position += byte_size;
+
+                            let offset = stack.stack_position;
+                            let anonymous_stack_position = format!("{} [rbp - {}]", register_destination::word_from_byte_size(byte_size), offset);
+                            target += &ASMBuilder::mov_x_ident_line(&anonymous_stack_position, &register_64, Some(byte_size));
+                            register_or_stack_address = anonymous_stack_position;
+                        }
+
                         target += &ASMBuilder::ident_line(&format!("lea {}, {}", register_64, register_or_stack_address
                             .replace("QWORD ", "")
                             .replace("DWORD ", "")

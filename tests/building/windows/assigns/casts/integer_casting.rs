@@ -36,7 +36,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 48
+    sub rsp, 64
     ; let a: u8 = 250
     mov BYTE [rbp - 1], 250
     ; let b: i8 = (i8)a
@@ -94,7 +94,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 47
+    sub rsp, 64
     ; let a: u8 = 250
     mov BYTE [rbp - 1], 250
     ; let b: u16 = (u16)a
@@ -150,7 +150,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 48
+    sub rsp, 64
     ; let a: i8 = 120
     mov BYTE [rbp - 1], 120
     ; let b: i8 = a
@@ -208,7 +208,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 48
+    sub rsp, 64
     ; let a: i8 = 120
     mov BYTE [rbp - 1], 120
     ; let b: i8 = a
@@ -267,7 +267,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 49
+    sub rsp, 64
     ; let a: u16 = 250
     mov WORD [rbp - 2], 250
     ; let b: i8 = (i8)a
@@ -326,7 +326,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 49
+    sub rsp, 64
     ; let a: u16 = 250
     mov WORD [rbp - 2], 250
     ; let e: u8 = (u8)a
@@ -385,7 +385,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 49
+    sub rsp, 64
     ; let a: i16 = 120
     mov WORD [rbp - 2], 120
     ; let c: i8 = (i8)a
@@ -443,7 +443,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 49
+    sub rsp, 64
     ; let a: i16 = 120
     mov WORD [rbp - 2], 120
     ; let b: u8 = (u8)a
@@ -503,7 +503,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 51
+    sub rsp, 64
     ; let a: u32 = 250
     mov DWORD [rbp - 4], 250
     ; let b: i8 = (i8)a
@@ -564,7 +564,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 51
+    sub rsp, 64
     ; let a: u32 = 250
     mov DWORD [rbp - 4], 250
     ; let b: u8 = (u8)a
@@ -625,7 +625,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 51
+    sub rsp, 64
     ; let a: i32 = 120
     mov DWORD [rbp - 4], 120
     ; let c: i8 = (i8)a
@@ -683,7 +683,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 51
+    sub rsp, 64
     ; let a: i32 = 120
     mov DWORD [rbp - 4], 120
     ; let b: u8 = (u8)a
@@ -745,7 +745,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 55
+    sub rsp, 64
     ; let a: u64 = 250
     mov QWORD [rbp - 8], 250
     ; let b: i8 = (i8)a
@@ -804,7 +804,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 55
+    sub rsp, 64
     ; let a: u64 = 250
     mov QWORD [rbp - 8], 250
     ; let b: u8 = (u8)a
@@ -863,7 +863,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 55
+    sub rsp, 64
     ; let a: i64 = 120
     mov QWORD [rbp - 8], 120
     ; let c: i8 = (i8)a
@@ -921,7 +921,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 55
+    sub rsp, 64
     ; let a: i64 = 120
     mov QWORD [rbp - 8], 120
     ; let b: u8 = (u8)a

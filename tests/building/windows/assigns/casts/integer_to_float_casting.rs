@@ -42,7 +42,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 63
+    sub rsp, 64
     ; let a: u8 = 250
     mov BYTE [rbp - 1], 250
     ; let b: f32 = (f32)a
@@ -132,7 +132,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 63
+    sub rsp, 64
     ; let a: i8 = -120
     mov BYTE [rbp - 1], -120
     ; let b: f32 = (f32)a
@@ -222,7 +222,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 79
+    sub rsp, 128
     ; let a: u8 = 250
     mov BYTE [rbp - 1], 250
     ; let b: f64 = (f64)a
@@ -313,7 +313,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 63
+    sub rsp, 64
     ; let a: i8 = -120
     mov BYTE [rbp - 1], -120
     ; let b: f32 = (f32)a

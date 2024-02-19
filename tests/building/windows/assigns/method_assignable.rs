@@ -36,7 +36,7 @@ global main
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 36
+    sub rsp, 64
     ; return 5
     mov eax, __?float32?__(5.0)
     leave
@@ -45,7 +45,7 @@ global main
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 40
+    sub rsp, 64
     ; return 5
     mov rax, __?float64?__(5.0)
     leave
@@ -54,7 +54,7 @@ global main
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 36
+    sub rsp, 64
     ; return 23
     mov eax, 23
     leave
@@ -63,30 +63,14 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 48
+    sub rsp, 64
     ; let a: f32 = float_return()
-    ; PushQ
-    push rcx
-    push rdi
-    push rdx
     ; float_return()
     call .float_return_void~f32
-    ; PopQ
-    pop rdx
-    pop rdi
-    pop rcx
     mov DWORD [rbp - 4], eax
     ; let b: f64 = float_f64_return()
-    ; PushQ
-    push rcx
-    push rdi
-    push rdx
     ; float_f64_return()
     call .float_f64_return_void~f64
-    ; PopQ
-    pop rdx
-    pop rdi
-    pop rcx
     mov QWORD [rbp - 12], rax
     ; let c: i32 = (integer_return() + (i32)b)
     ; (integer_return() + (i32)b)
@@ -138,8 +122,7 @@ main:
     let asm_result = code_generator.generate()?;
 
 
-    let expected = r#"
-    ; This assembly is targeted for the Windows Operating System
+    let expected = r#"; This assembly is targeted for the Windows Operating System
 segment .text
 global main
 
@@ -148,7 +131,7 @@ global main
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 36
+    sub rsp, 64
     ; return 5
     mov eax, 5
     leave
@@ -157,7 +140,7 @@ global main
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 36
+    sub rsp, 64
     ; return 3
     mov eax, 3
     leave
@@ -166,7 +149,7 @@ global main
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 36
+    sub rsp, 64
     ; return 5
     mov eax, __?float32?__(5.0)
     leave
@@ -175,7 +158,7 @@ global main
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 36
+    sub rsp, 64
     ; return 3
     mov eax, __?float32?__(3.0)
     leave
@@ -184,7 +167,7 @@ global main
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 40
+    sub rsp, 64
     ; return 5
     mov rax, __?float64?__(5.0)
     leave
@@ -193,7 +176,7 @@ global main
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 40
+    sub rsp, 64
     ; return 3
     mov rax, __?float64?__(3.0)
     leave
@@ -202,7 +185,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 48
+    sub rsp, 64
     ; let c: i32 = (int_5() + int_3())
     ; (int_5() + int_3())
     ; PushQ
@@ -216,16 +199,17 @@ main:
     pop rdi
     pop rcx
     ; PushQ
+    push rax
     push rcx
     push rdi
-    push rdx
     ; int_3()
     call .int_3_void~i32
+    mov edx, eax
     ; PopQ
-    pop rdx
     pop rdi
     pop rcx
-    add eax, eax
+    pop rax
+    add eax, edx
     mov DWORD [rbp - 4], eax
     ; let a: f32 = (float_5() + float_3())
     ; (float_5() + float_3())
@@ -241,17 +225,18 @@ main:
     pop rcx
     movd xmm0, eax
     ; PushQ
+    push rax
     push rcx
     push rdi
-    push rdx
     ; float_3()
     call .float_3_void~f32
+    mov edx, eax
     ; PopQ
-    pop rdx
     pop rdi
     pop rcx
-    movd xmm0, eax
-    addss xmm0, xmm0
+    pop rax
+    movd xmm3, edx
+    addss xmm0, xmm3
     movd eax, xmm0
     mov DWORD [rbp - 8], eax
     ; let b: f64 = (float_f64_5() + float_f64_3())
@@ -268,17 +253,18 @@ main:
     pop rcx
     movq xmm0, rax
     ; PushQ
+    push rax
     push rcx
     push rdi
-    push rdx
     ; float_f64_3()
     call .float_f64_3_void~f64
+    mov rdx, rax
     ; PopQ
-    pop rdx
     pop rdi
     pop rcx
-    movq xmm0, rax
-    addsd xmm0, xmm0
+    pop rax
+    movq xmm3, rdx
+    addsd xmm0, xmm3
     movq rax, xmm0
     mov QWORD [rbp - 16], rax
     leave
@@ -317,7 +303,7 @@ global main
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 40
+    sub rsp, 64
     ; return 5
     mov rax, __?float64?__(5.0)
     leave
@@ -326,18 +312,10 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 48
+    sub rsp, 64
     ; let a: f64 = f()
-    ; PushQ
-    push rcx
-    push rdi
-    push rdx
     ; f()
     call .f_void~f64
-    ; PopQ
-    pop rdx
-    pop rdi
-    pop rcx
     mov QWORD [rbp - 8], rax
     ; let b: *f64 = &a
     lea rax, [rbp - 8]
@@ -388,7 +366,7 @@ global main
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 40
+    sub rsp, 64
     ; return 5
     mov rax, __?float64?__(5.0)
     leave
@@ -397,7 +375,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 96
+    sub rsp, 128
     ; let a: f64 = r()
     movq rax, xmm0
     ; r()
@@ -470,7 +448,7 @@ global main
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 40
+    sub rsp, 64
     ; return 5
     mov rax, __?float64?__(5.0)
     leave
@@ -479,7 +457,7 @@ global main
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 40
+    sub rsp, 64
     ; return 1
     mov rax, __?float64?__(1.0)
     leave
@@ -488,18 +466,10 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 56
+    sub rsp, 64
     ; let a: f64 = f1()
-    ; PushQ
-    push rcx
-    push rdi
-    push rdx
     ; f1()
     call .f1_void~f64
-    ; PopQ
-    pop rdx
-    pop rdi
-    pop rcx
     mov QWORD [rbp - 8], rax
     ; let b: *f64 = &a
     lea rax, [rbp - 8]
@@ -510,17 +480,18 @@ main:
     mov rax, QWORD [rax]
     movq xmm0, rax
     ; PushQ
+    push rax
     push rcx
     push rdi
-    push rdx
     ; f2()
     call .f2_void~f64
+    mov rdx, rax
     ; PopQ
-    pop rdx
     pop rdi
     pop rcx
-    movq xmm0, rax
-    addsd xmm0, xmm0
+    pop rax
+    movq xmm3, rdx
+    addsd xmm0, xmm3
     movq rax, xmm0
     mov QWORD [rbp - 24], rax
     leave
@@ -565,7 +536,7 @@ global main
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 40
+    sub rsp, 64
     ; return 5
     mov rax, __?float64?__(5.0)
     leave
@@ -574,7 +545,7 @@ global main
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 40
+    sub rsp, 64
     ; return 1
     mov rax, __?float64?__(1.0)
     leave
@@ -583,9 +554,8 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 56
+    sub rsp, 64
     ; let a: f64 = f1()
-    movq rax, xmm0
     ; f1()
     call .f1_void~f64
     mov QWORD [rbp - 8], rax
@@ -600,11 +570,11 @@ main:
     push rdx
     ; f2()
     call .f2_void~f64
-    movq xmm0, rax
     ; PopQ
     pop rdx
     pop rdi
     pop rcx
+    movq xmm0, rax
     mov rdx, QWORD [rbp - 16]
     mov rdx, QWORD [rdx]
     movq xmm3, rdx
@@ -649,7 +619,7 @@ global main
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 40
+    sub rsp, 64
     ; return 5
     mov rax, __?float64?__(5.0)
     leave
@@ -658,7 +628,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 40
+    sub rsp, 64
     ; let addition: f64 = (f1() + f1())
     ; (f1() + f1())
     ; PushQ
@@ -723,7 +693,7 @@ global main
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 40
+    sub rsp, 64
     ; return 5
     mov rax, __?float64?__(5.0)
     leave
@@ -732,7 +702,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 48
+    sub rsp, 64
     ; let a: f64 = f1()
     movq rax, xmm0
     ; f1()
@@ -798,7 +768,7 @@ global main
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 40
+    sub rsp, 64
     ; return 5
     mov rax, __?float64?__(5.0)
     leave
@@ -807,7 +777,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 48
+    sub rsp, 64
     ; let a: f64 = f1()
     movq rax, xmm0
     ; f1()
@@ -871,7 +841,7 @@ global main
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 40
+    sub rsp, 64
     ; return 5
     mov rax, __?float64?__(5.0)
     leave
@@ -880,7 +850,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 40
+    sub rsp, 64
     ; let addition: f64 = ((f1() + f1()) + (f1() + f1()))
     ; ((f1() + f1()) + (f1() + f1()))
     ; (f1() + f1())
@@ -980,7 +950,7 @@ global main
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 40
+    sub rsp, 64
     ; return 13
     mov rax, __?float64?__(13.0)
     leave
@@ -989,7 +959,7 @@ global main
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 40
+    sub rsp, 64
     ; return 5
     mov rax, __?float64?__(5.0)
     leave
@@ -998,7 +968,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 40
+    sub rsp, 64
     ; let addition: f64 = ((((f1() + f2()) + (f2() + f1())) + (f2() + f2())) + ((f2() + (f2() + f2())) + (f2() + (f1() + f2()))))
     ; ((((f1() + f2()) + (f2() + f1())) + (f2() + f2())) + ((f2() + (f2() + f2())) + (f2() + (f1() + f2()))))
     ; (((f1() + f2()) + (f2() + f1())) + (f2() + f2()))
@@ -1242,7 +1212,7 @@ global main
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 40
+    sub rsp, 64
     ; return 5
     mov rax, __?float64?__(5.0)
     leave
@@ -1251,14 +1221,12 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 48
+    sub rsp, 64
     ; let a: f64 = f1()
-    movq rax, xmm0
     ; f1()
     call .f1_void~f64
     mov QWORD [rbp - 8], rax
     ; let b: f64 = a
-    movq rax, xmm0
     mov rax, QWORD [rbp - 8]
     mov QWORD [rbp - 16], rax
     leave

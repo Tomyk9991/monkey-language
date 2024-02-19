@@ -36,7 +36,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 42
+    sub rsp, 64
     ; let a: bool = true
     mov BYTE [rbp - 1], 1
     ; let b: bool = false

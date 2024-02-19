@@ -32,7 +32,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 56
+    sub rsp, 64
     ; let a: f64 = 5
     mov rax, __?float64?__(5.0)
     mov QWORD [rbp - 8], rax
@@ -79,7 +79,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 36
+    sub rsp, 64
     ; let a: f32 = (5 + 3)
     ; (5 + 3)
     mov eax, __?float32?__(5.0)
@@ -120,7 +120,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 40
+    sub rsp, 64
     ; let a: f64 = ((5 + 2) + 8)
     ; ((5 + 2) + 8)
     ; (5 + 2)
@@ -165,7 +165,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 40
+    sub rsp, 64
     ; let a: f64 = (5 + (2 + 8))
     ; (5 + (2 + 8))
     ; (2 + 8)
@@ -211,7 +211,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 40
+    sub rsp, 64
     ; let a: f64 = ((5 + 3) + (2 + 8))
     ; ((5 + 3) + (2 + 8))
     ; (5 + 3)
@@ -263,7 +263,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 40
+    sub rsp, 64
     ; let a: f64 = 6
     mov rax, __?float64?__(6.0)
     mov QWORD [rbp - 8], rax
@@ -298,7 +298,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 40
+    sub rsp, 64
     ; let a: f64 = 6
     mov rax, __?float64?__(6.0)
     mov QWORD [rbp - 8], rax
@@ -337,7 +337,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 48
+    sub rsp, 64
     ; let a: f64 = 5
     mov rax, __?float64?__(5.0)
     mov QWORD [rbp - 8], rax
@@ -388,7 +388,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 88
+    sub rsp, 128
     ; let a: f64 = 5
     mov rax, __?float64?__(5.0)
     mov QWORD [rbp - 8], rax
@@ -449,7 +449,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 56
+    sub rsp, 64
     ; let a: f64 = 5
     mov rax, __?float64?__(5.0)
     mov QWORD [rbp - 8], rax
@@ -506,7 +506,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 56
+    sub rsp, 64
     ; let a: f64 = 5
     mov rax, __?float64?__(5.0)
     mov QWORD [rbp - 8], rax
@@ -562,7 +562,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 56
+    sub rsp, 64
     ; let a: f64 = 5
     mov rax, __?float64?__(5.0)
     mov QWORD [rbp - 8], rax
@@ -615,7 +615,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 56
+    sub rsp, 64
     ; let a: f64 = 5
     mov rax, __?float64?__(5.0)
     mov QWORD [rbp - 8], rax
@@ -675,7 +675,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 56
+    sub rsp, 64
     ; let a: f64 = 5
     mov rax, __?float64?__(5.0)
     mov QWORD [rbp - 8], rax
@@ -734,7 +734,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 56
+    sub rsp, 64
     ; let a: f64 = 5
     mov rax, __?float64?__(5.0)
     mov QWORD [rbp - 8], rax
@@ -806,7 +806,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 72
+    sub rsp, 128
     ; let a: f64 = 5
     mov rax, __?float64?__(5.0)
     mov QWORD [rbp - 8], rax
@@ -951,7 +951,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 48
+    sub rsp, 64
     ; let a: f64 = 5
     mov rax, __?float64?__(5.0)
     mov QWORD [rbp - 8], rax
@@ -1011,7 +1011,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 36
+    sub rsp, 64
     ; let a: f32 = 512
     mov eax, __?float32?__(512.0)
     mov DWORD [rbp - 4], eax
@@ -1053,7 +1053,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 48
+    sub rsp, 64
     ; let a: *string = "Testing string"
     mov QWORD [rbp - 8], .label0
     ; let b: i32 = 512
@@ -1094,7 +1094,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 40
+    sub rsp, 64
     ; let a: i64 = 512
     mov QWORD [rbp - 8], 512
     leave
@@ -1133,7 +1133,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 56
+    sub rsp, 64
     ; let a: i64 = 512
     mov QWORD [rbp - 8], 512
     ; let b: i64 = 5
@@ -1186,7 +1186,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 72
+    sub rsp, 128
     ; let a: i64 = 5
     mov QWORD [rbp - 8], 5
     ; let b: *i64 = &a

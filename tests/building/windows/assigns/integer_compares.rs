@@ -48,7 +48,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 46
+    sub rsp, 64
     ; let a: u8 = 5
     mov BYTE [rbp - 1], 5
     ; let b: u8 = 3
@@ -179,7 +179,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 46
+    sub rsp, 64
     ; let a: i8 = 5
     mov BYTE [rbp - 1], 5
     ; let b: i8 = 3
@@ -309,7 +309,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 48
+    sub rsp, 64
     ; let a: u16 = 5
     mov WORD [rbp - 2], 5
     ; let b: u16 = 3
@@ -439,7 +439,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 48
+    sub rsp, 64
     ; let a: i16 = 5
     mov WORD [rbp - 2], 5
     ; let b: i16 = 3
@@ -569,7 +569,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 52
+    sub rsp, 64
     ; let a: u32 = 5
     mov DWORD [rbp - 4], 5
     ; let b: u32 = 3
@@ -699,7 +699,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 52
+    sub rsp, 64
     ; let a: i32 = 5
     mov DWORD [rbp - 4], 5
     ; let b: i32 = 3
@@ -829,7 +829,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 60
+    sub rsp, 64
     ; let a: u64 = 5
     mov QWORD [rbp - 8], 5
     ; let b: u64 = 3
@@ -959,7 +959,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 60
+    sub rsp, 64
     ; let a: i64 = 5
     mov QWORD [rbp - 8], 5
     ; let b: i64 = 3
@@ -1070,7 +1070,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 33
+    sub rsp, 64
     ; let a: bool = ((3 == 3) && (7 != 9))
     ; ((3 == 3) && (7 != 9))
     ; (3 == 3)
@@ -1141,7 +1141,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 49
+    sub rsp, 64
     ; let a: i32 = 5
     mov DWORD [rbp - 4], 5
     ; let b: i32 = 3

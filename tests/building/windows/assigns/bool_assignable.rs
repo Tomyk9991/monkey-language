@@ -32,7 +32,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 35
+    sub rsp, 64
     ; let a: bool = true
     mov BYTE [rbp - 1], 1
     ; let b: bool = false
@@ -73,7 +73,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 33
+    sub rsp, 64
     ; let a: bool = (true | false)
     ; (true | false)
     mov al, 1
@@ -110,7 +110,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 33
+    sub rsp, 64
     ; let a: bool = ((true | true) | false)
     ; ((true | true) | false)
     ; (true | true)
@@ -148,7 +148,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 33
+    sub rsp, 64
     ; let a: bool = (false | (true | true))
     ; (false | (true | true))
     ; (true | true)
@@ -189,7 +189,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 33
+    sub rsp, 64
     ; let a: bool = ((true | true) | (false | false))
     ; ((true | true) | (false | false))
     ; (true | true)
@@ -234,7 +234,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 33
+    sub rsp, 64
     ; let a: bool = true
     mov BYTE [rbp - 1], 1
     leave
@@ -268,7 +268,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 33
+    sub rsp, 64
     ; let a: bool = true
     mov al, 1
     mov BYTE [rbp - 1], al
@@ -307,7 +307,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 41
+    sub rsp, 64
     ; let a: bool = true
     mov BYTE [rbp - 1], 1
     ; let b: *bool = &a
@@ -357,7 +357,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 67
+    sub rsp, 128
     ; let a: bool = true
     mov BYTE [rbp - 1], 1
     ; let b: *bool = &a
@@ -417,7 +417,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 42
+    sub rsp, 64
     ; let a: bool = true
     mov BYTE [rbp - 1], 1
     ; let b: *bool = &a
@@ -469,7 +469,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 42
+    sub rsp, 64
     ; let a: bool = false
     mov BYTE [rbp - 1], 0
     ; let b: *bool = &a
@@ -521,7 +521,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 42
+    sub rsp, 64
     ; let a: bool = true
     mov BYTE [rbp - 1], 1
     ; let b: *bool = &a
@@ -570,7 +570,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 42
+    sub rsp, 64
     ; let a: bool = true
     mov BYTE [rbp - 1], 1
     ; let b: *bool = &a
@@ -625,7 +625,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 42
+    sub rsp, 64
     ; let a: bool = true
     mov BYTE [rbp - 1], 1
     ; let b: *bool = &a
@@ -678,7 +678,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 42
+    sub rsp, 64
     ; let a: bool = true
     mov BYTE [rbp - 1], 1
     ; let b: *bool = &a
@@ -744,7 +744,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 51
+    sub rsp, 64
     ; let a: bool = true
     mov BYTE [rbp - 1], 1
     ; let b: *bool = &a
@@ -865,7 +865,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 34
+    sub rsp, 64
     ; let a: bool = true
     mov BYTE [rbp - 1], 1
     ; let b: bool = a
@@ -924,7 +924,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 33
+    sub rsp, 64
     ; let a: bool = false
     mov BYTE [rbp - 1], 0
     leave

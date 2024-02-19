@@ -33,7 +33,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 37
+    sub rsp, 64
     ; let a: bool = (true | (true & true))
     ; (true | (true & true))
     ; (true & true)
@@ -84,7 +84,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 33
+    sub rsp, 64
     ; let a: bool = ((true & true) | false)
     ; ((true & true) | false)
     ; (true & true)
@@ -131,7 +131,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 37
+    sub rsp, 64
     ; let a: bool = (((((true | true) & false) | (true & true)) & ((false | false) || (true | (true & false)))) & (((true | false) | false) && (false | true)))
     ; (((((true | true) & false) | (true & true)) & ((false | false) || (true | (true & false)))) & (((true | false) | false) && (false | true)))
     ; ((((true | true) & false) | (true & true)) & ((false | false) || (true | (true & false))))

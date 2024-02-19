@@ -12,6 +12,7 @@ use crate::core::lexer::tokens::assignable_token::AssignableToken;
 use crate::core::lexer::tokens::name_token::NameToken;
 use crate::core::lexer::tokens::parameter_token::ParameterToken;
 use crate::core::lexer::tokens::variable_token::VariableToken;
+use crate::utils::math;
 
 #[derive(Debug)]
 pub struct StackLocation {
@@ -156,7 +157,6 @@ impl ASMGenerator {
 
         let entry_point_label = if self.target_os == TargetOS::Windows {
             boiler_plate += &ASMBuilder::line("segment .text");
-
             String::from("main")
         } else {
             String::from("_start")
@@ -233,7 +233,6 @@ impl ASMGenerator {
                 }
 
                 stack_allocation += token.byte_size(&mut meta);
-                // method_scope += &token.to_asm(&mut self.stack, &mut meta)?;
                 method_scope += &token.to_asm::<InterimResultOption>(&mut self.stack, &mut meta, None)?.to_string();
 
                 if let Some(Ok(prefix_asm)) = token.before_label(&mut self.stack, &mut meta) {
@@ -246,7 +245,7 @@ impl ASMGenerator {
                 method_scope += &ASMBuilder::ident_line("ret");
             }
 
-            let stack_allocation_asm = ASMBuilder::ident_line(&format!("sub rsp, {}", stack_allocation));
+            let stack_allocation_asm = ASMBuilder::ident_line(&format!("sub rsp, {}", math::lowest_power_of_2_gt_n(stack_allocation)));
 
             Ok(format!("{}{}{}{}{}{}", boiler_plate, prefix, method_definitions, label_header, stack_allocation_asm, method_scope))
         }

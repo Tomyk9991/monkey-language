@@ -32,7 +32,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 36
+    sub rsp, 64
     ; let a: f32 = (5 + (1 * 100))
     ; (5 + (1 * 100))
     ; (1 * 100)
@@ -83,7 +83,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 36
+    sub rsp, 64
     ; let a: f32 = ((5 * 1) - 100)
     ; ((5 * 1) - 100)
     ; (5 * 1)
@@ -133,7 +133,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 36
+    sub rsp, 64
     ; let a: f32 = (((((3.5 + 1.2) * 4.8) - (9.6 / 2.4)) * (((7.2 + 3.6) / 2.1) - (8.4 * 3.7))) + (((6.3 - 2.1) * 3.8) / (7.9 + 4.2)))
     ; (((((3.5 + 1.2) * 4.8) - (9.6 / 2.4)) * (((7.2 + 3.6) / 2.1) - (8.4 * 3.7))) + (((6.3 - 2.1) * 3.8) / (7.9 + 4.2)))
     ; ((((3.5 + 1.2) * 4.8) - (9.6 / 2.4)) * (((7.2 + 3.6) / 2.1) - (8.4 * 3.7)))
@@ -286,7 +286,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 40
+    sub rsp, 64
     ; let a: f64 = (((((3.5 + 1.2) * 4.8) - (9.6 / 2.4)) * (((7.2 + 3.6) / 2.1) - (8.4 * 3.7))) + (((6.3 - 2.1) * 3.8) / (7.9 + 4.2)))
     ; (((((3.5 + 1.2) * 4.8) - (9.6 / 2.4)) * (((7.2 + 3.6) / 2.1) - (8.4 * 3.7))) + (((6.3 - 2.1) * 3.8) / (7.9 + 4.2)))
     ; ((((3.5 + 1.2) * 4.8) - (9.6 / 2.4)) * (((7.2 + 3.6) / 2.1) - (8.4 * 3.7)))
@@ -439,7 +439,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 36
+    sub rsp, 64
     ; let a: f32 = ((5 * 1) / 0)
     ; ((5 * 1) / 0)
     ; (5 * 1)

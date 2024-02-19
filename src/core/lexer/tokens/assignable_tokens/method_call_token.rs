@@ -4,7 +4,6 @@ use std::fmt::{Display, Formatter};
 use std::iter::Peekable;
 use std::slice::Iter;
 use std::str::FromStr;
-use crate::core::lexer::scope::PatternNotMatchedError;
 
 use crate::core::code_generator::{ASMGenerateError, conventions, MetaInfo};
 use crate::core::code_generator::asm_builder::ASMBuilder;
@@ -16,6 +15,7 @@ use crate::core::code_generator::ToASM;
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::errors::EmptyIteratorErr;
 use crate::core::lexer::levenshtein_distance::{ArgumentsIgnoreSummarizeTransform, EmptyParenthesesExpand, PatternedLevenshteinDistance, PatternedLevenshteinString, QuoteSummarizeTransform};
+use crate::core::lexer::scope::PatternNotMatchedError;
 use crate::core::lexer::static_type_context::StaticTypeContext;
 use crate::core::lexer::tokens::assignable_token::{AssignableToken, AssignableTokenErr};
 use crate::core::lexer::tokens::name_token::{NameToken, NameTokenErr};
@@ -205,7 +205,7 @@ impl MethodCallToken {
         }
 
         if method_defs.is_empty() {
-            return Err(InferTypeError::UnresolvedReference(self.name.name.clone(), code_line.clone()))
+            return Err(InferTypeError::UnresolvedReference(self.name.name.clone(), code_line.clone()));
         }
 
         let signatures = method_defs
@@ -228,24 +228,35 @@ impl ToASM for MethodCallToken {
 
         let method_def = meta.static_type_information.methods.iter().find(|m| m.name.name == self.name.name)
             .ok_or(ASMGenerateError::TypeNotInferrable(InferTypeError::UnresolvedReference(self.name.to_string(), meta.code_line.clone())))?.clone();
-        let rax = GeneralPurposeRegister::Bit64(Bit64::Rax);
+        let resulting_register = GeneralPurposeRegister::Bit64(Bit64::Rax);
+
+        // represents the register where the final result must lay in, and where it is expected, after call
+        let register_to_move_result = stack.register_to_use.last().unwrap_or(&GeneralPurposeRegister::Bit64(Bit64::Rax)).clone();
+        let register_to_move_result_64bit = register_to_move_result.to_64_bit_register();
 
         let mut target = String::new();
 
+        let mut registers_push_ignore = vec![];
 
-        let is_direction_method_call = if let Some(options) = options {
+
+        let is_direct_method_call = if let Some(options) = options {
             let any_t = &options as &dyn Any;
             !any_t.downcast_ref::<InExpressionMethodCall>().is_some()
         } else {
             true
         };
 
-        if !is_direction_method_call {
-            if method_def.return_type != TypeToken::Void {
-                target += &ASMBuilder::push_registers(&[&rax]);
-            } else {
-                target += &ASMBuilder::push_registers(&[]);
-            }
+
+        if method_def.return_type != TypeToken::Void && register_to_move_result_64bit == resulting_register {
+            registers_push_ignore.push(&resulting_register);
+        }
+
+        if !register_to_move_result.is_float_register() && (register_to_move_result_64bit != resulting_register) {
+            registers_push_ignore.push(&register_to_move_result_64bit);
+        }
+
+        if !is_direct_method_call {
+            target += &ASMBuilder::push_registers(&registers_push_ignore);
         }
 
         let zipped = calling_convention.iter().zip(&self.arguments);
@@ -258,7 +269,10 @@ impl ToASM for MethodCallToken {
             let mut inline = false;
             let mut assign = String::new();
             match argument.to_asm(stack, meta, Some(InterimResultOption::from(&result_from_eval)))? {
-                ASMResult::Inline(source) => { inline = true; assign = source; },
+                ASMResult::Inline(source) => {
+                    inline = true;
+                    assign = source;
+                }
                 ASMResult::MultilineResulted(source, r) => {
                     target += &source;
                     result_from_eval = r;
@@ -285,17 +299,19 @@ impl ToASM for MethodCallToken {
         target += &ASMBuilder::ident(&ASMBuilder::comment_line(&self.to_string()));
         target += &ASMBuilder::ident_line(&format!("call {}", if method_def.is_extern { method_def.name.name } else { method_def.method_label_name() }));
 
-        if !is_direction_method_call {
-            if method_def.return_type != TypeToken::Void {
-                target += &ASMBuilder::pop_registers(&[&rax]);
-            } else {
-                target += &ASMBuilder::pop_registers(&[]);
-            }
+        if method_def.return_type != TypeToken::Void {
+            target += &ASMBuilder::mov_x_ident_line(&register_to_move_result, GeneralPurposeRegister::Bit64(Bit64::Rax).to_size_register(
+                &ByteSize::try_from(method_def.return_type.byte_size())?
+            ), Some(method_def.return_type.byte_size()));
+        }
+
+        if !is_direct_method_call {
+            target += &ASMBuilder::pop_registers(&registers_push_ignore);
         }
 
 
         if method_def.return_type != TypeToken::Void {
-            Ok(ASMResult::MultilineResulted(target, rax.to_size_register(&ByteSize::try_from(method_def.return_type.byte_size())?)))
+            Ok(ASMResult::MultilineResulted(target, register_to_move_result.to_size_register(&ByteSize::try_from(method_def.return_type.byte_size())?)))
         } else {
             Ok(ASMResult::Multiline(target))
         }

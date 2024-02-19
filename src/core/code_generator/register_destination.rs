@@ -4,7 +4,8 @@
 ///  - byte = 4 => rax
 ///  - byte = 2 => ax
 ///  - byte = 1 => al
-pub fn from_byte_size(byte: usize) -> String {
+#[allow(dead_code)]
+pub(crate) fn from_byte_size(byte: usize) -> String {
     match byte {
         8 => "rax",
         4 => "eax",
