@@ -5,7 +5,6 @@ use std::str::FromStr;
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::code_generator::asm_result::{ASMOptions, ASMResult};
-use crate::core::code_generator::registers::GeneralPurposeRegister;
 use crate::core::lexer::types::integer::Integer;
 
 
@@ -98,9 +97,5 @@ impl ToASM for IntegerToken {
 
     fn before_label(&self, _stack: &mut Stack, _meta: &mut MetaInfo) -> Option<Result<String, ASMGenerateError>> {
         None
-    }
-
-    fn multi_line_asm(&self, _stack: &mut Stack, _meta: &mut MetaInfo) -> Result<(bool, String, Option<GeneralPurposeRegister>), ASMGenerateError> {
-        Ok((false, String::new(), None))
     }
 }

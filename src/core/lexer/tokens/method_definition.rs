@@ -11,7 +11,7 @@ use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::asm_result::{ASMOptions, ASMResult, InterimResultOption};
 use crate::core::code_generator::conventions::CallingRegister;
 use crate::core::code_generator::generator::Stack;
-use crate::core::code_generator::registers::{ByteSize, GeneralPurposeRegister};
+use crate::core::code_generator::registers::ByteSize;
 use crate::core::constants::FUNCTION_KEYWORD;
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::errors::EmptyIteratorErr;
@@ -265,10 +265,6 @@ impl ToASM for MethodDefinition {
 
     fn before_label(&self, _stack: &mut Stack, _meta: &mut MetaInfo) -> Option<Result<String, ASMGenerateError>> {
         None
-    }
-
-    fn multi_line_asm(&self, _stack: &mut Stack, _meta: &mut MetaInfo) -> Result<(bool, String, Option<GeneralPurposeRegister>), ASMGenerateError> {
-        Ok((false, String::new(), None))
     }
 }
 

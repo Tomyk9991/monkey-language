@@ -3,7 +3,6 @@ use std::fmt::{Debug, Display, Formatter};
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::code_generator::asm_result::{ASMOptions, ASMResult};
 use crate::core::code_generator::generator::Stack;
-use crate::core::code_generator::registers::GeneralPurposeRegister;
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::static_type_context::StaticTypeContext;
 use crate::core::lexer::tokens::assignable_tokens::method_call_token::MethodCallToken;
@@ -133,18 +132,6 @@ impl ToASM for Token {
             Token::ScopeClosing(_) => None,
             Token::IfDefinition(v) => v.before_label(stack, meta),
             Token::Return(ret) => ret.before_label(stack, meta),
-        }
-    }
-
-    fn multi_line_asm(&self, stack: &mut Stack, meta: &mut MetaInfo) -> Result<(bool, String, Option<GeneralPurposeRegister>), ASMGenerateError> {
-        match self {
-            Token::Variable(a) => a.multi_line_asm(stack, meta),
-            Token::MethodCall(a) => a.multi_line_asm(stack, meta),
-            Token::MethodDefinition(a) => a.multi_line_asm(stack, meta),
-            Token::Import(a) => a.multi_line_asm(stack, meta),
-            Token::Return(a) => a.multi_line_asm(stack, meta),
-            Token::ScopeClosing(_) => Ok((false, String::new(), None)),
-            Token::IfDefinition(a) => a.multi_line_asm(stack, meta),
         }
     }
 }

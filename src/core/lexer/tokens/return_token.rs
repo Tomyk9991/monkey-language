@@ -8,7 +8,7 @@ use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::asm_result::{ASMOptions, ASMResult, ASMResultError, ASMResultVariance, InterimResultOption};
 use crate::core::code_generator::conventions::return_calling_convention;
-use crate::core::code_generator::registers::{ByteSize, GeneralPurposeRegister};
+use crate::core::code_generator::registers::ByteSize;
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::errors::EmptyIteratorErr;
 use crate::core::lexer::scope::PatternNotMatchedError;
@@ -137,10 +137,6 @@ impl ToASM for ReturnToken {
         } else {
             None
         }
-    }
-
-    fn multi_line_asm(&self, _stack: &mut Stack, _meta: &mut MetaInfo) -> Result<(bool, String, Option<GeneralPurposeRegister>), ASMGenerateError> {
-        Ok((false, String::new(), None))
     }
 }
 

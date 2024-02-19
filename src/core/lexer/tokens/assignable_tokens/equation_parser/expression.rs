@@ -2,19 +2,18 @@ use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
 
-use crate::core::code_generator::{ASMGenerateError, MetaInfo, register_destination, ToASM};
+use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::asm_result::{ASMOptions, ASMResult, ASMResultError, ASMResultVariance, InExpressionMethodCall, InterimResultOption, PrepareRegisterOption};
-use crate::core::code_generator::generator::{LastUnchecked, Stack, StackLocation};
+use crate::core::code_generator::generator::{LastUnchecked, Stack};
 use crate::core::code_generator::registers::{ByteSize, FloatRegister, GeneralPurposeRegister, GeneralPurposeRegisterIterator};
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::static_type_context::StaticTypeContext;
 use crate::core::lexer::tokens::assignable_token::AssignableToken;
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::operator::Operator;
-use crate::core::lexer::tokens::assignable_tokens::equation_parser::prefix_arithmetic::{PointerArithmetic, PrefixArithmetic};
+use crate::core::lexer::tokens::assignable_tokens::equation_parser::prefix_arithmetic::{PointerArithmetic, PrefixArithmetic, PrefixArithmeticOptions};
 use crate::core::lexer::tokens::name_token::NameToken;
 use crate::core::lexer::types::boolean::Boolean;
-use crate::core::lexer::types::cast_to::{Castable, CastToError};
 use crate::core::lexer::types::float::Float;
 use crate::core::lexer::types::integer::Integer;
 use crate::core::lexer::types::type_token::{InferTypeError, TypeToken};
@@ -589,14 +588,6 @@ impl ToASM for Expression {
     fn before_label(&self, _stack: &mut Stack, _meta: &mut MetaInfo) -> Option<Result<String, ASMGenerateError>> {
         None
     }
-
-    fn multi_line_asm(&self, stack: &mut Stack, meta: &mut MetaInfo) -> Result<(bool, String, Option<GeneralPurposeRegister>), ASMGenerateError> {
-        if let Some(value) = &self.value {
-            return value.multi_line_asm(stack, meta);
-        }
-
-        Ok((false, String::new(), None))
-    }
 }
 
 
@@ -668,89 +659,14 @@ impl Expression {
             }
         }
 
-        // prefix_arithmetic.to_asm()
-
-
-        match prefix_arithmetic {
-            PrefixArithmetic::PointerArithmetic(pointer_arithmetic) => {
-                match pointer_arithmetic {
-                    PointerArithmetic::Ampersand => {
-                        // trying to to lea rax, rax. this is not good
-                        // you must write to a anonymous stack position and dereference that one
-                        if GeneralPurposeRegister::from_str(&register_or_stack_address).is_ok() {
-                            let byte_size = value.infer_type_with_context(&meta.static_type_information, &meta.code_line)?.byte_size();
-                            stack.variables.push(StackLocation::new_anonymous_stack_location(stack.stack_position, byte_size));
-                            stack.stack_position += byte_size;
-
-                            let offset = stack.stack_position;
-                            let anonymous_stack_position = format!("{} [rbp - {}]", register_destination::word_from_byte_size(byte_size), offset);
-                            target += &ASMBuilder::mov_x_ident_line(&anonymous_stack_position, &register_64, Some(byte_size));
-                            register_or_stack_address = anonymous_stack_position;
-                        }
-
-                        target += &ASMBuilder::ident_line(&format!("lea {}, {}", register_64, register_or_stack_address
-                            .replace("QWORD ", "")
-                            .replace("DWORD ", "")
-                            .replace("BYTE ", "")
-                            .replace("WORD ", "")
-                        ));
-
-                        Ok(ASMResult::MultilineResulted(target, register_64))
-                    }
-                    PointerArithmetic::Asterics => {
-                        target += &ASMBuilder::mov_ident_line(&register_64, register_or_stack_address);
-
-                        if !child_has_pointer_arithmetic {
-                            target += &ASMBuilder::mov_ident_line(&register_64, format!("QWORD [{}]", register_64));
-                            let value_type = value.infer_type_with_context(&meta.static_type_information, &meta.code_line).ok();
-
-
-                            if let (GeneralPurposeRegister::Float(destination_float_register), Some(f)) = (target_register, &value_type) {
-                                target += &ASMBuilder::mov_x_ident_line(destination_float_register, &register_64, Some(f.byte_size()));
-                            }
-                        }
-
-                        Ok(ASMResult::MultilineResulted(target, target_register.clone()))
-                    }
-                }
-            }
-            PrefixArithmetic::Cast(ty) => {
-                let assignable_type = value.infer_type_with_context(&meta.static_type_information, &meta.code_line)?;
-                let cast_to = assignable_type.cast_to(ty);
-
-                if child_has_pointer_arithmetic {
-                    register_or_stack_address = register_64.to_string();
-                }
-
-
-                let result = match (&cast_to.from, &cast_to.to) {
-                    (TypeToken::Float(f1), TypeToken::Float(f2)) => Float::cast_from_to(f1, f2, &register_or_stack_address, stack, meta)?,
-                    (TypeToken::Integer(i1), TypeToken::Float(f2)) => Integer::cast_from_to(i1, f2, &register_or_stack_address, stack, meta)?,
-                    (TypeToken::Bool, TypeToken::Integer(i2)) => Boolean::cast_from_to(&Boolean::True, i2, &register_or_stack_address, stack, meta)?,
-                    (TypeToken::Float(f1), TypeToken::Integer(i2)) => Float::cast_from_to(f1, i2, &register_or_stack_address, stack, meta)?,
-                    (TypeToken::Integer(i1), TypeToken::Integer(i2)) => Integer::cast_from_to(i1, i2, &register_or_stack_address, stack, meta)?,
-                    _ => return Err(ASMGenerateError::CastUnsupported(CastToError::CastUnsupported(cast_to.clone()), meta.code_line.clone()))
-                };
-
-                result.apply_with(&mut target)
-                    .allow(ASMResultVariance::Inline)
-                    .allow(ASMResultVariance::MultilineResulted)
-                    .allow(ASMResultVariance::Multiline)
-                    .token("Expression")
-                    .finish()?;
-
-
-                if let TypeToken::Float(_) = &cast_to.to {
-                    let d = register_64.to_float_register();
-                    let r = register_64.to_size_register_ignore_float(&ByteSize::try_from(cast_to.to.byte_size())?);
-                    target += &ASMBuilder::mov_x_ident_line(&d, r, Some(cast_to.to.byte_size()));
-                    Ok(ASMResult::MultilineResulted(target, d))
-                } else {
-                    Ok(ASMResult::MultilineResulted(target, register_64.to_size_register_ignore_float(&ByteSize::try_from(cast_to.to.byte_size())?)))
-                }
-            }
-            PrefixArithmetic::Operation(_) => unimplemented!("Not finished yet"),
-        }
+        Ok(prefix_arithmetic.to_asm::<PrefixArithmeticOptions>(stack, meta, Some(PrefixArithmeticOptions {
+            value: value.clone(),
+            register_or_stack_address,
+            register_64,
+            target_register: target_register.clone(),
+            child_has_pointer_arithmetic,
+            target,
+        }))?)
     }
 
     pub fn traverse_type(&self, meta: &MetaInfo) -> Option<TypeToken> {

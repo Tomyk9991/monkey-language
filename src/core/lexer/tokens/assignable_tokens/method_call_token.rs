@@ -8,7 +8,7 @@ use std::str::FromStr;
 use crate::core::code_generator::{ASMGenerateError, conventions, MetaInfo};
 use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::asm_result::{ASMOptions, ASMResult, ASMResultError, ASMResultVariance, InExpressionMethodCall, InterimResultOption};
-use crate::core::code_generator::conventions::{CallingRegister, return_calling_convention};
+use crate::core::code_generator::conventions::CallingRegister;
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::registers::{Bit64, ByteSize, GeneralPurposeRegister};
 use crate::core::code_generator::ToASM;
@@ -352,11 +352,6 @@ impl ToASM for MethodCallToken {
         stack.label_count = count_before;
 
         if has_before_label_asm { Some(Ok(target)) } else { None }
-    }
-
-    fn multi_line_asm(&self, stack: &mut Stack, meta: &mut MetaInfo) -> Result<(bool, String, Option<GeneralPurposeRegister>), ASMGenerateError> {
-        // enables to cache registers before calling, and also restoring after
-        Ok((true, String::from("lkek"), Some(return_calling_convention(stack, meta)?)))
     }
 }
 

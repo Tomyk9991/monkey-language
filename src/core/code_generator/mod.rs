@@ -2,7 +2,6 @@ use std::fmt::{Debug, Display, Formatter};
 use crate::core::code_generator::asm_result::{ASMOptions, ASMResult, ASMResultError};
 use crate::core::io::code_line::CodeLine;
 use crate::core::code_generator::generator::Stack;
-use crate::core::code_generator::registers::GeneralPurposeRegister;
 use crate::core::code_generator::target_os::TargetOS;
 use crate::core::lexer::static_type_context::StaticTypeContext;
 use crate::core::lexer::tokens::assignable_token::AssignableToken;

@@ -821,7 +821,9 @@ main:
 fn operation_expression_expression() -> anyhow::Result<()> {
     let code = r#"
 fn f1(): f64 { return 5.0_f64; }
-let addition = (f1() + f1()) + (f1() + f1());
+let a1 = (f1() + f1()) + f1();
+let a2 = f1() + (f1() + f1());
+let a3 = (f1() + f1()) + (f1() + f1());
     "#;
 
     let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);

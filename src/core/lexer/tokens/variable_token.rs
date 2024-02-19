@@ -239,20 +239,6 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for VariableToken<ASSI
     fn before_label(&self, stack: &mut Stack, meta: &mut MetaInfo) -> Option<Result<String, ASMGenerateError>> {
         self.assignable.before_label(stack, meta)
     }
-
-    fn multi_line_asm(&self, stack: &mut Stack, meta: &mut MetaInfo) -> Result<(bool, String, Option<GeneralPurposeRegister>), ASMGenerateError> {
-        match &self.assignable {
-            AssignableToken::String(a) => a.multi_line_asm(stack, meta),
-            AssignableToken::IntegerToken(a) => a.multi_line_asm(stack, meta),
-            AssignableToken::FloatToken(a) => a.multi_line_asm(stack, meta),
-            AssignableToken::BooleanToken(a) => a.multi_line_asm(stack, meta),
-            AssignableToken::MethodCallToken(a) => a.multi_line_asm(stack, meta),
-            AssignableToken::NameToken(a) => a.multi_line_asm(stack, meta),
-            AssignableToken::Object(a) => a.multi_line_asm(stack, meta),
-            AssignableToken::ArithmeticEquation(a) => a.multi_line_asm(stack, meta),
-            AssignableToken::Parameter(r) => r.multi_line_asm(stack, meta),
-        }
-    }
 }
 
 impl<const ASSIGNMENT: char, const SEPARATOR: char> TryParse for VariableToken<ASSIGNMENT, SEPARATOR> {
