@@ -233,9 +233,7 @@ impl ToASM for MethodCallToken {
         // represents the register where the final result must lay in, and where it is expected, after call
         let register_to_move_result = stack.register_to_use.last().unwrap_or(&GeneralPurposeRegister::Bit64(Bit64::Rax)).clone();
         let register_to_move_result_64bit = register_to_move_result.to_64_bit_register();
-
         let mut target = String::new();
-
         let mut registers_push_ignore = vec![];
 
 
@@ -300,9 +298,11 @@ impl ToASM for MethodCallToken {
         target += &ASMBuilder::ident_line(&format!("call {}", if method_def.is_extern { method_def.name.name } else { method_def.method_label_name() }));
 
         if method_def.return_type != TypeToken::Void {
-            target += &ASMBuilder::mov_x_ident_line(&register_to_move_result, GeneralPurposeRegister::Bit64(Bit64::Rax).to_size_register(
-                &ByteSize::try_from(method_def.return_type.byte_size())?
-            ), Some(method_def.return_type.byte_size()));
+            target += &ASMBuilder::mov_x_ident_line(
+                &register_to_move_result,
+                GeneralPurposeRegister::Bit64(Bit64::Rax).to_size_register(&ByteSize::try_from(method_def.return_type.byte_size())?),
+                Some(method_def.return_type.byte_size())
+            );
         }
 
         if !is_direct_method_call {

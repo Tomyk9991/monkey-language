@@ -4,36 +4,20 @@ use std::str::FromStr;
 
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, register_destination, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
-use crate::core::code_generator::asm_result::{ASMOptions, ASMResult, ASMResultVariance, InExpressionMethodCall, InterimResultOption, PrepareRegisterOption};
+use crate::core::code_generator::asm_result::{ASMOptions, ASMResult, ASMResultError, ASMResultVariance, InExpressionMethodCall, InterimResultOption, PrepareRegisterOption};
 use crate::core::code_generator::generator::{LastUnchecked, Stack, StackLocation};
 use crate::core::code_generator::registers::{ByteSize, FloatRegister, GeneralPurposeRegister, GeneralPurposeRegisterIterator};
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::static_type_context::StaticTypeContext;
 use crate::core::lexer::tokens::assignable_token::AssignableToken;
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::operator::Operator;
+use crate::core::lexer::tokens::assignable_tokens::equation_parser::prefix_arithmetic::{PointerArithmetic, PrefixArithmetic};
 use crate::core::lexer::tokens::name_token::NameToken;
 use crate::core::lexer::types::boolean::Boolean;
 use crate::core::lexer::types::cast_to::{Castable, CastToError};
 use crate::core::lexer::types::float::Float;
 use crate::core::lexer::types::integer::Integer;
 use crate::core::lexer::types::type_token::{InferTypeError, TypeToken};
-
-#[derive(Clone, PartialEq, Debug)]
-pub enum PointerArithmetic {
-    /// *
-    Asterics,
-    /// &
-    Ampersand,
-}
-
-#[derive(Clone, PartialEq, Debug)]
-pub enum PrefixArithmetic {
-    #[allow(unused)]
-    Operation(Operator),
-    // For example the "-" like let a = -5;
-    PointerArithmetic(PointerArithmetic),
-    Cast(TypeToken),
-}
 
 #[derive(Clone, PartialEq)]
 #[allow(unused)]
@@ -47,17 +31,6 @@ pub struct Expression {
 }
 
 impl Expression {
-    pub fn pointers(&self) -> Vec<PointerArithmetic> {
-        let mut pointer_arithmetic = vec![];
-        for prefix in &self.prefix_arithmetic {
-            if let PrefixArithmetic::PointerArithmetic(p) = &prefix {
-                pointer_arithmetic.push(p.clone());
-            }
-        }
-
-        pointer_arithmetic
-    }
-
     fn iterator_from_type(&self, meta: &mut MetaInfo, lhs_size: usize) -> Result<(GeneralPurposeRegisterIterator, Option<Float>), ASMGenerateError> {
         if let Some(lhs) = &self.lhs {
             let ty = &lhs.traverse_type(meta).ok_or(ASMGenerateError::InternalError("Could not traverse type".to_string()))?;
@@ -132,7 +105,11 @@ impl Expression {
                         destination_register = if r.is_float_register() { destination_register.to_float_register() } else { destination_register };
                         target += &ASMBuilder::mov_x_ident_line(&destination_register, &r, Some(r.size() as usize));
                     }
-                    ASMResult::Multiline(_) => {}
+                    ASMResult::Multiline(_) => return Err(ASMGenerateError::ASMResult(ASMResultError::UnexpectedVariance {
+                        expected: vec![ASMResultVariance::Inline, ASMResultVariance::MultilineResulted],
+                        actual: ASMResultVariance::Multiline,
+                        token: "Expression".to_string(),
+                    }))
                 }
                 stack.register_to_use.pop();
 
@@ -148,7 +125,11 @@ impl Expression {
                         target_register = if r.is_float_register() { target_register.to_float_register() } else { target_register };
                         target += &ASMBuilder::mov_x_ident_line(&target_register, &r, Some(r.size() as usize));
                     }
-                    ASMResult::Multiline(_) => {}
+                    ASMResult::Multiline(_) => return Err(ASMGenerateError::ASMResult(ASMResultError::UnexpectedVariance {
+                        expected: vec![ASMResultVariance::Inline, ASMResultVariance::MultilineResulted],
+                        actual: ASMResultVariance::Multiline,
+                        token: "Expression".to_string(),
+                    }))
                 }
                 stack.register_to_use.pop();
 
@@ -192,7 +173,11 @@ impl Expression {
                 target += &ASMBuilder::mov_x_ident_line(&maybe_new_register, new_register, Some(final_ty.byte_size()));
                 destination_register = maybe_new_register;
             }
-            ASMResult::Multiline(_) => {}
+            ASMResult::Multiline(_) => return Err(ASMGenerateError::ASMResult(ASMResultError::UnexpectedVariance {
+                expected: vec![ASMResultVariance::Inline, ASMResultVariance::MultilineResulted],
+                actual: ASMResultVariance::Multiline,
+                token: "Expression".to_string(),
+            }))
         }
 
         let next_register = register_iterator.nth(2).ok_or(ASMGenerateError::InternalError("No next register found".to_string()))?;
@@ -225,7 +210,11 @@ impl Expression {
                 target += &ASMBuilder::ident_line(&operation.0);
                 destination_register = operation.1;
             }
-            ASMResult::Multiline(_) => {}
+            ASMResult::Multiline(_) => return Err(ASMGenerateError::ASMResult(ASMResultError::UnexpectedVariance {
+                expected: vec![ASMResultVariance::Inline, ASMResultVariance::MultilineResulted],
+                actual: ASMResultVariance::Multiline,
+                token: "Expression".to_string(),
+            }))
         }
         stack.register_to_use.pop();
 
@@ -264,7 +253,11 @@ impl Expression {
                 target += &ASMBuilder::mov_x_ident_line(&maybe_new_register, new_register, Some(final_ty.byte_size()));
                 destination_register = maybe_new_register;
             }
-            ASMResult::Multiline(_) => {}
+            ASMResult::Multiline(_) => return Err(ASMGenerateError::ASMResult(ASMResultError::UnexpectedVariance {
+                expected: vec![ASMResultVariance::Inline, ASMResultVariance::MultilineResulted],
+                actual: ASMResultVariance::Multiline,
+                token: "Expression".to_string(),
+            }))
         }
 
         stack.register_to_use.pop();
@@ -295,7 +288,11 @@ impl Expression {
                 target += &ASMBuilder::ident_line(&operation.0);
                 destination_register = operation.1;
             }
-            ASMResult::Multiline(_) => {}
+            ASMResult::Multiline(_) => return Err(ASMGenerateError::ASMResult(ASMResultError::UnexpectedVariance {
+                expected: vec![ASMResultVariance::Inline, ASMResultVariance::MultilineResulted],
+                actual: ASMResultVariance::Multiline,
+                token: "Expression".to_string(),
+            }))
         }
         stack.register_to_use.pop();
 
@@ -329,7 +326,11 @@ impl Expression {
                 target_register = if new_register.is_float_register() { target_register.to_float_register() } else { target_register };
                 target += &ASMBuilder::mov_x_ident_line(&target_register, &new_register, Some(new_register.size() as usize));
             }
-            ASMResult::Multiline(_) => {}
+            ASMResult::Multiline(_) => return Err(ASMGenerateError::ASMResult(ASMResultError::UnexpectedVariance {
+                expected: vec![ASMResultVariance::Inline, ASMResultVariance::MultilineResulted],
+                actual: ASMResultVariance::Multiline,
+                token: "Expression".to_string(),
+            }))
         }
 
         stack.register_to_use.pop();
@@ -357,7 +358,11 @@ impl Expression {
                 target += &ASMBuilder::ident_line(&operation.0);
                 destination_register = operation.1;
             }
-            ASMResult::Multiline(_) => {}
+            ASMResult::Multiline(_) => return Err(ASMGenerateError::ASMResult(ASMResultError::UnexpectedVariance {
+                expected: vec![ASMResultVariance::Inline, ASMResultVariance::MultilineResulted],
+                actual: ASMResultVariance::Multiline,
+                token: "Expression".to_string(),
+            }))
         }
         stack.register_to_use.pop();
 
@@ -382,11 +387,14 @@ impl Expression {
             ASMResult::Inline(inline) => target += &ASMBuilder::mov_x_ident_line(&destination_register, inline, Some(lhs.byte_size(meta))),
             ASMResult::MultilineResulted(s, new_register) => {
                 target += &s;
-
                 destination_register = if new_register.is_float_register() { destination_register.to_float_register() } else { destination_register };
                 target += &ASMBuilder::mov_x_ident_line(&destination_register, &new_register, Some(new_register.size() as usize));
             }
-            ASMResult::Multiline(_) => {}
+            ASMResult::Multiline(_) => return Err(ASMGenerateError::ASMResult(ASMResultError::UnexpectedVariance {
+                expected: vec![ASMResultVariance::Inline, ASMResultVariance::MultilineResulted],
+                actual: ASMResultVariance::Multiline,
+                token: "Expression".to_string(),
+            }))
         }
         stack.register_to_use.pop();
 
@@ -411,7 +419,11 @@ impl Expression {
                 target_register = if r.is_float_register() { target_register.to_float_register() } else { target_register };
                 target += &ASMBuilder::mov_x_ident_line(&target_register, &r, Some(r.size() as usize));
             }
-            ASMResult::Multiline(_) => {}
+            ASMResult::Multiline(_) => return Err(ASMGenerateError::ASMResult(ASMResultError::UnexpectedVariance {
+                expected: vec![ASMResultVariance::Inline, ASMResultVariance::MultilineResulted],
+                actual: ASMResultVariance::Multiline,
+                token: "Expression".to_string(),
+            }))
         }
         stack.register_to_use.pop();
 
@@ -478,25 +490,6 @@ impl Debug for Expression {
 
         debug_struct_formatter.field("prefix_arithmetic", &prefix_arithmetic);
         debug_struct_formatter.finish()
-    }
-}
-
-impl Display for PrefixArithmetic {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", match self {
-            PrefixArithmetic::Operation(operation) => operation.to_string(),
-            PrefixArithmetic::PointerArithmetic(p) => p.to_string(),
-            PrefixArithmetic::Cast(c) => format!("({c})")
-        })
-    }
-}
-
-impl Display for PointerArithmetic {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", match self {
-            PointerArithmetic::Asterics => "*".to_string(),
-            PointerArithmetic::Ampersand => "&".to_string()
-        })
     }
 }
 
@@ -632,27 +625,7 @@ fn extract_last_general_purpose_instruction(current_asm: &str) -> Option<String>
     None
 }
 
-#[allow(unused)]
 impl Expression {
-    pub fn new(lhs: Option<Box<Expression>>, operator: Operator, rhs: Option<Box<Expression>>, value: Option<Box<AssignableToken>>) -> Self {
-        Self {
-            lhs,
-            rhs,
-            operator,
-            prefix_arithmetic: None,
-            value,
-            positive: true,
-        }
-    }
-
-    pub fn pointer(&self) -> Option<PointerArithmetic> {
-        if let Some(PrefixArithmetic::PointerArithmetic(a)) = &self.prefix_arithmetic {
-            return Some(a.clone());
-        }
-
-        None
-    }
-
     fn prefix_arithmetic_to_asm(prefix_arithmetic: &PrefixArithmetic, value: &AssignableToken, target_register: &GeneralPurposeRegister, stack: &mut Stack, meta: &mut MetaInfo) -> Result<ASMResult, ASMGenerateError> {
         let mut target = String::new();
         let register_to_use = stack.register_to_use.last()?;
@@ -694,6 +667,8 @@ impl Expression {
                 }
             }
         }
+
+        // prefix_arithmetic.to_asm()
 
 
         match prefix_arithmetic {
@@ -765,7 +740,7 @@ impl Expression {
                     .finish()?;
 
 
-                if let TypeToken::Float(f) = &cast_to.to {
+                if let TypeToken::Float(_) = &cast_to.to {
                     let d = register_64.to_float_register();
                     let r = register_64.to_size_register_ignore_float(&ByteSize::try_from(cast_to.to.byte_size())?);
                     target += &ASMBuilder::mov_x_ident_line(&d, r, Some(cast_to.to.byte_size()));
@@ -778,10 +753,6 @@ impl Expression {
         }
     }
 
-    pub fn is_pointer(&self) -> bool {
-        !self.pointers().is_empty()
-    }
-
     pub fn traverse_type(&self, meta: &MetaInfo) -> Option<TypeToken> {
         self.traverse_type_resulted(&meta.static_type_information, &meta.code_line).ok()
     }
@@ -792,7 +763,7 @@ impl Expression {
             let has_prefix_arithmetics = self.prefix_arithmetic.is_some();
 
             return if let (true, Ok(value_type)) = (has_prefix_arithmetics, &value_type) {
-                let mut current_pointer_arithmetic: String = match value_type {
+                let current_pointer_arithmetic: String = match value_type {
                     TypeToken::Custom(name) if name.name.starts_with(['*', '&']) => {
                         if let Some(index) = name.name.chars().position(|m| m.is_ascii_alphanumeric()) {
                             name.name[..index].to_string()
@@ -810,7 +781,6 @@ impl Expression {
                         PrefixArithmetic::PointerArithmetic(PointerArithmetic::Asterics) if current_pointer_arithmetic.ends_with('*') => {
                             if let Some(new_ty) = value_type.pop_pointer() {
                                 value_type = new_ty;
-                                current_pointer_arithmetic = current_pointer_arithmetic.chars().collect::<Vec<char>>()[..current_pointer_arithmetic.len() - 1].iter().collect::<String>();
                             } else {
                                 return Err(InferTypeError::IllegalDereference(*value.clone(), value_type, code_line.clone()));
                             }
@@ -883,7 +853,7 @@ impl Expression {
             f.value *= -1.0;
         }
 
-        if let Some(v) = &mut self.value {
+        if let Some(_) = &mut self.value {
             self.positive = !self.positive;
         }
     }

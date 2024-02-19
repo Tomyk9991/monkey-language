@@ -86,6 +86,4 @@ pub trait ToASM {
     fn byte_size(&self, meta: &mut MetaInfo) -> usize;
     /// returns a possible string containing ASM that belongs before the actual label
     fn before_label(&self, stack: &mut Stack, meta: &mut MetaInfo) -> Option<Result<String, ASMGenerateError>>;
-    /// returns true and the register where the result is stored, if the generated assembly code has multiple lines.
-    fn multi_line_asm(&self, stack: &mut Stack, meta: &mut MetaInfo) -> Result<(bool, String, Option<GeneralPurposeRegister>), ASMGenerateError>;
 }

@@ -3,14 +3,16 @@ use std::str::FromStr;
 
 use crate::core::io::code_line::{CodeLine, Normalizable};
 use crate::core::lexer::tokens::assignable_token::{AssignableToken, AssignableTokenErr};
-use crate::core::lexer::tokens::assignable_tokens::equation_parser::expression::{Expression, PointerArithmetic, PrefixArithmetic};
+use crate::core::lexer::tokens::assignable_tokens::equation_parser::expression::{Expression};
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::operator::Operator;
+use crate::core::lexer::tokens::assignable_tokens::equation_parser::prefix_arithmetic::{PointerArithmetic, PrefixArithmetic};
 use crate::core::lexer::tokens::assignable_tokens::method_call_token::dyck_language;
 use crate::core::lexer::tokens::name_token::NameTokenErr;
 use crate::core::lexer::types::type_token::{InferTypeError, TypeToken};
 
 pub mod expression;
 pub mod operator;
+pub mod prefix_arithmetic;
 
 const OPENING: char = '(';
 const CLOSING: char = ')';

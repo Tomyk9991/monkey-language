@@ -377,7 +377,6 @@ main:
     ; Reserve stack space as MS convention. Shadow stacking
     sub rsp, 128
     ; let a: f64 = r()
-    movq rax, xmm0
     ; r()
     call .r_void~f64
     mov QWORD [rbp - 8], rax
@@ -395,22 +394,28 @@ main:
     mov rax, QWORD [rbp - 24]
     mov QWORD [rbp - 40], rax
     ; let f: f64 = *d
-    movq rax, xmm0
     mov rax, QWORD [rbp - 32]
     mov rax, QWORD [rax]
     mov QWORD [rbp - 48], rax
     ; let g: f64 = **c
-    movq rax, xmm0
     mov rax, QWORD [rbp - 24]
     mov rax, QWORD [rax]
     mov rax, QWORD [rax]
     mov QWORD [rbp - 56], rax
     ; let h: *f64 = &r()
+    ; PushQ
+    push rcx
+    push rdi
+    push rdx
     ; r()
     call .r_void~f64
-    mov QWORD [rbp - 72], rax
-    lea rax, [rbp - 72]
+    ; PopQ
+    pop rdx
+    pop rdi
+    pop rcx
     mov QWORD [rbp - 64], rax
+    lea rax, [rbp - 64]
+    mov QWORD [rbp - 72], rax
     leave
     ret
     "#;
@@ -637,24 +642,23 @@ main:
     push rdx
     ; f1()
     call .f1_void~f64
-    movq xmm0, rax
     ; PopQ
     pop rdx
     pop rdi
     pop rcx
+    movq xmm0, rax
     ; PushQ
     push rax
     push rcx
     push rdi
-    push rdx
     ; f1()
     call .f1_void~f64
-    movq xmm3, rax
+    mov rdx, rax
     ; PopQ
-    pop rdx
     pop rdi
     pop rcx
     pop rax
+    movq xmm3, rdx
     addsd xmm0, xmm3
     movq rax, xmm0
     mov QWORD [rbp - 8], rax
@@ -704,15 +708,17 @@ main:
     ; Reserve stack space as MS convention. Shadow stacking
     sub rsp, 64
     ; let a: f64 = f1()
-    movq rax, xmm0
     ; f1()
     call .f1_void~f64
     mov QWORD [rbp - 8], rax
     ; let addition: f64 = (f1() + (a + a))
     ; (f1() + (a + a))
     ; (a + a)
-    movq xmm0, QWORD [rbp - 8]
-    addsd xmm0, QWORD [rbp - 8]
+    mov rax, QWORD [rbp - 8]
+    movq xmm0, rax
+    mov rdx, QWORD [rbp - 8]
+    movq xmm3, rdx
+    addsd xmm0, xmm3
     movq xmm3, xmm0
     ; PushQ
     push rcx
@@ -720,12 +726,10 @@ main:
     push rdx
     ; f1()
     call .f1_void~f64
-    movq xmm0, rax
     ; PopQ
     pop rdx
     pop rdi
     pop rcx
-    movq xmm0, rax
     addsd xmm0, xmm3
     movq rax, xmm0
     mov QWORD [rbp - 16], rax
@@ -779,28 +783,29 @@ main:
     ; Reserve stack space as MS convention. Shadow stacking
     sub rsp, 64
     ; let a: f64 = f1()
-    movq rax, xmm0
     ; f1()
     call .f1_void~f64
     mov QWORD [rbp - 8], rax
     ; let addition: f64 = ((a + a) + f1())
     ; ((a + a) + f1())
     ; (a + a)
-    movq xmm0, QWORD [rbp - 8]
-    addsd xmm0, QWORD [rbp - 8]
+    mov rax, QWORD [rbp - 8]
+    movq xmm0, rax
+    mov rdx, QWORD [rbp - 8]
+    movq xmm3, rdx
+    addsd xmm0, xmm3
     ; PushQ
     push rax
     push rcx
     push rdi
-    push rdx
     ; f1()
     call .f1_void~f64
-    movq xmm3, rax
+    mov rdx, rax
     ; PopQ
-    pop rdx
     pop rdi
     pop rcx
     pop rax
+    movq xmm3, rdx
     addsd xmm0, xmm3
     movq rax, xmm0
     mov QWORD [rbp - 16], rax
@@ -860,24 +865,23 @@ main:
     push rdx
     ; f1()
     call .f1_void~f64
-    movq xmm0, rax
     ; PopQ
     pop rdx
     pop rdi
     pop rcx
+    movq xmm0, rax
     ; PushQ
     push rax
     push rcx
     push rdi
-    push rdx
     ; f1()
     call .f1_void~f64
-    movq xmm3, rax
+    mov rdx, rax
     ; PopQ
-    pop rdx
     pop rdi
     pop rcx
     pop rax
+    movq xmm3, rdx
     addsd xmm0, xmm3
     movq xmm1, xmm0
     ; (f1() + f1())
@@ -887,29 +891,27 @@ main:
     push rdx
     ; f1()
     call .f1_void~f64
-    movq xmm0, rax
     ; PopQ
     pop rdx
     pop rdi
     pop rcx
+    movq xmm0, rax
     ; PushQ
     push rax
     push rcx
     push rdi
-    push rdx
     ; f1()
     call .f1_void~f64
-    movq xmm3, rax
+    mov rdx, rax
     ; PopQ
-    pop rdx
     pop rdi
     pop rcx
     pop rax
+    movq xmm3, rdx
     addsd xmm0, xmm3
     movq xmm2, xmm0
     addsd xmm1, xmm2
-    movq xmm0, xmm1
-    movq rax, xmm0
+    movq rax, xmm1
     mov QWORD [rbp - 8], rax
     leave
     ret
