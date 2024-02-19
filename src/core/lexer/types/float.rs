@@ -191,7 +191,7 @@ impl OperatorToASM for Float {
         match operator {
             Operator::Noop => Err(ASMGenerateError::InternalError("Noop instruction is not supported on".to_string())),
             Operator::Add | Operator::Sub | Operator::Div | Operator::Mul => AssemblerOperation::two_operands(
-                &format!("{}{suffix}", operator.to_asm::<InterimResultOption>(stack, meta, None)?.to_string()),
+                &format!("{}{suffix}", operator.to_asm::<InterimResultOption>(stack, meta, None)?),
                 &registers[0],
                 &registers[1]
             ),

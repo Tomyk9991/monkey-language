@@ -440,7 +440,6 @@ impl Expression {
 
         Ok(ASMResult::MultilineResulted(target, target_register))
     }
-
 }
 
 impl Default for Expression {
@@ -544,12 +543,10 @@ impl ToASM for Expression {
 
             let s = if let Some(prefix_arithmetic) = &self.prefix_arithmetic {
                 Self::prefix_arithmetic_to_asm(prefix_arithmetic, value, &stack.register_to_use.last()?, stack, meta)
+            } else if matches!(value.as_ref(), AssignableToken::MethodCallToken(_)) {
+                value.to_asm(stack, meta, Some(InExpressionMethodCall))
             } else {
-                if matches!(value.as_ref(), AssignableToken::MethodCallToken(_)) {
-                    value.to_asm(stack, meta, Some(InExpressionMethodCall))
-                } else {
-                    value.to_asm(stack, meta, options)
-                }
+                value.to_asm(stack, meta, options)
             };
 
             if stack.register_to_use.len() == 1 {
@@ -707,7 +704,7 @@ impl Expression {
                         // you must write to a anonymous stack position and dereference that one
                         if GeneralPurposeRegister::from_str(&register_or_stack_address).is_ok() {
                             let byte_size = value.infer_type_with_context(&meta.static_type_information, &meta.code_line)?.byte_size();
-                            let stack_address = stack.variables.push(StackLocation::new_anonymous_stack_location(stack.stack_position, byte_size));
+                            stack.variables.push(StackLocation::new_anonymous_stack_location(stack.stack_position, byte_size));
                             stack.stack_position += byte_size;
 
                             let offset = stack.stack_position;

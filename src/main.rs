@@ -1,6 +1,6 @@
 use clap::Parser;
 use colored::Colorize;
-use crate::cli::program_args::ProgramArgs;
+use crate::cli::program_args::{PrintOption, ProgramArgs};
 use crate::core::code_generator::generator::{ASMGenerator};
 use crate::core::code_generator::target_creator::TargetCreator;
 use crate::core::code_generator::target_os::TargetOS;
@@ -21,7 +21,13 @@ fn run_compiler() -> anyhow::Result<()> {
 
 // 1) Build AST
     let top_level_scope = Lexer::from(monkey_file).tokenize()?;
-    println!("{}", top_level_scope);
+
+    if let Some(print_scope) = args.print_scope {
+        match print_scope {
+            PrintOption::Production => println!("{}", top_level_scope),
+            PrintOption::Debug => println!("{:?}", top_level_scope)
+        };
+    }
 
 // 2) Static Type Checking
     static_type_check(&top_level_scope)?;

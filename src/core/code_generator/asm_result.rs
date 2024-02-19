@@ -27,7 +27,7 @@ pub struct ApplyWithToken<'a> {
 }
 
 impl ApplyWithToken<'_> {
-    pub fn finish<'a>(&mut self) -> Result<Option<GeneralPurposeRegister>, ASMResultError> {
+    pub fn finish(&mut self) -> Result<Option<GeneralPurposeRegister>, ASMResultError> {
         if !self.apply_with.allowed.contains(&self.apply_with.actual) {
             return Err(ASMResultError::UnexpectedVariance {
                 expected: self.apply_with.allowed.clone(),
@@ -36,7 +36,7 @@ impl ApplyWithToken<'_> {
             })
         }
 
-        return match self.apply_with.value {
+        match self.apply_with.value {
             ASMResult::Inline(t) => {
                 self.apply_with.target.push_str(t);
                 Ok(None)
@@ -71,7 +71,7 @@ impl<'a> ApplyWith<'a> {
 impl ASMResult {
     pub fn apply_with<'a>(&'a self, target: &'a mut String) -> ApplyWith {
         ApplyWith {
-            value: &self,
+            value: self,
             target,
             actual: ASMResultVariance::from(self),
             allowed: vec![],

@@ -241,7 +241,7 @@ impl ToASM for MethodCallToken {
 
         let is_direct_method_call = if let Some(options) = options {
             let any_t = &options as &dyn Any;
-            !any_t.downcast_ref::<InExpressionMethodCall>().is_some()
+            any_t.downcast_ref::<InExpressionMethodCall>().is_none()
         } else {
             true
         };
