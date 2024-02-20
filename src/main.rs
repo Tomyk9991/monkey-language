@@ -1,5 +1,6 @@
 use clap::Parser;
 use colored::Colorize;
+use crate::cli::program_args::OptimizationLevel;
 use crate::cli::program_args::{PrintOption, ProgramArgs};
 use crate::core::code_generator::generator::{ASMGenerator};
 use crate::core::code_generator::target_creator::TargetCreator;
@@ -16,14 +17,14 @@ mod utils;
 fn run_compiler() -> anyhow::Result<()> {
     let only_write = false;
     let args = ProgramArgs::parse();
-    
+
     let entry_point_file = args.input.clone();
     let monkey_file: MonkeyFile = MonkeyFile::read(entry_point_file)?;
 
 // 1) Build AST
-    let top_level_scope = Lexer::from(monkey_file).tokenize()?;
+    let mut top_level_scope = Lexer::from(monkey_file).tokenize()?;
 
-    if let Some(print_scope) = args.print_scope {
+    if let Some(print_scope) = &args.print_scope {
         match print_scope {
             PrintOption::Production => println!("{}", top_level_scope),
             PrintOption::Debug => println!("{:?}", top_level_scope)
@@ -33,10 +34,14 @@ fn run_compiler() -> anyhow::Result<()> {
 // 2) Static Type Checking
     static_type_check(&top_level_scope)?;
 
+// 3) o1 Optimization
+    if args.optimization_level == OptimizationLevel::O1 {
+        // remove uncalled functions. therefore traverse, beginning from the main function, what functions are called
+        top_level_scope.optimize_methods();
+    }
 
 // 3) Building
     let mut code_generator = ASMGenerator::from((top_level_scope, args.target_os.clone(), true));
-
     let target_creator = TargetCreator::try_from((args.input.as_str(), &args.target_os))?;
     let asm_result = code_generator.generate()?;
 

@@ -1,3 +1,4 @@
+use std::collections::{HashSet};
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 use std::iter::Peekable;
@@ -7,6 +8,8 @@ use crate::core::lexer::errors::EmptyIteratorErr;
 use crate::core::lexer::static_type_context::StaticTypeContext;
 use crate::core::lexer::token::Token;
 use crate::core::lexer::tokenizer::{Lexer};
+use crate::core::lexer::tokens::assignable_token::AssignableToken;
+use crate::core::lexer::tokens::assignable_tokens::equation_parser::expression::Expression;
 use crate::core::lexer::tokens::assignable_tokens::method_call_token::MethodCallToken;
 use crate::core::lexer::tokens::if_definition::IfDefinition;
 use crate::core::lexer::tokens::method_definition::MethodDefinition;
@@ -38,6 +41,105 @@ impl Scope {
         }
 
         Ok(())
+    }
+
+    fn method_call_in_assignable(assignable_token: &AssignableToken) -> Option<Vec<String>> {
+        match assignable_token {
+            AssignableToken::MethodCallToken(method_call) => {
+                return Some(vec![method_call.name.name.clone()]);
+            }
+            AssignableToken::ArithmeticEquation(a) => {
+                Self::method_calls_in_expression(a)
+            }
+            AssignableToken::String(_) | AssignableToken::IntegerToken(_) |
+            AssignableToken::FloatToken(_) | AssignableToken::Parameter(_) |
+            AssignableToken::BooleanToken(_) | AssignableToken::NameToken(_) |
+            AssignableToken::Object(_) => return None
+        }
+    }
+
+    fn method_calls_in_expression(expression: &Expression) -> Option<Vec<String>> {
+        if let Some(a) = &expression.value {
+            return Self::method_call_in_assignable(a.as_ref());
+        }
+
+        let mut final_result = vec![];
+        if let Some(lhs) = &expression.lhs {
+            if let Some(lhs_result) = Self::method_calls_in_expression(lhs.as_ref()) {
+                lhs_result.iter().for_each(|a| final_result.push(a.clone()));
+            }
+        }
+
+        if let Some(rhs) = &expression.rhs {
+            if let Some(rhs_result) = Self::method_calls_in_expression(rhs.as_ref()) {
+                rhs_result.iter().for_each(|a| final_result.push(a.clone()));
+            }
+        }
+
+        if final_result.is_empty() {
+            None
+        } else {
+            Some(final_result)
+        }
+    }
+
+    fn method_calls_in_stack(stack: &Vec<Token>) -> Vec<String> {
+        let mut called_methods = HashSet::new();
+
+        for token in stack {
+            match token {
+                Token::Variable(variable_token) => {
+                    if let Some(calls) = Self::method_call_in_assignable(&variable_token.assignable) {
+                        calls.iter().for_each(|a| { called_methods.insert(a.clone()); });
+                    }
+                }
+                Token::MethodCall(method_call) => {
+                    for args in &method_call.arguments {
+                        if let Some(calls) = Self::method_call_in_assignable(&args) {
+                            calls.iter().for_each(|a| { called_methods.insert(a.clone()); });
+                        }
+                    }
+
+                    called_methods.insert(method_call.name.to_string());
+                }
+                Token::IfDefinition(if_definition) => {
+                    Self::method_calls_in_stack(&if_definition.if_stack).iter().for_each(|a| { called_methods.insert(a.clone()); });
+                    if let Some(else_stack) = &if_definition.else_stack {
+                        Self::method_calls_in_stack(&else_stack).iter().for_each(|a| { called_methods.insert(a.clone()); })
+                    }
+                }
+                Token::MethodDefinition(_) => {}
+                Token::Import(_) => {}
+                Token::Return(_) => {}
+                Token::ScopeClosing(_) => {}
+            }
+        }
+
+        called_methods.iter().map(|a| a.clone()).collect::<Vec<String>>()
+    }
+
+    /// Optimize methods out, which are not traversed down from the main method
+    pub fn optimize_methods(&mut self) {
+        if let Some(Token::MethodDefinition(main_method)) = self.tokens.iter().find(|a| matches!(a, Token::MethodDefinition(main) if main.name.name == "main")) {
+            let called_methods = Self::method_calls_in_stack(&main_method.stack);
+            let mut uncalled_methods = vec![];
+
+            for token in &self.tokens {
+                if let Token::MethodDefinition(method_definition) = token {
+                    if method_definition.name.name == "main" { continue; }
+                    if !called_methods.contains(&method_definition.name.name) {
+                        uncalled_methods.push(method_definition.name.name.clone());
+                    }
+                }
+            }
+
+            let mut indices = uncalled_methods.iter().filter_map(|called_method| {
+                self.tokens.iter().position(|token| matches!(token, Token::MethodDefinition(method_def) if method_def.name.name == *called_method))
+            }).collect::<Vec<_>>();
+            indices.sort();
+
+            indices.iter().rev().for_each(|index| { self.tokens.remove(*index); });
+        }
     }
 }
 

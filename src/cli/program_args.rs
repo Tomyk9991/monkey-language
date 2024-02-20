@@ -18,7 +18,7 @@ pub struct ProgramArgs {
     #[arg(short, long)]
     /// Print the scope with the given option (Supported: production, debug)
     pub print_scope: Option<PrintOption>,
-    #[arg(short = 'o', long, default_value_t = OptimizationLevel::O1)]
+    #[arg(short = 'o', long, default_value_t = OptimizationLevel::O0)]
     /// Describes the level of provided optimization
     pub optimization_level: OptimizationLevel,
 }
@@ -26,6 +26,7 @@ pub struct ProgramArgs {
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum OptimizationLevel {
+    O0,
     O1,
     O2,
     O3,
@@ -34,6 +35,7 @@ pub enum OptimizationLevel {
 impl Display for OptimizationLevel {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", match self {
+            OptimizationLevel::O0 => "o0",
             OptimizationLevel::O1 => "o1",
             OptimizationLevel::O2 => "o2",
             OptimizationLevel::O3 => "o3",
@@ -46,6 +48,7 @@ impl FromStr for OptimizationLevel {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
+            "o0" | "0" => Ok(OptimizationLevel::O0),
             "o1" | "1" => Ok(OptimizationLevel::O1),
             "o2" | "2" => Ok(OptimizationLevel::O2),
             "o3" | "3" => Ok(OptimizationLevel::O3),
