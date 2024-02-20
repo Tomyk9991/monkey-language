@@ -347,13 +347,16 @@ impl Expression {
                 target += &ASMBuilder::ident_line(&operation.0);
                 destination_register = operation.1;
             }
-            ASMResult::MultilineResulted(s, _) => {
+            ASMResult::MultilineResulted(s, mut new_register) => {
                 target += &s;
+                let final_ty = self.traverse_type_resulted(&meta.static_type_information, &meta.code_line)?;
+                let maybe_new_register = if final_ty.is_float() { new_register.to_float_register() } else { new_register.clone() };
+
+                target += &ASMBuilder::mov_x_ident_line(&maybe_new_register, &new_register, Some(final_ty.byte_size()));
+                new_register = maybe_new_register;
+
                 let ty = rhs.traverse_type(meta).ok_or(ASMGenerateError::InternalError("Could not traverse type".to_string()))?;
-
-
-                destination_register = if target_register.is_float_register() { destination_register.to_float_register() } else { destination_register };
-                let operation = self.operator.specific_operation(&ty, &[destination_register.to_string(), target_register.to_string()], stack, meta)?.inject_registers();
+                let operation = self.operator.specific_operation(&ty, &[new_register, target_register], stack, meta)?.inject_registers();
                 target += &ASMBuilder::ident_line(&operation.0);
                 destination_register = operation.1;
             }

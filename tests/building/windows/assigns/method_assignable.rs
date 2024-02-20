@@ -730,6 +730,7 @@ main:
     pop rdx
     pop rdi
     pop rcx
+    movq xmm0, rax
     addsd xmm0, xmm3
     movq rax, xmm0
     mov QWORD [rbp - 16], rax
@@ -858,7 +859,91 @@ main:
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
     sub rsp, 64
-    ; let addition: f64 = ((f1() + f1()) + (f1() + f1()))
+    ; let a1: f64 = ((f1() + f1()) + f1())
+    ; ((f1() + f1()) + f1())
+    ; (f1() + f1())
+    ; PushQ
+    push rcx
+    push rdi
+    push rdx
+    ; f1()
+    call .f1_void~f64
+    ; PopQ
+    pop rdx
+    pop rdi
+    pop rcx
+    movq xmm0, rax
+    ; PushQ
+    push rax
+    push rcx
+    push rdi
+    ; f1()
+    call .f1_void~f64
+    mov rdx, rax
+    ; PopQ
+    pop rdi
+    pop rcx
+    pop rax
+    movq xmm3, rdx
+    addsd xmm0, xmm3
+    ; PushQ
+    push rax
+    push rcx
+    push rdi
+    ; f1()
+    call .f1_void~f64
+    mov rdx, rax
+    ; PopQ
+    pop rdi
+    pop rcx
+    pop rax
+    movq xmm3, rdx
+    addsd xmm0, xmm3
+    movq rax, xmm0
+    mov QWORD [rbp - 8], rax
+    ; let a2: f64 = (f1() + (f1() + f1()))
+    ; (f1() + (f1() + f1()))
+    ; (f1() + f1())
+    ; PushQ
+    push rcx
+    push rdi
+    push rdx
+    ; f1()
+    call .f1_void~f64
+    ; PopQ
+    pop rdx
+    pop rdi
+    pop rcx
+    movq xmm0, rax
+    ; PushQ
+    push rax
+    push rcx
+    push rdi
+    ; f1()
+    call .f1_void~f64
+    mov rdx, rax
+    ; PopQ
+    pop rdi
+    pop rcx
+    pop rax
+    movq xmm3, rdx
+    addsd xmm0, xmm3
+    movq xmm3, xmm0
+    ; PushQ
+    push rcx
+    push rdi
+    push rdx
+    ; f1()
+    call .f1_void~f64
+    ; PopQ
+    pop rdx
+    pop rdi
+    pop rcx
+    movq xmm0, rax
+    addsd xmm0, xmm3
+    movq rax, xmm0
+    mov QWORD [rbp - 16], rax
+    ; let a3: f64 = ((f1() + f1()) + (f1() + f1()))
     ; ((f1() + f1()) + (f1() + f1()))
     ; (f1() + f1())
     ; PushQ
@@ -914,7 +999,7 @@ main:
     movq xmm2, xmm0
     addsd xmm1, xmm2
     movq rax, xmm1
-    mov QWORD [rbp - 8], rax
+    mov QWORD [rbp - 24], rax
     leave
     ret
     "#;
@@ -984,24 +1069,23 @@ main:
     push rdx
     ; f1()
     call .f1_void~f64
-    movq xmm0, rax
     ; PopQ
     pop rdx
     pop rdi
     pop rcx
+    movq xmm0, rax
     ; PushQ
     push rax
     push rcx
     push rdi
-    push rdx
     ; f2()
     call .f2_void~f64
-    movq xmm3, rax
+    mov rdx, rax
     ; PopQ
-    pop rdx
     pop rdi
     pop rcx
     pop rax
+    movq xmm3, rdx
     addsd xmm0, xmm3
     movq xmm1, xmm0
     ; (f2() + f1())
@@ -1011,31 +1095,30 @@ main:
     push rdx
     ; f2()
     call .f2_void~f64
-    movq xmm0, rax
     ; PopQ
     pop rdx
     pop rdi
     pop rcx
+    movq xmm0, rax
     ; PushQ
     push rax
     push rcx
     push rdi
-    push rdx
     ; f1()
     call .f1_void~f64
-    movq xmm3, rax
+    mov rdx, rax
     ; PopQ
-    pop rdx
     pop rdi
     pop rcx
     pop rax
+    movq xmm3, rdx
     addsd xmm0, xmm3
     movq xmm2, xmm0
     addsd xmm1, xmm2
-    movq xmm0, xmm1
-    movq rax, xmm0
-    push rax
-    xor rax, rax
+    movq xmm2, xmm1
+    movq rdi, xmm2
+    push rdi
+    xor rdi, rdi
     ; (f2() + f2())
     ; PushQ
     push rcx
@@ -1043,36 +1126,36 @@ main:
     push rdx
     ; f2()
     call .f2_void~f64
-    movq xmm0, rax
     ; PopQ
     pop rdx
     pop rdi
     pop rcx
+    movq xmm0, rax
     ; PushQ
     push rax
     push rcx
     push rdi
-    push rdx
     ; f2()
     call .f2_void~f64
-    movq xmm3, rax
+    mov rdx, rax
     ; PopQ
-    pop rdx
     pop rdi
     pop rcx
     pop rax
+    movq xmm3, rdx
     addsd xmm0, xmm3
     movq rax, xmm0
     push rax
     xor rax, rax
     pop rdi
-    movq xmm2, rdi
     pop rax
     movq xmm0, rax
+    movq xmm2, rdi
     addsd xmm0, xmm2
-    movq rax, xmm0
-    push rax
-    xor rax, rax
+    movq xmm2, xmm0
+    movq rdi, xmm2
+    push rdi
+    xor rdi, rdi
     ; ((f2() + (f2() + f2())) + (f2() + (f1() + f2())))
     ; (f2() + (f2() + f2()))
     ; (f2() + f2())
@@ -1082,24 +1165,23 @@ main:
     push rdx
     ; f2()
     call .f2_void~f64
-    movq xmm0, rax
     ; PopQ
     pop rdx
     pop rdi
     pop rcx
+    movq xmm0, rax
     ; PushQ
     push rax
     push rcx
     push rdi
-    push rdx
     ; f2()
     call .f2_void~f64
-    movq xmm3, rax
+    mov rdx, rax
     ; PopQ
-    pop rdx
     pop rdi
     pop rcx
     pop rax
+    movq xmm3, rdx
     addsd xmm0, xmm3
     movq xmm3, xmm0
     ; PushQ
@@ -1108,7 +1190,6 @@ main:
     push rdx
     ; f2()
     call .f2_void~f64
-    movq xmm0, rax
     ; PopQ
     pop rdx
     pop rdi
@@ -1127,24 +1208,23 @@ main:
     push rdx
     ; f1()
     call .f1_void~f64
-    movq xmm0, rax
     ; PopQ
     pop rdx
     pop rdi
     pop rcx
+    movq xmm0, rax
     ; PushQ
     push rax
     push rcx
     push rdi
-    push rdx
     ; f2()
     call .f2_void~f64
-    movq xmm3, rax
+    mov rdx, rax
     ; PopQ
-    pop rdx
     pop rdi
     pop rcx
     pop rax
+    movq xmm3, rdx
     addsd xmm0, xmm3
     movq xmm3, xmm0
     ; PushQ
@@ -1153,7 +1233,6 @@ main:
     push rdx
     ; f2()
     call .f2_void~f64
-    movq xmm0, rax
     ; PopQ
     pop rdx
     pop rdi
@@ -1164,17 +1243,17 @@ main:
     push rax
     xor rax, rax
     pop rdi
-    movq xmm2, rdi
     pop rax
     movq xmm0, rax
+    movq xmm2, rdi
     addsd xmm0, xmm2
     movq rax, xmm0
     push rax
     xor rax, rax
     pop rdi
-    movq xmm2, rdi
     pop rax
     movq xmm0, rax
+    movq xmm2, rdi
     addsd xmm0, xmm2
     movq rax, xmm0
     mov QWORD [rbp - 8], rax

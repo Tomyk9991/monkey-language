@@ -633,6 +633,7 @@ main:
     movq xmm3, xmm0
     mov rax, QWORD [rbp - 16]
     mov rax, QWORD [rax]
+    movq xmm0, rax
     addsd xmm0, xmm3
     movq rax, xmm0
     mov QWORD [rbp - 24], rax
@@ -879,6 +880,7 @@ main:
     movq xmm3, xmm0
     mov rax, QWORD [rbp - 16]
     mov rax, QWORD [rax]
+    movq xmm0, rax
     addsd xmm0, xmm3
     movq xmm2, xmm0
     movq rdi, xmm2
@@ -896,6 +898,7 @@ main:
     movq xmm3, xmm0
     mov rax, QWORD [rbp - 16]
     mov rax, QWORD [rax]
+    movq xmm0, rax
     addsd xmm0, xmm3
     movq rax, xmm0
     push rax
@@ -916,7 +919,8 @@ main:
     movq rax, xmm0
     mov QWORD [rbp - 40], rax
     leave
-    ret"#;
+    ret
+    "#;
 
     assert_eq!(expected.trim(), asm_result.trim());
     Ok(())
