@@ -662,14 +662,14 @@ impl Expression {
             }
         }
 
-        Ok(prefix_arithmetic.to_asm::<PrefixArithmeticOptions>(stack, meta, Some(PrefixArithmeticOptions {
+        prefix_arithmetic.to_asm::<PrefixArithmeticOptions>(stack, meta, Some(PrefixArithmeticOptions {
             value: value.clone(),
             register_or_stack_address,
             register_64,
             target_register: target_register.clone(),
             child_has_pointer_arithmetic,
             target,
-        }))?)
+        }))
     }
 
     pub fn traverse_type(&self, meta: &MetaInfo) -> Option<TypeToken> {
@@ -772,7 +772,7 @@ impl Expression {
             f.value *= -1.0;
         }
 
-        if let Some(_) = &mut self.value {
+        if self.value.is_some() {
             self.positive = !self.positive;
         }
     }

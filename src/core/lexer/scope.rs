@@ -46,7 +46,7 @@ impl Scope {
     fn method_call_in_assignable(assignable_token: &AssignableToken) -> Option<Vec<String>> {
         match assignable_token {
             AssignableToken::MethodCallToken(method_call) => {
-                return Some(vec![method_call.name.name.clone()]);
+                Some(vec![method_call.name.name.clone()])
             }
             AssignableToken::ArithmeticEquation(a) => {
                 Self::method_calls_in_expression(a)
@@ -54,7 +54,7 @@ impl Scope {
             AssignableToken::String(_) | AssignableToken::IntegerToken(_) |
             AssignableToken::FloatToken(_) | AssignableToken::Parameter(_) |
             AssignableToken::BooleanToken(_) | AssignableToken::NameToken(_) |
-            AssignableToken::Object(_) => return None
+            AssignableToken::Object(_) => None
         }
     }
 
@@ -95,7 +95,7 @@ impl Scope {
                 }
                 Token::MethodCall(method_call) => {
                     for args in &method_call.arguments {
-                        if let Some(calls) = Self::method_call_in_assignable(&args) {
+                        if let Some(calls) = Self::method_call_in_assignable(args) {
                             calls.iter().for_each(|a| { called_methods.insert(a.clone()); });
                         }
                     }
@@ -105,7 +105,7 @@ impl Scope {
                 Token::IfDefinition(if_definition) => {
                     Self::method_calls_in_stack(&if_definition.if_stack).iter().for_each(|a| { called_methods.insert(a.clone()); });
                     if let Some(else_stack) = &if_definition.else_stack {
-                        Self::method_calls_in_stack(&else_stack).iter().for_each(|a| { called_methods.insert(a.clone()); })
+                        Self::method_calls_in_stack(else_stack).iter().for_each(|a| { called_methods.insert(a.clone()); })
                     }
                 }
                 Token::MethodDefinition(_) => {}
@@ -115,7 +115,7 @@ impl Scope {
             }
         }
 
-        called_methods.iter().map(|a| a.clone()).collect::<Vec<String>>()
+        called_methods.iter().cloned().collect::<Vec<_>>()
     }
 
     /// Optimize methods out, which are not traversed down from the main method

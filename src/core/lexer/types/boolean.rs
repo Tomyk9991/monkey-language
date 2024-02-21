@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::fmt::Display;
 use std::str::FromStr;
-use crate::core::code_generator::registers::ByteSize;
+use crate::core::code_generator::registers::{Bit8, ByteSize, NibbleRegister};
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
@@ -50,13 +50,18 @@ impl OperatorToASM for Boolean {
                 AssemblerOperation::two_operands(&operator.to_asm::<InterimResultOption>(stack, meta, None)?.to_string(), &registers[0], &registers[1])
             }
             Operator::LogicalAnd => {
+                // the actual data of register[0] is moved to rcx
+                // the actual data of register[1] is moved to rax
+                let lhs = GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::CL));
+                let rhs = GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::AL));
+
                 let eax = GeneralPurposeRegister::Bit32(Bit32::Eax);
                 let mut target = String::new();
                 let label1 = stack.create_label();
                 let label2 = stack.create_label();
 
                 let jump_instruction = operator.to_asm::<InterimResultOption>(stack, meta, None)?.to_string();
-                target += &ASMBuilder::line(&format!("cmp {}, 0", registers[0]));
+                target += &ASMBuilder::line(&format!("cmp {}, 0", lhs));
                 target += &ASMBuilder::ident_line(&format!("{} {label1}", jump_instruction));
 
                 // if literal, put in register first
@@ -64,7 +69,7 @@ impl OperatorToASM for Boolean {
                     target += &ASMBuilder::mov_ident_line(eax.to_size_register(&ByteSize::_1), &registers[1]);
                     target += &ASMBuilder::ident_line(&format!("cmp {}, 0", eax.to_size_register(&ByteSize::_1)));
                 } else {
-                    target += &ASMBuilder::ident_line(&format!("cmp {}, 0", registers[1]));
+                    target += &ASMBuilder::ident_line(&format!("cmp {}, 0", rhs));
                 }
 
                 target += &ASMBuilder::ident_line(&format!("{} {label1}", jump_instruction));
@@ -90,8 +95,11 @@ impl OperatorToASM for Boolean {
                 let label2 = stack.create_label();
                 let label3 = stack.create_label();
 
+                let lhs = GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::CL));
+                let rhs = GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::AL));
+
                 let jump_instruction = operator.to_asm::<InterimResultOption>(stack, meta, None)?.to_string();
-                target += &ASMBuilder::line(&format!("cmp {}, 0", registers[0]));
+                target += &ASMBuilder::line(&format!("cmp {}, 0", lhs));
                 target += &ASMBuilder::ident_line(&format!("{} {label1}", jump_instruction));
 
                 // if literal, put in register first
@@ -99,7 +107,7 @@ impl OperatorToASM for Boolean {
                     target += &ASMBuilder::mov_ident_line(eax.to_size_register(&ByteSize::_1), &registers[1]);
                     target += &ASMBuilder::ident_line(&format!("cmp {}, 0", eax.to_size_register(&ByteSize::_1)));
                 } else {
-                    target += &ASMBuilder::ident_line(&format!("cmp {}, 0", registers[1]));
+                    target += &ASMBuilder::ident_line(&format!("cmp {}, 0", rhs));
                 }
 
                 target += &ASMBuilder::ident_line(&format!("je {label2}"));

@@ -1199,7 +1199,7 @@ main:
     mov cl, al
     mov al, dil
     mov dl, 0
-    cmp al, 0
+    cmp cl, 0
     je .label2
     mov al, dil
     cmp al, 0
@@ -1261,7 +1261,7 @@ main:
     mov cl, al
     mov al, dil
     mov dl, 0
-    cmp al, 0
+    cmp cl, 0
     je .label6
     mov al, dil
     cmp al, 0
@@ -1283,7 +1283,7 @@ main:
     mov cl, al
     mov al, dil
     mov dl, 0
-    cmp al, 0
+    cmp cl, 0
     jne .label8
     mov al, dil
     cmp al, 0
