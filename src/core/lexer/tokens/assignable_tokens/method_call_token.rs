@@ -5,11 +5,11 @@ use std::iter::Peekable;
 use std::slice::Iter;
 use std::str::FromStr;
 
-use crate::core::code_generator::{ASMGenerateError, conventions, MetaInfo};
+use crate::core::code_generator::{ASMGenerateError, conventions, MetaInfo, register_destination};
 use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::asm_result::{ASMOptions, ASMResult, ASMResultError, ASMResultVariance, InExpressionMethodCall, InterimResultOption};
 use crate::core::code_generator::conventions::CallingRegister;
-use crate::core::code_generator::generator::Stack;
+use crate::core::code_generator::generator::{Stack, StackLocation};
 use crate::core::code_generator::registers::{Bit64, ByteSize, GeneralPurposeRegister};
 use crate::core::code_generator::ToASM;
 use crate::core::io::code_line::CodeLine;
@@ -258,14 +258,19 @@ impl ToASM for MethodCallToken {
         }
 
         let zipped = calling_convention.iter().zip(&self.arguments);
+        let mut used_temp_registers = 0;
+        let mut parameters = vec![];
 
         for (conventions, argument) in zipped {
             let provided_type = argument.infer_type_with_context(&meta.static_type_information, &meta.code_line)?;
             let mut result_from_eval = GeneralPurposeRegister::Bit64(Bit64::Rax)
                 .to_size_register(&ByteSize::try_from(provided_type.byte_size())?);
 
+            let mut stack_address = String::new();
+
             let mut inline = false;
             let mut assign = String::new();
+
             match argument.to_asm(stack, meta, Some(InterimResultOption::from(&result_from_eval)))? {
                 ASMResult::Inline(source) => {
                     inline = true;
@@ -273,7 +278,20 @@ impl ToASM for MethodCallToken {
                 }
                 ASMResult::MultilineResulted(source, r) => {
                     target += &source;
-                    result_from_eval = r;
+
+                    if used_temp_registers == 3 {
+                        return Err(ASMGenerateError::InternalError(format!("Line: {:?}: Cannot use so many complex expressions inline. Put them in a variable first", meta.code_line.actual_line_number)))
+                    }
+
+                    let byte_size = r.size() as usize;
+                    stack.variables.push(StackLocation::new_anonymous_stack_location(stack.stack_position, byte_size));
+                    stack.stack_position += byte_size;
+
+                    let offset = stack.stack_position;
+                    let anonymous_stack_position = format!("{} [rbp - {}]", register_destination::word_from_byte_size(byte_size), offset);
+
+                    target.push_str(&ASMBuilder::mov_x_ident_line(&anonymous_stack_position, r, Some(byte_size)));
+                    stack_address = anonymous_stack_position;
                 }
                 ASMResult::Multiline(_) => return Err(ASMGenerateError::ASMResult(ASMResultError::UnexpectedVariance {
                     expected: vec![ASMResultVariance::Inline, ASMResultVariance::MultilineResulted],
@@ -282,16 +300,22 @@ impl ToASM for MethodCallToken {
                 }))
             }
 
+
             for convention in conventions {
                 match convention {
                     CallingRegister::Register(register_convention) => {
-                        target += &ASMBuilder::ident(&ASMBuilder::comment_line(&format!("Parameter ({argument})")));
                         let register_convention_sized = register_convention.to_size_register_ignore_float(&ByteSize::try_from(provided_type.byte_size())?);
-                        target += &ASMBuilder::mov_x_ident_line(register_convention_sized, if inline { assign.clone() } else { result_from_eval.to_string() }, Some(provided_type.byte_size()))
+                        parameters.push((register_convention_sized, if inline { assign.clone() } else { stack_address.clone() }, Some(provided_type.byte_size()), argument));
                     }
                     CallingRegister::Stack => {}
                 }
             }
+        }
+
+
+        for (register_convention_sized, assign, size, argument) in parameters {
+            target += &ASMBuilder::ident(&ASMBuilder::comment_line(&format!("Parameter ({})", argument)));
+            target += &ASMBuilder::mov_x_ident_line(register_convention_sized, assign, size)
         }
 
         target += &ASMBuilder::ident(&ASMBuilder::comment_line(&self.to_string()));

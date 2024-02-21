@@ -233,6 +233,18 @@ impl ASMGenerator {
                 }
 
                 stack_allocation += token.byte_size(&mut meta);
+
+                if let Token::Variable(variable) = token {
+                    if let AssignableToken::MethodCallToken(method_call) = &variable.assignable {
+                        let method_call_sizes = method_call.arguments.iter().fold(0, |acc, a| acc + a.byte_size(&mut meta));
+                        stack_allocation += method_call_sizes;
+                    }
+                }
+
+                if let Token::MethodCall(method_call) = token {
+                    let method_call_sizes = method_call.arguments.iter().fold(0, |acc, a| acc + a.byte_size(&mut meta));
+                    stack_allocation += method_call_sizes;
+                }
                 method_scope += &token.to_asm::<InterimResultOption>(&mut self.stack, &mut meta, None)?.to_string();
 
                 if let Some(Ok(prefix_asm)) = token.before_label(&mut self.stack, &mut meta) {

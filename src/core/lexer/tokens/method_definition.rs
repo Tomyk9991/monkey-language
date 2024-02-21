@@ -20,7 +20,7 @@ use crate::core::lexer::levenshtein_distance::PatternedLevenshteinDistance;
 use crate::core::lexer::scope::{PatternNotMatchedError, Scope, ScopeError};
 use crate::core::lexer::static_type_context::CurrentMethodInfo;
 use crate::core::lexer::token::Token;
-use crate::core::lexer::tokens::assignable_token::AssignableTokenErr;
+use crate::core::lexer::tokens::assignable_token::{AssignableToken, AssignableTokenErr};
 use crate::core::lexer::tokens::name_token::{NameToken, NameTokenErr};
 use crate::core::lexer::TryParse;
 use crate::core::lexer::types::type_token::{InferTypeError, TypeToken};
@@ -240,6 +240,19 @@ impl ToASM for MethodDefinition {
 
         for token in &self.stack {
             stack_allocation += token.byte_size(meta);
+
+            if let Token::Variable(variable) = token {
+                if let AssignableToken::MethodCallToken(method_call) = &variable.assignable {
+                    let method_call_sizes = method_call.arguments.iter().fold(0, |acc, a| acc + a.byte_size(meta));
+                    stack_allocation += method_call_sizes;
+                }
+            }
+
+            if let Token::MethodCall(method_call) = token {
+                let method_call_sizes = method_call.arguments.iter().fold(0, |acc, a| acc + a.byte_size(meta));
+                stack_allocation += method_call_sizes;
+            }
+
             method_scope += &token.to_asm::<InterimResultOption>(stack, meta, None)?.to_string();
 
             if let Some(Ok(prefix_asm)) = token.before_label(stack, meta) {
