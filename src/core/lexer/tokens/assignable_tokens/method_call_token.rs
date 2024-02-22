@@ -257,16 +257,17 @@ impl ToASM for MethodCallToken {
             target += &ASMBuilder::push_registers(&registers_push_ignore);
         }
 
+        enum RegisterResult {
+            Assign(String),
+            Stack
+        }
+
         let zipped = calling_convention.iter().zip(&self.arguments);
-        let mut used_temp_registers = 0;
         let mut parameters = vec![];
-
-        for (conventions, argument) in zipped {
+        for (conventions, argument) in zipped.rev() {
             let provided_type = argument.infer_type_with_context(&meta.static_type_information, &meta.code_line)?;
-            let mut result_from_eval = GeneralPurposeRegister::Bit64(Bit64::Rax)
+            let result_from_eval = GeneralPurposeRegister::Bit64(Bit64::Rax)
                 .to_size_register(&ByteSize::try_from(provided_type.byte_size())?);
-
-            let mut stack_address = String::new();
 
             let mut inline = false;
             let mut assign = String::new();
@@ -278,20 +279,7 @@ impl ToASM for MethodCallToken {
                 }
                 ASMResult::MultilineResulted(source, r) => {
                     target += &source;
-
-                    if used_temp_registers == 3 {
-                        return Err(ASMGenerateError::InternalError(format!("Line: {:?}: Cannot use so many complex expressions inline. Put them in a variable first", meta.code_line.actual_line_number)))
-                    }
-
-                    let byte_size = r.size() as usize;
-                    stack.variables.push(StackLocation::new_anonymous_stack_location(stack.stack_position, byte_size));
-                    stack.stack_position += byte_size;
-
-                    let offset = stack.stack_position;
-                    let anonymous_stack_position = format!("{} [rbp - {}]", register_destination::word_from_byte_size(byte_size), offset);
-
-                    target.push_str(&ASMBuilder::mov_x_ident_line(&anonymous_stack_position, r, Some(byte_size)));
-                    stack_address = anonymous_stack_position;
+                    target += &ASMBuilder::ident_line(&format!("push {}", r.to_64_bit_register()));
                 }
                 ASMResult::Multiline(_) => return Err(ASMGenerateError::ASMResult(ASMResultError::UnexpectedVariance {
                     expected: vec![ASMResultVariance::Inline, ASMResultVariance::MultilineResulted],
@@ -305,7 +293,7 @@ impl ToASM for MethodCallToken {
                 match convention {
                     CallingRegister::Register(register_convention) => {
                         let register_convention_sized = register_convention.to_size_register_ignore_float(&ByteSize::try_from(provided_type.byte_size())?);
-                        parameters.push((register_convention_sized, if inline { assign.clone() } else { stack_address.clone() }, Some(provided_type.byte_size()), argument));
+                        parameters.push((register_convention_sized, if inline { RegisterResult::Assign(assign.clone()) } else { RegisterResult::Stack }, Some(provided_type.byte_size()), argument));
                     }
                     CallingRegister::Stack => {}
                 }
@@ -313,9 +301,16 @@ impl ToASM for MethodCallToken {
         }
 
 
-        for (register_convention_sized, assign, size, argument) in parameters {
+        for (register_convention_sized, assign, size, argument) in parameters.iter().rev() {
             target += &ASMBuilder::ident(&ASMBuilder::comment_line(&format!("Parameter ({})", argument)));
-            target += &ASMBuilder::mov_x_ident_line(register_convention_sized, assign, size)
+            match assign {
+                RegisterResult::Assign(assign) => {
+                    target += &ASMBuilder::mov_x_ident_line(register_convention_sized, assign, *size)
+                }
+                RegisterResult::Stack => {
+                    target += &ASMBuilder::ident_line(&format!("pop {}", register_convention_sized.to_64_bit_register()))
+                }
+            }
         }
 
         target += &ASMBuilder::ident(&ASMBuilder::comment_line(&self.to_string()));

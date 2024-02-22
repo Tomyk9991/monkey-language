@@ -211,6 +211,8 @@ impl ToASM for MethodDefinition {
         for (index, (argument_name, argument_type)) in self.arguments.iter().enumerate() {
             if let Some(stack_location) = stack.variables.iter().rfind(|v| v.name.name == argument_name.name) {
                 let destination = stack_location.name.clone().to_asm(stack, meta, options.clone())?;
+                println!("{} -> {}", argument_name, calling_convention[index][0]);
+
                 let source = match &calling_convention[index][0] {
                     CallingRegister::Register(r) => {
                         if matches!(argument_type, TypeToken::Float(_)) {
