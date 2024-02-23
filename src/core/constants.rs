@@ -4,7 +4,7 @@ pub static KEYWORDS: [&str; 9] = [
 
 pub static OPENING_SCOPE: char = '{';
 pub static CLOSING_SCOPE: char = '}';
-pub static FUNCTION_KEYWORD: &str = "fn";
-pub static IF_KEYWORD: &str = "if";
+pub static _FUNCTION_KEYWORD: &str = "fn";
+pub static _IF_KEYWORD: &str = "if";
 
-pub static ELSE_KEYWORD: &str = "else";
+pub static _ELSE_KEYWORD: &str = "else";

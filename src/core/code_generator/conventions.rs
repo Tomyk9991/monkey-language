@@ -5,6 +5,7 @@ use crate::core::code_generator::registers::{Bit64, FloatRegister, GeneralPurpos
 use crate::core::code_generator::target_os::TargetOS;
 use crate::core::lexer::tokens::assignable_token::AssignableToken;
 use crate::core::lexer::tokens::method_definition::MethodDefinition;
+use crate::core::lexer::tokens::name_token::NameToken;
 use crate::core::lexer::types::type_token::{InferTypeError, TypeToken};
 
 /// An enum representing the destination register. If its a register it contains the register
@@ -67,6 +68,25 @@ fn windows_calling_convention(_stack: &mut Stack, meta: &MetaInfo, calling_argum
 
     let mut result = vec![];
 
+
+    let method_defs = method_definitions(meta, calling_arguments, method_name)?;
+
+    if method_defs.is_empty() {
+        return Err(InferTypeError::UnresolvedReference(method_name.to_string(), meta.code_line.clone()))
+    }
+
+    if method_defs.len() > 1 {
+        return Err(InferTypeError::MethodCallSignatureMismatch {
+            signatures: meta.static_type_information.methods
+                .iter().filter(|m| m.name.name == method_name)
+                .map(|m| m.arguments.iter().map(|a| a.1.clone()).collect::<Vec<_>>())
+                .collect::<Vec<_>>(),
+            method_name: NameToken { name: method_name.to_string() },
+            code_line: meta.code_line.clone(),
+            provided: calling_arguments.iter().filter_map(|a| a.infer_type_with_context(&meta.static_type_information, &meta.code_line).ok()).collect::<Vec<_>>(),
+        })
+    }
+
     let method_def = if let Some(method_def) = meta.static_type_information.methods.iter().find(|m| m.name.name == method_name) {
         method_def.clone()
     } else {
@@ -86,14 +106,14 @@ fn windows_calling_convention(_stack: &mut Stack, meta: &MetaInfo, calling_argum
             }
             TypeToken::Float(_) => {
                 let mut r = vec![];
+                if method_def.is_extern {
+                    r.push(POINTER_ORDER[index].clone());
+                }
+
                 if index < 4 {
                     r.push(FLOAT_ORDER[index].clone());
                 } else {
                     r.push(CallingRegister::Stack);
-                }
-
-                if method_def.is_extern {
-                    r.push(POINTER_ORDER[index].clone());
                 }
 
                 result.push(r);
@@ -104,6 +124,29 @@ fn windows_calling_convention(_stack: &mut Stack, meta: &MetaInfo, calling_argum
 
     Ok(result)
 }
+
+/// Returns every possible method definition based on the argument signature and method name
+pub fn method_definitions(meta: &MetaInfo, arguments: &[AssignableToken], method_name: &str) -> Result<Vec<MethodDefinition>, InferTypeError> {
+    let mut method_definitions = vec![];
+
+    'outer: for method in &meta.static_type_information.methods {
+        if method.name.name != method_name || method.arguments.len() != arguments.len() {
+            continue;
+        }
+
+        for (index, (_, argument_type)) in method.arguments.iter().enumerate() {
+            let calling_type = arguments[index].infer_type_with_context(&meta.static_type_information, &meta.code_line)?;
+            if *argument_type != calling_type {
+                continue 'outer;
+            }
+        }
+
+        method_definitions.push(method.clone());
+    }
+
+    Ok(method_definitions)
+}
+
 
 fn windows_calling_convention_from(method_definition: &MethodDefinition) -> Vec<Vec<CallingRegister>> {
     static FLOAT_ORDER: [CallingRegister; 4] = [

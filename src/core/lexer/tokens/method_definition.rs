@@ -12,15 +12,12 @@ use crate::core::code_generator::asm_result::{ASMOptions, ASMResult, InterimResu
 use crate::core::code_generator::conventions::CallingRegister;
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::registers::ByteSize;
-use crate::core::constants::FUNCTION_KEYWORD;
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::errors::EmptyIteratorErr;
-use crate::core::lexer::levenshtein_distance::{ArgumentsIgnoreSummarizeTransform, EmptyParenthesesExpand, PatternedLevenshteinString, QuoteSummarizeTransform};
-use crate::core::lexer::levenshtein_distance::PatternedLevenshteinDistance;
 use crate::core::lexer::scope::{PatternNotMatchedError, Scope, ScopeError};
 use crate::core::lexer::static_type_context::CurrentMethodInfo;
 use crate::core::lexer::token::Token;
-use crate::core::lexer::tokens::assignable_token::{AssignableToken, AssignableTokenErr};
+use crate::core::lexer::tokens::assignable_token::AssignableTokenErr;
 use crate::core::lexer::tokens::name_token::{NameToken, NameTokenErr};
 use crate::core::lexer::TryParse;
 use crate::core::lexer::types::type_token::{InferTypeError, TypeToken};
@@ -117,8 +114,6 @@ impl TryParse for MethodDefinition {
         let split_alloc = method_header.split(vec![' ']);
         let split_ref = split_alloc.iter().map(|a| a.as_str()).collect::<Vec<_>>();
 
-        // todo: check if parameter names are duplicates
-
         let (is_extern, fn_name, _generic_type, arguments, return_type) = match &split_ref[..] {
             ["extern", "fn", name, "<", generic_type, ">", "(", arguments @ .., ")", ":", return_type, ";"] => (true, name, Some(generic_type), arguments, return_type),
             ["extern", "fn", name, "(", arguments @ .., ")", ":", return_type, ";"] => (true, name, None, arguments, return_type),
@@ -211,8 +206,6 @@ impl ToASM for MethodDefinition {
         for (index, (argument_name, argument_type)) in self.arguments.iter().enumerate() {
             if let Some(stack_location) = stack.variables.iter().rfind(|v| v.name.name == argument_name.name) {
                 let destination = stack_location.name.clone().to_asm(stack, meta, options.clone())?;
-                println!("{} -> {}", argument_name, calling_convention[index][0]);
-
                 let source = match &calling_convention[index][0] {
                     CallingRegister::Register(r) => {
                         if matches!(argument_type, TypeToken::Float(_)) {
@@ -241,19 +234,8 @@ impl ToASM for MethodDefinition {
         });
 
         for token in &self.stack {
+            meta.code_line = token.code_line();
             stack_allocation += token.byte_size(meta);
-
-            if let Token::Variable(variable) = token {
-                if let AssignableToken::MethodCallToken(method_call) = &variable.assignable {
-                    let method_call_sizes = method_call.arguments.iter().fold(0, |acc, a| acc + a.byte_size(meta));
-                    stack_allocation += method_call_sizes;
-                }
-            }
-
-            if let Token::MethodCall(method_call) = token {
-                let method_call_sizes = method_call.arguments.iter().fold(0, |acc, a| acc + a.byte_size(meta));
-                stack_allocation += method_call_sizes;
-            }
 
             method_scope += &token.to_asm::<InterimResultOption>(stack, meta, None)?.to_string();
 
@@ -265,7 +247,7 @@ impl ToASM for MethodDefinition {
         meta.static_type_information.expected_return_type = None;
 
         let stack_allocation_asm = ASMBuilder::ident_line(&format!("sub rsp, {}", math::lowest_power_of_2_gt_n(stack_allocation)));
-        let leave_statement = if self.return_type == TypeToken::Void { "leave\n    ret\n".to_string() } else { String::new() };
+        let leave_statement = if self.return_type == TypeToken::Void { "    leave\n    ret\n".to_string() } else { String::new() };
 
         Ok(ASMResult::Multiline(format!("{}{}{}{}{}", prefix, label_header, stack_allocation_asm, method_scope, leave_statement)))
     }
@@ -280,32 +262,5 @@ impl ToASM for MethodDefinition {
 
     fn before_label(&self, _stack: &mut Stack, _meta: &mut MetaInfo) -> Option<Result<String, ASMGenerateError>> {
         None
-    }
-}
-
-impl PatternedLevenshteinDistance for MethodDefinition {
-    fn distance_from_code_line(code_line: &CodeLine) -> usize {
-        let method_header_pattern = PatternedLevenshteinString::default()
-            .insert(FUNCTION_KEYWORD)
-            .insert(PatternedLevenshteinString::ignore())
-            .insert("(")
-            .insert(PatternedLevenshteinString::ignore())
-            .insert(")")
-            .insert(":")
-            .insert(PatternedLevenshteinString::ignore())
-            .insert("{");
-
-        <MethodDefinition as PatternedLevenshteinDistance>::distance(
-            PatternedLevenshteinString::match_to(
-                &code_line.line,
-                &method_header_pattern,
-                vec![
-                    Box::new(QuoteSummarizeTransform),
-                    Box::new(EmptyParenthesesExpand),
-                    Box::new(ArgumentsIgnoreSummarizeTransform),
-                ],
-            ),
-            method_header_pattern,
-        )
     }
 }

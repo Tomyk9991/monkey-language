@@ -5,16 +5,15 @@ use std::iter::Peekable;
 use std::slice::Iter;
 use std::str::FromStr;
 
-use crate::core::code_generator::{ASMGenerateError, conventions, MetaInfo, register_destination};
+use crate::core::code_generator::{ASMGenerateError, conventions, MetaInfo};
 use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::asm_result::{ASMOptions, ASMResult, ASMResultError, ASMResultVariance, InExpressionMethodCall, InterimResultOption};
 use crate::core::code_generator::conventions::CallingRegister;
-use crate::core::code_generator::generator::{Stack, StackLocation};
+use crate::core::code_generator::generator::{Stack};
 use crate::core::code_generator::registers::{Bit64, ByteSize, GeneralPurposeRegister};
 use crate::core::code_generator::ToASM;
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::errors::EmptyIteratorErr;
-use crate::core::lexer::levenshtein_distance::{ArgumentsIgnoreSummarizeTransform, EmptyParenthesesExpand, PatternedLevenshteinDistance, PatternedLevenshteinString, QuoteSummarizeTransform};
 use crate::core::lexer::scope::PatternNotMatchedError;
 use crate::core::lexer::static_type_context::StaticTypeContext;
 use crate::core::lexer::tokens::assignable_token::{AssignableToken, AssignableTokenErr};
@@ -225,9 +224,25 @@ impl MethodCallToken {
 impl ToASM for MethodCallToken {
     fn to_asm<T: ASMOptions + 'static>(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
         let calling_convention = conventions::calling_convention(stack, meta, &self.arguments, &self.name.name)?;
+        let method_defs = conventions::method_definitions(meta, &self.arguments, &self.name.name)?;
 
-        let method_def = meta.static_type_information.methods.iter().find(|m| m.name.name == self.name.name)
-            .ok_or(ASMGenerateError::TypeNotInferrable(InferTypeError::UnresolvedReference(self.name.to_string(), meta.code_line.clone())))?.clone();
+        if method_defs.is_empty() {
+            return Err(ASMGenerateError::TypeNotInferrable(InferTypeError::UnresolvedReference(self.name.to_string(), meta.code_line.clone())))
+        }
+
+        if method_defs.len() > 1 {
+            return Err(ASMGenerateError::TypeNotInferrable(InferTypeError::MethodCallSignatureMismatch {
+                signatures: meta.static_type_information.methods
+                    .iter().filter(|m| m.name.name == self.name.name)
+                    .map(|m| m.arguments.iter().map(|a| a.1.clone()).collect::<Vec<_>>())
+                    .collect::<Vec<_>>(),
+                method_name: self.name.clone(),
+                code_line: meta.code_line.clone(),
+                provided: self.arguments.iter().filter_map(|a| a.infer_type_with_context(&meta.static_type_information, &meta.code_line).ok()).collect::<Vec<_>>(),
+            }))
+        }
+
+        let method_def = &method_defs[0];
         let resulting_register = GeneralPurposeRegister::Bit64(Bit64::Rax);
 
         // represents the register where the final result must lay in, and where it is expected, after call
@@ -257,6 +272,7 @@ impl ToASM for MethodCallToken {
             target += &ASMBuilder::push_registers(&registers_push_ignore);
         }
 
+        #[derive(Debug)]
         enum RegisterResult {
             Assign(String),
             Stack
@@ -279,7 +295,18 @@ impl ToASM for MethodCallToken {
                 }
                 ASMResult::MultilineResulted(source, r) => {
                     target += &source;
-                    target += &ASMBuilder::ident_line(&format!("push {}", r.to_64_bit_register()));
+
+                    if let AssignableToken::FloatToken(_) = argument {
+                        inline = true;
+                        assign = r.to_string();
+                    } else {
+                        if r.is_float_register() {
+                            target += &ASMBuilder::mov_x_ident_line(&r.to_64_bit_register(), &r, Some(r.size() as usize));
+                        }
+
+                        target += &ASMBuilder::ident_line(&format!("push {}", r.to_64_bit_register()));
+                    }
+
                 }
                 ASMResult::Multiline(_) => return Err(ASMGenerateError::ASMResult(ASMResultError::UnexpectedVariance {
                     expected: vec![ASMResultVariance::Inline, ASMResultVariance::MultilineResulted],
@@ -289,32 +316,53 @@ impl ToASM for MethodCallToken {
             }
 
 
+            let mut variadic_parameters = vec![];
             for convention in conventions {
                 match convention {
                     CallingRegister::Register(register_convention) => {
                         let register_convention_sized = register_convention.to_size_register_ignore_float(&ByteSize::try_from(provided_type.byte_size())?);
-                        parameters.push((register_convention_sized, if inline { RegisterResult::Assign(assign.clone()) } else { RegisterResult::Stack }, Some(provided_type.byte_size()), argument));
+                        variadic_parameters.push((register_convention_sized, if inline { RegisterResult::Assign(assign.clone()) } else { RegisterResult::Stack }, Some(provided_type.byte_size()), argument));
                     }
                     CallingRegister::Stack => {}
                 }
             }
+
+            parameters.push(variadic_parameters);
         }
 
 
-        for (register_convention_sized, assign, size, argument) in parameters.iter().rev() {
-            target += &ASMBuilder::ident(&ASMBuilder::comment_line(&format!("Parameter ({})", argument)));
-            match assign {
-                RegisterResult::Assign(assign) => {
-                    target += &ASMBuilder::mov_x_ident_line(register_convention_sized, assign, *size)
-                }
-                RegisterResult::Stack => {
-                    target += &ASMBuilder::ident_line(&format!("pop {}", register_convention_sized.to_64_bit_register()))
+        // due to variadic function calls and windows calling conventions
+        // float parameters need to have the value in the general purpose register AND in the xmm register accordingly
+        // since multiple pops result in unexpected or even crashing behaviour. just one pop is needed
+        let mut popped_into = GeneralPurposeRegister::Bit64(Bit64::Rax);
+        for all_conventions in parameters {
+            for (index, (register_convention_sized, assign, size, argument)) in all_conventions.iter().enumerate() {
+                if index == 0 {
+                    target += &ASMBuilder::ident(&ASMBuilder::comment_line(&format!("Parameter ({})", argument)));
+                    match assign {
+                        RegisterResult::Assign(assign) => {
+                            target += &ASMBuilder::mov_x_ident_line(register_convention_sized, assign, *size)
+                        }
+                        RegisterResult::Stack => {
+                            target += &ASMBuilder::ident_line(&format!("pop {}", register_convention_sized.to_64_bit_register()));
+                            popped_into = register_convention_sized.to_64_bit_register();
+                        }
+                    }
+                } else {
+                    match assign {
+                        RegisterResult::Assign(assign) => {
+                            target += &ASMBuilder::mov_x_ident_line(register_convention_sized, assign, *size);
+                        }
+                        RegisterResult::Stack => {
+                            target += &ASMBuilder::mov_x_ident_line(register_convention_sized, &popped_into, *size);
+                        }
+                    }
                 }
             }
         }
 
         target += &ASMBuilder::ident(&ASMBuilder::comment_line(&self.to_string()));
-        target += &ASMBuilder::ident_line(&format!("call {}", if method_def.is_extern { method_def.name.name } else { method_def.method_label_name() }));
+        target += &ASMBuilder::ident_line(&format!("call {}", if method_def.is_extern { method_def.name.name.to_string() } else { method_def.method_label_name() }));
 
         if method_def.return_type != TypeToken::Void {
             target += &ASMBuilder::mov_x_ident_line(
@@ -373,32 +421,6 @@ impl ToASM for MethodCallToken {
         if has_before_label_asm { Some(Ok(target)) } else { None }
     }
 }
-
-impl PatternedLevenshteinDistance for MethodCallToken {
-    fn distance_from_code_line(code_line: &CodeLine) -> usize {
-        let method_call_pattern = PatternedLevenshteinString::default()
-            .insert(PatternedLevenshteinString::ignore())
-            .insert("(")
-            .insert(PatternedLevenshteinString::ignore())
-            .insert(")")
-            .insert(";");
-
-
-        <MethodCallToken as PatternedLevenshteinDistance>::distance(
-            PatternedLevenshteinString::match_to(
-                &code_line.line,
-                &method_call_pattern,
-                vec![
-                    Box::new(QuoteSummarizeTransform),
-                    Box::new(EmptyParenthesesExpand),
-                    Box::new(ArgumentsIgnoreSummarizeTransform),
-                ],
-            ),
-            method_call_pattern,
-        )
-    }
-}
-
 
 #[derive(Debug)]
 pub struct DyckError {

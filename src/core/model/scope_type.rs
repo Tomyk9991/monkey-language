@@ -32,6 +32,8 @@ impl Iterator for ScopeSplitterIterator {
                     r"fn .*?\(.*?\)\s\{ ",
                     r"fn .*?\(.*?\)\s\{.*?\}",
                     r"fn .*?\(.*?\):\s.*?\{.*?\}",
+
+                    r"(extern )fn .*?\(.*?\):\s.*?\;",
                 ], ScopeType::Fn))
             },
             1 => {

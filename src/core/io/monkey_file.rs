@@ -29,6 +29,7 @@ impl MonkeyFile {
 
         let monkey_file = Self::read_from_str(&buffer);
 
+
         Ok(Self {
             path: path_buffer,
             size,

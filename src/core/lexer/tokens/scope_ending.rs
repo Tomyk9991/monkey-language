@@ -4,7 +4,6 @@ use std::iter::Peekable;
 use std::slice::Iter;
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::errors::EmptyIteratorErr;
-use crate::core::lexer::levenshtein_distance::{PatternedLevenshteinDistance, PatternedLevenshteinString};
 use crate::core::lexer::scope::PatternNotMatchedError;
 use crate::core::lexer::TryParse;
 
@@ -61,21 +60,5 @@ impl ScopeEnding {
         } else {
             Err(ScopeEndingErr::PatternNotMatched { target_value: code_line.line.to_string() })
         }
-    }
-}
-
-impl PatternedLevenshteinDistance for ScopeEnding {
-    fn distance_from_code_line(code_line: &CodeLine) -> usize {
-        let scope_ending_pattern = PatternedLevenshteinString::default()
-            .insert("}");
-
-        <ScopeEnding as PatternedLevenshteinDistance>::distance(
-            PatternedLevenshteinString::match_to(
-                &code_line.line,
-                &scope_ending_pattern,
-                vec![]
-            ),
-            scope_ending_pattern
-        )
     }
 }

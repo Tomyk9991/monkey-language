@@ -44,10 +44,25 @@ pub enum InferTypeError {
     MethodCallArgumentAmountMismatch { expected: usize, actual: usize, code_line: CodeLine },
     MethodCallArgumentTypeMismatch { info: Box<MethodCallArgumentTypeMismatch> },
     MethodReturnArgumentTypeMismatch { expected: TypeToken, actual: TypeToken, code_line: CodeLine },
-    MethodReturnSignatureMismatch { expected: TypeToken, method_name: String, method_head_line: Range<usize> },
+    MethodReturnSignatureMismatch { expected: TypeToken, method_name: String, method_head_line: Range<usize>, cause: MethodCallSignatureMismatchCause },
     MethodCallSignatureMismatch { signatures: Vec<Vec<TypeToken>>, method_name: NameToken, code_line: CodeLine, provided: Vec<TypeToken> },
     NameCollision(String, CodeLine),
     MismatchedTypes { expected: TypeToken, actual: TypeToken, code_line: CodeLine },
+}
+
+#[derive(Debug)]
+pub enum MethodCallSignatureMismatchCause {
+    ReturnMissing,
+    IfCondition
+}
+
+impl Display for MethodCallSignatureMismatchCause {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", match self {
+            MethodCallSignatureMismatchCause::ReturnMissing => "",
+            MethodCallSignatureMismatchCause::IfCondition => "Every branch of an if statement must end with a return statement"
+        })
+    }
 }
 
 #[derive(Debug)]
@@ -91,7 +106,7 @@ impl Display for InferTypeError {
             InferTypeError::MethodCallArgumentAmountMismatch { expected, actual, code_line } => write!(f, "Line: {:?}: \tThe method expects {} parameter, but {} are provided", code_line.actual_line_number, expected, actual),
             InferTypeError::MethodCallArgumentTypeMismatch { info } => write!(f, "Line: {:?}: \t The {}. argument should be of type: `{}` but `{}` is provided", info.code_line.actual_line_number, info.nth_parameter, info.expected, info.actual),
             InferTypeError::MethodReturnArgumentTypeMismatch { expected, actual, code_line } => write!(f, "Line: {:?}: \t The return type is: `{}` but `{}` is provided", code_line.actual_line_number, expected, actual),
-            InferTypeError::MethodReturnSignatureMismatch { expected, method_name, method_head_line } => write!(f, "Line: {method_head_line:?}: \tA return statement with type: `{expected}` is expected for the method: {method_name}"),
+            InferTypeError::MethodReturnSignatureMismatch { expected, method_name, method_head_line, cause } => write!(f, "Line: {method_head_line:?}: \tA return statement with type: `{expected}` is expected for the method: {method_name}\n\t{cause}"),
             InferTypeError::MethodCallSignatureMismatch { signatures, method_name, code_line, provided } => {
                 let provided_arguments = provided.iter().map(|a| a.to_string()).collect::<Vec<String>>().join(", ");
                 let mut signatures = signatures

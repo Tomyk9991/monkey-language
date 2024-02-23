@@ -7,11 +7,8 @@ use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::code_generator::asm_result::{ASMOptions, ASMResult, ASMResultError, ASMResultVariance, InterimResultOption};
 use crate::core::code_generator::generator::Stack;
 
-use crate::core::constants::{ELSE_KEYWORD, CLOSING_SCOPE, IF_KEYWORD};
-use crate::core::constants::OPENING_SCOPE;
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::errors::EmptyIteratorErr;
-use crate::core::lexer::levenshtein_distance::{ArgumentsIgnoreSummarizeTransform, EmptyParenthesesExpand, PatternedLevenshteinDistance, PatternedLevenshteinString, QuoteSummarizeTransform};
 use crate::core::lexer::scope::{PatternNotMatchedError, Scope, ScopeError};
 use crate::core::lexer::static_type_context::StaticTypeContext;
 use crate::core::lexer::token::Token;
@@ -30,6 +27,28 @@ pub struct IfDefinition {
     pub if_stack: Vec<Token>,
     pub else_stack: Option<Vec<Token>>,
     pub code_line: CodeLine
+}
+
+impl IfDefinition {
+    pub fn ends_with_return_in_each_branch(&self) -> bool {
+        if self.else_stack.is_none() {
+            return false;
+        }
+
+        if let [.., last_if] = &self.if_stack[..] {
+            if let Token::IfDefinition(inner_if) = last_if {
+                return inner_if.ends_with_return_in_each_branch();
+            }
+
+            if let Some(else_stack) = &self.else_stack {
+                if let [.., last_else] = &else_stack[..] {
+                    return matches!(last_if, Token::Return(_)) && matches!(last_else, Token::Return(_));
+                }
+            }
+        }
+
+        false
+    }
 }
 
 impl InferType for IfDefinition {
@@ -236,52 +255,5 @@ impl ToASM for IfDefinition {
 
     fn before_label(&self, _stack: &mut Stack, _meta: &mut MetaInfo) -> Option<Result<String, ASMGenerateError>> {
         None
-    }
-}
-
-
-impl PatternedLevenshteinDistance for IfDefinition {
-    fn distance_from_code_line(code_line: &CodeLine) -> usize {
-        let if_header_pattern = PatternedLevenshteinString::default()
-            .insert(IF_KEYWORD)
-            .insert("(")
-            .insert(PatternedLevenshteinString::ignore())
-            .insert(")")
-            .insert(&OPENING_SCOPE.to_string());
-
-        let else_header_pattern = PatternedLevenshteinString::default()
-            .insert(PatternedLevenshteinString::ignore())
-            .insert(ELSE_KEYWORD)
-            .insert(&OPENING_SCOPE.to_string())
-            .insert(PatternedLevenshteinString::ignore())
-            .insert(&CLOSING_SCOPE.to_string());
-
-        let if_distance = <IfDefinition as PatternedLevenshteinDistance>::distance(
-            PatternedLevenshteinString::match_to(
-                &code_line.line,
-                &if_header_pattern,
-                vec![
-                    Box::new(QuoteSummarizeTransform),
-                    Box::new(EmptyParenthesesExpand),
-                    Box::new(ArgumentsIgnoreSummarizeTransform),
-                ],
-            ),
-            if_header_pattern,
-        );
-
-        let else_distance = <IfDefinition as PatternedLevenshteinDistance>::distance(
-            PatternedLevenshteinString::match_to(
-                &code_line.line,
-                &else_header_pattern,
-                vec![
-                    Box::new(QuoteSummarizeTransform),
-                    Box::new(EmptyParenthesesExpand),
-                    Box::new(ArgumentsIgnoreSummarizeTransform),
-                ],
-            ),
-            else_header_pattern,
-        );
-
-        if_distance.min(else_distance)
     }
 }

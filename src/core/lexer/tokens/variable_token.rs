@@ -13,7 +13,6 @@ use crate::core::code_generator::generator::{Stack, StackLocation};
 use crate::core::code_generator::registers::{Bit64, ByteSize, GeneralPurposeRegister};
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::errors::EmptyIteratorErr;
-use crate::core::lexer::levenshtein_distance::{MethodCallSummarizeTransform, PatternedLevenshteinDistance, PatternedLevenshteinString, QuoteSummarizeTransform};
 use crate::core::lexer::scope::PatternNotMatchedError;
 use crate::core::lexer::static_type_context::StaticTypeContext;
 use crate::core::lexer::tokens::assignable_token::{AssignableToken, AssignableTokenErr};
@@ -353,25 +352,5 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> VariableToken<ASSIGNMENT, SE
         }
 
         Err(InferTypeError::UnresolvedReference(self.assignable.to_string(), self.code_line.clone()))
-    }
-}
-
-
-impl<const ASSIGNMENT: char, const SEPARATOR: char> PatternedLevenshteinDistance for VariableToken<ASSIGNMENT, SEPARATOR> {
-    fn distance_from_code_line(code_line: &CodeLine) -> usize {
-        let variable_pattern = PatternedLevenshteinString::default()
-            .insert(PatternedLevenshteinString::ignore())
-            .insert(&ASSIGNMENT.to_string())
-            .insert(PatternedLevenshteinString::ignore())
-            .insert(&SEPARATOR.to_string());
-
-        <VariableToken<ASSIGNMENT, SEPARATOR> as PatternedLevenshteinDistance>::distance(
-            PatternedLevenshteinString::match_to(
-                &code_line.line,
-                &variable_pattern,
-                vec![Box::new(QuoteSummarizeTransform), Box::new(MethodCallSummarizeTransform)],
-            ),
-            variable_pattern,
-        )
     }
 }

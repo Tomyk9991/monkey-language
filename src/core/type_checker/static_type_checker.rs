@@ -7,7 +7,7 @@ use crate::core::lexer::token::Token;
 use crate::core::lexer::tokens::assignable_token::AssignableToken;
 use crate::core::lexer::tokens::name_token::NameToken;
 use crate::core::lexer::tokens::variable_token::VariableToken;
-use crate::core::lexer::types::type_token::{InferTypeError, TypeToken};
+use crate::core::lexer::types::type_token::{InferTypeError, MethodCallSignatureMismatchCause, TypeToken};
 
 #[derive(Debug)]
 pub enum StaticTypeCheckError {
@@ -53,6 +53,7 @@ fn static_type_check_rec(scope: &Vec<Token>, type_context: &mut StaticTypeContex
                 expected: ty.return_type.clone(),
                 method_name: ty.method_name.to_string(),
                 method_head_line: ty.method_header_line.clone(),
+                cause: MethodCallSignatureMismatchCause::ReturnMissing,
             }));
         }
     }
@@ -146,14 +147,29 @@ fn static_type_check_rec(scope: &Vec<Token>, type_context: &mut StaticTypeContex
 
                 static_type_check_rec(&method_definition.stack, type_context)?;
 
-                if let [.., last] = &method_definition.stack[..] {
-                    if !matches!(last, Token::Return(_)) {
-                        if let Some(expected_return_type) = &type_context.expected_return_type {
-                            return Err(StaticTypeCheckError::InferredError(InferTypeError::MethodReturnSignatureMismatch {
-                                expected: expected_return_type.return_type.clone(),
-                                method_name: expected_return_type.method_name.to_string(),
-                                method_head_line: expected_return_type.method_header_line.to_owned(),
-                            }))
+                if method_definition.return_type != TypeToken::Void {
+                    if let [.., last] = &method_definition.stack[..] {
+                        let mut method_return_signature_mismatch = false;
+                        let mut cause = MethodCallSignatureMismatchCause::ReturnMissing;
+
+                        if let Token::IfDefinition(if_definition) = &last {
+                            method_return_signature_mismatch = !if_definition.ends_with_return_in_each_branch();
+                            if method_return_signature_mismatch {
+                                cause = MethodCallSignatureMismatchCause::IfCondition;
+                            }
+                        } else if !matches!(last, Token::Return(_)) {
+                            method_return_signature_mismatch = true;
+                        }
+
+                        if method_return_signature_mismatch {
+                            if let Some(expected_return_type) = &type_context.expected_return_type {
+                                return Err(StaticTypeCheckError::InferredError(InferTypeError::MethodReturnSignatureMismatch {
+                                    expected: expected_return_type.return_type.clone(),
+                                    method_name: expected_return_type.method_name.to_string(),
+                                    method_head_line: expected_return_type.method_header_line.to_owned(),
+                                    cause,
+                                }))
+                            }
                         }
                     }
                 }

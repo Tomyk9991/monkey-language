@@ -8,7 +8,6 @@ use crate::core::code_generator::asm_result::{ASMOptions, ASMResult};
 use crate::core::io::monkey_file::MonkeyFile;
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::errors::EmptyIteratorErr;
-use crate::core::lexer::levenshtein_distance::{PatternedLevenshteinDistance, PatternedLevenshteinString, QuoteSummarizeTransform};
 use crate::core::lexer::scope::PatternNotMatchedError;
 use crate::core::lexer::TryParse;
 
@@ -80,24 +79,6 @@ impl ImportToken {
         }
 
         Err(ImportTokenError::PatternNotMatched {target_value: code_line.line.to_string() })
-    }
-}
-
-impl PatternedLevenshteinDistance for ImportToken {
-    fn distance_from_code_line(code_line: &CodeLine) -> usize {
-        let pattern = PatternedLevenshteinString::default()
-            .insert("import")
-            .insert(PatternedLevenshteinString::ignore())
-            .insert(";");
-
-        <ImportToken as PatternedLevenshteinDistance>::distance(
-            PatternedLevenshteinString::match_to(
-                &code_line.line,
-                &pattern,
-                vec![Box::new(QuoteSummarizeTransform)]
-            ),
-            pattern
-        )
     }
 }
 

@@ -7,7 +7,6 @@ pub mod tokenizer;
 pub mod scope;
 pub mod token;
 pub mod tokens;
-pub mod levenshtein_distance;
 pub mod errors;
 pub mod static_type_context;
 pub mod types;
