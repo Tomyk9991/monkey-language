@@ -253,7 +253,7 @@ impl ToASM for MethodDefinition {
     }
 
     fn is_stack_look_up(&self, _stack: &mut Stack, _meta: &MetaInfo) -> bool {
-        todo!()
+        true
     }
 
     fn byte_size(&self, _meta: &mut MetaInfo) -> usize {

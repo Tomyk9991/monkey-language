@@ -184,6 +184,29 @@ fn static_type_check_rec(scope: &Vec<Token>, type_context: &mut StaticTypeContex
 
                 type_context.expected_return_type = None;
             }
+            Token::ForToken(for_loop) => {
+                // add for header variables
+                type_context.context.push(for_loop.initialization.clone());
+
+                let variables_len = type_context.context.len();
+                let condition_type = for_loop.condition.infer_type_with_context(type_context, &for_loop.code_line)?;
+
+                if condition_type != TypeToken::Bool {
+                    return Err(StaticTypeCheckError::InferredError(InferTypeError::MismatchedTypes {
+                        expected: TypeToken::Bool,
+                        actual: condition_type,
+                        code_line: for_loop.code_line.clone(),
+                    }))
+                }
+
+                static_type_check_rec(&for_loop.stack, type_context)?;
+
+                let amount_pop = type_context.context.len() - variables_len;
+
+                for _ in 0..amount_pop {
+                    let _ = type_context.context.pop();
+                }
+            },
             Token::MethodCall(method_call) => {
                 method_call.type_check(type_context, &method_call.code_line)?
             }

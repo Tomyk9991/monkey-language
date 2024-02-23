@@ -11,6 +11,7 @@ use crate::core::lexer::tokenizer::{Lexer};
 use crate::core::lexer::tokens::assignable_token::AssignableToken;
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::expression::Expression;
 use crate::core::lexer::tokens::assignable_tokens::method_call_token::MethodCallToken;
+use crate::core::lexer::tokens::for_token::ForToken;
 use crate::core::lexer::tokens::if_definition::IfDefinition;
 use crate::core::lexer::tokens::method_definition::MethodDefinition;
 use crate::core::lexer::tokens::scope_ending::ScopeEnding;
@@ -108,10 +109,10 @@ impl Scope {
                         Self::method_calls_in_stack(else_stack).iter().for_each(|a| { called_methods.insert(a.clone()); })
                     }
                 }
-                Token::MethodDefinition(_) => {}
-                Token::Import(_) => {}
-                Token::Return(_) => {}
-                Token::ScopeClosing(_) => {}
+                Token::ForToken(for_loop) => {
+                    Self::method_calls_in_stack(&for_loop.stack).iter().for_each(|a| { called_methods.insert(a.clone()); } );
+                }
+                Token::MethodDefinition(_) | Token::Import(_) | Token::Return(_) | Token::ScopeClosing(_) => {}
             }
         }
 
@@ -127,6 +128,7 @@ impl Scope {
             for token in &self.tokens {
                 if let Token::MethodDefinition(method_definition) = token {
                     if method_definition.name.name == "main" { continue; }
+
                     if !called_methods.contains(&method_definition.name.name) {
                         uncalled_methods.push(method_definition.name.name.clone());
                     }
@@ -259,7 +261,8 @@ impl TryParse for Scope {
             (ScopeEnding,               ScopeClosing,       true),
             (ReturnToken,               Return,             true),
             (IfDefinition,              IfDefinition,       false),
-            (MethodDefinition,          MethodDefinition,   false)
+            (MethodDefinition,          MethodDefinition,   false),
+            (ForToken,                  ForToken,           false)
         );
 
         let c = *code_lines_iterator.peek().ok_or(ScopeError::EmptyIterator(EmptyIteratorErr))?;

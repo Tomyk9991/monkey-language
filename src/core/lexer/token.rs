@@ -6,6 +6,7 @@ use crate::core::code_generator::generator::Stack;
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::static_type_context::StaticTypeContext;
 use crate::core::lexer::tokens::assignable_tokens::method_call_token::MethodCallToken;
+use crate::core::lexer::tokens::for_token::ForToken;
 use crate::core::lexer::tokens::if_definition::IfDefinition;
 use crate::core::lexer::tokens::import::ImportToken;
 use crate::core::lexer::tokens::method_definition::MethodDefinition;
@@ -25,6 +26,7 @@ pub enum Token {
     Return(ReturnToken),
     ScopeClosing(ScopeEnding),
     IfDefinition(IfDefinition),
+    ForToken(ForToken),
 }
 
 impl Token {
@@ -37,6 +39,7 @@ impl Token {
             Token::IfDefinition(a) => a.code_line.clone(),
             Token::Import(a) => a.code_line.clone(),
             Token::Return(a) => a.code_line.clone(),
+            Token::ForToken(a) => {a.code_line.clone()}
         }
     }
 }
@@ -49,6 +52,9 @@ impl Token {
             }
             Token::IfDefinition(if_definition) => {
                 if_definition.infer_type(type_context)?;
+            },
+            Token::ForToken(for_loop) => {
+                for_loop.infer_type(type_context)?;
             }
             Token::MethodDefinition(_) | Token::MethodCall(_) | Token::ScopeClosing(_) | Token::Import(_) | Token::Return(_) => {}
         }
@@ -94,6 +100,7 @@ impl ToASM for Token {
             Token::MethodDefinition(return_token) => return_token.to_asm(stack, meta, options),
             Token::Import(import_token) => import_token.to_asm(stack, meta, options),
             Token::IfDefinition(if_token) => if_token.to_asm(stack, meta, options),
+            Token::ForToken(for_loop) => for_loop.to_asm(stack, meta, options),
             Token::ScopeClosing(_) => Ok(ASMResult::Inline(String::new())),
         }
     }
@@ -105,9 +112,10 @@ impl ToASM for Token {
             Token::MethodCall(a) => a.is_stack_look_up(stack, meta),
             Token::IfDefinition(a) => a.is_stack_look_up(stack, meta),
             Token::Import(a) => a.is_stack_look_up(stack, meta),
-            Token::MethodDefinition(_) => true,
-            Token::ScopeClosing(_) => false,
+            Token::ForToken(a) => a.is_stack_look_up(stack, meta),
+            Token::MethodDefinition(a) => a.is_stack_look_up(stack, meta),
             Token::Return(return_type) => return_type.is_stack_look_up(stack, meta),
+            Token::ScopeClosing(_) => false,
         }
     }
 
@@ -117,9 +125,10 @@ impl ToASM for Token {
             Token::MethodCall(a) => a.byte_size(meta),
             Token::MethodDefinition(a) => a.byte_size(meta),
             Token::Import(a) => a.byte_size(meta),
-            Token::ScopeClosing(_) => 0,
+            Token::ForToken(a) => a.byte_size(meta),
             Token::IfDefinition(a) => a.byte_size(meta),
             Token::Return(r) => r.byte_size(meta),
+            Token::ScopeClosing(_) => 0,
         }
     }
 
@@ -129,9 +138,10 @@ impl ToASM for Token {
             Token::MethodCall(v) => v.before_label(stack, meta),
             Token::MethodDefinition(v) => v.before_label(stack, meta),
             Token::Import(v) => v.before_label(stack, meta),
-            Token::ScopeClosing(_) => None,
+            Token::ForToken(v) => v.before_label(stack, meta),
             Token::IfDefinition(v) => v.before_label(stack, meta),
             Token::Return(ret) => ret.before_label(stack, meta),
+            Token::ScopeClosing(_) => None,
         }
     }
 }
@@ -145,7 +155,8 @@ impl Display for Token {
             Token::ScopeClosing(m) => format!("{}", m),
             Token::IfDefinition(m) => format!("{}", m),
             Token::Import(m) => format!("{}", m),
-            Token::Return(m) => format!("{}", m)
+            Token::Return(m) => format!("{}", m),
+            Token::ForToken(m) => format!("{}", m)
         })
     }
 }
