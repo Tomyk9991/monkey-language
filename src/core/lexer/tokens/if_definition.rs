@@ -4,6 +4,7 @@ use std::iter::Peekable;
 use std::slice::Iter;
 use std::str::FromStr;
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
+use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::asm_result::{ASMOptions, ASMResult, ASMResultError, ASMResultVariance, InterimResultOption};
 use crate::core::code_generator::generator::Stack;
 
@@ -22,21 +23,21 @@ use crate::core::type_checker::InferType;
 /// - `if (condition) {Body}`
 /// - `if (condition) {Body} else {Body}`
 #[derive(Debug, PartialEq, Clone)]
-pub struct IfDefinition {
+pub struct IfToken {
     pub condition: AssignableToken,
     pub if_stack: Vec<Token>,
     pub else_stack: Option<Vec<Token>>,
     pub code_line: CodeLine
 }
 
-impl IfDefinition {
+impl IfToken {
     pub fn ends_with_return_in_each_branch(&self) -> bool {
         if self.else_stack.is_none() {
             return false;
         }
 
         if let [.., last_if] = &self.if_stack[..] {
-            if let Token::IfDefinition(inner_if) = last_if {
+            if let Token::If(inner_if) = last_if {
                 return inner_if.ends_with_return_in_each_branch();
             }
 
@@ -51,7 +52,7 @@ impl IfDefinition {
     }
 }
 
-impl InferType for IfDefinition {
+impl InferType for IfToken {
     fn infer_type(&mut self, type_context: &mut StaticTypeContext) -> Result<(), InferTypeError> {
         Scope::infer_type(&mut self.if_stack, type_context)?;
 
@@ -83,7 +84,7 @@ impl From<AssignableTokenErr> for IfDefinitionErr {
     }
 }
 
-impl Display for IfDefinition {
+impl Display for IfToken {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
@@ -111,8 +112,8 @@ impl Display for IfDefinitionErr {
     }
 }
 
-impl TryParse for IfDefinition {
-    type Output = IfDefinition;
+impl TryParse for IfToken {
+    type Output = IfToken;
     type Err = IfDefinitionErr;
 
     fn try_parse(code_lines_iterator: &mut Peekable<Iter<CodeLine>>) -> anyhow::Result<Self::Output, Self::Err> {
@@ -179,7 +180,7 @@ impl TryParse for IfDefinition {
                 if_stack.push(token);
             }
 
-            return Ok(IfDefinition {
+            return Ok(IfToken {
                 condition,
                 if_stack,
                 else_stack,
@@ -195,7 +196,7 @@ impl TryParse for IfDefinition {
 }
 
 
-impl ToASM for IfDefinition {
+impl ToASM for IfToken {
     fn to_asm<T: ASMOptions + 'static>(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
         let mut target = String::new();
 
@@ -210,7 +211,6 @@ impl ToASM for IfDefinition {
             &continue_label
         };
 
-        target.push_str(&format!("    ; if {} > 0 => run if stack: \n", self.condition));
         let result = format!("    cmp {}, 0\n", match &self.condition.to_asm(stack, meta, options.clone())? {
             ASMResult::Inline(t) => t.to_owned(),
             ASMResult::MultilineResulted(t, r) => {
@@ -226,17 +226,17 @@ impl ToASM for IfDefinition {
         target += &result;
 
 
-        target.push_str(&format!("    je {}\n", jump_label));
+        target.push_str(&format!("    jne {}\n", jump_label));
 
 
-        target.push_str("    ; if branch\n");
+        target.push_str(&ASMBuilder::ident_comment_line("if branch"));
         target.push_str(&stack.generate_scope(&self.if_stack, meta, options)?);
         target.push_str(&format!("    jmp {}\n", continue_label));
 
 
         if let Some(else_stack) = &self.else_stack {
             target.push_str(&format!("{}:\n", else_label));
-            target.push_str(&format!("    ; else branch \"{}\"\n", self));
+            target.push_str(&ASMBuilder::ident_comment_line("else branch"));
             target.push_str(&stack.generate_scope::<InterimResultOption>(else_stack, meta, None)?);
         }
 
@@ -253,7 +253,61 @@ impl ToASM for IfDefinition {
         0
     }
 
-    fn before_label(&self, _stack: &mut Stack, _meta: &mut MetaInfo) -> Option<Result<String, ASMGenerateError>> {
-        None
+    fn before_label(&self, stack: &mut Stack, meta: &mut MetaInfo) -> Option<Result<String, ASMGenerateError>> {
+        let mut target = String::new();
+        let mut has_before_label_asm = false;
+        let count_before = stack.label_count;
+
+
+        if let Some(before_label) = self.condition.before_label(stack, meta) {
+            match before_label {
+                Ok(before_label) => {
+                    target += &ASMBuilder::line(&(before_label));
+                    has_before_label_asm = true;
+                }
+                Err(err) => return Some(Err(err))
+            }
+
+            stack.label_count -= 1;
+        }
+
+        for token in &self.if_stack {
+            if let Some(before_label) = token.before_label(stack, meta) {
+                match before_label {
+                    Ok(before_label) => {
+                        target += &ASMBuilder::line(&(before_label));
+                        has_before_label_asm = true;
+                    }
+                    Err(err) => return Some(Err(err))
+                }
+
+                stack.label_count -= 1;
+            }
+        }
+
+        if let Some(else_stack) = &self.else_stack {
+            for token in else_stack {
+                if let Some(before_label) = token.before_label(stack, meta) {
+                    match before_label {
+                        Ok(before_label) => {
+                            target += &ASMBuilder::line(&(before_label));
+                            has_before_label_asm = true;
+                        }
+                        Err(err) => return Some(Err(err))
+                    }
+
+                    stack.label_count -= 1;
+                }
+            }
+        }
+
+        stack.label_count = count_before;
+
+
+        if has_before_label_asm {
+            Some(Ok(target))
+        } else {
+            None
+        }
     }
 }

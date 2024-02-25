@@ -109,12 +109,12 @@ impl Stack {
                 ASMResult::Multiline(t) => t
             };
 
-            if let Some(Ok(prefix_asm)) = token.before_label(self, meta) {
-                prefix += &prefix_asm;
-            }
+            // if let Some(Ok(prefix_asm)) = token.before_label(self, meta) {
+            //     prefix += &prefix_asm;
+            // }
         }
 
-        target.push_str(&prefix);
+        // target.push_str(&prefix);
         target.push_str(&self.end_scope());
         Ok(target)
     }

@@ -80,6 +80,10 @@ impl Iterator for ScopeTypeIterator {
             2 => {
                 self.current += 1;
                 Some(("else", ScopeType::Else))
+            },
+            3 => {
+                self.current += 1;
+                Some(("for ", ScopeType::For))
             }
             _ => None
         }

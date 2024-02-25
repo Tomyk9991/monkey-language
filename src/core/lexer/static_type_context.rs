@@ -91,8 +91,13 @@ impl StaticTypeContext {
                 }
                 Token::MethodDefinition(method_definition) => {
                     methods.push(method_definition.clone());
-                }
-                Token::ScopeClosing(_) | Token::MethodCall(_) | Token::IfDefinition(_) | Token::Import(_) | Token::Return(_) | Token::ForToken(_) => {}
+                },
+                Token::ForToken(for_loop) => {
+                    if for_loop.initialization.ty.is_some() {
+                        context.push(for_loop.initialization.clone());
+                    }
+                },
+                Token::ScopeClosing(_) | Token::MethodCall(_) | Token::If(_) | Token::Import(_) | Token::Return(_) => {}
             }
         }
 

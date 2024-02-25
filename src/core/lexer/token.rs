@@ -7,7 +7,7 @@ use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::static_type_context::StaticTypeContext;
 use crate::core::lexer::tokens::assignable_tokens::method_call_token::MethodCallToken;
 use crate::core::lexer::tokens::for_token::ForToken;
-use crate::core::lexer::tokens::if_definition::IfDefinition;
+use crate::core::lexer::tokens::if_definition::IfToken;
 use crate::core::lexer::tokens::import::ImportToken;
 use crate::core::lexer::tokens::method_definition::MethodDefinition;
 use crate::core::lexer::tokens::return_token::ReturnToken;
@@ -25,7 +25,7 @@ pub enum Token {
     Import(ImportToken),
     Return(ReturnToken),
     ScopeClosing(ScopeEnding),
-    IfDefinition(IfDefinition),
+    If(IfToken),
     ForToken(ForToken),
 }
 
@@ -36,7 +36,7 @@ impl Token {
             Token::MethodCall(a) => a.code_line.clone(),
             Token::MethodDefinition(a) => a.code_line.clone(),
             Token::ScopeClosing(a) => a.code_line.clone(),
-            Token::IfDefinition(a) => a.code_line.clone(),
+            Token::If(a) => a.code_line.clone(),
             Token::Import(a) => a.code_line.clone(),
             Token::Return(a) => a.code_line.clone(),
             Token::ForToken(a) => {a.code_line.clone()}
@@ -50,7 +50,7 @@ impl Token {
             Token::Variable(variable) => {
                 variable.infer_type(type_context)?;
             }
-            Token::IfDefinition(if_definition) => {
+            Token::If(if_definition) => {
                 if_definition.infer_type(type_context)?;
             },
             Token::ForToken(for_loop) => {
@@ -68,7 +68,7 @@ impl ToASM for Token {
         let variables_len = meta.static_type_information.len();
 
         let scopes = match self {
-            Token::IfDefinition(if_def) => {
+            Token::If(if_def) => {
                 let mut res = vec![&if_def.if_stack];
                 if let Some(else_stack) = &if_def.else_stack {
                     res.push(else_stack)
@@ -99,7 +99,7 @@ impl ToASM for Token {
             Token::Return(return_token) => return_token.to_asm(stack, meta, options),
             Token::MethodDefinition(return_token) => return_token.to_asm(stack, meta, options),
             Token::Import(import_token) => import_token.to_asm(stack, meta, options),
-            Token::IfDefinition(if_token) => if_token.to_asm(stack, meta, options),
+            Token::If(if_token) => if_token.to_asm(stack, meta, options),
             Token::ForToken(for_loop) => for_loop.to_asm(stack, meta, options),
             Token::ScopeClosing(_) => Ok(ASMResult::Inline(String::new())),
         }
@@ -110,7 +110,7 @@ impl ToASM for Token {
         match self {
             Token::Variable(a) => a.is_stack_look_up(stack, meta),
             Token::MethodCall(a) => a.is_stack_look_up(stack, meta),
-            Token::IfDefinition(a) => a.is_stack_look_up(stack, meta),
+            Token::If(a) => a.is_stack_look_up(stack, meta),
             Token::Import(a) => a.is_stack_look_up(stack, meta),
             Token::ForToken(a) => a.is_stack_look_up(stack, meta),
             Token::MethodDefinition(a) => a.is_stack_look_up(stack, meta),
@@ -126,7 +126,7 @@ impl ToASM for Token {
             Token::MethodDefinition(a) => a.byte_size(meta),
             Token::Import(a) => a.byte_size(meta),
             Token::ForToken(a) => a.byte_size(meta),
-            Token::IfDefinition(a) => a.byte_size(meta),
+            Token::If(a) => a.byte_size(meta),
             Token::Return(r) => r.byte_size(meta),
             Token::ScopeClosing(_) => 0,
         }
@@ -139,7 +139,7 @@ impl ToASM for Token {
             Token::MethodDefinition(v) => v.before_label(stack, meta),
             Token::Import(v) => v.before_label(stack, meta),
             Token::ForToken(v) => v.before_label(stack, meta),
-            Token::IfDefinition(v) => v.before_label(stack, meta),
+            Token::If(v) => v.before_label(stack, meta),
             Token::Return(ret) => ret.before_label(stack, meta),
             Token::ScopeClosing(_) => None,
         }
@@ -153,7 +153,7 @@ impl Display for Token {
             Token::MethodCall(m) => format!("{}", m),
             Token::MethodDefinition(m) => format!("{}", m),
             Token::ScopeClosing(m) => format!("{}", m),
-            Token::IfDefinition(m) => format!("{}", m),
+            Token::If(m) => format!("{}", m),
             Token::Import(m) => format!("{}", m),
             Token::Return(m) => format!("{}", m),
             Token::ForToken(m) => format!("{}", m)

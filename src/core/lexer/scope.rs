@@ -12,7 +12,7 @@ use crate::core::lexer::tokens::assignable_token::AssignableToken;
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::expression::Expression;
 use crate::core::lexer::tokens::assignable_tokens::method_call_token::MethodCallToken;
 use crate::core::lexer::tokens::for_token::ForToken;
-use crate::core::lexer::tokens::if_definition::IfDefinition;
+use crate::core::lexer::tokens::if_definition::IfToken;
 use crate::core::lexer::tokens::method_definition::MethodDefinition;
 use crate::core::lexer::tokens::scope_ending::ScopeEnding;
 use crate::core::lexer::tokens::variable_token::VariableToken;
@@ -103,7 +103,7 @@ impl Scope {
 
                     called_methods.insert(method_call.name.to_string());
                 }
-                Token::IfDefinition(if_definition) => {
+                Token::If(if_definition) => {
                     Self::method_calls_in_stack(&if_definition.if_stack).iter().for_each(|a| { called_methods.insert(a.clone()); });
                     if let Some(else_stack) = &if_definition.else_stack {
                         Self::method_calls_in_stack(else_stack).iter().for_each(|a| { called_methods.insert(a.clone()); })
@@ -260,7 +260,7 @@ impl TryParse for Scope {
             (MethodCallToken,           MethodCall,         true),
             (ScopeEnding,               ScopeClosing,       true),
             (ReturnToken,               Return,             true),
-            (IfDefinition,              IfDefinition,       false),
+            (IfToken,              If,       false),
             (MethodDefinition,          MethodDefinition,   false),
             (ForToken,                  ForToken,           false)
         );

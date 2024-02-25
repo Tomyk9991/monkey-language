@@ -93,7 +93,7 @@ fn static_type_check_rec(scope: &Vec<Token>, type_context: &mut StaticTypeContex
                     return Err(StaticTypeCheckError::UnresolvedReference { name: variable.name_token.clone(), code_line: variable.code_line.clone() });
                 }
             }
-            Token::IfDefinition(if_definition) => {
+            Token::If(if_definition) => {
                 let variables_len = type_context.context.len();
                 let condition_type = if_definition.condition.infer_type_with_context(type_context, &if_definition.code_line)?;
 
@@ -152,7 +152,7 @@ fn static_type_check_rec(scope: &Vec<Token>, type_context: &mut StaticTypeContex
                         let mut method_return_signature_mismatch = false;
                         let mut cause = MethodCallSignatureMismatchCause::ReturnMissing;
 
-                        if let Token::IfDefinition(if_definition) = &last {
+                        if let Token::If(if_definition) = &last {
                             method_return_signature_mismatch = !if_definition.ends_with_return_in_each_branch();
                             if method_return_signature_mismatch {
                                 cause = MethodCallSignatureMismatchCause::IfCondition;
@@ -197,6 +197,10 @@ fn static_type_check_rec(scope: &Vec<Token>, type_context: &mut StaticTypeContex
                         actual: condition_type,
                         code_line: for_loop.code_line.clone(),
                     }))
+                }
+
+                if for_loop.update.define {
+                    return Err(StaticTypeCheckError::InferredError(InferTypeError::DefineNotAllowed(for_loop.update.clone(), for_loop.code_line.clone())))
                 }
 
                 static_type_check_rec(&for_loop.stack, type_context)?;

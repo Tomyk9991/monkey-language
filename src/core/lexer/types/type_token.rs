@@ -9,6 +9,7 @@ use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::tokens::assignable_token::AssignableToken;
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::operator::{AssemblerOperation, Operator, OperatorToASM};
 use crate::core::lexer::tokens::name_token::{NameToken, NameTokenErr};
+use crate::core::lexer::tokens::variable_token::VariableToken;
 use crate::core::lexer::types::boolean::Boolean;
 use crate::core::lexer::types::cast_to::CastTo;
 use crate::core::lexer::types::float::Float;
@@ -39,6 +40,7 @@ pub enum InferTypeError {
     TypeNotAllowed(NameTokenErr),
     IllegalDereference(AssignableToken, TypeToken, CodeLine),
     NoTypePresent(NameToken, CodeLine),
+    DefineNotAllowed(VariableToken<'=', ';'>, CodeLine),
     IntegerTooSmall { ty: TypeToken, literal: String ,code_line: CodeLine },
     FloatTooSmall { ty: TypeToken, float: f64, code_line: CodeLine },
     MethodCallArgumentAmountMismatch { expected: usize, actual: usize, code_line: CodeLine },
@@ -121,7 +123,11 @@ impl Display for InferTypeError {
             InferTypeError::NoTypePresent(name, code_line) => write!(f, "Line: {:?}\tType not inferred: `{name}`", code_line.actual_line_number),
             InferTypeError::IllegalDereference(assignable, ty, code_line) => write!(f, "Line: {:?}\tType `{ty}` cannot be dereferenced: {assignable}", code_line.actual_line_number),
             InferTypeError::IntegerTooSmall { ty, literal: integer, code_line } => write!(f, "Line: {:?}\t`{integer}` doesn't fit into the type `{ty}`", code_line.actual_line_number),
-            InferTypeError::FloatTooSmall { ty, float, code_line } => write!(f, "Line: {:?}\t`{float}` doesn't fit into the type `{ty}`", code_line.actual_line_number),
+            InferTypeError::FloatTooSmall { ty, float, code_line } =>
+                write!(f, "Line: {:?}\t`{float}` doesn't fit into the type `{ty}`", code_line.actual_line_number),
+            InferTypeError::DefineNotAllowed(variable_token, code_line) => {
+                write!(f, "Line: {:?}\t`{}` is not allowed to be defined here", code_line.actual_line_number, variable_token.name_token.name)
+            }
         }
     }
 }

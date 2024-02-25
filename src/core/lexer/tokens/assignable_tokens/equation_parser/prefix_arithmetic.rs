@@ -109,6 +109,7 @@ impl ToASM for PrefixArithmetic {
                             .finish()?;
 
 
+
                         return if let TypeToken::Float(_) = &cast_to.to {
                             let d = options.register_64.to_float_register();
                             let r = options.register_64.to_size_register_ignore_float(&ByteSize::try_from(cast_to.to.byte_size())?);

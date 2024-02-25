@@ -4,7 +4,7 @@ use std::fmt::{Debug, Display, Formatter};
 use std::iter::Peekable;
 use std::slice::Iter;
 use std::str::FromStr;
-use crate::core::code_generator::asm_result::{ASMOptions, ASMResult};
+use crate::core::code_generator::asm_result::{ASMOptions, ASMResult, ASMResultError, ASMResultVariance};
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
@@ -55,7 +55,7 @@ impl InferType for ForToken {
 
 impl Display for ForToken {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", format!("for ({}; {}; {}) {{Body}}", self.initialization, self.condition, self.update))
+        write!(f, "for ({}; {}; {}) {{Body}}", self.initialization, self.condition, self.update)
     }
 }
 
@@ -116,7 +116,7 @@ impl TryParse for ForToken {
         let test = dyck_language(&split_ref.join(" ").to_string(), [vec![], vec![';'], vec![]])?;
 
         let mut split_ref: Vec<&str> = vec![];
-        let mut split = test[0].splitn(3, ' ').collect::<Vec<_>>();
+        let split = test[0].splitn(3, ' ').collect::<Vec<_>>();
 
         split.iter().for_each(|a| split_ref.push(a));
         split_ref.push(";");
@@ -162,8 +162,55 @@ impl TryParse for ForToken {
 }
 
 impl ToASM for ForToken {
-    fn to_asm<T: ASMOptions + 'static>(&self, _stack: &mut Stack, _meta: &mut MetaInfo, _options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
-        todo!()
+    fn to_asm<T: ASMOptions + 'static>(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
+        let label1 = stack.create_label();
+        let label2 = stack.create_label();
+        let mut target = String::new();
+
+        target += &ASMBuilder::ident(&ASMBuilder::comment_line(&format!("for ({}; {}; {})", self.initialization, self.condition, self.update)));
+        let _ = self.initialization.to_asm(stack, meta, options.clone())?
+            .apply_with(&mut target)
+            .allow(ASMResultVariance::Inline)
+            .allow(ASMResultVariance::MultilineResulted)
+            .allow(ASMResultVariance::Multiline)
+            .token("for")
+            .finish()?;
+
+        target += &ASMBuilder::ident_line(&format!("jmp {label1}"));
+
+
+        target += &ASMBuilder::line(&format!("{label2}:"));
+
+        target += &stack.generate_scope(&self.stack, meta, options.clone())?;
+
+        let _ = self.update.to_asm(stack, meta, options.clone())?
+            .apply_with(&mut target)
+            .allow(ASMResultVariance::Inline)
+            .allow(ASMResultVariance::MultilineResulted)
+            .allow(ASMResultVariance::Multiline)
+            .token("for")
+            .finish()?;
+
+        target += &ASMBuilder::line(&format!("{label1}:"));
+        let general_purpose_register = self.condition.to_asm(stack, meta, options.clone())?
+            .apply_with(&mut target)
+            .allow(ASMResultVariance::MultilineResulted)
+            .token("for")
+            .finish()?;
+
+        if let Some(general_purpose_register) = general_purpose_register {
+            target += &ASMBuilder::ident_line(&format!("cmp {general_purpose_register}, 0"));
+            target += &ASMBuilder::ident_line(&format!("jne {label2}"));
+        } else {
+            return Err(ASMGenerateError::ASMResult(ASMResultError::UnexpectedVariance {
+                expected: vec![ASMResultVariance::MultilineResulted],
+                actual: ASMResultVariance::from(&self.condition.to_asm(stack, meta, options)?),
+                token: "for".to_string(),
+            }))
+        }
+
+
+        Ok(ASMResult::Multiline(target))
     }
 
     fn is_stack_look_up(&self, _stack: &mut Stack, _meta: &MetaInfo) -> bool {
@@ -178,6 +225,20 @@ impl ToASM for ForToken {
         let mut target = String::new();
         let mut has_before_label_asm = false;
         let count_before = stack.label_count;
+
+        for token in &self.stack {
+            if let Some(before_label) = token.before_label(stack, meta) {
+                match before_label {
+                    Ok(before_label) => {
+                        target += &ASMBuilder::line(&(before_label));
+                        has_before_label_asm = true;
+                    }
+                    Err(err) => return Some(Err(err))
+                }
+
+                stack.label_count -= 1;
+            }
+        }
 
         if let Some(before_label) = self.initialization.before_label(stack, meta) {
             match before_label {
@@ -214,6 +275,7 @@ impl ToASM for ForToken {
 
             stack.label_count -= 1;
         }
+
 
         stack.label_count = count_before;
 
