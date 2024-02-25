@@ -397,28 +397,19 @@ impl ToASM for MethodCallToken {
         };
     }
 
-    fn before_label(&self, stack: &mut Stack, meta: &mut MetaInfo) -> Option<Result<String, ASMGenerateError>> {
-        let mut target = String::new();
+    fn data_section(&self, stack: &mut Stack, meta: &mut MetaInfo) -> bool {
         let mut has_before_label_asm = false;
-
         let count_before = stack.label_count;
 
         for argument in self.arguments.iter().rev() {
-            if let Some(before_label) = argument.before_label(stack, meta) {
-                match before_label {
-                    Ok(before_label) => {
-                        target += &ASMBuilder::line(&(before_label));
-                        has_before_label_asm = true;
-                    }
-                    Err(err) => return Some(Err(err))
-                }
+            if argument.data_section(stack, meta) {
+                has_before_label_asm = true;
                 stack.label_count -= 1;
             }
         }
 
         stack.label_count = count_before;
-
-        if has_before_label_asm { Some(Ok(target)) } else { None }
+        has_before_label_asm
     }
 }
 

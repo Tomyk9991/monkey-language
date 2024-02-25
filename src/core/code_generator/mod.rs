@@ -84,5 +84,7 @@ pub trait ToASM {
     /// returns the size in byte to indicate how much space on the stack must be reserved
     fn byte_size(&self, meta: &mut MetaInfo) -> usize;
     /// returns a possible string containing ASM that belongs before the actual label
-    fn before_label(&self, stack: &mut Stack, meta: &mut MetaInfo) -> Option<Result<String, ASMGenerateError>>;
+    fn data_section(&self, _stack: &mut Stack, _meta: &mut MetaInfo) -> bool {
+        false
+    }
 }

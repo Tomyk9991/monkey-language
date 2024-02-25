@@ -21,12 +21,14 @@ fn string_assign() -> anyhow::Result<()> {
 
     let expected = r#"
     ; This assembly is targeted for the Windows Operating System
+section .data
+    .label0: db "Hallo", 0
+
+
 segment .text
 global main
 
 
-.label0:
-    db "Hallo", 0
 main:
     push rbp
     mov rbp, rsp

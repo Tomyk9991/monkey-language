@@ -4,10 +4,11 @@ use std::fmt::{Debug, Display, Formatter};
 use std::iter::Peekable;
 use std::slice::Iter;
 use std::str::FromStr;
-use crate::core::code_generator::asm_result::{ASMOptions, ASMResult, ASMResultError, ASMResultVariance};
-use crate::core::code_generator::generator::Stack;
+
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
+use crate::core::code_generator::asm_result::{ASMOptions, ASMResult, ASMResultError, ASMResultVariance};
+use crate::core::code_generator::generator::Stack;
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::errors::EmptyIteratorErr;
 use crate::core::lexer::scope::{PatternNotMatchedError, Scope, ScopeError};
@@ -26,7 +27,7 @@ pub struct ForToken {
     pub condition: AssignableToken,
     pub update: VariableToken<'=', ';'>,
     pub stack: Vec<Token>,
-    pub code_line: CodeLine
+    pub code_line: CodeLine,
 }
 
 #[derive(Debug)]
@@ -77,7 +78,7 @@ impl From<AssignableTokenErr> for ForTokenErr {
     }
 }
 
-impl Error for ForTokenErr { }
+impl Error for ForTokenErr {}
 
 impl Display for ForTokenErr {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -89,14 +90,14 @@ impl Display for ForTokenErr {
             ForTokenErr::ScopeErrorErr(a) => a.to_string(),
             ForTokenErr::EmptyIterator(e) => e.to_string(),
             ForTokenErr::DyckLanguageErr { target_value, ordering } =>
-            {
-                let error: String = match ordering {
-                    Ordering::Less => String::from("Expected `)`"),
-                    Ordering::Equal => String::from("Expected expression between `,`"),
-                    Ordering::Greater => String::from("Expected `(`")
-                };
-                format!("\"{target_value}\": {error}")
-            }
+                {
+                    let error: String = match ordering {
+                        Ordering::Less => String::from("Expected `)`"),
+                        Ordering::Equal => String::from("Expected expression between `,`"),
+                        Ordering::Greater => String::from("Expected `(`")
+                    };
+                    format!("\"{target_value}\": {error}")
+                }
         })
     }
 }
@@ -206,7 +207,7 @@ impl ToASM for ForToken {
                 expected: vec![ASMResultVariance::MultilineResulted],
                 actual: ASMResultVariance::from(&self.condition.to_asm(stack, meta, options)?),
                 token: "for".to_string(),
-            }))
+            }));
         }
 
 
@@ -221,58 +222,29 @@ impl ToASM for ForToken {
         self.initialization.byte_size(meta)
     }
 
-    fn before_label(&self, stack: &mut Stack, meta: &mut MetaInfo) -> Option<Result<String, ASMGenerateError>> {
-        let mut target = String::new();
+    fn data_section(&self, stack: &mut Stack, meta: &mut MetaInfo) -> bool {
         let mut has_before_label_asm = false;
         let count_before = stack.label_count;
 
         for token in &self.stack {
-            if let Some(before_label) = token.before_label(stack, meta) {
-                match before_label {
-                    Ok(before_label) => {
-                        target += &ASMBuilder::line(&(before_label));
-                        has_before_label_asm = true;
-                    }
-                    Err(err) => return Some(Err(err))
-                }
-
+            if token.data_section(stack, meta) {
+                has_before_label_asm = true;
                 stack.label_count -= 1;
             }
         }
 
-        if let Some(before_label) = self.initialization.before_label(stack, meta) {
-            match before_label {
-                Ok(before_label) => {
-                    target += &ASMBuilder::line(&(before_label));
-                    has_before_label_asm = true;
-                }
-                Err(err) => return Some(Err(err))
-            }
-
+        if self.initialization.data_section(stack, meta) {
+            has_before_label_asm = true;
             stack.label_count -= 1;
         }
 
-        if let Some(before_label) = self.condition.before_label(stack, meta) {
-            match before_label {
-                Ok(before_label) => {
-                    target += &ASMBuilder::line(&(before_label));
-                    has_before_label_asm = true;
-                }
-                Err(err) => return Some(Err(err))
-            }
-
+        if self.condition.data_section(stack, meta) {
+            has_before_label_asm = true;
             stack.label_count -= 1;
         }
 
-        if let Some(before_label) = self.update.before_label(stack, meta) {
-            match before_label {
-                Ok(before_label) => {
-                    target += &ASMBuilder::line(&(before_label));
-                    has_before_label_asm = true;
-                }
-                Err(err) => return Some(Err(err))
-            }
-
+        if self.update.data_section(stack, meta) {
+            has_before_label_asm = true;
             stack.label_count -= 1;
         }
 
@@ -280,10 +252,6 @@ impl ToASM for ForToken {
         stack.label_count = count_before;
 
 
-        if has_before_label_asm {
-            Some(Ok(target))
-        } else {
-            None
-        }
+        has_before_label_asm
     }
 }

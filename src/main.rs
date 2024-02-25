@@ -36,8 +36,7 @@ fn run_compiler() -> anyhow::Result<()> {
 
 // 3) o1 Optimization
     if args.optimization_level == OptimizationLevel::O1 {
-        // remove uncalled functions. therefore traverse, beginning from the main function, what functions are called
-        top_level_scope.optimize_methods();
+        top_level_scope.o1();
     }
 
 // 3) Building

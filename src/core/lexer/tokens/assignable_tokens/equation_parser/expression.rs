@@ -587,10 +587,6 @@ impl ToASM for Expression {
 
         0
     }
-
-    fn before_label(&self, _stack: &mut Stack, _meta: &mut MetaInfo) -> Option<Result<String, ASMGenerateError>> {
-        None
-    }
 }
 
 

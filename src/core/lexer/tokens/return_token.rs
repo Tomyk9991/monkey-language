@@ -131,11 +131,11 @@ impl ToASM for ReturnToken {
         0
     }
 
-    fn before_label(&self, stack: &mut Stack, meta: &mut MetaInfo) -> Option<Result<String, ASMGenerateError>> {
+    fn data_section(&self, stack: &mut Stack, meta: &mut MetaInfo) -> bool {
         if let Some(assignable) = &self.assignable {
-            assignable.before_label(stack, meta)
+            assignable.data_section(stack, meta)
         } else {
-            None
+            false
         }
     }
 }

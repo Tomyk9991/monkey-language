@@ -3,7 +3,7 @@ use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::asm_result::InterimResultOption;
 use crate::core::code_generator::ASMGenerateError;
 use crate::core::code_generator::conventions::calling_convention_from;
-use crate::core::code_generator::registers::{Bit64, GeneralPurposeRegister};
+use crate::core::code_generator::registers::{GeneralPurposeRegister};
 use crate::core::code_generator::target_os::TargetOS;
 use crate::core::lexer::scope::Scope;
 use crate::core::lexer::static_type_context::StaticTypeContext;
@@ -12,6 +12,7 @@ use crate::core::lexer::tokens::assignable_token::AssignableToken;
 use crate::core::lexer::tokens::name_token::NameToken;
 use crate::core::lexer::tokens::parameter_token::ParameterToken;
 use crate::core::lexer::tokens::variable_token::VariableToken;
+use crate::core::model::data_section::DataSection;
 use crate::utils::math;
 
 #[derive(Debug)]
@@ -41,6 +42,8 @@ pub struct Stack {
     scopes: Vec<usize>,
     /// represents a list of all available variables in the current scopes and above
     pub variables: Vec<StackLocation>,
+    /// represents the data section in the assembly language
+    pub data_section: DataSection,
     /// to create labels and avoid collisions in naming, a label count is used
     pub label_count: usize,
     pub register_to_use: Vec<GeneralPurposeRegister>,
@@ -72,19 +75,6 @@ impl LastUnchecked<GeneralPurposeRegister> for Vec<GeneralPurposeRegister> {
 
 
 impl Stack {
-    pub fn _reset_registers(&self) -> String {
-        static REGISTERS: [Bit64; 4] = [Bit64::Rax, Bit64::Rcx, Bit64::Rdx, Bit64::Rdi];
-        let mut target = String::new();
-
-        target += &ASMBuilder::ident_comment_line("Resetting registers");
-
-        for register in &REGISTERS {
-            target += &ASMBuilder::ident_line(&format!("xor {register}, {register}"));
-        }
-
-        target
-    }
-
     pub fn create_label(&mut self) -> String {
         let value = format!(".label{}", self.label_count);
         self.label_count += 1;
@@ -98,7 +88,6 @@ impl Stack {
 
     pub fn generate_scope<T: ASMOptions + 'static>(&mut self, tokens: &Vec<Token>, meta: &mut MetaInfo, options: Option<T>) -> Result<String, ASMGenerateError> {
         let mut target = String::new();
-        let mut prefix = String::new();
 
         self.begin_scope();
 
@@ -108,13 +97,8 @@ impl Stack {
                 ASMResult::MultilineResulted(t, _) => t,
                 ASMResult::Multiline(t) => t
             };
-
-            // if let Some(Ok(prefix_asm)) = token.before_label(self, meta) {
-            //     prefix += &prefix_asm;
-            // }
         }
 
-        // target.push_str(&prefix);
         target.push_str(&self.end_scope());
         Ok(target)
     }
@@ -152,7 +136,7 @@ pub struct ASMGenerator {
 impl ASMGenerator {
     pub fn generate(&mut self) -> Result<String, ASMGenerateError> {
         let mut boiler_plate = String::new();
-        boiler_plate += &ASMBuilder::line(&format!("; This assembly is targeted for the {} Operating System", self.target_os));
+        let compile_comment = &ASMBuilder::line(&format!("; This assembly is targeted for the {} Operating System", self.target_os));
         let method_definitions = self.generate_method_definitions()?;
 
         let entry_point_label = if self.target_os == TargetOS::Windows {
@@ -198,7 +182,12 @@ impl ASMGenerator {
 
                         meta.static_type_information.merge(StaticTypeContext::new(&main.stack));
 
-                        Ok(format!("{}{}{}", boiler_plate, method_definitions, &main.to_asm::<InterimResultOption>(&mut self.stack, &mut meta, None)?))
+                        let main_function_asm = &main.to_asm::<InterimResultOption>(&mut self.stack, &mut meta, None)?;
+                        let data_section = self.stack.data_section
+                            .clone()
+                            .to_asm::<InterimResultOption>(&mut self.stack, &mut meta, None)?;
+
+                        Ok(format!("{}{}{}{}{}", compile_comment, data_section, boiler_plate, method_definitions, main_function_asm))
                     } else {
                         return Err(ASMGenerateError::EntryPointNotFound)
                     }
@@ -208,7 +197,6 @@ impl ASMGenerator {
 
             Ok(value?)
         } else {
-            let mut prefix = String::new();
             let mut label_header: String = String::new();
 
             label_header += &ASMBuilder::line(&format!("{entry_point_label}:"));
@@ -220,14 +208,13 @@ impl ASMGenerator {
             let mut stack_allocation = 32; // per default microsoft convention requires 32 byte as a shadow stack
             let mut method_scope: String = String::new();
 
-
-
             for token in &self.top_level_scope.tokens {
                 let mut meta = MetaInfo {
                     code_line: token.code_line(),
                     target_os: self.target_os.clone(),
                     static_type_information: StaticTypeContext::new(&self.top_level_scope.tokens),
                 };
+
                 if let Token::MethodDefinition(_) = token {
                     continue;
                 }
@@ -246,10 +233,7 @@ impl ASMGenerator {
                     stack_allocation += method_call_sizes;
                 }
                 method_scope += &token.to_asm::<InterimResultOption>(&mut self.stack, &mut meta, None)?.to_string();
-
-                if let Some(Ok(prefix_asm)) = token.before_label(&mut self.stack, &mut meta) {
-                    prefix += &prefix_asm;
-                }
+                token.data_section(&mut self.stack, &mut meta);
             }
 
             if !method_scope.trim_end().ends_with("call ProcessExit") {
@@ -259,7 +243,11 @@ impl ASMGenerator {
 
             let stack_allocation_asm = ASMBuilder::ident_line(&format!("sub rsp, {}", math::lowest_power_of_2_gt_n(stack_allocation)));
 
-            Ok(format!("{}{}{}{}{}{}", boiler_plate, prefix, method_definitions, label_header, stack_allocation_asm, method_scope))
+            let data_section = self.stack.data_section
+                .clone()
+                .to_asm::<InterimResultOption>(&mut self.stack, &mut MetaInfo::default(), None)?;
+
+            Ok(format!("{}{}{}{}{}{}{}", compile_comment, data_section, boiler_plate, method_definitions, label_header, stack_allocation_asm, method_scope))
         }
     }
 

@@ -94,8 +94,4 @@ impl ToASM for IntegerToken {
             Integer::I64 | Integer::U64 => 8,
         }
     }
-
-    fn before_label(&self, _stack: &mut Stack, _meta: &mut MetaInfo) -> Option<Result<String, ASMGenerateError>> {
-        None
-    }
 }

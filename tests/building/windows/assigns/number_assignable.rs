@@ -900,13 +900,16 @@ fn full_program_assignable() -> anyhow::Result<()> {
 
     println!("{}", asm_result);
 
-    let expected = r#"; This assembly is targeted for the Windows Operating System
+    let expected = r#"
+    ; This assembly is targeted for the Windows Operating System
+section .data
+    .label0: db "Testing string", 0
+
+
 segment .text
 global main
 
 
-.label0:
-    db "Testing string", 0
 main:
     push rbp
     mov rbp, rsp
@@ -920,9 +923,10 @@ main:
     mov eax, DWORD [rbp - 12]
     mov DWORD [rbp - 16], eax
     leave
-    ret"#;
+    ret
+    "#;
 
-    assert_eq!(expected, asm_result);
+    assert_eq!(expected.trim(), asm_result.trim());
 
     Ok(())
 }

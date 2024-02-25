@@ -191,7 +191,6 @@ impl MethodDefinition {
 impl ToASM for MethodDefinition {
     fn to_asm<T: ASMOptions + 'static>(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
         let mut label_header: String = String::new();
-        let mut prefix = String::new();
 
         label_header += &ASMBuilder::line(&format!("{}:", self.method_label_name()));
         label_header += &ASMBuilder::ident_line("push rbp");
@@ -238,10 +237,7 @@ impl ToASM for MethodDefinition {
             stack_allocation += token.byte_size(meta);
 
             method_scope += &token.to_asm::<InterimResultOption>(stack, meta, None)?.to_string();
-
-            if let Some(Ok(prefix_asm)) = token.before_label(stack, meta) {
-                prefix += &prefix_asm;
-            }
+            token.data_section(stack, meta);
         }
 
         meta.static_type_information.expected_return_type = None;
@@ -249,7 +245,7 @@ impl ToASM for MethodDefinition {
         let stack_allocation_asm = ASMBuilder::ident_line(&format!("sub rsp, {}", math::lowest_power_of_2_gt_n(stack_allocation)));
         let leave_statement = if self.return_type == TypeToken::Void { "    leave\n    ret\n".to_string() } else { String::new() };
 
-        Ok(ASMResult::Multiline(format!("{}{}{}{}{}", prefix, label_header, stack_allocation_asm, method_scope, leave_statement)))
+        Ok(ASMResult::Multiline(format!("{}{}{}{}", label_header, stack_allocation_asm, method_scope, leave_statement)))
     }
 
     fn is_stack_look_up(&self, _stack: &mut Stack, _meta: &MetaInfo) -> bool {
@@ -258,9 +254,5 @@ impl ToASM for MethodDefinition {
 
     fn byte_size(&self, _meta: &mut MetaInfo) -> usize {
         0
-    }
-
-    fn before_label(&self, _stack: &mut Stack, _meta: &mut MetaInfo) -> Option<Result<String, ASMGenerateError>> {
-        None
     }
 }

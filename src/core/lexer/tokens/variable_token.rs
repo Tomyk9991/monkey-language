@@ -235,8 +235,8 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for VariableToken<ASSI
         self.ty.as_ref().map_or(0, |ty| ty.byte_size())
     }
 
-    fn before_label(&self, stack: &mut Stack, meta: &mut MetaInfo) -> Option<Result<String, ASMGenerateError>> {
-        self.assignable.before_label(stack, meta)
+    fn data_section(&self, stack: &mut Stack, meta: &mut MetaInfo) -> bool {
+        self.assignable.data_section(stack, meta)
     }
 }
 

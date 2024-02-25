@@ -7,7 +7,7 @@ use monkey_language::core::lexer::tokens::assignable_tokens::boolean_token::Bool
 use monkey_language::core::lexer::tokens::assignable_tokens::float_token::FloatToken;
 use monkey_language::core::lexer::tokens::assignable_tokens::integer_token::IntegerToken;
 use monkey_language::core::lexer::tokens::assignable_tokens::string_token::StringToken;
-use monkey_language::core::lexer::tokens::if_definition::IfDefinition;
+use monkey_language::core::lexer::tokens::if_definition::IfToken;
 use monkey_language::core::lexer::tokens::name_token::NameToken;
 use monkey_language::core::lexer::tokens::variable_token::VariableToken;
 use monkey_language::core::lexer::types::float::Float;
@@ -105,7 +105,7 @@ fn infer_type_in_scope() -> anyhow::Result<()> {
     static_type_check(&top_level_scope)?;
 
     let expected: Vec<Token> = vec![
-        Token::IfDefinition(IfDefinition {
+        Token::If(IfToken {
             condition: AssignableToken::BooleanToken(BooleanToken { value: true }),
             if_stack: vec![
                 Token::Variable(VariableToken {

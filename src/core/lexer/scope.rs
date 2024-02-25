@@ -27,6 +27,14 @@ pub struct Scope {
 }
 
 impl Scope {
+    ///Optimizing for level 1
+    pub fn o1(&mut self) {
+        self.optimize_methods();
+        // self.remove_double_strings();
+    }
+}
+
+impl Scope {
     pub fn infer_type(stack: &mut Vec<Token>, type_context: &mut StaticTypeContext) -> Result<(), InferTypeError> {
         let variables_len = type_context.len();
 

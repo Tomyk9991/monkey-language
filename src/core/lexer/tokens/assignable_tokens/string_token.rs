@@ -4,7 +4,6 @@ use std::str::FromStr;
 
 use crate::core::code_generator::{ASMGenerateError,
                                   MetaInfo, ToASM};
-use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::asm_result::{ASMOptions, ASMResult};
 use crate::core::code_generator::generator::Stack;
 
@@ -36,6 +35,10 @@ impl Display for StringTokenErr {
 
 impl ToASM for StringToken {
     fn to_asm<T: ASMOptions>(&self, stack: &mut Stack, _meta: &mut MetaInfo, _options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
+        if let Some(key) = stack.data_section.str_key(&self.value) {
+            return Ok(ASMResult::Inline(key.to_string()));
+        }
+
         Ok(ASMResult::Inline(stack.create_label()))
     }
 
@@ -48,16 +51,19 @@ impl ToASM for StringToken {
         8
     }
 
-    fn before_label(&self, stack: &mut Stack, _meta: &mut MetaInfo) -> Option<Result<String, ASMGenerateError>> {
-        let mut target = String::new();
-
+    fn data_section(&self, stack: &mut Stack, _meta: &mut MetaInfo) -> bool {
         let new_line_included = replace_add_quote(&self.value, "\\n", 10);
         let tab_included = replace_add_quote(&new_line_included, "\\t", 9);
 
-        target += &ASMBuilder::line(&format!("{}:", stack.get_latest_label()));
-        target += &ASMBuilder::ident_line(&format!("db {}, 0", tab_included));
 
-        Some(Ok(target))
+        let key = if let Some(k) = stack.data_section.str_key(&self.value) {
+            k.to_string()
+        } else {
+            stack.get_latest_label()
+        };
+
+        stack.data_section.push_str(&key, &tab_included);
+        true
     }
 }
 

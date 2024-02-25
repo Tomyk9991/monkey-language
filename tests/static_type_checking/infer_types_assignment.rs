@@ -8,7 +8,7 @@ use monkey_language::core::lexer::tokens::assignable_tokens::equation_parser::ex
 use monkey_language::core::lexer::tokens::assignable_tokens::equation_parser::operator::Operator;
 use monkey_language::core::lexer::tokens::assignable_tokens::integer_token::IntegerToken;
 use monkey_language::core::lexer::tokens::assignable_tokens::method_call_token::MethodCallToken;
-use monkey_language::core::lexer::tokens::if_definition::IfDefinition;
+use monkey_language::core::lexer::tokens::if_definition::IfToken;
 use monkey_language::core::lexer::tokens::method_definition::MethodDefinition;
 use monkey_language::core::lexer::tokens::name_token::NameToken;
 use monkey_language::core::lexer::tokens::return_token::ReturnToken;
@@ -79,7 +79,7 @@ fn infer_type_assignment_in_scope() -> anyhow::Result<()> {
     static_type_check(&top_level_scope)?;
 
     let expected: Vec<Token> = vec![
-        Token::IfDefinition(IfDefinition {
+        Token::If(IfToken {
             condition: AssignableToken::BooleanToken(BooleanToken { value: true }),
             if_stack: vec![
                 Token::Variable(VariableToken {
@@ -157,7 +157,7 @@ fn infer_type_assignment_in_scope_complex() -> anyhow::Result<()> {
                 virtual_line_number: 4,
             },
         }),
-        Token::IfDefinition(IfDefinition {
+        Token::If(IfToken {
             condition: AssignableToken::BooleanToken(BooleanToken { value: true }),
             if_stack: vec![
                 Token::Variable(VariableToken::<'=', ';'> {
@@ -265,7 +265,7 @@ fn infer_type_assignment_in_scope_complex_in_method() -> anyhow::Result<()> {
             return_type: TypeToken::Integer(Integer::I32),
             arguments: vec![],
             stack: vec![
-                Token::IfDefinition(IfDefinition {
+                Token::If(IfToken {
                     condition: AssignableToken::BooleanToken(BooleanToken { value: true }),
                     if_stack: vec![
                         Token::Variable(VariableToken::<'=', ';'> {

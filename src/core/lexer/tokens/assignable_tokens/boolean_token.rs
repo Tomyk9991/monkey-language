@@ -48,10 +48,6 @@ impl ToASM for BooleanToken {
     fn byte_size(&self, _meta: &mut MetaInfo) -> usize {
         1
     }
-
-    fn before_label(&self, _stack: &mut Stack, _meta: &mut MetaInfo) -> Option<Result<String, ASMGenerateError>> {
-        None
-    }
 }
 
 impl FromStr for BooleanToken {

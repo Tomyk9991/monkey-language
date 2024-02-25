@@ -188,17 +188,17 @@ impl ToASM for AssignableToken {
         }
     }
 
-    fn before_label(&self, stack: &mut Stack, meta: &mut MetaInfo) -> Option<Result<String, ASMGenerateError>> {
+    fn data_section(&self, stack: &mut Stack, meta: &mut MetaInfo) -> bool {
         match &self {
-            AssignableToken::String(v) => v.before_label(stack, meta),
-            AssignableToken::IntegerToken(v) => v.before_label(stack, meta),
-            AssignableToken::FloatToken(v) => v.before_label(stack, meta),
-            AssignableToken::BooleanToken(v) => v.before_label(stack, meta),
-            AssignableToken::MethodCallToken(v) => v.before_label(stack, meta),
-            AssignableToken::NameToken(v) => v.before_label(stack, meta),
-            AssignableToken::Object(v) => v.before_label(stack, meta),
-            AssignableToken::ArithmeticEquation(v) => v.before_label(stack, meta),
-            AssignableToken::Parameter(r) => r.before_label(stack, meta)
+            AssignableToken::String(v) => v.data_section(stack, meta),
+            AssignableToken::IntegerToken(v) => v.data_section(stack, meta),
+            AssignableToken::FloatToken(v) => v.data_section(stack, meta),
+            AssignableToken::BooleanToken(v) => v.data_section(stack, meta),
+            AssignableToken::MethodCallToken(v) => v.data_section(stack, meta),
+            AssignableToken::NameToken(v) => v.data_section(stack, meta),
+            AssignableToken::Object(v) => v.data_section(stack, meta),
+            AssignableToken::ArithmeticEquation(v) => v.data_section(stack, meta),
+            AssignableToken::Parameter(r) => r.data_section(stack, meta)
         }
     }
 }

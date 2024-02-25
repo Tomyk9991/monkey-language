@@ -41,8 +41,4 @@ impl ToASM for ParameterToken {
     fn byte_size(&self, _meta: &mut MetaInfo) -> usize {
         self.ty.byte_size()
     }
-
-    fn before_label(&self, _stack: &mut Stack, _meta: &mut MetaInfo) -> Option<Result<String, ASMGenerateError>> {
-        None
-    }
 }

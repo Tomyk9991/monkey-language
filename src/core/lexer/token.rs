@@ -132,16 +132,17 @@ impl ToASM for Token {
         }
     }
 
-    fn before_label(&self, stack: &mut Stack, meta: &mut MetaInfo) -> Option<Result<String, ASMGenerateError>> {
+
+    fn data_section(&self, stack: &mut Stack, meta: &mut MetaInfo) -> bool {
         match self {
-            Token::Variable(v) => v.before_label(stack, meta),
-            Token::MethodCall(v) => v.before_label(stack, meta),
-            Token::MethodDefinition(v) => v.before_label(stack, meta),
-            Token::Import(v) => v.before_label(stack, meta),
-            Token::ForToken(v) => v.before_label(stack, meta),
-            Token::If(v) => v.before_label(stack, meta),
-            Token::Return(ret) => ret.before_label(stack, meta),
-            Token::ScopeClosing(_) => None,
+            Token::Variable(v) => v.data_section(stack, meta),
+            Token::MethodCall(v) => v.data_section(stack, meta),
+            Token::MethodDefinition(v) => v.data_section(stack, meta),
+            Token::Import(v) => v.data_section(stack, meta),
+            Token::ForToken(v) => v.data_section(stack, meta),
+            Token::If(v) => v.data_section(stack, meta),
+            Token::Return(ret) => ret.data_section(stack, meta),
+            Token::ScopeClosing(_) => false,
         }
     }
 }

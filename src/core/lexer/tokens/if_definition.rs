@@ -3,11 +3,11 @@ use std::fmt::{Display, Formatter};
 use std::iter::Peekable;
 use std::slice::Iter;
 use std::str::FromStr;
+
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::asm_result::{ASMOptions, ASMResult, ASMResultError, ASMResultVariance, InterimResultOption};
 use crate::core::code_generator::generator::Stack;
-
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::errors::EmptyIteratorErr;
 use crate::core::lexer::scope::{PatternNotMatchedError, Scope, ScopeError};
@@ -27,7 +27,7 @@ pub struct IfToken {
     pub condition: AssignableToken,
     pub if_stack: Vec<Token>,
     pub else_stack: Option<Vec<Token>>,
-    pub code_line: CodeLine
+    pub code_line: CodeLine,
 }
 
 impl IfToken {
@@ -129,7 +129,7 @@ impl TryParse for IfToken {
 
         let mut requested_else_block = false;
 
-        if let ["if", "(", condition@ .. , ")", "{"] = &split_ref[..] {
+        if let ["if", "(", condition @ .., ")", "{"] = &split_ref[..] {
             let condition = condition.join(" ");
             let condition = AssignableToken::from_str(&condition)?;
 
@@ -253,61 +253,33 @@ impl ToASM for IfToken {
         0
     }
 
-    fn before_label(&self, stack: &mut Stack, meta: &mut MetaInfo) -> Option<Result<String, ASMGenerateError>> {
-        let mut target = String::new();
+    fn data_section(&self, stack: &mut Stack, meta: &mut MetaInfo) -> bool {
         let mut has_before_label_asm = false;
         let count_before = stack.label_count;
 
 
-        if let Some(before_label) = self.condition.before_label(stack, meta) {
-            match before_label {
-                Ok(before_label) => {
-                    target += &ASMBuilder::line(&(before_label));
-                    has_before_label_asm = true;
-                }
-                Err(err) => return Some(Err(err))
-            }
-
+        if self.condition.data_section(stack, meta) {
+            has_before_label_asm = true;
             stack.label_count -= 1;
         }
 
         for token in &self.if_stack {
-            if let Some(before_label) = token.before_label(stack, meta) {
-                match before_label {
-                    Ok(before_label) => {
-                        target += &ASMBuilder::line(&(before_label));
-                        has_before_label_asm = true;
-                    }
-                    Err(err) => return Some(Err(err))
-                }
-
+            if token.data_section(stack, meta) {
+                has_before_label_asm = true;
                 stack.label_count -= 1;
             }
         }
 
         if let Some(else_stack) = &self.else_stack {
             for token in else_stack {
-                if let Some(before_label) = token.before_label(stack, meta) {
-                    match before_label {
-                        Ok(before_label) => {
-                            target += &ASMBuilder::line(&(before_label));
-                            has_before_label_asm = true;
-                        }
-                        Err(err) => return Some(Err(err))
-                    }
-
+                if token.data_section(stack, meta) {
+                    has_before_label_asm = true;
                     stack.label_count -= 1;
                 }
             }
         }
 
         stack.label_count = count_before;
-
-
-        if has_before_label_asm {
-            Some(Ok(target))
-        } else {
-            None
-        }
+        has_before_label_asm
     }
 }

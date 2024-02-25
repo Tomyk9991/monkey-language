@@ -64,10 +64,6 @@ impl ToASM for FloatToken {
             Float::Float64 => 8,
         }
     }
-
-    fn before_label(&self, _stack: &mut Stack, _meta: &mut MetaInfo) -> Option<Result<String, ASMGenerateError>> {
-        None
-    }
 }
 
 

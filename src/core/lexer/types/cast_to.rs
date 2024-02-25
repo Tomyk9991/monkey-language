@@ -62,10 +62,6 @@ impl ToASM for CastTo {
     fn byte_size(&self, _meta: &mut MetaInfo) -> usize {
         0
     }
-
-    fn before_label(&self, _stack: &mut Stack, _meta: &mut MetaInfo) -> Option<Result<String, ASMGenerateError>> {
-        None
-    }
 }
 
 impl Error for CastToError { }
