@@ -8,7 +8,7 @@ use crate::core::code_generator::conventions::calling_convention_from;
 
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
-use crate::core::code_generator::asm_result::{ASMOptions, ASMResult, InterimResultOption};
+use crate::core::code_generator::asm_result::{ASMOptions, ASMResult, ASMResultVariance, InterimResultOption};
 use crate::core::code_generator::conventions::CallingRegister;
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::registers::ByteSize;
@@ -192,6 +192,7 @@ impl ToASM for MethodDefinition {
     fn to_asm<T: ASMOptions + 'static>(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
         let mut label_header: String = String::new();
 
+
         label_header += &ASMBuilder::line(&format!("{}:", self.method_label_name()));
         label_header += &ASMBuilder::ident_line("push rbp");
         label_header += &ASMBuilder::mov_ident_line("rbp", "rsp");
@@ -202,6 +203,7 @@ impl ToASM for MethodDefinition {
         let mut method_scope: String = String::new();
 
         let calling_convention = calling_convention_from(self, &meta.target_os);
+
         for (index, (argument_name, argument_type)) in self.arguments.iter().enumerate() {
             if let Some(stack_location) = stack.variables.iter().rfind(|v| v.name.name == argument_name.name) {
                 let destination = stack_location.name.clone().to_asm(stack, meta, options.clone())?;
@@ -236,7 +238,14 @@ impl ToASM for MethodDefinition {
             meta.code_line = token.code_line();
             stack_allocation += token.byte_size(meta);
 
-            method_scope += &token.to_asm::<InterimResultOption>(stack, meta, None)?.to_string();
+            let _ = token.to_asm::<InterimResultOption>(stack, meta, None)?
+                .apply_with(&mut method_scope)
+                .allow(ASMResultVariance::Inline)
+                .allow(ASMResultVariance::MultilineResulted)
+                .allow(ASMResultVariance::Multiline)
+                .token("method definition")
+                .finish()?;
+
             token.data_section(stack, meta);
         }
 

@@ -1,6 +1,6 @@
 use crate::core::code_generator::{ASMOptions, ASMResult, MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
-use crate::core::code_generator::asm_result::InterimResultOption;
+use crate::core::code_generator::asm_result::{ASMResultVariance, InterimResultOption};
 use crate::core::code_generator::ASMGenerateError;
 use crate::core::code_generator::conventions::calling_convention_from;
 use crate::core::code_generator::registers::{GeneralPurposeRegister};
@@ -232,7 +232,15 @@ impl ASMGenerator {
                     let method_call_sizes = method_call.arguments.iter().fold(0, |acc, a| acc + a.byte_size(&mut meta));
                     stack_allocation += method_call_sizes;
                 }
-                method_scope += &token.to_asm::<InterimResultOption>(&mut self.stack, &mut meta, None)?.to_string();
+
+                let _ = token.to_asm::<InterimResultOption>(&mut self.stack, &mut meta, None)?
+                    .apply_with(&mut method_scope)
+                    .allow(ASMResultVariance::Inline)
+                    .allow(ASMResultVariance::MultilineResulted)
+                    .allow(ASMResultVariance::Multiline)
+                    .token("method definition")
+                    .finish()?;
+
                 token.data_section(&mut self.stack, &mut meta);
             }
 

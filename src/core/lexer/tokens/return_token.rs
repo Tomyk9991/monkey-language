@@ -8,7 +8,7 @@ use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::asm_result::{ASMOptions, ASMResult, ASMResultError, ASMResultVariance, InterimResultOption};
 use crate::core::code_generator::conventions::return_calling_convention;
-use crate::core::code_generator::registers::ByteSize;
+use crate::core::code_generator::registers::{ByteSize, GeneralPurposeRegister};
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::errors::EmptyIteratorErr;
 use crate::core::lexer::scope::PatternNotMatchedError;
@@ -97,8 +97,12 @@ impl ToASM for ReturnToken {
 
             match source {
                 ASMResult::Inline(source) => target += &ASMBuilder::mov_ident_line(destination_register, source),
-                ASMResult::MultilineResulted(source, _) => {
+                ASMResult::MultilineResulted(source, r) => {
                     target += &source;
+
+                    if let GeneralPurposeRegister::Float(f) = r {
+                        target += &ASMBuilder::mov_x_ident_line(destination_register, f, Some(assignable.byte_size(meta)));
+                    }
                 }
                 ASMResult::Multiline(_) => return Err(ASMGenerateError::ASMResult(ASMResultError::UnexpectedVariance {
                     expected: vec![ASMResultVariance::Inline, ASMResultVariance::MultilineResulted],

@@ -3,6 +3,8 @@ use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::MetaInfo;
 use crate::core::code_generator::registers::{Bit64, FloatRegister, GeneralPurposeRegister};
 use crate::core::code_generator::target_os::TargetOS;
+use crate::core::io::code_line::CodeLine;
+use crate::core::lexer::static_type_context::StaticTypeContext;
 use crate::core::lexer::tokens::assignable_token::AssignableToken;
 use crate::core::lexer::tokens::method_definition::MethodDefinition;
 use crate::core::lexer::tokens::name_token::NameToken;
@@ -69,7 +71,7 @@ fn windows_calling_convention(_stack: &mut Stack, meta: &MetaInfo, calling_argum
     let mut result = vec![];
 
 
-    let method_defs = method_definitions(meta, calling_arguments, method_name)?;
+    let method_defs = method_definitions(&meta.static_type_information, &meta.code_line, calling_arguments, method_name)?;
 
     if method_defs.is_empty() {
         return Err(InferTypeError::UnresolvedReference(method_name.to_string(), meta.code_line.clone()))
@@ -126,16 +128,16 @@ fn windows_calling_convention(_stack: &mut Stack, meta: &MetaInfo, calling_argum
 }
 
 /// Returns every possible method definition based on the argument signature and method name
-pub fn method_definitions(meta: &MetaInfo, arguments: &[AssignableToken], method_name: &str) -> Result<Vec<MethodDefinition>, InferTypeError> {
+pub fn method_definitions(meta: &StaticTypeContext, code_line: &CodeLine, arguments: &[AssignableToken], method_name: &str) -> Result<Vec<MethodDefinition>, InferTypeError> {
     let mut method_definitions = vec![];
 
-    'outer: for method in &meta.static_type_information.methods {
+    'outer: for method in &meta.methods {
         if method.name.name != method_name || method.arguments.len() != arguments.len() {
             continue;
         }
 
         for (index, (_, argument_type)) in method.arguments.iter().enumerate() {
-            let calling_type = arguments[index].infer_type_with_context(&meta.static_type_information, &meta.code_line)?;
+            let calling_type = arguments[index].infer_type_with_context(&meta, code_line)?;
             if *argument_type != calling_type {
                 continue 'outer;
             }

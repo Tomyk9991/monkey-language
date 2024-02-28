@@ -149,9 +149,7 @@ impl MethodCallToken {
     }
 
     pub fn infer_type_with_context(&self, context: &StaticTypeContext, code_line: &CodeLine) -> Result<TypeToken, InferTypeError> {
-        if let Some(method_def) = context.methods.iter().find(|method_def| {
-            method_def.name == self.name
-        }) {
+        if let Some(method_def) = conventions::method_definitions(context, code_line, &self.arguments, &self.name.name)?.first() {
             self.type_check(context, code_line)?;
             return Ok(method_def.return_type.clone());
         }
@@ -223,8 +221,10 @@ impl MethodCallToken {
 
 impl ToASM for MethodCallToken {
     fn to_asm<T: ASMOptions + 'static>(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
-        let calling_convention = conventions::calling_convention(stack, meta, &self.arguments, &self.name.name)?;
-        let method_defs = conventions::method_definitions(meta, &self.arguments, &self.name.name)?;
+        let mut calling_convention = conventions::calling_convention(stack, meta, &self.arguments, &self.name.name)?;
+        calling_convention.reverse();
+
+        let method_defs = conventions::method_definitions(&meta.static_type_information, &meta.code_line, &self.arguments, &self.name.name)?;
 
         if method_defs.is_empty() {
             return Err(ASMGenerateError::TypeNotInferrable(InferTypeError::UnresolvedReference(self.name.to_string(), meta.code_line.clone())))
@@ -278,9 +278,10 @@ impl ToASM for MethodCallToken {
             Stack
         }
 
-        let zipped = calling_convention.iter().zip(&self.arguments);
+        let zipped = calling_convention.iter().zip(self.arguments.iter().rev().collect::<Vec<_>>());
         let mut parameters = vec![];
-        for (conventions, argument) in zipped.rev() {
+
+        for (conventions, argument) in zipped {
             let provided_type = argument.infer_type_with_context(&meta.static_type_information, &meta.code_line)?;
             let result_from_eval = GeneralPurposeRegister::Bit64(Bit64::Rax)
                 .to_size_register(&ByteSize::try_from(provided_type.byte_size())?);
@@ -321,7 +322,7 @@ impl ToASM for MethodCallToken {
                 match convention {
                     CallingRegister::Register(register_convention) => {
                         let register_convention_sized = register_convention.to_size_register_ignore_float(&ByteSize::try_from(provided_type.byte_size())?);
-                        variadic_parameters.push((register_convention_sized, if inline { RegisterResult::Assign(assign.clone()) } else { RegisterResult::Stack }, Some(provided_type.byte_size()), argument));
+                        variadic_parameters.push((register_convention_sized, if inline { RegisterResult::Assign(assign.clone()) } else { RegisterResult::Stack }, Some(provided_type.byte_size())));
                     }
                     CallingRegister::Stack => {}
                 }
@@ -335,17 +336,22 @@ impl ToASM for MethodCallToken {
         // float parameters need to have the value in the general purpose register AND in the xmm register accordingly
         // since multiple pops result in unexpected or even crashing behaviour. just one pop is needed
         let mut popped_into = GeneralPurposeRegister::Bit64(Bit64::Rax);
-        for all_conventions in parameters {
-            for (index, (register_convention_sized, assign, size, argument)) in all_conventions.iter().enumerate() {
+        for all_conventions in parameters.iter().rev() {
+            for (index, (register_convention_sized, assign, size)) in all_conventions.iter().enumerate() {
                 if index == 0 {
-                    target += &ASMBuilder::ident(&ASMBuilder::comment_line(&format!("Parameter ({})", argument)));
                     match assign {
                         RegisterResult::Assign(assign) => {
                             target += &ASMBuilder::mov_x_ident_line(register_convention_sized, assign, *size)
                         }
                         RegisterResult::Stack => {
                             target += &ASMBuilder::ident_line(&format!("pop {}", register_convention_sized.to_64_bit_register()));
-                            popped_into = register_convention_sized.to_64_bit_register();
+
+                            if let GeneralPurposeRegister::Float(float_register) = register_convention_sized {
+                                target += &ASMBuilder::mov_x_ident_line(float_register, register_convention_sized.to_64_bit_register(), Some(register_convention_sized.size() as usize));
+                                popped_into = GeneralPurposeRegister::Float(float_register.clone());
+                            } else {
+                                popped_into = register_convention_sized.to_64_bit_register();
+                            }
                         }
                     }
                 } else {
@@ -354,7 +360,7 @@ impl ToASM for MethodCallToken {
                             target += &ASMBuilder::mov_x_ident_line(register_convention_sized, assign, *size);
                         }
                         RegisterResult::Stack => {
-                            target += &ASMBuilder::mov_x_ident_line(register_convention_sized, &popped_into, *size);
+                            target += &ASMBuilder::mov_x_ident_line(register_convention_sized, &popped_into.to_size_register_ignore_float(&ByteSize::try_from(size.unwrap_or(8))?), *size);
                         }
                     }
                 }
