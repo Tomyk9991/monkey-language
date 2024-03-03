@@ -42,6 +42,22 @@ impl Token {
             Token::ForToken(a) => {a.code_line.clone()}
         }
     }
+
+    pub fn scope(&self) -> Option<Vec<&Vec<Token>>> {
+        match self {
+            Token::Variable(_) | Token::MethodCall(_) | Token::Import(_) | Token::Return(_) | Token::ScopeClosing(_) => None,
+            Token::MethodDefinition(t) => Some(vec![&t.stack]),
+            Token::If(t) => {
+                let mut res = vec![&t.if_stack];
+                if let Some(else_stack) = &t.else_stack {
+                    res.push(else_stack);
+                }
+
+                Some(res)
+            }
+            Token::ForToken(t) => Some(vec![&t.stack])
+        }
+    }
 }
 
 impl Token {
@@ -75,6 +91,9 @@ impl ToASM for Token {
                 }
 
                 res
+            }
+            Token::ForToken(for_token) => {
+                vec![&for_token.stack]
             }
             Token::MethodDefinition(method_def) => {
                 vec![&method_def.stack]

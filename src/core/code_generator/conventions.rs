@@ -137,7 +137,7 @@ pub fn method_definitions(meta: &StaticTypeContext, code_line: &CodeLine, argume
         }
 
         for (index, (_, argument_type)) in method.arguments.iter().enumerate() {
-            let calling_type = arguments[index].infer_type_with_context(&meta, code_line)?;
+            let calling_type = arguments[index].infer_type_with_context(meta, code_line)?;
             if *argument_type != calling_type {
                 continue 'outer;
             }

@@ -40,7 +40,6 @@ pub fn static_type_check(scope: &Scope) -> Result<(), StaticTypeCheckError> {
     // check if a variable, which is not a defined variable has an invalid re-assignment
     // let a = 1.0;
     // a = 5;
-    // todo every path in "if" must have a return statement, if the method has a return type
     let mut type_context: StaticTypeContext = StaticTypeContext::new(&scope.tokens);
     type_context.colliding_symbols()?;
     static_type_check_rec(&scope.tokens, &mut type_context)

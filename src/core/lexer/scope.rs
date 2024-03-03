@@ -268,7 +268,7 @@ impl TryParse for Scope {
             (MethodCallToken,           MethodCall,         true),
             (ScopeEnding,               ScopeClosing,       true),
             (ReturnToken,               Return,             true),
-            (IfToken,              If,       false),
+            (IfToken,                   If,                 false),
             (MethodDefinition,          MethodDefinition,   false),
             (ForToken,                  ForToken,           false)
         );

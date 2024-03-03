@@ -114,18 +114,24 @@ impl TryParse for ForToken {
 
         let split_alloc = for_header.split(vec![' ']);
         let split_ref = split_alloc.iter().map(|a| a.as_str()).collect::<Vec<_>>();
-        let test = dyck_language(&split_ref.join(" ").to_string(), [vec![], vec![';'], vec![]])?;
+        let split_values = dyck_language(&split_ref.join(" ").to_string(), [vec![], vec![';'], vec![]])?;
+
+        if split_values.len() != 3 {
+            return Err(ForTokenErr::PatternNotMatched {
+                target_value: for_header.line.clone(),
+            })
+        }
 
         let mut split_ref: Vec<&str> = vec![];
-        let split = test[0].splitn(3, ' ').collect::<Vec<_>>();
+        let split = split_values[0].splitn(3, ' ').collect::<Vec<_>>();
 
         split.iter().for_each(|a| split_ref.push(a));
         split_ref.push(";");
 
-        split_ref.push(&test[1]);
+        split_ref.push(&split_values[1]);
         split_ref.push(";");
 
-        let mut split = test[2].rsplitn(3, ' ').collect::<Vec<_>>();
+        let mut split = split_values[2].rsplitn(3, ' ').collect::<Vec<_>>();
         split.reverse();
         split.iter().for_each(|a| split_ref.push(a));
 

@@ -15,7 +15,7 @@ use crate::core::code_generator::registers::ByteSize;
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::errors::EmptyIteratorErr;
 use crate::core::lexer::scope::{PatternNotMatchedError, Scope, ScopeError};
-use crate::core::lexer::static_type_context::CurrentMethodInfo;
+use crate::core::lexer::static_type_context::{CurrentMethodInfo, StaticTypeContext};
 use crate::core::lexer::token::Token;
 use crate::core::lexer::tokens::assignable_token::AssignableTokenErr;
 use crate::core::lexer::tokens::name_token::{NameToken, NameTokenErr};
@@ -238,6 +238,15 @@ impl ToASM for MethodDefinition {
             meta.code_line = token.code_line();
             stack_allocation += token.byte_size(meta);
 
+
+            let variables_len = meta.static_type_information.len();
+
+            if let Some(scope_stacks) = token.scope() {
+                for scope_stack in scope_stacks {
+                    meta.static_type_information.merge(StaticTypeContext::new(scope_stack));
+                }
+            }
+
             let _ = token.to_asm::<InterimResultOption>(stack, meta, None)?
                 .apply_with(&mut method_scope)
                 .allow(ASMResultVariance::Inline)
@@ -247,6 +256,12 @@ impl ToASM for MethodDefinition {
                 .finish()?;
 
             token.data_section(stack, meta);
+
+            let amount_pop = meta.static_type_information.len() - variables_len;
+
+            for _ in 0..amount_pop {
+                let _ = meta.static_type_information.pop();
+            }
         }
 
         meta.static_type_information.expected_return_type = None;
