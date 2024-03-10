@@ -99,7 +99,7 @@ impl Stack {
             };
         }
 
-        target.push_str(&self.end_scope());
+        self.end_scope();
         Ok(target)
     }
 
@@ -107,10 +107,9 @@ impl Stack {
         self.scopes.push(self.variables.len());
     }
 
-    fn end_scope(&mut self) -> String {
+    fn end_scope(&mut self) {
         if let Some(last_element) = self.scopes.last() {
             let pop_count = self.variables.len() - *last_element;
-            let target = format!("    add rsp, {}\n", pop_count * 8);
             self.stack_position -= pop_count;
 
             for _ in 0..pop_count {
@@ -118,11 +117,7 @@ impl Stack {
             }
 
             let _ = self.scopes.pop();
-
-            return target;
         }
-
-        String::new()
     }
 }
 
@@ -215,6 +210,7 @@ impl ASMGenerator {
                     static_type_information: StaticTypeContext::new(&self.top_level_scope.tokens),
                 };
 
+
                 if let Token::MethodDefinition(_) = token {
                     continue;
                 }
@@ -231,6 +227,12 @@ impl ASMGenerator {
                 if let Token::MethodCall(method_call) = token {
                     let method_call_sizes = method_call.arguments.iter().fold(0, |acc, a| acc + a.byte_size(&mut meta));
                     stack_allocation += method_call_sizes;
+                }
+
+                if let Some(scope_stacks) = token.scope() {
+                    for scope_stack in scope_stacks {
+                        meta.static_type_information.merge(StaticTypeContext::new(scope_stack));
+                    }
                 }
 
                 let _ = token.to_asm::<InterimResultOption>(&mut self.stack, &mut meta, None)?
