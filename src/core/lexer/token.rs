@@ -10,6 +10,7 @@ use crate::core::lexer::tokens::for_token::ForToken;
 use crate::core::lexer::tokens::if_definition::IfToken;
 use crate::core::lexer::tokens::import::ImportToken;
 use crate::core::lexer::tokens::method_definition::MethodDefinition;
+use crate::core::lexer::tokens::r#while::WhileToken;
 use crate::core::lexer::tokens::return_token::ReturnToken;
 use crate::core::lexer::tokens::scope_ending::ScopeEnding;
 use crate::core::lexer::tokens::variable_token::VariableToken;
@@ -27,6 +28,7 @@ pub enum Token {
     ScopeClosing(ScopeEnding),
     If(IfToken),
     ForToken(ForToken),
+    WhileToken(WhileToken)
 }
 
 impl Token {
@@ -39,7 +41,8 @@ impl Token {
             Token::If(a) => a.code_line.clone(),
             Token::Import(a) => a.code_line.clone(),
             Token::Return(a) => a.code_line.clone(),
-            Token::ForToken(a) => {a.code_line.clone()}
+            Token::ForToken(a) => a.code_line.clone(),
+            Token::WhileToken(a) => a.code_line.clone(),
         }
     }
 
@@ -55,7 +58,8 @@ impl Token {
 
                 Some(res)
             }
-            Token::ForToken(t) => Some(vec![&t.stack])
+            Token::ForToken(t) => Some(vec![&t.stack]),
+            Token::WhileToken(t) => Some(vec![&t.stack])
         }
     }
 }
@@ -71,6 +75,9 @@ impl Token {
             },
             Token::ForToken(for_loop) => {
                 for_loop.infer_type(type_context)?;
+            }
+            Token::WhileToken(while_loop) => {
+                while_loop.infer_type(type_context)?;
             }
             Token::MethodDefinition(_) | Token::MethodCall(_) | Token::ScopeClosing(_) | Token::Import(_) | Token::Return(_) => {}
         }
@@ -95,10 +102,15 @@ impl ToASM for Token {
             Token::ForToken(for_token) => {
                 vec![&for_token.stack]
             }
+            Token::WhileToken(while_token) => {
+                vec![&while_token.stack]
+            }
             Token::MethodDefinition(method_def) => {
                 vec![&method_def.stack]
             }
-            _ => { vec![] }
+            Token::Variable(_) | Token::MethodCall(_) |
+            Token::Import(_) | Token::Return(_) |
+            Token::ScopeClosing(_) => vec![]
         };
 
         for scope in scopes {
@@ -120,6 +132,7 @@ impl ToASM for Token {
             Token::Import(import_token) => import_token.to_asm(stack, meta, options),
             Token::If(if_token) => if_token.to_asm(stack, meta, options),
             Token::ForToken(for_loop) => for_loop.to_asm(stack, meta, options),
+            Token::WhileToken(while_loop) => while_loop.to_asm(stack, meta, options),
             Token::ScopeClosing(_) => Ok(ASMResult::Inline(String::new())),
         }
     }
@@ -132,6 +145,7 @@ impl ToASM for Token {
             Token::If(a) => a.is_stack_look_up(stack, meta),
             Token::Import(a) => a.is_stack_look_up(stack, meta),
             Token::ForToken(a) => a.is_stack_look_up(stack, meta),
+            Token::WhileToken(a) => a.is_stack_look_up(stack, meta),
             Token::MethodDefinition(a) => a.is_stack_look_up(stack, meta),
             Token::Return(return_type) => return_type.is_stack_look_up(stack, meta),
             Token::ScopeClosing(_) => false,
@@ -145,6 +159,7 @@ impl ToASM for Token {
             Token::MethodDefinition(a) => a.byte_size(meta),
             Token::Import(a) => a.byte_size(meta),
             Token::ForToken(a) => a.byte_size(meta),
+            Token::WhileToken(a) => a.byte_size(meta),
             Token::If(a) => a.byte_size(meta),
             Token::Return(r) => r.byte_size(meta),
             Token::ScopeClosing(_) => 0,
@@ -159,6 +174,7 @@ impl ToASM for Token {
             Token::MethodDefinition(v) => v.data_section(stack, meta),
             Token::Import(v) => v.data_section(stack, meta),
             Token::ForToken(v) => v.data_section(stack, meta),
+            Token::WhileToken(v) => v.data_section(stack, meta),
             Token::If(v) => v.data_section(stack, meta),
             Token::Return(ret) => ret.data_section(stack, meta),
             Token::ScopeClosing(_) => false,
@@ -176,7 +192,8 @@ impl Display for Token {
             Token::If(m) => format!("{}", m),
             Token::Import(m) => format!("{}", m),
             Token::Return(m) => format!("{}", m),
-            Token::ForToken(m) => format!("{}", m)
+            Token::WhileToken(a) => format!("{}", a),
+            Token::ForToken(m) => format!("{}", m),
         })
     }
 }

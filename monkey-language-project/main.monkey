@@ -5,7 +5,13 @@ fn inc(a: i32): i32 {
 }
 
 fn main(): i32 {
-    let mut a: i32 = 0;
+    let mut a: i32 = 5;
+
+    while (a > 0) {
+        printf("%d\n", a);
+        a = a - 1;
+    }
+
 
     for (let i: i32 = 0; i < 5; i = i + 1) {
         for (let j: i32 = 0; j < 5; j = j + 1) {

@@ -6,6 +6,7 @@ pub enum ScopeType {
     If,
     Else,
     For,
+    While,
 }
 
 /// `ScopeSplitterIterator` is an iterator that returns a tuple of a vector of regexes and a ScopeType.
@@ -57,8 +58,15 @@ impl Iterator for ScopeSplitterIterator {
                 Some((vec![
                     r"for\s*\(.*?\)\s*\{",
                     r"for\s*\(.*?\)\s*\{.*?\}",
-                ], ScopeType::Fn))
-            }
+                ], ScopeType::For))
+            },
+            4 => {
+                self.current += 1;
+                Some((vec![
+                    r"while\s*\(.*?\)\s*\{",
+                    r"while\s*\(.*?\)\s*\{.*?\}"
+                ], ScopeType::While))
+            },
             _ => None
         }
     }
@@ -84,6 +92,10 @@ impl Iterator for ScopeTypeIterator {
             3 => {
                 self.current += 1;
                 Some(("for ", ScopeType::For))
+            },
+            4 => {
+                self.current += 1;
+                Some(("while ", ScopeType::While))
             }
             _ => None
         }

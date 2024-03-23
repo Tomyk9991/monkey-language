@@ -97,7 +97,7 @@ impl StaticTypeContext {
                         context.push(for_loop.initialization.clone());
                     }
                 },
-                Token::ScopeClosing(_) | Token::MethodCall(_) | Token::If(_) | Token::Import(_) | Token::Return(_) => {}
+                Token::WhileToken(_) | Token::ScopeClosing(_) | Token::MethodCall(_) | Token::If(_) | Token::Import(_) | Token::Return(_) => {}
             }
         }
 

@@ -210,6 +210,26 @@ fn static_type_check_rec(scope: &Vec<Token>, type_context: &mut StaticTypeContex
                     let _ = type_context.context.pop();
                 }
             },
+            Token::WhileToken(while_loop) => {
+                let variables_len = type_context.context.len();
+                let condition_type = while_loop.condition.infer_type_with_context(type_context, &while_loop.code_line)?;
+
+                if condition_type != TypeToken::Bool {
+                    return Err(StaticTypeCheckError::InferredError(InferTypeError::MismatchedTypes {
+                        expected: TypeToken::Bool,
+                        actual: condition_type,
+                        code_line: while_loop.code_line.clone(),
+                    }))
+                }
+
+                static_type_check_rec(&while_loop.stack, type_context)?;
+
+                let amount_pop = type_context.context.len() - variables_len;
+
+                for _ in 0..amount_pop {
+                    let _ = type_context.context.pop();
+                }
+            }
             Token::MethodCall(method_call) => {
                 method_call.type_check(type_context, &method_call.code_line)?
             }

@@ -18,6 +18,7 @@ use crate::core::lexer::tokens::scope_ending::ScopeEnding;
 use crate::core::lexer::tokens::variable_token::VariableToken;
 use crate::core::lexer::TryParse;
 use crate::core::lexer::tokens::import::ImportToken;
+use crate::core::lexer::tokens::r#while::WhileToken;
 use crate::core::lexer::tokens::return_token::ReturnToken;
 use crate::core::lexer::types::type_token::InferTypeError;
 
@@ -118,7 +119,10 @@ impl Scope {
                     }
                 }
                 Token::ForToken(for_loop) => {
-                    Self::method_calls_in_stack(&for_loop.stack).iter().for_each(|a| { called_methods.insert(a.clone()); } );
+                    Self::method_calls_in_stack(&for_loop.stack).iter().for_each(|a| { called_methods.insert(a.clone()); });
+                }
+                Token::WhileToken(while_loop) => {
+                    Self::method_calls_in_stack(&while_loop.stack).iter().for_each(|a| { called_methods.insert(a.clone()); });
                 }
                 Token::MethodDefinition(_) | Token::Import(_) | Token::Return(_) | Token::ScopeClosing(_) => {}
             }
@@ -270,7 +274,8 @@ impl TryParse for Scope {
             (ReturnToken,               Return,             true),
             (IfToken,                   If,                 false),
             (MethodDefinition,          MethodDefinition,   false),
-            (ForToken,                  ForToken,           false)
+            (ForToken,                  ForToken,           false),
+            (WhileToken,                WhileToken,         false)
         );
 
         let c = *code_lines_iterator.peek().ok_or(ScopeError::EmptyIterator(EmptyIteratorErr))?;
