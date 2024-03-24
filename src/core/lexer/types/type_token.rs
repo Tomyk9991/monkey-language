@@ -7,7 +7,9 @@ use crate::core::code_generator::generator::Stack;
 
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::tokens::assignable_token::AssignableToken;
+use crate::core::lexer::tokens::assignable_tokens::array_token::{ArrayToken, ArrayTokenErr};
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::operator::{AssemblerOperation, Operator, OperatorToASM};
+use crate::core::lexer::tokens::assignable_tokens::method_call_token::dyck_language;
 use crate::core::lexer::tokens::name_token::{NameToken, NameTokenErr};
 use crate::core::lexer::tokens::variable_token::VariableToken;
 use crate::core::lexer::types::boolean::Boolean;
@@ -29,6 +31,8 @@ pub enum TypeToken {
     Float(Float),
     Bool,
     Void,
+    Undefined,
+    Array(Box<TypeToken>, usize),
     Custom(NameToken),
 }
 
@@ -82,8 +86,8 @@ impl OperatorToASM for TypeToken {
             TypeToken::Integer(t) => t.operation_to_asm(operator, registers, stack, meta),
             TypeToken::Float(t) => t.operation_to_asm(operator, registers, stack, meta),
             TypeToken::Bool => Boolean::True.operation_to_asm(operator, registers, stack, meta),
-            TypeToken::Void => Err(ASMGenerateError::InternalError("Void cannot be operated on".to_string())),
-            TypeToken::Custom(_) => todo!(),
+            TypeToken::Void | TypeToken::Undefined  => Err(ASMGenerateError::InternalError("Void cannot be operated on".to_string())),
+            TypeToken::Array(_, _) | TypeToken::Custom(_) => todo!(),
         }
     }
 }
@@ -139,6 +143,8 @@ impl Display for TypeToken {
             TypeToken::Float(float) => float.to_string(),
             TypeToken::Bool => "bool".to_string(),
             TypeToken::Void => "void".to_string(),
+            TypeToken::Undefined => "undefined".to_string(),
+            TypeToken::Array(array_type, size) => format!("[{}; {size}]", array_type),
             TypeToken::Custom(name) => name.name.clone(),
         })
     }
@@ -148,6 +154,14 @@ impl FromStr for TypeToken {
     type Err = InferTypeError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let k = &s.split_inclusive(' ').collect::<Vec<_>>()[..];
+        if let ["[ ", type_str, ", ", type_size, "]"] = &s.split_inclusive(' ').collect::<Vec<_>>()[..] {
+            return Ok(TypeToken::Array(Box::new(TypeToken::from_str(type_str.trim())?), type_size.trim().parse::<usize>()
+                .map_err(|_| InferTypeError::TypeNotAllowed(NameTokenErr::UnmatchedRegex {
+                    target_value: s.to_string(),
+                }))?));
+        }
+        
         Ok(match s {
             "bool" => TypeToken::Bool,
             "void" => TypeToken::Void,
@@ -212,7 +226,9 @@ impl TypeToken {
             TypeToken::Float(float) => TypeToken::Custom(NameToken { name: format!("*{}", float) }),
             TypeToken::Bool => TypeToken::Custom(NameToken { name: "*bool".to_string() }),
             TypeToken::Void => TypeToken::Custom(NameToken { name: format!("*{}", TypeToken::Void) }),
+            TypeToken::Array(array_type, _) => TypeToken::Custom(NameToken { name: format!("*{}", array_type)}),
             TypeToken::Custom(custom) => TypeToken::Custom(NameToken { name: format!("*{}", custom) }),
+            TypeToken::Undefined => TypeToken::Custom(NameToken { name: "*undefined".to_string() })
         }
     }
 
@@ -290,9 +306,11 @@ impl TypeToken {
         match self {
             TypeToken::Integer(int) => int.byte_size(),
             TypeToken::Float(float) => float.byte_size(),
+            TypeToken::Array(array_type, size) => array_type.byte_size() * size,
             TypeToken::Bool => 1,
             TypeToken::Void => 0,
-            TypeToken::Custom(_) => 8 // todo: calculate custom data types recursively
+            TypeToken::Custom(_) => 8, // todo: calculate custom data types recursively
+            TypeToken::Undefined => 0
         }
     }
 }

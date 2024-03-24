@@ -8,7 +8,7 @@ use monkey_language::core::lexer::tokens::assignable_tokens::equation_parser::ex
 use monkey_language::core::lexer::tokens::assignable_tokens::equation_parser::operator::Operator;
 use monkey_language::core::lexer::tokens::assignable_tokens::integer_token::IntegerToken;
 use monkey_language::core::lexer::tokens::assignable_tokens::method_call_token::MethodCallToken;
-use monkey_language::core::lexer::tokens::if_definition::IfToken;
+use monkey_language::core::lexer::tokens::if_token::IfToken;
 use monkey_language::core::lexer::tokens::method_definition::MethodDefinition;
 use monkey_language::core::lexer::tokens::name_token::NameToken;
 use monkey_language::core::lexer::tokens::return_token::ReturnToken;

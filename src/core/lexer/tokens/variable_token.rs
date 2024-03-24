@@ -284,6 +284,14 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> VariableToken<ASSIGNMENT, SE
 
                 let_used = true;
                 mut_used = false;
+            },
+            ["let", name, ":", "[", type_str, ",", type_size, "]", assignment_token, middle @ .., separator_token] if assignment_token == &assignment && separator_token == &separator => {
+                final_variable_name = name;
+                assignable = AssignableToken::from_str(middle.join(" ").as_str()).context(code_line.line.clone())?;
+                type_token = Some(TypeToken::from_str(&format!("[ {} , {} ]", type_str, type_size))?);
+
+                let_used = true;
+                mut_used = false;
             }
             ["let", "mut", name, assignment_token, middle @ .., separator_token] if assignment_token == &assignment && separator_token == &separator => {
                 final_variable_name = name;
@@ -298,6 +306,14 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> VariableToken<ASSIGNMENT, SE
                 final_variable_name = name;
                 assignable = AssignableToken::from_str(middle.join(" ").as_str()).context(code_line.line.clone())?;
                 type_token = Some(TypeToken::from_str(type_str)?);
+
+                let_used = true;
+                mut_used = true;
+            },
+            ["let", "mut", name, ":", "[", type_str, ",", type_size, "]", assignment_token, middle @ .., separator_token] if assignment_token == &assignment && separator_token == &separator => {
+                final_variable_name = name;
+                assignable = AssignableToken::from_str(middle.join(" ").as_str()).context(code_line.line.clone())?;
+                type_token = Some(TypeToken::from_str(&format!("[ {} , {} ]", type_str, type_size))?);
 
                 let_used = true;
                 mut_used = true;

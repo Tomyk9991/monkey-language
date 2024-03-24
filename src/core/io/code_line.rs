@@ -38,8 +38,6 @@ impl CodeLine {
     }
 
     /// Splits the line with the provided chars
-    /// Examples:
-    ///
     pub fn split(&self, chars: Vec<char>) -> Vec<String> {
         self.line
             .split_inclusive(&chars[..])
@@ -63,7 +61,7 @@ impl Normalizable for Vec<CodeLine> {
         let opening = opening_owned.as_str();
         let closing = closing_owned.as_str();
 
-        static INSERT_SPACE: [char; 9] = [';', '(', ')', ':', ',', '{', '}', '<', '>'];
+        static INSERT_SPACE: [char; 11] = [';', '(', ')', ':', ',', '{', '}', '[', ']', '<', '>'];
 
         let mut separators = vec![";"];
         separators.extend(ScopeSplitterIterator::default()

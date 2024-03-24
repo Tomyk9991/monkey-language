@@ -42,7 +42,7 @@ impl ToASM for BooleanToken {
     }
 
     fn is_stack_look_up(&self, _stack: &mut Stack, _meta: &MetaInfo) -> bool {
-        todo!()
+        false
     }
 
     fn byte_size(&self, _meta: &mut MetaInfo) -> usize {

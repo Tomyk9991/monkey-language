@@ -12,12 +12,12 @@ use crate::core::lexer::tokens::assignable_token::AssignableToken;
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::expression::Expression;
 use crate::core::lexer::tokens::assignable_tokens::method_call_token::MethodCallToken;
 use crate::core::lexer::tokens::for_token::ForToken;
-use crate::core::lexer::tokens::if_definition::IfToken;
+use crate::core::lexer::tokens::if_token::IfToken;
 use crate::core::lexer::tokens::method_definition::MethodDefinition;
 use crate::core::lexer::tokens::scope_ending::ScopeEnding;
 use crate::core::lexer::tokens::variable_token::VariableToken;
 use crate::core::lexer::TryParse;
-use crate::core::lexer::tokens::import::ImportToken;
+use crate::core::lexer::tokens::import_token::ImportToken;
 use crate::core::lexer::tokens::r#while::WhileToken;
 use crate::core::lexer::tokens::return_token::ReturnToken;
 use crate::core::lexer::types::type_token::InferTypeError;
@@ -64,7 +64,22 @@ impl Scope {
             AssignableToken::String(_) | AssignableToken::IntegerToken(_) |
             AssignableToken::FloatToken(_) | AssignableToken::Parameter(_) |
             AssignableToken::BooleanToken(_) | AssignableToken::NameToken(_) |
-            AssignableToken::Object(_) => None
+            AssignableToken::Object(_) => None,
+            AssignableToken::ArrayToken(array_token) => {
+                let mut elements = vec![];
+                for value in &array_token.values {
+                    let mut more = Self::method_call_in_assignable(value);
+                    if let Some(mut more) = more {
+                        elements.append(&mut more);
+                    }
+                }
+
+                if elements.is_empty() {
+                    None
+                } else {
+                    Some(elements)
+                }
+            }
         }
     }
 

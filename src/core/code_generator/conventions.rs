@@ -99,7 +99,7 @@ fn windows_calling_convention(_stack: &mut Stack, meta: &MetaInfo, calling_argum
         let calling_ty: TypeToken = calling_argument.infer_type_with_context(&meta.static_type_information, &meta.code_line)?;
 
         match calling_ty {
-            TypeToken::Integer(_) | TypeToken::Bool | TypeToken::Custom(_) => {
+            TypeToken::Integer(_) | TypeToken::Bool | TypeToken::Custom(_) | TypeToken::Array(_, _) => {
                 if index < 4 {
                     result.push(vec![POINTER_ORDER[index].clone()]);
                 } else {
@@ -121,6 +121,7 @@ fn windows_calling_convention(_stack: &mut Stack, meta: &MetaInfo, calling_argum
                 result.push(r);
             }
             TypeToken::Void => {}
+            TypeToken::Undefined => {}
         }
     }
 
@@ -168,7 +169,7 @@ fn windows_calling_convention_from(method_definition: &MethodDefinition) -> Vec<
 
     for (index, (_, calling_type)) in method_definition.arguments.iter().enumerate() {
         match calling_type {
-            TypeToken::Integer(_) | TypeToken::Bool | TypeToken::Custom(_) => {
+            TypeToken::Integer(_) | TypeToken::Bool | TypeToken::Custom(_) | TypeToken::Array(_, _) => {
                 if index < 4 {
                     result.push(vec![POINTER_ORDER[index].clone()]);
                 } else {
@@ -186,6 +187,7 @@ fn windows_calling_convention_from(method_definition: &MethodDefinition) -> Vec<
                 result.push(r);
             }
             TypeToken::Void => {}
+            TypeToken::Undefined => {}
         }
     }
 

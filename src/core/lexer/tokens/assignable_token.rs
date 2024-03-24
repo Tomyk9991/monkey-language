@@ -7,6 +7,7 @@ use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::code_generator::asm_result::{ASMOptions, ASMResult};
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::static_type_context::StaticTypeContext;
+use crate::core::lexer::tokens::assignable_tokens::array_token::ArrayToken;
 use crate::core::lexer::tokens::assignable_tokens::boolean_token::BooleanToken;
 use crate::core::lexer::tokens::assignable_tokens::float_token::FloatToken;
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::EquationToken;
@@ -32,6 +33,7 @@ pub enum AssignableToken {
     MethodCallToken(MethodCallToken),
     NameToken(NameToken),
     Object(ObjectToken),
+    ArrayToken(ArrayToken),
     ArithmeticEquation(Expression),
 }
 
@@ -65,6 +67,8 @@ impl AssignableToken {
             return Ok(AssignableToken::FloatToken(double_token));
         } else if let Ok(boolean_token) = BooleanToken::from_str(line) {
             return Ok(AssignableToken::BooleanToken(boolean_token));
+        } else if let Ok(array_token) = ArrayToken::from_str(line) {
+            return Ok(AssignableToken::ArrayToken(array_token))
         }
 
 
@@ -99,13 +103,14 @@ impl AssignableToken {
         match self {
             AssignableToken::String(_) => Ok(type_token::common::string()),
             AssignableToken::IntegerToken(a) => Ok(TypeToken::Integer(a.ty.clone())),
+            AssignableToken::ArrayToken(array_token) => Ok(TypeToken::Array(Box::new(array_token.ty.clone()), array_token.values.len())),
             AssignableToken::FloatToken(a) => Ok(TypeToken::Float(a.ty.clone())),
             AssignableToken::BooleanToken(_) => Ok(TypeToken::Bool),
             AssignableToken::Object(object) => Ok(TypeToken::Custom(NameToken { name: object.ty.to_string() })),
             AssignableToken::ArithmeticEquation(arithmetic_expression) => Ok(arithmetic_expression.traverse_type_resulted(context, code_line)?),
             AssignableToken::MethodCallToken(method_call) => Ok(method_call.infer_type_with_context(context, code_line)?),
             AssignableToken::NameToken(var) => Ok(var.infer_type_with_context(context, code_line)?),
-            AssignableToken::Parameter(r) => Ok(r.ty.clone())
+            AssignableToken::Parameter(r) => Ok(r.ty.clone()),
         }
     }
 }
@@ -127,7 +132,8 @@ impl Display for AssignableToken {
             AssignableToken::NameToken(token) => format!("{}", token),
             AssignableToken::Object(token) => format!("{}", token),
             AssignableToken::ArithmeticEquation(token) => format!("{}", token),
-            AssignableToken::Parameter(r) => format!("{}", r)
+            AssignableToken::Parameter(r) => format!("{}", r),
+            AssignableToken::ArrayToken(r) => format!("{}", r),
         })
     }
 }
@@ -162,15 +168,16 @@ impl ToASM for AssignableToken {
 
     fn is_stack_look_up(&self, stack: &mut Stack, meta: &MetaInfo) -> bool {
         match self {
-            AssignableToken::String(_) =>  false,
-            AssignableToken::IntegerToken(_) => false,
-            AssignableToken::FloatToken(_) => false,
-            AssignableToken::BooleanToken(_) => false,
-            AssignableToken::MethodCallToken(_) => true,
-            AssignableToken::NameToken(_) => true,
-            AssignableToken::Object(_) => false,
+            AssignableToken::String(s) => s.is_stack_look_up(stack, meta),
+            AssignableToken::IntegerToken(s) => s.is_stack_look_up(stack, meta),
+            AssignableToken::FloatToken(s) => s.is_stack_look_up(stack, meta),
+            AssignableToken::BooleanToken(s) => s.is_stack_look_up(stack, meta),
+            AssignableToken::MethodCallToken(s) => s.is_stack_look_up(stack, meta),
+            AssignableToken::NameToken(s) => s.is_stack_look_up(stack, meta),
+            AssignableToken::Object(s) => s.is_stack_look_up(stack, meta),
             AssignableToken::ArithmeticEquation(a) => a.is_stack_look_up(stack, meta),
             AssignableToken::Parameter(r) => r.is_stack_look_up(stack, meta),
+            AssignableToken::ArrayToken(s) => s.is_stack_look_up(stack, meta)
         }
     }
 
@@ -184,7 +191,8 @@ impl ToASM for AssignableToken {
             AssignableToken::NameToken(a) => a.byte_size(meta),
             AssignableToken::Object(a) => a.byte_size(meta),
             AssignableToken::ArithmeticEquation(a) => a.byte_size(meta),
-            AssignableToken::Parameter(r) => r.ty.byte_size()
+            AssignableToken::Parameter(r) => r.ty.byte_size(),
+            AssignableToken::ArrayToken(r) => r.byte_size(meta),
         }
     }
 
@@ -198,7 +206,8 @@ impl ToASM for AssignableToken {
             AssignableToken::NameToken(v) => v.data_section(stack, meta),
             AssignableToken::Object(v) => v.data_section(stack, meta),
             AssignableToken::ArithmeticEquation(v) => v.data_section(stack, meta),
-            AssignableToken::Parameter(r) => r.data_section(stack, meta)
+            AssignableToken::Parameter(r) => r.data_section(stack, meta),
+            AssignableToken::ArrayToken(r) => r.data_section(stack, meta),
         }
     }
 }
