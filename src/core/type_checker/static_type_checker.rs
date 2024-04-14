@@ -60,15 +60,36 @@ fn static_type_check_rec(scope: &Vec<Token>, type_context: &mut StaticTypeContex
     for token in scope {
         match token {
             Token::Variable(variable) if variable.define => {
+                if let AssignableToken::ArrayToken(array_token) = &variable.assignable {
+                    let all_types = array_token.values
+                        .iter()
+                        .map(|a| a.infer_type_with_context(type_context, &variable.code_line.clone()))
+                        .collect::<Vec<Result<TypeToken, InferTypeError>>>();
+
+                    if !all_types.is_empty() {
+                        let first_type = &all_types[0];
+                        if let Ok(first_type) = first_type {
+                            for (index, current_type) in all_types.iter().enumerate() {
+                                if let Ok(current_type) = current_type {
+                                    if current_type != first_type {
+                                        return Err(StaticTypeCheckError::InferredError(InferTypeError::MultipleTypesInArray {
+                                            expected: first_type.clone(),
+                                            unexpected_type: current_type.clone(),
+                                            unexpected_type_index: index,
+                                            code_line: Default::default(),
+                                        }))
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
                 if variable.ty.is_some() {
                     type_context.context.push(variable.clone());
                     continue;
                 }
 
-                return Err(StaticTypeCheckError::NoTypePresent {
-                    name: variable.name_token.clone(),
-                    code_line: variable.code_line.clone(),
-                });
             }
             Token::Variable(variable) if !variable.define => {
                 if let Some(found_variable) = type_context.iter().rfind(|v| v.name_token == variable.name_token) {
@@ -101,7 +122,7 @@ fn static_type_check_rec(scope: &Vec<Token>, type_context: &mut StaticTypeContex
                         expected: TypeToken::Bool,
                         actual: condition_type,
                         code_line: if_definition.code_line.clone(),
-                    }))
+                    }));
                 }
 
                 static_type_check_rec(&if_definition.if_stack, type_context)?;
@@ -167,12 +188,11 @@ fn static_type_check_rec(scope: &Vec<Token>, type_context: &mut StaticTypeContex
                                     method_name: expected_return_type.method_name.to_string(),
                                     method_head_line: expected_return_type.method_header_line.to_owned(),
                                     cause,
-                                }))
+                                }));
                             }
                         }
                     }
                 }
-
 
 
                 let amount_pop = (type_context.context.len() - variables_len) + method_definition.arguments.len();
@@ -195,11 +215,11 @@ fn static_type_check_rec(scope: &Vec<Token>, type_context: &mut StaticTypeContex
                         expected: TypeToken::Bool,
                         actual: condition_type,
                         code_line: for_loop.code_line.clone(),
-                    }))
+                    }));
                 }
 
                 if for_loop.update.define {
-                    return Err(StaticTypeCheckError::InferredError(InferTypeError::DefineNotAllowed(for_loop.update.clone(), for_loop.code_line.clone())))
+                    return Err(StaticTypeCheckError::InferredError(InferTypeError::DefineNotAllowed(for_loop.update.clone(), for_loop.code_line.clone())));
                 }
 
                 static_type_check_rec(&for_loop.stack, type_context)?;
@@ -209,7 +229,7 @@ fn static_type_check_rec(scope: &Vec<Token>, type_context: &mut StaticTypeContex
                 for _ in 0..amount_pop {
                     let _ = type_context.context.pop();
                 }
-            },
+            }
             Token::WhileToken(while_loop) => {
                 let variables_len = type_context.context.len();
                 let condition_type = while_loop.condition.infer_type_with_context(type_context, &while_loop.code_line)?;
@@ -219,7 +239,7 @@ fn static_type_check_rec(scope: &Vec<Token>, type_context: &mut StaticTypeContex
                         expected: TypeToken::Bool,
                         actual: condition_type,
                         code_line: while_loop.code_line.clone(),
-                    }))
+                    }));
                 }
 
                 static_type_check_rec(&while_loop.stack, type_context)?;

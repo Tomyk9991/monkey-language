@@ -103,7 +103,7 @@ impl AssignableToken {
         match self {
             AssignableToken::String(_) => Ok(type_token::common::string()),
             AssignableToken::IntegerToken(a) => Ok(TypeToken::Integer(a.ty.clone())),
-            AssignableToken::ArrayToken(array_token) => Ok(TypeToken::Array(Box::new(array_token.ty.clone()), array_token.values.len())),
+            AssignableToken::ArrayToken(array_token) => Ok(array_token.infer_type_with_context(context, code_line)?),
             AssignableToken::FloatToken(a) => Ok(TypeToken::Float(a.ty.clone())),
             AssignableToken::BooleanToken(_) => Ok(TypeToken::Bool),
             AssignableToken::Object(object) => Ok(TypeToken::Custom(NameToken { name: object.ty.to_string() })),
@@ -160,8 +160,9 @@ impl ToASM for AssignableToken {
             AssignableToken::FloatToken(float) => Ok(float.to_asm(stack, meta, options)?),
             AssignableToken::MethodCallToken(method_call) => Ok(method_call.to_asm(stack, meta, options)?),
             AssignableToken::BooleanToken(boolean) => Ok(boolean.to_asm(stack, meta, options)?),
-            // AssignableToken::Object(_) => {}
-            token => Err(ASMGenerateError::AssignmentNotImplemented { assignable_token: (*token).clone() })
+            AssignableToken::ArrayToken(array) => Ok(array.to_asm(stack, meta, options)?),
+            AssignableToken::Parameter(_) | AssignableToken::Object(_) => Err(ASMGenerateError::AssignmentNotImplemented { assignable_token: (*&self).clone() })
+            // token => Err(ASMGenerateError::AssignmentNotImplemented { assignable_token: (*token).clone() })
         }
     }
 

@@ -68,8 +68,7 @@ impl Scope {
             AssignableToken::ArrayToken(array_token) => {
                 let mut elements = vec![];
                 for value in &array_token.values {
-                    let mut more = Self::method_call_in_assignable(value);
-                    if let Some(mut more) = more {
+                    if let Some(mut more) = Self::method_call_in_assignable(value) {
                         elements.append(&mut more);
                     }
                 }

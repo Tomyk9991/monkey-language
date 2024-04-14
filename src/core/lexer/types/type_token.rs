@@ -7,9 +7,7 @@ use crate::core::code_generator::generator::Stack;
 
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::tokens::assignable_token::AssignableToken;
-use crate::core::lexer::tokens::assignable_tokens::array_token::{ArrayToken, ArrayTokenErr};
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::operator::{AssemblerOperation, Operator, OperatorToASM};
-use crate::core::lexer::tokens::assignable_tokens::method_call_token::dyck_language;
 use crate::core::lexer::tokens::name_token::{NameToken, NameTokenErr};
 use crate::core::lexer::tokens::variable_token::VariableToken;
 use crate::core::lexer::types::boolean::Boolean;
@@ -31,7 +29,6 @@ pub enum TypeToken {
     Float(Float),
     Bool,
     Void,
-    Undefined,
     Array(Box<TypeToken>, usize),
     Custom(NameToken),
 }
@@ -42,6 +39,7 @@ pub enum InferTypeError {
     TypesNotCalculable(TypeToken, Operator, TypeToken, CodeLine),
     UnresolvedReference(String, CodeLine),
     TypeNotAllowed(NameTokenErr),
+    MultipleTypesInArray{expected: TypeToken, unexpected_type: TypeToken, unexpected_type_index: usize, code_line: CodeLine},
     IllegalDereference(AssignableToken, TypeToken, CodeLine),
     NoTypePresent(NameToken, CodeLine),
     DefineNotAllowed(VariableToken<'=', ';'>, CodeLine),
@@ -86,7 +84,7 @@ impl OperatorToASM for TypeToken {
             TypeToken::Integer(t) => t.operation_to_asm(operator, registers, stack, meta),
             TypeToken::Float(t) => t.operation_to_asm(operator, registers, stack, meta),
             TypeToken::Bool => Boolean::True.operation_to_asm(operator, registers, stack, meta),
-            TypeToken::Void | TypeToken::Undefined  => Err(ASMGenerateError::InternalError("Void cannot be operated on".to_string())),
+            TypeToken::Void => Err(ASMGenerateError::InternalError("Void cannot be operated on".to_string())),
             TypeToken::Array(_, _) | TypeToken::Custom(_) => todo!(),
         }
     }
@@ -124,6 +122,9 @@ impl Display for InferTypeError {
 
                 write!(f, "Line: {:?}: Arguments `({})` to the function `{}` are incorrect: Possible signatures are:\n{}", code_line.actual_line_number, provided_arguments, method_name.name, signatures)
             }
+            InferTypeError::MultipleTypesInArray { expected, unexpected_type, unexpected_type_index, code_line } => {
+                write!(f, "Line: {:?}: Expected `{expected}` in array but found `{unexpected_type}` at position: `{unexpected_type_index}`", code_line.actual_line_number)
+            }
             InferTypeError::NoTypePresent(name, code_line) => write!(f, "Line: {:?}\tType not inferred: `{name}`", code_line.actual_line_number),
             InferTypeError::IllegalDereference(assignable, ty, code_line) => write!(f, "Line: {:?}\tType `{ty}` cannot be dereferenced: {assignable}", code_line.actual_line_number),
             InferTypeError::IntegerTooSmall { ty, literal: integer, code_line } => write!(f, "Line: {:?}\t`{integer}` doesn't fit into the type `{ty}`", code_line.actual_line_number),
@@ -143,7 +144,6 @@ impl Display for TypeToken {
             TypeToken::Float(float) => float.to_string(),
             TypeToken::Bool => "bool".to_string(),
             TypeToken::Void => "void".to_string(),
-            TypeToken::Undefined => "undefined".to_string(),
             TypeToken::Array(array_type, size) => format!("[{}; {size}]", array_type),
             TypeToken::Custom(name) => name.name.clone(),
         })
@@ -154,7 +154,6 @@ impl FromStr for TypeToken {
     type Err = InferTypeError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let k = &s.split_inclusive(' ').collect::<Vec<_>>()[..];
         if let ["[ ", type_str, ", ", type_size, "]"] = &s.split_inclusive(' ').collect::<Vec<_>>()[..] {
             return Ok(TypeToken::Array(Box::new(TypeToken::from_str(type_str.trim())?), type_size.trim().parse::<usize>()
                 .map_err(|_| InferTypeError::TypeNotAllowed(NameTokenErr::UnmatchedRegex {
@@ -228,7 +227,6 @@ impl TypeToken {
             TypeToken::Void => TypeToken::Custom(NameToken { name: format!("*{}", TypeToken::Void) }),
             TypeToken::Array(array_type, _) => TypeToken::Custom(NameToken { name: format!("*{}", array_type)}),
             TypeToken::Custom(custom) => TypeToken::Custom(NameToken { name: format!("*{}", custom) }),
-            TypeToken::Undefined => TypeToken::Custom(NameToken { name: "*undefined".to_string() })
         }
     }
 
@@ -310,7 +308,6 @@ impl TypeToken {
             TypeToken::Bool => 1,
             TypeToken::Void => 0,
             TypeToken::Custom(_) => 8, // todo: calculate custom data types recursively
-            TypeToken::Undefined => 0
         }
     }
 }

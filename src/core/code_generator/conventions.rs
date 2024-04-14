@@ -121,7 +121,6 @@ fn windows_calling_convention(_stack: &mut Stack, meta: &MetaInfo, calling_argum
                 result.push(r);
             }
             TypeToken::Void => {}
-            TypeToken::Undefined => {}
         }
     }
 
@@ -187,7 +186,6 @@ fn windows_calling_convention_from(method_definition: &MethodDefinition) -> Vec<
                 result.push(r);
             }
             TypeToken::Void => {}
-            TypeToken::Undefined => {}
         }
     }
 
