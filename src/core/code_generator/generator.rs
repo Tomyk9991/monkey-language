@@ -1,6 +1,6 @@
 use crate::core::code_generator::{ASMOptions, ASMResult, MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
-use crate::core::code_generator::asm_result::{ASMResultVariance, InterimResultOption};
+use crate::core::code_generator::asm_result::{InterimResultOption};
 use crate::core::code_generator::ASMGenerateError;
 use crate::core::code_generator::conventions::calling_convention_from;
 use crate::core::code_generator::registers::{GeneralPurposeRegister};
@@ -9,11 +9,14 @@ use crate::core::lexer::scope::Scope;
 use crate::core::lexer::static_type_context::StaticTypeContext;
 use crate::core::lexer::token::Token;
 use crate::core::lexer::tokens::assignable_token::AssignableToken;
+use crate::core::lexer::tokens::method_definition::MethodDefinition;
 use crate::core::lexer::tokens::name_token::NameToken;
 use crate::core::lexer::tokens::parameter_token::ParameterToken;
+use crate::core::lexer::tokens::return_token::ReturnToken;
 use crate::core::lexer::tokens::variable_token::VariableToken;
+use crate::core::lexer::types::integer::Integer;
+use crate::core::lexer::types::type_token::TypeToken;
 use crate::core::model::data_section::DataSection;
-use crate::utils::math;
 
 #[derive(Debug)]
 pub struct StackLocation {
@@ -124,6 +127,7 @@ impl Stack {
 pub struct ASMGenerator {
     top_level_scope: Scope,
     pub stack: Stack,
+    /// Indicates, if a main method is required inside the source code
     require_main: bool,
     target_os: TargetOS,
 }
@@ -177,7 +181,7 @@ impl ASMGenerator {
 
                         meta.static_type_information.merge(StaticTypeContext::new(&main.stack));
 
-                        let main_function_asm = &main.to_asm::<InterimResultOption>(&mut self.stack, &mut meta, None)?;
+                        let main_function_asm = main.to_asm::<InterimResultOption>(&mut self.stack, &mut meta, None)?;
                         let data_section = self.stack.data_section
                             .clone()
                             .to_asm::<InterimResultOption>(&mut self.stack, &mut meta, None)?;
@@ -192,72 +196,33 @@ impl ASMGenerator {
 
             Ok(value?)
         } else {
-            let mut label_header: String = String::new();
+            self.require_main = true;
 
-            label_header += &ASMBuilder::line(&format!("{entry_point_label}:"));
-            label_header += &ASMBuilder::ident_line("push rbp");
-            label_header += &ASMBuilder::mov_ident_line("rbp", "rsp");
-
-            label_header += &ASMBuilder::ident(&ASMBuilder::comment_line("Reserve stack space as MS convention. Shadow stacking"));
-
-            let mut stack_allocation = 32; // per default microsoft convention requires 32 byte as a shadow stack
-            let mut method_scope: String = String::new();
-
-            for token in &self.top_level_scope.tokens {
-                let mut meta = MetaInfo {
-                    code_line: token.code_line(),
-                    target_os: self.target_os.clone(),
-                    static_type_information: StaticTypeContext::new(&self.top_level_scope.tokens),
-                };
-
-
-                if let Token::MethodDefinition(_) = token {
-                    continue;
+            let method_definitions = self.top_level_scope.tokens.iter().filter(|t| matches!(t, Token::MethodDefinition(_))).map(|t| t.clone()).collect::<Vec<Token>>();
+            let mut main_stack = self.top_level_scope.tokens.iter().filter(|t| !matches!(t, Token::Import(_) | Token::MethodDefinition(_))).map(|t| t.clone()).collect::<Vec<Token>>();
+            // last element of main stack via pattern matching
+            if let [.., last] = &main_stack[..] {
+                if !matches!(last, Token::Return(_)) {
+                     main_stack.push(Token::Return(ReturnToken::num_0()));
                 }
-
-                stack_allocation += token.byte_size(&mut meta);
-
-                if let Token::Variable(variable) = token {
-                    if let AssignableToken::MethodCallToken(method_call) = &variable.assignable {
-                        let method_call_sizes = method_call.arguments.iter().fold(0, |acc, a| acc + a.byte_size(&mut meta));
-                        stack_allocation += method_call_sizes;
-                    }
-                }
-
-                if let Token::MethodCall(method_call) = token {
-                    let method_call_sizes = method_call.arguments.iter().fold(0, |acc, a| acc + a.byte_size(&mut meta));
-                    stack_allocation += method_call_sizes;
-                }
-
-                if let Some(scope_stacks) = token.scope() {
-                    for scope_stack in scope_stacks {
-                        meta.static_type_information.merge(StaticTypeContext::new(scope_stack));
-                    }
-                }
-
-                let _ = token.to_asm::<InterimResultOption>(&mut self.stack, &mut meta, None)?
-                    .apply_with(&mut method_scope)
-                    .allow(ASMResultVariance::Inline)
-                    .allow(ASMResultVariance::MultilineResulted)
-                    .allow(ASMResultVariance::Multiline)
-                    .token("method definition")
-                    .finish()?;
-
-                token.data_section(&mut self.stack, &mut meta);
             }
+            let main_function = Token::MethodDefinition(MethodDefinition {
+                name: NameToken { name: "main".to_string() },
+                return_type: TypeToken::Integer(Integer::I32),
+                arguments: vec![],
+                stack: main_stack,
+                is_extern: false,
+                code_line: Default::default(),
+            });
 
-            if !method_scope.trim_end().ends_with("call ProcessExit") {
-                method_scope += &ASMBuilder::ident_line("leave");
-                method_scope += &ASMBuilder::ident_line("ret");
-            }
+            self.top_level_scope.tokens.clear();
+            let imports = self.top_level_scope.tokens.iter().filter(|t| matches!(t, Token::Import(_))).map(|t| t.clone()).collect::<Vec<Token>>();
 
-            let stack_allocation_asm = ASMBuilder::ident_line(&format!("sub rsp, {}", math::lowest_power_of_2_gt_n(stack_allocation)));
+            method_definitions.iter().for_each(|t| self.top_level_scope.tokens.push(t.clone()));
+            imports.iter().for_each(|t| self.top_level_scope.tokens.push(t.clone()));
 
-            let data_section = self.stack.data_section
-                .clone()
-                .to_asm::<InterimResultOption>(&mut self.stack, &mut MetaInfo::default(), None)?;
-
-            Ok(format!("{}{}{}{}{}{}{}", compile_comment, data_section, boiler_plate, method_definitions, label_header, stack_allocation_asm, method_scope))
+            self.top_level_scope.tokens.push(main_function);
+            self.generate()
         }
     }
 

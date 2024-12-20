@@ -163,6 +163,8 @@ main:
     ucomiss xmm0, xmm3
     setne al
     mov BYTE [rbp - 20], al
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -332,6 +334,8 @@ main:
     ucomisd xmm0, xmm3
     setne al
     mov BYTE [rbp - 28], al
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -442,6 +446,8 @@ main:
     mov dl, r14b
     mov al, r13b
     mov BYTE [rbp - 2], cl
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -659,6 +665,8 @@ main:
     mov dl, r14b
     mov cl, r12b
     mov BYTE [rbp - 17], al
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -876,6 +884,8 @@ main:
     mov dl, r14b
     mov cl, r12b
     mov BYTE [rbp - 33], al
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;

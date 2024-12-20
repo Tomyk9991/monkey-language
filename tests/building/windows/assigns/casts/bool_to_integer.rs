@@ -51,6 +51,8 @@ main:
     ; Cast: (u8) -> (i32)
     movzx eax, BYTE [rbp - 2]
     mov DWORD [rbp - 10], eax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;

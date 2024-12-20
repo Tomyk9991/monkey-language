@@ -5,7 +5,10 @@ use std::slice::Iter;
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::errors::EmptyIteratorErr;
 use crate::core::lexer::scope::PatternNotMatchedError;
+use crate::core::lexer::static_type_context::StaticTypeContext;
 use crate::core::lexer::TryParse;
+use crate::core::type_checker::static_type_checker::StaticTypeCheckError;
+use crate::core::type_checker::StaticTypeCheck;
 
 /// Token for scope ending. Basically it checks if the codeline is `}`.
 #[derive(Debug, PartialEq, Clone)]
@@ -30,6 +33,12 @@ impl Error for ScopeEndingErr { }
 impl Display for ScopeEnding {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "")
+    }
+}
+
+impl StaticTypeCheck for ScopeEnding {
+    fn static_type_check(&self, _type_context: &mut StaticTypeContext) -> Result<(), StaticTypeCheckError> {
+        Ok(())
     }
 }
 

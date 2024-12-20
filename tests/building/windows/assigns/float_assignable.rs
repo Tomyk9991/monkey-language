@@ -48,6 +48,8 @@ main:
     addsd xmm0, xmm3
     movq rax, xmm0
     mov QWORD [rbp - 24], rax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -89,6 +91,8 @@ main:
     addss xmm0, xmm3
     movd eax, xmm0
     mov DWORD [rbp - 4], eax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -134,6 +138,8 @@ main:
     addsd xmm0, xmm3
     movq rax, xmm0
     mov QWORD [rbp - 8], rax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -180,6 +186,8 @@ main:
     addsd xmm0, xmm3
     movq rax, xmm0
     mov QWORD [rbp - 8], rax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -231,6 +239,8 @@ main:
     addsd xmm1, xmm2
     movq rax, xmm1
     mov QWORD [rbp - 8], rax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -267,6 +277,8 @@ main:
     ; let a: f64 = 6
     mov rax, __?float64?__(6.0)
     mov QWORD [rbp - 8], rax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -302,6 +314,8 @@ main:
     ; let a: f64 = 6
     mov rax, __?float64?__(6.0)
     mov QWORD [rbp - 8], rax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -344,6 +358,8 @@ main:
     ; let b: *f64 = &a
     lea rax, [rbp - 8]
     mov QWORD [rbp - 16], rax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -414,6 +430,8 @@ main:
     mov rax, QWORD [rax]
     mov rax, QWORD [rax]
     mov QWORD [rbp - 56], rax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -466,6 +484,8 @@ main:
     addsd xmm0, xmm3
     movq rax, xmm0
     mov QWORD [rbp - 24], rax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -523,6 +543,8 @@ main:
     addsd xmm0, xmm3
     movq rax, xmm0
     mov QWORD [rbp - 24], rax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -580,6 +602,8 @@ main:
     addsd xmm0, xmm3
     movq rax, xmm0
     mov QWORD [rbp - 24], rax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -637,6 +661,8 @@ main:
     addsd xmm0, xmm3
     movq rax, xmm0
     mov QWORD [rbp - 24], rax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -697,6 +723,8 @@ main:
     addsd xmm0, xmm3
     movq rax, xmm0
     mov QWORD [rbp - 24], rax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -765,6 +793,8 @@ main:
     addsd xmm1, xmm2
     movq rax, xmm1
     mov QWORD [rbp - 24], rax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -918,6 +948,8 @@ main:
     addsd xmm0, xmm2
     movq rax, xmm0
     mov QWORD [rbp - 40], rax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -962,6 +994,8 @@ main:
     ; let b: f64 = a
     mov rax, QWORD [rbp - 8]
     mov QWORD [rbp - 16], rax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -1019,6 +1053,8 @@ main:
     ; let a: f32 = 512
     mov eax, __?float32?__(512.0)
     mov DWORD [rbp - 4], eax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -1068,6 +1104,8 @@ main:
     ; let c: i32 = b
     mov eax, DWORD [rbp - 12]
     mov DWORD [rbp - 16], eax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -1105,6 +1143,8 @@ main:
     sub rsp, 64
     ; let a: i64 = 512
     mov QWORD [rbp - 8], 512
+    ; return 0
+    mov eax, 0
     leave
     ret"#;
 
@@ -1151,6 +1191,8 @@ main:
     mov rax, QWORD [rbp - 8]
     add rax, QWORD [rbp - 16]
     mov QWORD [rbp - 24], rax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -1278,6 +1320,8 @@ main:
     pop rax
     add rax, rdi
     mov QWORD [rbp - 40], rax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;

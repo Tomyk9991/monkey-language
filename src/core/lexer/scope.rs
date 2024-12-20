@@ -132,10 +132,10 @@ impl Scope {
                         Self::method_calls_in_stack(else_stack).iter().for_each(|a| { called_methods.insert(a.clone()); })
                     }
                 }
-                Token::ForToken(for_loop) => {
+                Token::For(for_loop) => {
                     Self::method_calls_in_stack(&for_loop.stack).iter().for_each(|a| { called_methods.insert(a.clone()); });
                 }
-                Token::WhileToken(while_loop) => {
+                Token::While(while_loop) => {
                     Self::method_calls_in_stack(&while_loop.stack).iter().for_each(|a| { called_methods.insert(a.clone()); });
                 }
                 Token::MethodDefinition(_) | Token::Import(_) | Token::Return(_) | Token::ScopeClosing(_) => {}
@@ -227,11 +227,14 @@ macro_rules! token_expand {
 
 impl Debug for Scope {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Scope: [\n{}]", self.tokens
+        let tokens_str = self.tokens
             .iter()
-            .map(|token| format!("\t{:?}\n", token))
-            .collect::<String>(),
-        )
+            .fold(String::new(), |mut acc, token| {
+                acc.push_str(&format!("\t{:?}\n", token));
+                acc
+            });
+        
+        write!(f, "Scope: [\n{}]", tokens_str)
     }
 }
 
@@ -288,8 +291,8 @@ impl TryParse for Scope {
             (ReturnToken,               Return,             true),
             (IfToken,                   If,                 false),
             (MethodDefinition,          MethodDefinition,   false),
-            (ForToken,                  ForToken,           false),
-            (WhileToken,                WhileToken,         false)
+            (ForToken,                  For,           false),
+            (WhileToken,                While,         false)
         );
 
         let c = *code_lines_iterator.peek().ok_or(ScopeError::EmptyIterator(EmptyIteratorErr))?;

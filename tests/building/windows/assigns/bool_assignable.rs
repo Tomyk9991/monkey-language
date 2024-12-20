@@ -42,6 +42,8 @@ main:
     mov al, BYTE [rbp - 1]
     or al, BYTE [rbp - 2]
     mov BYTE [rbp - 3], al
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -79,6 +81,8 @@ main:
     mov al, 1
     or al, 0
     mov BYTE [rbp - 1], al
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -118,6 +122,8 @@ main:
     or al, 1
     or al, 0
     mov BYTE [rbp - 1], al
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -158,6 +164,8 @@ main:
     mov al, 0
     or al, dl
     mov BYTE [rbp - 1], al
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -202,6 +210,8 @@ main:
     mov dil, al
     or cl, dil
     mov BYTE [rbp - 1], cl
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -237,6 +247,8 @@ main:
     sub rsp, 64
     ; let a: bool = true
     mov BYTE [rbp - 1], 1
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -272,6 +284,8 @@ main:
     ; let a: bool = true
     mov al, 1
     mov BYTE [rbp - 1], al
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -313,6 +327,8 @@ main:
     ; let b: *bool = &a
     lea rax, [rbp - 1]
     mov QWORD [rbp - 9], rax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -382,6 +398,8 @@ main:
     mov rax, QWORD [rax]
     mov rax, QWORD [rax]
     mov BYTE [rbp - 35], al
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -429,6 +447,8 @@ main:
     mov rax, QWORD [rax]
     and al, 0
     mov BYTE [rbp - 10], al
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -482,6 +502,8 @@ main:
     mov rdx, QWORD [rdx]
     or al, dl
     mov BYTE [rbp - 10], al
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -535,6 +557,8 @@ main:
     mov rdx, QWORD [rdx]
     or al, dl
     mov BYTE [rbp - 10], al
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -586,6 +610,8 @@ main:
     mov rax, QWORD [rax]
     or al, dl
     mov BYTE [rbp - 10], al
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -640,6 +666,8 @@ main:
     mov rdx, QWORD [rdx]
     or al, dl
     mov BYTE [rbp - 10], al
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -702,6 +730,8 @@ main:
     mov dil, al
     and cl, dil
     mov BYTE [rbp - 10], cl
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -828,6 +858,8 @@ main:
     pop rax
     or al, dil
     mov BYTE [rbp - 19], al
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -871,6 +903,8 @@ main:
     ; let b: bool = a
     mov al, BYTE [rbp - 1]
     mov BYTE [rbp - 2], al
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -927,6 +961,8 @@ main:
     sub rsp, 64
     ; let a: bool = false
     mov BYTE [rbp - 1], 0
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;

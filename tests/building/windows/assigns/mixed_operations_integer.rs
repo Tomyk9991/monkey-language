@@ -42,6 +42,8 @@ main:
     mov eax, 5
     add eax, edx
     mov DWORD [rbp - 4], eax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -94,6 +96,8 @@ main:
     mov edx, r14d
     mov ecx, r12d
     mov DWORD [rbp - 4], eax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -138,6 +142,8 @@ main:
     imul eax, 1
     sub eax, 100
     mov DWORD [rbp - 4], eax
+    ; return 0
+    mov eax, 0
     leave
     ret"#;
 
@@ -201,6 +207,8 @@ main:
     mov edx, r14d
     mov ecx, r12d
     mov DWORD [rbp - 4], eax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -333,6 +341,8 @@ main:
     pop rax
     add eax, edi
     mov DWORD [rbp - 4], eax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -486,6 +496,8 @@ main:
     addsd xmm0, xmm2
     movq rax, xmm0
     mov QWORD [rbp - 8], rax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -538,6 +550,8 @@ main:
     mov edx, r14d
     mov ecx, r12d
     mov DWORD [rbp - 4], eax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -614,6 +628,8 @@ main:
     sub ecx, edi
     add ecx, 3
     mov DWORD [rbp - 4], ecx
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;

@@ -79,7 +79,7 @@ impl Castable<Integer, Float> for Integer {
 
 
         target += &ASMBuilder::ident_line(&format!("{instruction} {}, {}", GeneralPurposeRegister::Float(FloatRegister::Xmm7), &cast_from_register));
-        target += &ASMBuilder::mov_x_ident_line(&cast_to_register, &GeneralPurposeRegister::Float(FloatRegister::Xmm7), Some(cast_to.to.byte_size()));
+        target += &ASMBuilder::mov_x_ident_line(&cast_to_register, GeneralPurposeRegister::Float(FloatRegister::Xmm7), Some(cast_to.to.byte_size()));
 
         Ok(ASMResult::MultilineResulted(target, cast_to_register))
     }

@@ -57,6 +57,8 @@ main:
     setl al
     cmp al, 0
     jne .label1
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -115,46 +117,48 @@ main:
     ; Reserve stack space as MS convention. Shadow stacking
     sub rsp, 64
     ; let a: i32 = 0
-    mov DWORD [rbp - 8], 0
+    mov DWORD [rbp - 4], 0
     ; for (let i: i32 = 0; (i < 5); i = (i + 1))
     ; let i: i32 = 0
-    mov DWORD [rbp - 12], 0
+    mov DWORD [rbp - 8], 0
     jmp .label0
 .label1:
     ; for (let j: i32 = 0; (j < 5); j = (j + 1))
     ; let j: i32 = 0
-    mov DWORD [rbp - 16], 0
+    mov DWORD [rbp - 12], 0
     jmp .label2
 .label3:
     ; a = inc(a)
-    mov ecx, DWORD [rbp - 8]
+    mov ecx, DWORD [rbp - 4]
     ; inc(a)
     call .inc_i32~i32
-    mov DWORD [rbp - 8], eax
+    mov DWORD [rbp - 4], eax
     ; j = (j + 1)
     ; (j + 1)
-    mov eax, DWORD [rbp - 16]
+    mov eax, DWORD [rbp - 12]
     add eax, 1
-    mov DWORD [rbp - 16], eax
+    mov DWORD [rbp - 12], eax
 .label2:
     ; (j < 5)
-    mov eax, DWORD [rbp - 16]
+    mov eax, DWORD [rbp - 12]
     cmp eax, 5
     setl al
     cmp al, 0
     jne .label3
     ; i = (i + 1)
     ; (i + 1)
-    mov eax, DWORD [rbp - 12]
+    mov eax, DWORD [rbp - 8]
     add eax, 1
-    mov DWORD [rbp - 12], eax
+    mov DWORD [rbp - 8], eax
 .label0:
     ; (i < 5)
-    mov eax, DWORD [rbp - 12]
+    mov eax, DWORD [rbp - 8]
     cmp eax, 5
     setl al
     cmp al, 0
     jne .label1
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;

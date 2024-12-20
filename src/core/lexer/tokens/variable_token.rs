@@ -19,7 +19,8 @@ use crate::core::lexer::tokens::assignable_token::{AssignableToken, AssignableTo
 use crate::core::lexer::tokens::name_token::{NameToken, NameTokenErr};
 use crate::core::lexer::TryParse;
 use crate::core::lexer::types::type_token::{InferTypeError, TypeToken};
-use crate::core::type_checker::InferType;
+use crate::core::type_checker::{InferType, StaticTypeCheck};
+use crate::core::type_checker::static_type_checker::StaticTypeCheckError;
 
 /// Token for a variable. Pattern is defined as: name <Assignment> assignment <Separator>
 /// # Examples
@@ -84,6 +85,67 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> InferType for VariableToken<
                 Ok(())
             }
         }
+    }
+}
+
+impl StaticTypeCheck for VariableToken<'=', ';'> {
+    fn static_type_check(&self, type_context: &mut StaticTypeContext) -> Result<(), StaticTypeCheckError> {
+        if self.define {
+            if let AssignableToken::ArrayToken(array_token) = &self.assignable {
+                let all_types = array_token.values
+                    .iter()
+                    .map(|a| a.infer_type_with_context(type_context, &self.code_line.clone()))
+                    .collect::<Vec<Result<TypeToken, InferTypeError>>>();
+
+                if !all_types.is_empty() {
+                    let first_type = &all_types[0];
+                    if let Ok(first_type) = first_type {
+                        for (index, current_type) in all_types.iter().enumerate() {
+                            if let Ok(current_type) = current_type {
+                                if current_type != first_type {
+                                    return Err(StaticTypeCheckError::InferredError(InferTypeError::MultipleTypesInArray {
+                                        expected: first_type.clone(),
+                                        unexpected_type: current_type.clone(),
+                                        unexpected_type_index: index,
+                                        code_line: Default::default(),
+                                    }))
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if self.ty.is_some() {
+                type_context.context.push(self.clone());
+                return Ok(());
+            }
+        }
+
+        if !self.define {
+            if let Some(found_variable) = type_context.iter().rfind(|v| v.name_token == self.name_token) {
+                let inferred_type = self.assignable.infer_type_with_context(type_context, &self.code_line)?;
+
+                if let Some(ty) = &found_variable.ty {
+                    if ty != &inferred_type {
+                        return Err(InferTypeError::MismatchedTypes { expected: ty.clone(), actual: inferred_type.clone(), code_line: self.code_line.clone() }.into());
+                    }
+
+                    if !found_variable.mutability {
+                        return Err(StaticTypeCheckError::ImmutabilityViolated {
+                            name: self.name_token.clone(),
+                            code_line: self.code_line.clone(),
+                        });
+                    }
+                } else {
+                    return Err(StaticTypeCheckError::NoTypePresent { name: self.name_token.clone(), code_line: self.code_line.clone() });
+                }
+            } else {
+                return Err(StaticTypeCheckError::UnresolvedReference { name: self.name_token.clone(), code_line: self.code_line.clone() });
+            }
+        }
+
+        Ok(())
     }
 }
 
@@ -341,7 +403,7 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> VariableToken<ASSIGNMENT, SE
         })
     }
 
-    pub fn infer_with_context(&self, context: &StaticTypeContext, code_line: &CodeLine) -> Result<TypeToken, InferTypeError> {
+    pub fn infer_with_context(&self, context: &mut StaticTypeContext, code_line: &CodeLine) -> Result<TypeToken, InferTypeError> {
         match &self.assignable {
             AssignableToken::MethodCallToken(method_call) => {
                 if let Some(method_def) = context.methods.iter().find(|method_def| {

@@ -47,6 +47,8 @@ main:
     addss xmm0, xmm3
     movd eax, xmm0
     mov DWORD [rbp - 4], eax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -97,6 +99,8 @@ main:
     subss xmm0, xmm3
     movd eax, xmm0
     mov DWORD [rbp - 4], eax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -250,6 +254,8 @@ main:
     addss xmm0, xmm2
     movd eax, xmm0
     mov DWORD [rbp - 4], eax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -403,6 +409,8 @@ main:
     addsd xmm0, xmm2
     movq rax, xmm0
     mov QWORD [rbp - 8], rax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -453,6 +461,8 @@ main:
     divss xmm0, xmm3
     movd eax, xmm0
     mov DWORD [rbp - 4], eax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;

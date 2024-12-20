@@ -1,5 +1,6 @@
 /target
 /monkey-language-project/target
 /.[iI]dea
+/.vscode
 /Cargo.lock
 /.fleet

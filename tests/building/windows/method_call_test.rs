@@ -51,6 +51,8 @@ main:
     mov edx, 3
     ; add(5, 3)
     call .add_i32_i32~i32
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -128,6 +130,8 @@ main:
     pop rdx
     ; add(((5 + (3 * 8)) - 9), ((100 * 8) - (9 * 4)))
     call .add_i32_i32~i32
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -225,6 +229,8 @@ main:
     movq xmm1, rcx
     ; add(((5 + (3 * 8)) - 9), ((100 * 8) - (9 * 4)))
     call .add_f32_f32~f32
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -365,6 +371,8 @@ main:
     movq xmm1, rcx
     ; add(((5 + (3 * 8)) - 9), ((100 * 8) - (9 * 4)))
     call .add_f32_f32~f32
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -423,6 +431,8 @@ main:
     pop rcx
     ; inc(inc(1))
     call .inc_i32~i32
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;

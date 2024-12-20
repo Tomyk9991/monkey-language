@@ -51,31 +51,34 @@ impl TargetOS {
     }
 
     fn run_generic_commands(program: &str, args: Vec<&str>, suppress_error: bool) -> i32 {
-        if let Ok(output) = Command::new(program).args(args)
-            .output() {
-            if !output.stdout.is_empty() {
-                let stdout = String::from_utf8_lossy(&output.stdout);
-                println!("{}", stdout);
-            }
-
-            let status = Some(output.status);
-
-
-            if !output.stderr.is_empty() && !suppress_error {
-                let stderr = String::from_utf8_lossy(&output.stderr);
-                eprintln!("Error: \n{}", stderr);
-            }
-
-            if let Some(status) = status {
-                if let Some(code) = status.code() {
-                    return code;
+        match Command::new(program).args(args).output() {
+            Ok(output) => {
+                if !output.stdout.is_empty() {
+                    let stdout = String::from_utf8_lossy(&output.stdout);
+                    println!("{}", stdout);
                 }
+
+                let status = Some(output.status);
+
+
+                if !output.stderr.is_empty() && !suppress_error {
+                    let stderr = String::from_utf8_lossy(&output.stderr);
+                    eprintln!("Error: \n{}", stderr);
+                }
+
+                if let Some(status) = status {
+                    if let Some(code) = status.code() {
+                        return code;
+                    }
+                }
+
+                1
             }
-
-            return 1;
+            Err(err) => {
+                eprintln!("Program: \"{program}\" Error: {}", err);
+                -1
+            }
         }
-
-        -1
     }
     
     fn compile_and_execute(&self, target_creator: &TargetCreator, build: bool, execute: bool) -> i32 {

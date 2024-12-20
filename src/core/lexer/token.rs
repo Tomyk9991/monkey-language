@@ -15,7 +15,8 @@ use crate::core::lexer::tokens::return_token::ReturnToken;
 use crate::core::lexer::tokens::scope_ending::ScopeEnding;
 use crate::core::lexer::tokens::variable_token::VariableToken;
 use crate::core::lexer::types::type_token::InferTypeError;
-use crate::core::type_checker::InferType;
+use crate::core::type_checker::{InferType, StaticTypeCheck};
+use crate::core::type_checker::static_type_checker::StaticTypeCheckError;
 
 /// A token is a piece of code that is used to represent atomic elements of a program.
 #[derive(Debug, PartialEq, Clone)]
@@ -27,8 +28,8 @@ pub enum Token {
     Return(ReturnToken),
     ScopeClosing(ScopeEnding),
     If(IfToken),
-    ForToken(ForToken),
-    WhileToken(WhileToken)
+    For(ForToken),
+    While(WhileToken)
 }
 
 impl Token {
@@ -41,8 +42,8 @@ impl Token {
             Token::If(a) => a.code_line.clone(),
             Token::Import(a) => a.code_line.clone(),
             Token::Return(a) => a.code_line.clone(),
-            Token::ForToken(a) => a.code_line.clone(),
-            Token::WhileToken(a) => a.code_line.clone(),
+            Token::For(a) => a.code_line.clone(),
+            Token::While(a) => a.code_line.clone(),
         }
     }
 
@@ -58,8 +59,8 @@ impl Token {
 
                 Some(res)
             }
-            Token::ForToken(t) => Some(vec![&t.stack]),
-            Token::WhileToken(t) => Some(vec![&t.stack])
+            Token::For(t) => Some(vec![&t.stack]),
+            Token::While(t) => Some(vec![&t.stack])
         }
     }
 }
@@ -73,16 +74,32 @@ impl Token {
             Token::If(if_definition) => {
                 if_definition.infer_type(type_context)?;
             },
-            Token::ForToken(for_loop) => {
+            Token::For(for_loop) => {
                 for_loop.infer_type(type_context)?;
             }
-            Token::WhileToken(while_loop) => {
+            Token::While(while_loop) => {
                 while_loop.infer_type(type_context)?;
             }
             Token::MethodDefinition(_) | Token::MethodCall(_) | Token::ScopeClosing(_) | Token::Import(_) | Token::Return(_) => {}
         }
 
         Ok(())
+    }
+}
+
+impl StaticTypeCheck for Token {
+    fn static_type_check(&self, type_context: &mut StaticTypeContext) -> Result<(), StaticTypeCheckError> {
+        match self {
+            Token::Variable(variable_token) => variable_token.static_type_check(type_context),
+            Token::MethodCall(method_call) => method_call.static_type_check(type_context),
+            Token::MethodDefinition(method_definition) => method_definition.static_type_check(type_context),
+            Token::Import(import_token) => import_token.static_type_check(type_context),
+            Token::Return(return_token) => return_token.static_type_check(type_context),
+            Token::ScopeClosing(scope_closing) => scope_closing.static_type_check(type_context),
+            Token::If(if_token) => if_token.static_type_check(type_context),
+            Token::For(for_token) => for_token.static_type_check(type_context),
+            Token::While(while_token) => while_token.static_type_check(type_context)
+        }
     }
 }
 
@@ -99,10 +116,10 @@ impl ToASM for Token {
 
                 res
             }
-            Token::ForToken(for_token) => {
+            Token::For(for_token) => {
                 vec![&for_token.stack]
             }
-            Token::WhileToken(while_token) => {
+            Token::While(while_token) => {
                 vec![&while_token.stack]
             }
             Token::MethodDefinition(method_def) => {
@@ -131,8 +148,8 @@ impl ToASM for Token {
             Token::MethodDefinition(return_token) => return_token.to_asm(stack, meta, options),
             Token::Import(import_token) => import_token.to_asm(stack, meta, options),
             Token::If(if_token) => if_token.to_asm(stack, meta, options),
-            Token::ForToken(for_loop) => for_loop.to_asm(stack, meta, options),
-            Token::WhileToken(while_loop) => while_loop.to_asm(stack, meta, options),
+            Token::For(for_loop) => for_loop.to_asm(stack, meta, options),
+            Token::While(while_loop) => while_loop.to_asm(stack, meta, options),
             Token::ScopeClosing(_) => Ok(ASMResult::Inline(String::new())),
         }
     }
@@ -144,8 +161,8 @@ impl ToASM for Token {
             Token::MethodCall(a) => a.is_stack_look_up(stack, meta),
             Token::If(a) => a.is_stack_look_up(stack, meta),
             Token::Import(a) => a.is_stack_look_up(stack, meta),
-            Token::ForToken(a) => a.is_stack_look_up(stack, meta),
-            Token::WhileToken(a) => a.is_stack_look_up(stack, meta),
+            Token::For(a) => a.is_stack_look_up(stack, meta),
+            Token::While(a) => a.is_stack_look_up(stack, meta),
             Token::MethodDefinition(a) => a.is_stack_look_up(stack, meta),
             Token::Return(return_type) => return_type.is_stack_look_up(stack, meta),
             Token::ScopeClosing(_) => false,
@@ -158,8 +175,8 @@ impl ToASM for Token {
             Token::MethodCall(a) => a.byte_size(meta),
             Token::MethodDefinition(a) => a.byte_size(meta),
             Token::Import(a) => a.byte_size(meta),
-            Token::ForToken(a) => a.byte_size(meta),
-            Token::WhileToken(a) => a.byte_size(meta),
+            Token::For(a) => a.byte_size(meta),
+            Token::While(a) => a.byte_size(meta),
             Token::If(a) => a.byte_size(meta),
             Token::Return(r) => r.byte_size(meta),
             Token::ScopeClosing(_) => 0,
@@ -173,8 +190,8 @@ impl ToASM for Token {
             Token::MethodCall(v) => v.data_section(stack, meta),
             Token::MethodDefinition(v) => v.data_section(stack, meta),
             Token::Import(v) => v.data_section(stack, meta),
-            Token::ForToken(v) => v.data_section(stack, meta),
-            Token::WhileToken(v) => v.data_section(stack, meta),
+            Token::For(v) => v.data_section(stack, meta),
+            Token::While(v) => v.data_section(stack, meta),
             Token::If(v) => v.data_section(stack, meta),
             Token::Return(ret) => ret.data_section(stack, meta),
             Token::ScopeClosing(_) => false,
@@ -192,8 +209,8 @@ impl Display for Token {
             Token::If(m) => format!("{}", m),
             Token::Import(m) => format!("{}", m),
             Token::Return(m) => format!("{}", m),
-            Token::WhileToken(a) => format!("{}", a),
-            Token::ForToken(m) => format!("{}", m),
+            Token::While(a) => format!("{}", a),
+            Token::For(m) => format!("{}", m),
         })
     }
 }

@@ -16,8 +16,8 @@ mod utils;
 
 fn run_compiler() -> anyhow::Result<()> {
     let only_write = false;
-    let args = ProgramArgs::parse();
 
+    let args = ProgramArgs::parse();
     let entry_point_file = args.input.clone();
     let monkey_file: MonkeyFile = MonkeyFile::read(entry_point_file)?;
 
@@ -40,7 +40,7 @@ fn run_compiler() -> anyhow::Result<()> {
     }
 
 // 3) Building
-    let mut code_generator = ASMGenerator::from((top_level_scope, args.target_os.clone(), true));
+    let mut code_generator = ASMGenerator::from((top_level_scope, args.target_os.clone(), false));
     let target_creator = TargetCreator::try_from((args.input.as_str(), &args.target_os))?;
     let asm_result = code_generator.generate()?;
 

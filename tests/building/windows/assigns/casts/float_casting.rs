@@ -45,6 +45,8 @@ main:
     movd xmm0, eax
     movd eax, xmm0
     mov DWORD [rbp - 12], eax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -94,6 +96,8 @@ main:
     movq xmm0, rax
     movq rax, xmm0
     mov QWORD [rbp - 12], rax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -148,6 +152,8 @@ main:
     movq xmm0, rax
     movq rax, xmm0
     mov QWORD [rbp - 16], rax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -212,6 +218,8 @@ main:
     movq xmm0, rax
     movq rax, xmm0
     mov QWORD [rbp - 20], rax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -274,6 +282,8 @@ main:
     movq xmm0, rax
     movq rax, xmm0
     mov QWORD [rbp - 20], rax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -344,6 +354,8 @@ main:
     movq xmm0, rax
     movq rax, xmm0
     mov QWORD [rbp - 28], rax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -406,6 +418,8 @@ main:
     movq xmm0, rax
     movq rax, xmm0
     mov QWORD [rbp - 20], rax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -473,6 +487,8 @@ main:
     movq xmm3, rdx
     movq rax, xmm3
     mov QWORD [rbp - 20], rax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -539,6 +555,8 @@ main:
     movq xmm0, rax
     movq rax, xmm0
     mov QWORD [rbp - 20], rax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -620,6 +638,8 @@ main:
     movq xmm2, rdi
     movq rax, xmm2
     mov QWORD [rbp - 20], rax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -796,6 +816,8 @@ main:
     movq xmm2, rdi
     movq rax, xmm2
     mov QWORD [rbp - 28], rax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;

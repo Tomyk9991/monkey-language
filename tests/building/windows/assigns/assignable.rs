@@ -36,6 +36,8 @@ main:
     sub rsp, 64
     ; let a: *string = "Hallo"
     mov QWORD [rbp - 8], .label0
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;

@@ -20,6 +20,8 @@ use crate::core::lexer::tokens::assignable_token::{AssignableToken, AssignableTo
 use crate::core::lexer::tokens::name_token::{NameToken, NameTokenErr};
 use crate::core::lexer::TryParse;
 use crate::core::lexer::types::type_token::{InferTypeError, MethodCallArgumentTypeMismatch, TypeToken};
+use crate::core::type_checker::static_type_checker::StaticTypeCheckError;
+use crate::core::type_checker::StaticTypeCheck;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct MethodCallToken {
@@ -117,6 +119,68 @@ impl TryParse for MethodCallToken {
     }
 }
 
+impl StaticTypeCheck for MethodCallToken {
+    fn static_type_check(&self, type_context: &mut StaticTypeContext) -> Result<(), StaticTypeCheckError> {
+        let method_defs = type_context.methods.iter().filter(|m| m.name == self.name).collect::<Vec<_>>();
+
+        'outer: for method_def in &method_defs {
+            if method_def.arguments.len() != self.arguments.len() {
+                if method_defs.len() == 1 {
+                    return Err(StaticTypeCheckError::InferredError(InferTypeError::MethodCallArgumentAmountMismatch {
+                        expected: method_def.arguments.len(),
+                        actual: self.arguments.len(),
+                        code_line: self.code_line.clone(),
+                    }));
+                }
+
+                continue;
+            }
+
+            let zipped = method_def.arguments
+                .iter()
+                .zip(&self.arguments);
+
+            for (index, (argument_def, argument_call)) in zipped.enumerate() {
+                let def_type = argument_def.1.clone();
+                let call_type = argument_call.infer_type_with_context(type_context, &self.code_line)?;
+
+                if def_type != call_type {
+                    if method_defs.len() == 1 {
+                        return Err(StaticTypeCheckError::InferredError(InferTypeError::MethodCallArgumentTypeMismatch {
+                            info: Box::new(MethodCallArgumentTypeMismatch {
+                                expected: def_type,
+                                actual: call_type,
+                                nth_parameter: index + 1,
+                                code_line: self.code_line.clone(),
+                            })
+                        }));
+                    }
+
+                    continue 'outer;
+                }
+            }
+
+            return Ok(());
+        }
+
+        if method_defs.is_empty() {
+            return Err(StaticTypeCheckError::InferredError(InferTypeError::UnresolvedReference(self.name.name.clone(), self.code_line.clone())));
+        }
+
+        let signatures = method_defs
+            .iter()
+            .map(|m| m.arguments.iter().map(|a| a.1.clone()).collect::<Vec<_>>())
+            .collect::<Vec<_>>();
+
+        Err(StaticTypeCheckError::InferredError(InferTypeError::MethodCallSignatureMismatch {
+            signatures,
+            method_name: self.name.clone(),
+            code_line: self.code_line.clone(),
+            provided: self.arguments.iter().filter_map(|a| a.infer_type_with_context(type_context, &self.code_line).ok()).collect::<Vec<_>>(),
+        }))
+    }
+}
+
 impl MethodCallToken {
     pub fn try_parse(code_line: &CodeLine) -> anyhow::Result<Self, MethodCallTokenErr> {
         let split_alloc = code_line.split(vec![' ', ';']);
@@ -150,72 +214,14 @@ impl MethodCallToken {
 
     pub fn infer_type_with_context(&self, context: &StaticTypeContext, code_line: &CodeLine) -> Result<TypeToken, InferTypeError> {
         if let Some(method_def) = conventions::method_definitions(context, code_line, &self.arguments, &self.name.name)?.first() {
-            self.type_check(context, code_line)?;
+            let mut context = context.clone();
+            if let Err(StaticTypeCheckError::InferredError(err)) = self.static_type_check(&mut context) {
+                return Err(err);
+            }
             return Ok(method_def.return_type.clone());
         }
 
         Err(InferTypeError::UnresolvedReference(self.to_string(), code_line.clone()))
-    }
-
-    /// Type checks the symbol calling, by checking if the passed parameters are expected by the method definition
-    pub fn type_check(&self, context: &StaticTypeContext, code_line: &CodeLine) -> Result<(), InferTypeError> {
-        let method_defs = context.methods.iter().filter(|m| m.name == self.name).collect::<Vec<_>>();
-
-        'outer: for method_def in &method_defs {
-            if method_def.arguments.len() != self.arguments.len() {
-                if method_defs.len() == 1 {
-                    return Err(InferTypeError::MethodCallArgumentAmountMismatch {
-                        expected: method_def.arguments.len(),
-                        actual: self.arguments.len(),
-                        code_line: self.code_line.clone(),
-                    });
-                }
-
-                continue;
-            }
-
-            let zipped = method_def.arguments
-                .iter()
-                .zip(&self.arguments);
-
-            for (index, (argument_def, argument_call)) in zipped.enumerate() {
-                let def_type = argument_def.1.clone();
-                let call_type = argument_call.infer_type_with_context(context, code_line)?;
-
-                if def_type != call_type {
-                    if method_defs.len() == 1 {
-                        return Err(InferTypeError::MethodCallArgumentTypeMismatch {
-                            info: Box::new(MethodCallArgumentTypeMismatch {
-                                expected: def_type,
-                                actual: call_type,
-                                nth_parameter: index + 1,
-                                code_line: code_line.clone(),
-                            })
-                        });
-                    }
-
-                    continue 'outer;
-                }
-            }
-
-            return Ok(());
-        }
-
-        if method_defs.is_empty() {
-            return Err(InferTypeError::UnresolvedReference(self.name.name.clone(), code_line.clone()));
-        }
-
-        let signatures = method_defs
-            .iter()
-            .map(|m| m.arguments.iter().map(|a| a.1.clone()).collect::<Vec<_>>())
-            .collect::<Vec<_>>();
-
-        Err(InferTypeError::MethodCallSignatureMismatch {
-            signatures,
-            method_name: self.name.clone(),
-            code_line: code_line.clone(),
-            provided: self.arguments.iter().filter_map(|a| a.infer_type_with_context(context, code_line).ok()).collect::<Vec<_>>(),
-        })
     }
 }
 
@@ -302,7 +308,7 @@ impl ToASM for MethodCallToken {
                         assign = r.to_string();
                     } else {
                         if r.is_float_register() {
-                            target += &ASMBuilder::mov_x_ident_line(&r.to_64_bit_register(), &r, Some(r.size() as usize));
+                            target += &ASMBuilder::mov_x_ident_line(r.to_64_bit_register(), &r, Some(r.size() as usize));
                         }
 
                         target += &ASMBuilder::ident_line(&format!("push {}", r.to_64_bit_register()));
@@ -360,7 +366,7 @@ impl ToASM for MethodCallToken {
                             target += &ASMBuilder::mov_x_ident_line(register_convention_sized, assign, *size);
                         }
                         RegisterResult::Stack => {
-                            target += &ASMBuilder::mov_x_ident_line(register_convention_sized, &popped_into.to_size_register_ignore_float(&ByteSize::try_from(size.unwrap_or(8))?), *size);
+                            target += &ASMBuilder::mov_x_ident_line(register_convention_sized, popped_into.to_size_register_ignore_float(&ByteSize::try_from(size.unwrap_or(8))?), *size);
                         }
                     }
                 }

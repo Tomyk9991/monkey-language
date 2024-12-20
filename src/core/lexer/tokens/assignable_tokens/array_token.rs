@@ -35,7 +35,7 @@ impl ArrayToken {
             return Ok(TypeToken::Array(Box::new(ty), self.values.len()));
         }
 
-        return Err(InferTypeError::NoTypePresent(NameToken { name: "Array".to_string() }, code_line.clone()))
+        Err(InferTypeError::NoTypePresent(NameToken { name: "Array".to_string() }, code_line.clone()))
     }
 }
 

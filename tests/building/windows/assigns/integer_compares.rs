@@ -125,6 +125,8 @@ main:
     cmp eax, 3
     setne al
     mov BYTE [rbp - 14], al
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -256,6 +258,8 @@ main:
     cmp eax, 3
     setne al
     mov BYTE [rbp - 14], al
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -386,6 +390,8 @@ main:
     cmp eax, 3
     setne al
     mov BYTE [rbp - 16], al
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -516,6 +522,8 @@ main:
     cmp eax, 3
     setne al
     mov BYTE [rbp - 16], al
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -646,6 +654,8 @@ main:
     cmp eax, 3
     setne al
     mov BYTE [rbp - 20], al
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -776,6 +786,8 @@ main:
     cmp eax, 3
     setne al
     mov BYTE [rbp - 20], al
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -906,6 +918,8 @@ main:
     cmp eax, 3
     setne al
     mov BYTE [rbp - 28], al
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -1036,6 +1050,8 @@ main:
     cmp eax, 3
     setne al
     mov BYTE [rbp - 28], al
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -1102,6 +1118,8 @@ main:
     mov dl, r14b
     mov al, r13b
     mov BYTE [rbp - 1], cl
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -1297,6 +1315,8 @@ main:
     mov dl, r14b
     mov cl, r12b
     mov BYTE [rbp - 17], al
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;

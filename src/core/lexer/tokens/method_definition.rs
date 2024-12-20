@@ -3,7 +3,8 @@ use std::fmt::{Display, Formatter};
 use std::iter::Peekable;
 use std::slice::Iter;
 use std::str::FromStr;
-
+use crate::core::lexer::tokens::assignable_token::AssignableToken;
+use crate::core::lexer::tokens::variable_token::VariableToken;
 use crate::core::code_generator::conventions::calling_convention_from;
 
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
@@ -20,7 +21,9 @@ use crate::core::lexer::token::Token;
 use crate::core::lexer::tokens::assignable_token::AssignableTokenErr;
 use crate::core::lexer::tokens::name_token::{NameToken, NameTokenErr};
 use crate::core::lexer::TryParse;
-use crate::core::lexer::types::type_token::{InferTypeError, TypeToken};
+use crate::core::lexer::types::type_token::{InferTypeError, MethodCallSignatureMismatchCause, TypeToken};
+use crate::core::type_checker::static_type_checker::{static_type_check_rec, StaticTypeCheckError};
+use crate::core::type_checker::StaticTypeCheck;
 use crate::utils::math;
 
 /// Token for method definition. Pattern is `fn function_name(argument1, ..., argumentN): returnType { }`
@@ -99,6 +102,68 @@ impl Display for MethodDefinitionErr {
             MethodDefinitionErr::EmptyIterator(e) => e.to_string(),
             MethodDefinitionErr::ScopeErrorErr(a) => a.to_string(),
         })
+    }
+}
+
+impl StaticTypeCheck for MethodDefinition {
+    fn static_type_check(&self, type_context: &mut StaticTypeContext) -> Result<(), StaticTypeCheckError> {
+        // add the parameters to the type information
+        for (argument_name, argument_type) in &self.arguments {
+            type_context.context.push(VariableToken {
+                name_token: argument_name.clone(),
+                mutability: false,
+                ty: Some(argument_type.clone()),
+                define: true,
+                assignable: AssignableToken::default(),
+                code_line: Default::default(),
+            });
+        }
+
+        let variables_len = type_context.context.len();
+        type_context.expected_return_type = Some(CurrentMethodInfo {
+            return_type: self.return_type.clone(),
+            method_header_line: self.code_line.actual_line_number.clone(),
+            method_name: self.name.name.to_string(),
+        });
+
+        static_type_check_rec(&self.stack, type_context)?;
+
+        if self.return_type != TypeToken::Void {
+            if let [.., last] = &self.stack[..] {
+                let mut method_return_signature_mismatch = false;
+                let mut cause = MethodCallSignatureMismatchCause::ReturnMissing;
+
+                if let Token::If(if_definition) = &last {
+                    method_return_signature_mismatch = !if_definition.ends_with_return_in_each_branch();
+                    if method_return_signature_mismatch {
+                        cause = MethodCallSignatureMismatchCause::IfCondition;
+                    }
+                } else if !matches!(last, Token::Return(_)) {
+                    method_return_signature_mismatch = true;
+                }
+
+                if method_return_signature_mismatch {
+                    if let Some(expected_return_type) = &type_context.expected_return_type {
+                        return Err(StaticTypeCheckError::InferredError(InferTypeError::MethodReturnSignatureMismatch {
+                            expected: expected_return_type.return_type.clone(),
+                            method_name: expected_return_type.method_name.to_string(),
+                            method_head_line: expected_return_type.method_header_line.to_owned(),
+                            cause,
+                        }));
+                    }
+                }
+            }
+        }
+
+
+        let amount_pop = (type_context.context.len() - variables_len) + self.arguments.len();
+
+        for _ in 0..amount_pop {
+            let _ = type_context.context.pop();
+        }
+
+        type_context.expected_return_type = None;
+        Ok(())
     }
 }
 

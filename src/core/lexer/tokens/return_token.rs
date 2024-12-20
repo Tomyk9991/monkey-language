@@ -12,13 +12,29 @@ use crate::core::code_generator::registers::{ByteSize, GeneralPurposeRegister};
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::errors::EmptyIteratorErr;
 use crate::core::lexer::scope::PatternNotMatchedError;
+use crate::core::lexer::static_type_context::StaticTypeContext;
 use crate::core::lexer::tokens::assignable_token::{AssignableToken, AssignableTokenErr};
+use crate::core::lexer::tokens::assignable_tokens::integer_token::IntegerToken;
 use crate::core::lexer::TryParse;
+use crate::core::lexer::types::integer::Integer;
+use crate::core::lexer::types::type_token::{InferTypeError};
+use crate::core::type_checker::static_type_checker::StaticTypeCheckError;
+use crate::core::type_checker::StaticTypeCheck;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct ReturnToken {
     pub assignable: Option<AssignableToken>,
     pub code_line: CodeLine
+}
+
+impl ReturnToken {
+    /// returns a ReturnToken with an assignable, the assignable is an integer containing 0
+    pub fn num_0() -> ReturnToken {
+        ReturnToken {
+            assignable: Some(AssignableToken::IntegerToken(IntegerToken { value: "0".to_string(), ty: Integer::I32 })),
+            code_line: CodeLine::imaginary("return 0;")
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -67,6 +83,26 @@ impl From<AssignableTokenErr> for ReturnTokenError {
 impl From<anyhow::Error> for ReturnTokenError {
     fn from(value: anyhow::Error) -> Self {
         ReturnTokenError::PatternNotMatched { target_value: value.to_string() }
+    }
+}
+
+impl StaticTypeCheck for ReturnToken {
+    fn static_type_check(&self, type_context: &mut StaticTypeContext) -> Result<(), StaticTypeCheckError> {
+        if let Some(expected_return_type) = &type_context.expected_return_type {
+            if let Some(assignable) = &self.assignable {
+                let actual_type = assignable.infer_type_with_context(type_context, &self.code_line)?;
+
+                if expected_return_type.return_type != actual_type {
+                    return Err(StaticTypeCheckError::InferredError(InferTypeError::MethodReturnArgumentTypeMismatch {
+                        expected: expected_return_type.return_type.clone(),
+                        actual: actual_type,
+                        code_line: self.code_line.clone(),
+                    }));
+                }
+            }
+        }
+
+        Ok(())
     }
 }
 

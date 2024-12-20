@@ -161,7 +161,7 @@ impl ToASM for AssignableToken {
             AssignableToken::MethodCallToken(method_call) => Ok(method_call.to_asm(stack, meta, options)?),
             AssignableToken::BooleanToken(boolean) => Ok(boolean.to_asm(stack, meta, options)?),
             AssignableToken::ArrayToken(array) => Ok(array.to_asm(stack, meta, options)?),
-            AssignableToken::Parameter(_) | AssignableToken::Object(_) => Err(ASMGenerateError::AssignmentNotImplemented { assignable_token: (*&self).clone() })
+            AssignableToken::Parameter(_) | AssignableToken::Object(_) => Err(ASMGenerateError::AssignmentNotImplemented { assignable_token: self.clone() })
             // token => Err(ASMGenerateError::AssignmentNotImplemented { assignable_token: (*token).clone() })
         }
     }

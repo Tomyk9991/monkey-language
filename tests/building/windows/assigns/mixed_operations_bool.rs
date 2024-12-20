@@ -48,6 +48,8 @@ main:
     ; Cast: (u8) -> (i32)
     movzx edx, BYTE [rbp - 1]
     mov DWORD [rbp - 5], edx
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -92,6 +94,8 @@ main:
     and al, 1
     or al, 0
     mov BYTE [rbp - 1], al
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -245,6 +249,8 @@ main:
     ; Cast: (u8) -> (i32)
     movzx edi, BYTE [rbp - 1]
     mov DWORD [rbp - 5], edi
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;

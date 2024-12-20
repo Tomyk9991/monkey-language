@@ -35,6 +35,8 @@ main:
     mov eax, 5
     add eax, 3
     mov DWORD [rbp - 4], eax
+    ; return 0
+    mov eax, 0
     leave
     ret"#;
 
@@ -72,6 +74,8 @@ main:
     add eax, 2
     add eax, 8
     mov DWORD [rbp - 4], eax
+    ; return 0
+    mov eax, 0
     leave
     ret
 "#;
@@ -111,6 +115,8 @@ main:
     mov eax, 5
     add eax, edx
     mov DWORD [rbp - 4], eax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -153,6 +159,8 @@ main:
     mov edi, eax
     add ecx, edi
     mov DWORD [rbp - 4], ecx
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -188,6 +196,8 @@ main:
     sub rsp, 64
     ; let a: i32 = 6
     mov DWORD [rbp - 4], 6
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -222,6 +232,8 @@ main:
     ; let a: i32 = 6
     mov eax, 6
     mov DWORD [rbp - 4], eax
+    ; return 0
+    mov eax, 0
     leave
     ret
 "#;
@@ -264,6 +276,8 @@ main:
     ; let b: *i32 = &a
     lea rax, [rbp - 4]
     mov QWORD [rbp - 12], rax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -332,6 +346,8 @@ main:
     mov rax, QWORD [rax]
     mov rax, QWORD [rax]
     mov DWORD [rbp - 44], eax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -379,6 +395,8 @@ main:
     mov rax, QWORD [rax]
     add eax, 1
     mov DWORD [rbp - 16], eax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -432,6 +450,8 @@ main:
     mov rdx, QWORD [rdx]
     add eax, edx
     mov DWORD [rbp - 16], eax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -485,6 +505,8 @@ main:
     mov rdx, QWORD [rdx]
     add eax, edx
     mov DWORD [rbp - 16], eax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -536,6 +558,8 @@ main:
     mov rax, QWORD [rax]
     add eax, edx
     mov DWORD [rbp - 16], eax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -590,6 +614,8 @@ main:
     mov rdx, QWORD [rdx]
     add eax, edx
     mov DWORD [rbp - 16], eax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -652,6 +678,8 @@ main:
     mov edi, eax
     add ecx, edi
     mov DWORD [rbp - 16], ecx
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -778,6 +806,8 @@ main:
     pop rax
     add eax, edi
     mov DWORD [rbp - 28], eax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -821,6 +851,8 @@ main:
     ; let b: i32 = a
     mov eax, DWORD [rbp - 4]
     mov DWORD [rbp - 8], eax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -875,6 +907,8 @@ main:
     sub rsp, 64
     ; let a: i32 = 512
     mov DWORD [rbp - 4], 512
+    ; return 0
+    mov eax, 0
     leave
     ret"#;
 
@@ -922,6 +956,8 @@ main:
     ; let c: i32 = b
     mov eax, DWORD [rbp - 12]
     mov DWORD [rbp - 16], eax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -959,6 +995,8 @@ main:
     sub rsp, 64
     ; let a: i64 = 512
     mov QWORD [rbp - 8], 512
+    ; return 0
+    mov eax, 0
     leave
     ret"#;
 
@@ -1005,6 +1043,8 @@ main:
     mov rax, QWORD [rbp - 8]
     add rax, QWORD [rbp - 16]
     mov QWORD [rbp - 24], rax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -1132,6 +1172,8 @@ main:
     pop rax
     add rax, rdi
     mov QWORD [rbp - 40], rax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;

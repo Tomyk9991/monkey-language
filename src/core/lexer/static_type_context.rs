@@ -6,7 +6,7 @@ use crate::core::lexer::tokens::method_definition::{MethodDefinition};
 use crate::core::lexer::tokens::variable_token::VariableToken;
 use crate::core::lexer::types::type_token::{InferTypeError, TypeToken};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CurrentMethodInfo {
     pub return_type: TypeToken,
     pub method_header_line: Range<usize>,
@@ -15,7 +15,7 @@ pub struct CurrentMethodInfo {
 
 /// Contains all static type information about the provided scope
 /// At the moment variables and method definitions are included
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct StaticTypeContext {
     pub context: Vec<VariableToken<'=', ';'>>,
     pub expected_return_type: Option<CurrentMethodInfo>,
@@ -23,12 +23,14 @@ pub struct StaticTypeContext {
 }
 
 impl StaticTypeContext {
+    // adds all information from the other context to this context
     pub fn merge(&mut self, other: StaticTypeContext) {
         for token in other.context {
             self.context.push(token);
         }
     }
 
+    /// checks, if the provided methods have any name collisions
     pub fn colliding_symbols(&self) -> Result<(), InferTypeError> {
         for method in &self.methods {
             let context = StaticTypeContext::new(&method.stack);
@@ -92,12 +94,12 @@ impl StaticTypeContext {
                 Token::MethodDefinition(method_definition) => {
                     methods.push(method_definition.clone());
                 },
-                Token::ForToken(for_loop) => {
+                Token::For(for_loop) => {
                     if for_loop.initialization.ty.is_some() {
                         context.push(for_loop.initialization.clone());
                     }
                 },
-                Token::WhileToken(_) | Token::ScopeClosing(_) | Token::MethodCall(_) | Token::If(_) | Token::Import(_) | Token::Return(_) => {}
+                Token::While(_) | Token::ScopeClosing(_) | Token::MethodCall(_) | Token::If(_) | Token::Import(_) | Token::Return(_) => {}
             }
         }
 

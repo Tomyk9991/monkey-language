@@ -15,8 +15,9 @@ use crate::core::lexer::static_type_context::StaticTypeContext;
 use crate::core::lexer::token::Token;
 use crate::core::lexer::tokens::assignable_token::{AssignableToken, AssignableTokenErr};
 use crate::core::lexer::TryParse;
-use crate::core::lexer::types::type_token::InferTypeError;
-use crate::core::type_checker::InferType;
+use crate::core::lexer::types::type_token::{InferTypeError, TypeToken};
+use crate::core::type_checker::{InferType, StaticTypeCheck};
+use crate::core::type_checker::static_type_checker::{static_type_check_rec, StaticTypeCheckError};
 
 /// Token for if definition.
 /// # Pattern
@@ -109,6 +110,43 @@ impl Display for IfDefinitionErr {
             IfDefinitionErr::ScopeErrorErr(a) => a.to_string(),
             IfDefinitionErr::EmptyIterator(e) => e.to_string(),
         })
+    }
+}
+
+impl StaticTypeCheck for IfToken {
+    fn static_type_check(&self, type_context: &mut StaticTypeContext) -> Result<(), StaticTypeCheckError> {
+        let variables_len = type_context.context.len();
+        let condition_type = self.condition.infer_type_with_context(type_context, &self.code_line)?;
+
+        if condition_type != TypeToken::Bool {
+            return Err(StaticTypeCheckError::InferredError(InferTypeError::MismatchedTypes {
+                expected: TypeToken::Bool,
+                actual: condition_type,
+                code_line: self.code_line.clone(),
+            }));
+        }
+
+        static_type_check_rec(&self.if_stack, type_context)?;
+
+        let amount_pop = type_context.context.len() - variables_len;
+
+        for _ in 0..amount_pop {
+            let _ = type_context.context.pop();
+        }
+
+        if let Some(else_stack) = &self.else_stack {
+            let variables_len = type_context.context.len();
+
+            static_type_check_rec(else_stack, type_context)?;
+
+            let amount_pop = type_context.context.len() - variables_len;
+
+            for _ in 0..amount_pop {
+                let _ = type_context.context.pop();
+            }
+        }
+        
+        Ok(())
     }
 }
 

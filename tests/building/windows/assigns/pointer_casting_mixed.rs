@@ -51,6 +51,8 @@ main:
     movd xmm0, eax
     movd eax, xmm0
     mov DWORD [rbp - 20], eax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -111,6 +113,8 @@ main:
     movd xmm0, eax
     movd eax, xmm0
     mov DWORD [rbp - 28], eax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -182,6 +186,8 @@ main:
     mulss xmm0, xmm3
     movd eax, xmm0
     mov DWORD [rbp - 20], eax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;

@@ -55,6 +55,8 @@ main:
     ; Cast: (u8) -> (i64)
     movzx rax, BYTE [rbp - 1]
     mov QWORD [rbp - 16], rax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -109,6 +111,8 @@ main:
     ; Cast: (u8) -> (u64)
     movzx rax, BYTE [rbp - 1]
     mov QWORD [rbp - 15], rax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -168,6 +172,8 @@ main:
     ; Cast: (i8) -> (i64)
     movsx rax, BYTE [rbp - 1]
     mov QWORD [rbp - 16], rax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -226,6 +232,8 @@ main:
     ; Cast: (i8) -> (u64)
     movsx rax, BYTE [rbp - 1]
     mov QWORD [rbp - 16], rax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -286,6 +294,8 @@ main:
     ; Cast: (u16) -> (i64)
     movzx rax, WORD [rbp - 2]
     mov QWORD [rbp - 17], rax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -344,6 +354,8 @@ main:
     ; Cast: (u16) -> (u64)
     movzx rax, WORD [rbp - 2]
     mov QWORD [rbp - 17], rax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -403,6 +415,8 @@ main:
     ; Cast: (i16) -> (i64)
     movsx rax, WORD [rbp - 2]
     mov QWORD [rbp - 17], rax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -462,6 +476,8 @@ main:
     ; Cast: (i16) -> (u64)
     movsx rax, WORD [rbp - 2]
     mov QWORD [rbp - 17], rax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -524,6 +540,8 @@ main:
     xor rax, rax
     mov eax, r14d
     mov QWORD [rbp - 19], rax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -584,6 +602,8 @@ main:
     xor rax, rax
     mov eax, r14d
     mov QWORD [rbp - 19], rax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -643,6 +663,8 @@ main:
     ; Cast: (i32) -> (i64)
     movsx rax, DWORD [rbp - 4]
     mov QWORD [rbp - 19], rax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -704,6 +726,8 @@ main:
     xor rax, rax
     mov eax, r14d
     mov QWORD [rbp - 19], rax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -764,6 +788,8 @@ main:
     ; Cast: (u64) -> (i64)
     mov rax, QWORD [rbp - 8]
     mov QWORD [rbp - 23], rax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -822,6 +848,8 @@ main:
     ; let e: u64 = a
     mov rax, QWORD [rbp - 8]
     mov QWORD [rbp - 23], rax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -881,6 +909,8 @@ main:
     ; let e: i64 = a
     mov rax, QWORD [rbp - 8]
     mov QWORD [rbp - 23], rax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -940,6 +970,8 @@ main:
     ; Cast: (i64) -> (u64)
     mov rax, QWORD [rbp - 8]
     mov QWORD [rbp - 23], rax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;

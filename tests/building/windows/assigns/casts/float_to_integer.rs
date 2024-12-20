@@ -42,7 +42,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 64
+    sub rsp, 128
     ; let a: f32 = 120.5
     mov eax, __?float32?__(120.5)
     mov DWORD [rbp - 4], eax
@@ -86,6 +86,8 @@ main:
     xor rax, rax
     mov eax, r14d
     mov QWORD [rbp - 31], rax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -132,7 +134,7 @@ main:
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 64
+    sub rsp, 128
     ; let a: f32 = -120.5
     mov eax, __?float32?__(-120.5)
     mov DWORD [rbp - 4], eax
@@ -173,6 +175,8 @@ main:
     ; Cast: (i32) -> (i64)
     movsx rax, eax
     mov QWORD [rbp - 31], rax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -262,6 +266,8 @@ main:
     cvtsd2si rax, xmm7
     ; Cast: (i64) -> (u64)
     mov QWORD [rbp - 47], rax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;
@@ -348,6 +354,8 @@ main:
     movq xmm7, rax
     cvtsd2si rax, xmm7
     mov QWORD [rbp - 47], rax
+    ; return 0
+    mov eax, 0
     leave
     ret
     "#;

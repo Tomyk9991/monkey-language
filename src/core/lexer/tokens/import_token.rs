@@ -9,7 +9,10 @@ use crate::core::io::monkey_file::MonkeyFile;
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::errors::EmptyIteratorErr;
 use crate::core::lexer::scope::PatternNotMatchedError;
+use crate::core::lexer::static_type_context::StaticTypeContext;
 use crate::core::lexer::TryParse;
+use crate::core::type_checker::static_type_checker::StaticTypeCheckError;
+use crate::core::type_checker::StaticTypeCheck;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct ImportToken {
@@ -53,6 +56,12 @@ impl Error for ImportTokenError { }
 impl From<anyhow::Error> for ImportTokenError {
     fn from(value: anyhow::Error) -> Self {
         ImportTokenError::MonkeyFileRead(value)
+    }
+}
+
+impl StaticTypeCheck for ImportToken {
+    fn static_type_check(&self, _type_context: &mut StaticTypeContext) -> Result<(), StaticTypeCheckError> {
+        Ok(())
     }
 }
 

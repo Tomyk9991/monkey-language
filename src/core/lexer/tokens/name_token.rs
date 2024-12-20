@@ -15,7 +15,7 @@ use crate::core::lexer::types::type_token::{InferTypeError, TypeToken};
 
 /// Token for a name. Basically a string that can be used as a variable name.
 /// Everything is allowed except for reserved keywords and special characters in the beginning
-#[derive(Debug, Eq, PartialEq, Hash, Clone)]
+#[derive(Debug, Eq, PartialEq, Default, Hash, Clone)]
 pub struct NameToken {
     pub name: String,
 }
