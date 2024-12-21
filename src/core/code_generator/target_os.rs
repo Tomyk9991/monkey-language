@@ -76,7 +76,11 @@ impl TargetOS {
             }
             Err(err) => {
                 eprintln!("Program: \"{program}\" Error: {}", err);
-                -1
+                if let Some(a) = err.raw_os_error() {
+                    return a;
+                }
+
+                1
             }
         }
     }

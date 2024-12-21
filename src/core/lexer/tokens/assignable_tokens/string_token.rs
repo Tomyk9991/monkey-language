@@ -4,8 +4,10 @@ use std::str::FromStr;
 
 use crate::core::code_generator::{ASMGenerateError,
                                   MetaInfo, ToASM};
+use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::asm_result::{ASMOptions, ASMResult};
 use crate::core::code_generator::generator::Stack;
+use crate::core::code_generator::registers::GeneralPurposeRegister;
 
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub struct StringToken {
@@ -35,11 +37,16 @@ impl Display for StringTokenErr {
 
 impl ToASM for StringToken {
     fn to_asm<T: ASMOptions>(&self, stack: &mut Stack, _meta: &mut MetaInfo, _options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
-        if let Some(key) = stack.data_section.str_key(&self.value) {
-            return Ok(ASMResult::Inline(key.to_string()));
-        }
+        let label = if let Some(key) = stack.data_section.str_key(&self.value) {
+            key.to_string()
+        } else {
+            stack.create_label()
+        };
 
-        Ok(ASMResult::Inline(stack.create_label()))
+        let a = GeneralPurposeRegister::iter_from_byte_size(self.byte_size(_meta))?.current();
+        let target = ASMBuilder::mov_ident_line(&a, label);
+
+        Ok(ASMResult::MultilineResulted(target, a))
     }
 
 

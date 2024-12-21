@@ -1,8 +1,7 @@
 module monkey-language-project/std.monkey;
 
-fn test(): void {
-    let a: f32 = 23.0_f32;
-    printf("%f", a);
+fn main(): i32 {
+    let a = "Hello, World!\n";
+    printf(a);
+    return 0;
 }
-
-test();

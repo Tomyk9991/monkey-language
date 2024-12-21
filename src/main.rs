@@ -1,5 +1,6 @@
 use clap::Parser;
 use colored::Colorize;
+use windows_core::Error;
 use crate::cli::program_args::OptimizationLevel;
 use crate::cli::program_args::{PrintOption, ProgramArgs};
 use crate::core::code_generator::generator::{ASMGenerator};
@@ -40,7 +41,7 @@ fn run_compiler() -> anyhow::Result<()> {
     }
 
 // 3) Building
-    let mut code_generator = ASMGenerator::from((top_level_scope, args.target_os.clone(), false));
+    let mut code_generator = ASMGenerator::from((top_level_scope, args.target_os.clone(), true));
     let target_creator = TargetCreator::try_from((args.input.as_str(), &args.target_os))?;
     let asm_result = code_generator.generate()?;
 
