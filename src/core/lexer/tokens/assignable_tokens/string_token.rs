@@ -1,3 +1,4 @@
+use std::any::Any;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
@@ -5,7 +6,7 @@ use std::str::FromStr;
 use crate::core::code_generator::{ASMGenerateError,
                                   MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
-use crate::core::code_generator::asm_result::{ASMOptions, ASMResult};
+use crate::core::code_generator::asm_result::{ASMOptions, ASMResult, InterimResultOption};
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::registers::GeneralPurposeRegister;
 
@@ -36,17 +37,23 @@ impl Display for StringTokenErr {
 }
 
 impl ToASM for StringToken {
-    fn to_asm<T: ASMOptions>(&self, stack: &mut Stack, _meta: &mut MetaInfo, _options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
+    fn to_asm<T: ASMOptions + 'static>(&self, stack: &mut Stack, _meta: &mut MetaInfo, options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
         let label = if let Some(key) = stack.data_section.str_key(&self.value) {
             key.to_string()
         } else {
             stack.create_label()
         };
 
-        let a = GeneralPurposeRegister::iter_from_byte_size(self.byte_size(_meta))?.current();
-        let target = ASMBuilder::mov_ident_line(&a, label);
+        let any_t = &options as &dyn Any;
+        let destination_register = if let Some(concrete_type) = any_t.downcast_ref::<InterimResultOption>() {
+            concrete_type.general_purpose_register.clone()
+        } else {
+            GeneralPurposeRegister::iter_from_byte_size(self.byte_size(_meta))?.current()
+        };
 
-        Ok(ASMResult::MultilineResulted(target, a))
+        let target = ASMBuilder::mov_ident_line(&destination_register, label);
+
+        Ok(ASMResult::MultilineResulted(target, destination_register))
     }
 
 

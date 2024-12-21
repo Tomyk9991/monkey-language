@@ -93,7 +93,7 @@ impl ToASM for NameToken {
             }
         }
 
-        return if let Some(stack_location) = stack.variables.iter().rfind(|&variable| variable.name.name == self.name.as_str()) {
+        if let Some(stack_location) = stack.variables.iter().rfind(|&variable| variable.name.name == self.name.as_str()) {
             if let Some(found_variable) = meta.static_type_information.context.iter().rfind(|v| v.name_token == *self) {
                 if let Some(ty) = &found_variable.ty {
                     let operand_hint = word_from_byte_size(ty.byte_size());
@@ -101,10 +101,10 @@ impl ToASM for NameToken {
                 }
             }
 
-            return Ok(ASMResult::Inline(format!("DWORD [rbp - {}]", stack_location.position + stack_location.size)));
+            Ok(ASMResult::Inline(format!("DWORD [rbp - {}]", stack_location.position + stack_location.size)))
         } else {
             Err(ASMGenerateError::UnresolvedReference { name: self.name.to_string(), code_line: meta.code_line.clone() })
-        };
+        }
     }
 
 

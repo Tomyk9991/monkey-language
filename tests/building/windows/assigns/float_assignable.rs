@@ -1098,7 +1098,8 @@ main:
     ; Reserve stack space as MS convention. Shadow stacking
     sub rsp, 64
     ; let a: *string = "Testing string"
-    mov QWORD [rbp - 8], .label0
+    mov rax, .label0
+    mov QWORD [rbp - 8], rax
     ; let b: i32 = 512
     mov DWORD [rbp - 12], 512
     ; let c: i32 = b

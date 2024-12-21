@@ -1,6 +1,5 @@
 use clap::Parser;
 use colored::Colorize;
-use windows_core::Error;
 use crate::cli::program_args::OptimizationLevel;
 use crate::cli::program_args::{PrintOption, ProgramArgs};
 use crate::core::code_generator::generator::{ASMGenerator};

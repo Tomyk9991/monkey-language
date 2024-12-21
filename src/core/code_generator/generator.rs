@@ -198,8 +198,8 @@ impl ASMGenerator {
         } else {
             self.require_main = true;
 
-            let method_definitions = self.top_level_scope.tokens.iter().filter(|t| matches!(t, Token::MethodDefinition(_))).map(|t| t.clone()).collect::<Vec<Token>>();
-            let mut main_stack = self.top_level_scope.tokens.iter().filter(|t| !matches!(t, Token::Import(_) | Token::MethodDefinition(_))).map(|t| t.clone()).collect::<Vec<Token>>();
+            let method_definitions = self.top_level_scope.tokens.iter().filter(|t| matches!(t, Token::MethodDefinition(_))).cloned().collect::<Vec<_>>();
+            let mut main_stack = self.top_level_scope.tokens.iter().filter(|t| !matches!(t, Token::Import(_) | Token::MethodDefinition(_))).cloned().collect::<Vec<Token>>();
             // last element of main stack via pattern matching
             if let [.., last] = &main_stack[..] {
                 if !matches!(last, Token::Return(_)) {
@@ -216,7 +216,7 @@ impl ASMGenerator {
             });
 
             self.top_level_scope.tokens.clear();
-            let imports = self.top_level_scope.tokens.iter().filter(|t| matches!(t, Token::Import(_))).map(|t| t.clone()).collect::<Vec<Token>>();
+            let imports = self.top_level_scope.tokens.iter().filter(|t| matches!(t, Token::Import(_))).cloned().collect::<Vec<Token>>();
 
             method_definitions.iter().for_each(|t| self.top_level_scope.tokens.push(t.clone()));
             imports.iter().for_each(|t| self.top_level_scope.tokens.push(t.clone()));

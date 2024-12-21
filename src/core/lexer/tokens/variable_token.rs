@@ -224,12 +224,17 @@ impl Display for ParseVariableTokenErr {
 impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for VariableToken<ASSIGNMENT, SEPARATOR> {
     fn to_asm<T: ASMOptions + 'static>(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
         let mut target = String::new();
+
         target += &ASMBuilder::ident(&ASMBuilder::comment_line(&format!("{}", self)));
 
-        let i = GeneralPurposeRegister::iter_from_byte_size(self.assignable.byte_size(meta))?.current();
-        let result = self.assignable.to_asm(stack, meta, Some(InterimResultOption {
-            general_purpose_register: i.clone(),
-        }))?;
+        let general_purpose_options  = match &self.assignable {
+            AssignableToken::ArrayToken(arr_token) if arr_token.values.len() > 1 => { None },
+            _ => Some(InterimResultOption {
+                general_purpose_register: GeneralPurposeRegister::iter_from_byte_size(self.assignable.byte_size(meta))?.current().clone(),
+            })
+        };
+
+        let result = self.assignable.to_asm(stack, meta, general_purpose_options)?;
 
         let destination = if self.define {
             let byte_size = self.assignable.byte_size(meta);
@@ -238,7 +243,11 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for VariableToken<ASSI
             stack.stack_position += byte_size;
 
             let offset = stack.stack_position;
-            format!("{} [rbp - {}]", register_destination::word_from_byte_size(byte_size), offset)
+            if !matches!(result, ASMResult::Multiline(_)) {
+                format!("{} [rbp - {}]", register_destination::word_from_byte_size(byte_size), offset)
+            } else {
+                String::new()
+            }
         } else {
             match self.name_token.to_asm(stack, meta, options)? {
                 ASMResult::Inline(r) => r,
@@ -259,8 +268,9 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for VariableToken<ASSI
         match result {
             ASMResult::Inline(source) => {
                 if self.assignable.is_stack_look_up(stack, meta) {
-                    target += &ASMBuilder::mov_x_ident_line(&i, source, Some(i.size() as usize));
-                    target += &ASMBuilder::mov_ident_line(destination, &i);
+                    let destination_register = GeneralPurposeRegister::iter_from_byte_size(self.assignable.byte_size(meta))?.current();
+                    target += &ASMBuilder::mov_x_ident_line(&destination_register, source, Some(destination_register.size() as usize));
+                    target += &ASMBuilder::mov_ident_line(destination, &destination_register);
                 } else {
                     target += &ASMBuilder::mov_ident_line(destination, source);
                 }

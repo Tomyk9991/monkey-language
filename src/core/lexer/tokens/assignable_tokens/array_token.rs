@@ -97,7 +97,11 @@ impl ToASM for ArrayToken {
         let mut target = String::new();
         target += &ASMBuilder::ident(&ASMBuilder::comment_line(&format!("{}", self)));
 
-        let mut offset = stack.stack_position;
+        let mut offset = if let [first, ..] = &self.values[..] {
+            stack.stack_position + first.byte_size(meta)
+        } else {
+            stack.stack_position
+        };
 
         for (i, assignable) in self.values.iter().enumerate() {
             let first_register = GeneralPurposeRegister::iter_from_byte_size(assignable.byte_size(meta))?.current();
