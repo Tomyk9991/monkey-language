@@ -2,7 +2,7 @@ use clap::Parser;
 use colored::Colorize;
 use crate::cli::program_args::OptimizationLevel;
 use crate::cli::program_args::{PrintOption, ProgramArgs};
-use crate::core::code_generator::generator::{ASMGenerator};
+use crate::core::code_generator::generator::ASMGenerator;
 use crate::core::code_generator::target_creator::TargetCreator;
 use crate::core::code_generator::target_os::TargetOS;
 use crate::core::io::monkey_file::MonkeyFile;

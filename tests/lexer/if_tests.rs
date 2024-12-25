@@ -254,7 +254,7 @@ fn function_in_function_test() -> anyhow::Result<()> {
                     ty: Some(TypeToken::Integer(Integer::I32)),
                     define: true,
                     assignable: AssignableToken::ArithmeticEquation(
-                        Expression { lhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, prefix_arithmetic: None, value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: "5".to_string(), ty: Integer::I32 }))), positive: true })), operator: Div, rhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, prefix_arithmetic: None, value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: "2".to_string(), ty: Integer::I32 }))), positive: true })), positive: true, value: None, prefix_arithmetic: None }
+                        Expression { lhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, prefix_arithmetic: None, value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: "5".to_string(), ty: Integer::I32 }))), index_operator: None, positive: true })), operator: Div, rhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, prefix_arithmetic: None, value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: "2".to_string(), ty: Integer::I32 }))), index_operator: None, positive: true })), positive: true, value: None, prefix_arithmetic: None, index_operator: None }
                     ),
                     code_line: CodeLine { line: "let if_stack_variable = 5 / 2 ;".to_string(), actual_line_number: 3..3, virtual_line_number: 2 },
                 }),

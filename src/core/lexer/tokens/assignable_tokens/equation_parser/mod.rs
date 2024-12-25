@@ -17,6 +17,9 @@ pub mod prefix_arithmetic;
 const OPENING: char = '(';
 const CLOSING: char = ')';
 
+const OPENING_BRACKET: char = '[';
+const CLOSING_BRACKET: char = ']';
+
 #[derive(Debug, PartialEq)]
 pub struct EquationToken<> {
     source_code: String,
@@ -36,6 +39,7 @@ pub enum Error {
     // Message
     TermNotParsable(String),
     ParenExpected,
+    BracketExpected,
     CannotParse,
 }
 
@@ -68,6 +72,7 @@ impl Display for Error {
         write!(f, "{}", match self {
             Error::PositionNotInRange(index) => format!("Index {index} out of range"),
             Error::ParenExpected => "Expected \")\"".to_string(),
+            Error::BracketExpected => "Expected \"]\"".to_string(),
             Error::TermNotParsable(v) => v.to_string(),
             Error::UndefinedSequence(value) => value.to_string(),
             Error::FunctionNotFound => "Not a function".to_string(),
@@ -362,7 +367,7 @@ impl EquationToken {
     }
 
     /// collects until the specified character is found and checks each substring, if a certain predicate is met
-    /// returns a trimmed string between the the beginning and the expected last character and the amount of characters skipped, including the spaces
+    /// returns a trimmed string between the beginning and the expected last character and the amount of characters skipped, including the spaces
     fn collect_until(&self, offset: usize, expected_last_char: char, predicate: fn(&str) -> bool) -> Option<(String, usize)> {
         let starting_position = (self.pos as usize) + offset;
         let mut end_position = starting_position;
@@ -461,7 +466,6 @@ impl EquationToken {
 
         let start_pos: i32 = self.pos;
         if self.eat(Some(OPENING)) {
-            // todo: change this to latest parse_expression
             x = self.parse_logical_or()?;
 
             if !self.eat(Some(CLOSING)) {
@@ -479,11 +483,14 @@ impl EquationToken {
                 x = Box::new(Expression::from(Some(Box::new(assignment))));
             } else if (self.ch >= Some('A') && self.ch <= Some('Z')) || (self.ch >= Some('a') && self.ch <= Some('z')) {
                 let mut ident = 0;
+                let mut in_brackets = false;
 
-                while ident != 0 || !self.operator_sequence() {
+                while ident != 0 || in_brackets || !self.operator_sequence() {
                     match self.ch {
                         Some('(') => ident += 1,
                         Some(')') => ident -= 1,
+                        Some('[') => in_brackets = true,
+                        Some(']') => in_brackets = false,
                         None => break,
                         _ => {}
                     }
@@ -500,11 +507,18 @@ impl EquationToken {
 
                 temp.normalize();
 
-                let sub_string = temp[0].line.to_string();
-                let assignable_token = AssignableToken::from_str_ignore(sub_string.as_str(), sub_string.len() == self.source_code.len())?;
+                let chars = temp[0].line.chars().collect::<Vec<char>>();
+                let (index_operation, sub_string) = if let (Some(left), Some(right)) = (chars.iter().position(|a| *a ==  OPENING_BRACKET), chars.iter().rposition(|a| *a == CLOSING_BRACKET)) {
+                    (Some(Box::new(AssignableToken::from_str_ignore(&temp[0].line[left + 1..right], false)?)), &temp[0].line[..left])
+                } else {
+                    (None, temp[0].line.as_str())
+                };
+
+                let assignable_token = AssignableToken::from_str_ignore(sub_string, sub_string.len() == self.source_code.len())?;
 
                 let s = Expression::from(Some(Box::new(assignable_token)));
                 x = Box::new(s);
+                x.index_operator = index_operation;
             } else {
                 return self.undefined_or_empty();
             }

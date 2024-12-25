@@ -224,7 +224,6 @@ impl Display for ParseVariableTokenErr {
 impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for VariableToken<ASSIGNMENT, SEPARATOR> {
     fn to_asm<T: ASMOptions + 'static>(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
         let mut target = String::new();
-
         target += &ASMBuilder::ident(&ASMBuilder::comment_line(&format!("{}", self)));
 
         let general_purpose_options  = match &self.assignable {
@@ -239,7 +238,12 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for VariableToken<ASSI
         let destination = if self.define {
             let byte_size = self.assignable.byte_size(meta);
 
-            stack.variables.push(StackLocation { position: stack.stack_position, size: byte_size, name: self.name_token.clone() });
+            let elements = match &self.assignable {
+                AssignableToken::ArrayToken(arr_token) if arr_token.values.len() > 1 => arr_token.values.len(),
+                _ => 1
+            };
+
+            stack.variables.push(StackLocation { position: stack.stack_position, size: byte_size, name: self.name_token.clone(), elements });
             stack.stack_position += byte_size;
 
             let offset = stack.stack_position;

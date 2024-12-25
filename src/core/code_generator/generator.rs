@@ -22,6 +22,7 @@ use crate::core::model::data_section::DataSection;
 pub struct StackLocation {
     pub position: usize,
     pub size: usize,
+    pub elements: usize,
     pub name: NameToken,
 }
 
@@ -30,13 +31,14 @@ impl StackLocation {
         Self {
             position,
             size,
+            elements: 1,
             name: NameToken::uuid(),
         }
     }
 }
 
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 /// a struct representing the current stack pointer and variables in the stack
 pub struct Stack {
     /// represents the current position on the stack
@@ -45,6 +47,8 @@ pub struct Stack {
     scopes: Vec<usize>,
     /// represents a list of all available variables in the current scopes and above
     pub variables: Vec<StackLocation>,
+    /// represents the current state, if an indexing is required
+    pub indexing: Option<ASMResult>,
     /// represents the data section in the assembly language
     pub data_section: DataSection,
     /// to create labels and avoid collisions in naming, a label count is used
@@ -255,6 +259,7 @@ impl ASMGenerator {
                         self.stack.variables.push(StackLocation {
                             position: self.stack.stack_position,
                             size: argument_type.byte_size(),
+                            elements: 1,
                             name: argument_name.clone(),
                         });
 

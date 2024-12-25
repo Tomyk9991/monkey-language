@@ -41,6 +41,7 @@ pub enum InferTypeError {
     TypeNotAllowed(NameTokenErr),
     MultipleTypesInArray{expected: TypeToken, unexpected_type: TypeToken, unexpected_type_index: usize, code_line: CodeLine},
     IllegalDereference(AssignableToken, TypeToken, CodeLine),
+    IllegalArrayTypeLookup(TypeToken, CodeLine),
     NoTypePresent(NameToken, CodeLine),
     DefineNotAllowed(VariableToken<'=', ';'>, CodeLine),
     IntegerTooSmall { ty: TypeToken, literal: String ,code_line: CodeLine },
@@ -127,6 +128,7 @@ impl Display for InferTypeError {
             }
             InferTypeError::NoTypePresent(name, code_line) => write!(f, "Line: {:?}\tType not inferred: `{name}`", code_line.actual_line_number),
             InferTypeError::IllegalDereference(assignable, ty, code_line) => write!(f, "Line: {:?}\tType `{ty}` cannot be dereferenced: {assignable}", code_line.actual_line_number),
+            InferTypeError::IllegalArrayTypeLookup(ty, code_line) => write!(f, "Line: {:?}\tType `{ty}` cannot be indexed", code_line.actual_line_number),
             InferTypeError::IntegerTooSmall { ty, literal: integer, code_line } => write!(f, "Line: {:?}\t`{integer}` doesn't fit into the type `{ty}`", code_line.actual_line_number),
             InferTypeError::FloatTooSmall { ty, float, code_line } =>
                 write!(f, "Line: {:?}\t`{float}` doesn't fit into the type `{ty}`", code_line.actual_line_number),
@@ -195,6 +197,14 @@ impl TypeToken {
         matches!(self, TypeToken::Float(_))
     }
 
+    // takes the element array type and returns the type of the array
+    pub fn pop_array(&self) -> Option<TypeToken> {
+        if let TypeToken::Array(array_type, _) = self {
+            return Some(*array_type.clone());
+        }
+
+        None
+    }
     /// removes * from type
     pub fn pop_pointer(&self) -> Option<TypeToken> {
         if let TypeToken::Custom(name_token) = self {
@@ -209,6 +219,7 @@ impl TypeToken {
 
         None
     }
+
 
     pub fn is_pointer(&self) -> bool {
         if let TypeToken::Custom(name) = self {
@@ -304,7 +315,7 @@ impl TypeToken {
         match self {
             TypeToken::Integer(int) => int.byte_size(),
             TypeToken::Float(float) => float.byte_size(),
-            TypeToken::Array(array_type, size) => array_type.byte_size() * size,
+            TypeToken::Array(array_type, _) => array_type.byte_size(),
             TypeToken::Bool => 1,
             TypeToken::Void => 0,
             TypeToken::Custom(_) => 8, // todo: calculate custom data types recursively

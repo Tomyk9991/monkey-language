@@ -103,7 +103,7 @@ impl ToASM for ArrayToken {
             stack.stack_position
         };
 
-        for (i, assignable) in self.values.iter().enumerate() {
+        for assignable in self.values.iter() {
             let first_register = GeneralPurposeRegister::iter_from_byte_size(assignable.byte_size(meta))?.current();
             let result = assignable.to_asm(stack, meta, Some(InterimResultOption {
                 general_purpose_register: first_register.clone(),
@@ -141,7 +141,7 @@ impl ToASM for ArrayToken {
                 }
             }
 
-            offset += (i + 1) * byte_size;
+            offset += byte_size;
         }
 
         Ok(ASMResult::Multiline(target))
@@ -152,13 +152,7 @@ impl ToASM for ArrayToken {
     }
 
     fn byte_size(&self, meta: &mut MetaInfo) -> usize {
-        let mut sum = 0;
-
-        for assignable in &self.values {
-            sum += assignable.byte_size(meta);
-        }
-
-        sum
+        self.values.iter().map(|a| a.byte_size(meta)).sum::<usize>()
     }
 
     fn data_section(&self, stack: &mut Stack, meta: &mut MetaInfo) -> bool {

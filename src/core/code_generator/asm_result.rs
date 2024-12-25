@@ -6,6 +6,7 @@ use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::registers::{ByteSize, GeneralPurposeRegister};
 use crate::core::lexer::tokens::assignable_token::AssignableToken;
 
+#[derive(Debug, Clone)]
 pub enum ASMResult {
     /// If the result is Inline this means statements like "mov rax, [String] is possible
     Inline(String),
@@ -86,7 +87,7 @@ impl Display for ASMResult {
         match self {
             ASMResult::Inline(s) => write!(f, "{s}"),
             ASMResult::Multiline(s) => write!(f, "{s}"),
-            ASMResult::MultilineResulted(_, _) => write!(f, ""),
+            ASMResult::MultilineResulted(a, b) => write!(f, "{b} = {a}"),
         }
     }
 }

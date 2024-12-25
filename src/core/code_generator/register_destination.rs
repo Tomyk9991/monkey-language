@@ -25,3 +25,13 @@ pub fn word_from_byte_size(byte: usize) -> String {
         _ => ""
     }.to_string()
 }
+
+pub fn byte_size_from_word(word: &str) -> usize {
+    match word {
+        "QWORD" => 8,
+        "DWORD" => 4,
+        "WORD" => 2,
+        "BYTE" => 1,
+        _ => 0
+    }
+}

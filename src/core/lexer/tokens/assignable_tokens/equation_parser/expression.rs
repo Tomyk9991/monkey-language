@@ -26,6 +26,7 @@ pub struct Expression {
     pub operator: Operator,
     pub prefix_arithmetic: Option<PrefixArithmetic>,
     pub value: Option<Box<AssignableToken>>,
+    pub index_operator: Option<Box<AssignableToken>>,
     pub positive: bool,
 }
 
@@ -463,6 +464,7 @@ impl Default for Expression {
             rhs: None,
             operator: Operator::Noop,
             value: None,
+            index_operator: None,
             positive: true,
             prefix_arithmetic: None,
         }
@@ -491,6 +493,9 @@ impl Debug for Expression {
         let prefix_arithmetic = self.prefix_arithmetic.iter().map(|a| a.to_string()).collect::<String>();
 
         debug_struct_formatter.field("prefix_arithmetic", &prefix_arithmetic);
+        if let Some(index_operator) = &self.index_operator {
+            debug_struct_formatter.field("index_operator", index_operator);
+        }
         debug_struct_formatter.finish()
     }
 }
@@ -500,13 +505,18 @@ impl Display for Expression {
         let sign = if self.positive { "".to_string() } else { "-".to_string() };
         let prefix_arithmetic = self.prefix_arithmetic.iter().rev().map(|a| a.to_string()).collect::<String>();
 
+        let index_operator = if let Some(index_operator) = &self.index_operator {
+            format!("[{}]", index_operator)
+        } else {
+            "".to_string()
+        };
         match (&self.lhs, &self.rhs) {
             (Some(lhs), Some(rhs)) => {
-                write!(f, "{}{}({} {} {})", prefix_arithmetic, sign, lhs, &self.operator, rhs)
+                write!(f, "{prefix_arithmetic}{sign}({lhs} {operator} {rhs}){index_operator}", operator = &self.operator)
             }
             _ => {
                 if let Some(ass) = &self.value {
-                    write!(f, "{}{}{}", prefix_arithmetic, sign, ass)
+                    write!(f, "{}{}{}{}", prefix_arithmetic, sign, ass, index_operator)
                 } else {
                     write!(f, "Some error. No lhs and rhs and no value found")
                 }
@@ -536,6 +546,12 @@ impl ToASM for Expression {
                 stack.register_to_use.push(iterator.current());
             }
 
+            if let Some(index_operator) = &self.index_operator {
+                let index_asm_operation = index_operator.to_asm(stack, meta, options.clone())?;
+                stack.indexing = Some(index_asm_operation.clone());
+            }
+
+
             let s = if let Some(prefix_arithmetic) = &self.prefix_arithmetic {
                 Self::prefix_arithmetic_to_asm(prefix_arithmetic, value, &stack.register_to_use.last()?, stack, meta)
             } else if matches!(value.as_ref(), AssignableToken::MethodCallToken(_)) {
@@ -543,6 +559,8 @@ impl ToASM for Expression {
             } else {
                 value.to_asm(stack, meta, options)
             };
+
+            stack.indexing = None;
 
             if stack.register_to_use.len() == 1 {
                 stack.register_to_use.pop();
@@ -555,7 +573,7 @@ impl ToASM for Expression {
 
         match (&self.lhs, &self.rhs) {
             (Some(lhs), Some(rhs)) => {
-                // first optimization. use every register. (Some(Some, Some), Some(Some, Some))
+                // Optimization. Use every register. (Some(Some, Some), Some(Some, Some))
                 if let Some(t) = &self.expression_some_some_some_some(stack, meta, lhs, rhs)? {
                     if let Ok(Some(new_register)) = t.apply_with(&mut target)
                         .allow(ASMResultVariance::MultilineResulted)
@@ -674,8 +692,18 @@ impl Expression {
 
     pub fn traverse_type_resulted(&self, context: &StaticTypeContext, code_line: &CodeLine) -> Result<TypeToken, InferTypeError> {
         if let Some(value) = &self.value {
-            let value_type = value.infer_type_with_context(context, code_line);
+            let mut value_type = value.infer_type_with_context(context, code_line);
             let has_prefix_arithmetics = self.prefix_arithmetic.is_some();
+            let has_index_operation = self.index_operator.is_some();
+
+            if has_index_operation {
+                let value_type_cloned = value_type?.clone();
+                if let Some(element_type) = value_type_cloned.pop_array() {
+                    value_type = Ok(element_type);
+                } else {
+                    return Err(InferTypeError::IllegalArrayTypeLookup(value_type_cloned, code_line.clone()));
+                }
+            }
 
             return if let (true, Ok(value_type)) = (has_prefix_arithmetics, &value_type) {
                 let current_pointer_arithmetic: String = match value_type {

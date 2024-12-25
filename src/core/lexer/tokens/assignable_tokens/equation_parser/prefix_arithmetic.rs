@@ -44,8 +44,8 @@ impl ToASM for PrefixArithmetic {
                     PrefixArithmetic::PointerArithmetic(pointer_arithmetic) => {
                         return match pointer_arithmetic {
                             PointerArithmetic::Ampersand => {
-                                // trying to to lea rax, rax. this is not good
-                                // you must write to a anonymous stack position and dereference that one
+                                // trying to lea rax, rax. this is not good
+                                // you must write to an anonymous stack position and dereference that one
                                 if GeneralPurposeRegister::from_str(&options.register_or_stack_address).is_ok() {
                                     let byte_size = options.value.infer_type_with_context(&meta.static_type_information, &meta.code_line)?.byte_size();
                                     stack.variables.push(StackLocation::new_anonymous_stack_location(stack.stack_position, byte_size));

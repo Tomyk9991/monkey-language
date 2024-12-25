@@ -80,6 +80,7 @@ pub enum GeneralPurposeRegister {
     Bit16(Bit16),
     Bit8(Bit8),
     Float(FloatRegister),
+    Memory(String),
 }
 
 
@@ -298,6 +299,7 @@ impl Iterator for GeneralPurposeRegisterIterator {
                     FloatRegister::Xmm7 => None,
                 }
             }
+            GeneralPurposeRegister::Memory(_) => None
         }
     }
 }
@@ -321,6 +323,7 @@ impl GeneralPurposeRegister {
            GeneralPurposeRegister::Bit32(_) => ByteSize::_4,
            GeneralPurposeRegister::Bit16(_) => ByteSize::_2,
            GeneralPurposeRegister::Bit8(_) => ByteSize::_1,
+           GeneralPurposeRegister::Memory(_) => ByteSize::_1
        }
     }
 
@@ -387,6 +390,7 @@ impl GeneralPurposeRegister {
                 }
             },
             GeneralPurposeRegister::Float(_) => unreachable!("Float register cannot be converted to 16s bit register"),
+            GeneralPurposeRegister::Memory(_) => unreachable!("Memory assignment cannot be converted to 16s bit register")
         }
     }
 
@@ -446,6 +450,7 @@ impl GeneralPurposeRegister {
                 }
             },
             GeneralPurposeRegister::Bit8(v) => GeneralPurposeRegister::Bit8(v.clone()),
+            GeneralPurposeRegister::Memory(_) => unreachable!("Memory assignment cannot be converted to 8 bit register")
         }
     }
 
@@ -497,6 +502,7 @@ impl GeneralPurposeRegister {
                     _ => todo!("Not enough general purpose registers")
                 }
             }
+            GeneralPurposeRegister::Memory(_) => unreachable!("Memory assignment cannot be converted to 32 bit register")
         }
     }
 
@@ -548,6 +554,7 @@ impl GeneralPurposeRegister {
                     _ => todo!("Not enough general purpose registers")
                 }
             }
+            GeneralPurposeRegister::Memory(_) => unreachable!("Memory assignment cannot be converted to 64 bit register")
         }
     }
 
@@ -777,6 +784,7 @@ impl Display for GeneralPurposeRegister {
             GeneralPurposeRegister::Bit16(b) => b.to_string(),
             GeneralPurposeRegister::Bit8(b) => b.to_string(),
             GeneralPurposeRegister::Float(b) => b.to_string(),
+            GeneralPurposeRegister::Memory(b) => b.to_string()
         })
     }
 }
