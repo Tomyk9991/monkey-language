@@ -73,13 +73,12 @@ fn run_compiler() -> anyhow::Result<()> {
                     // https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-erref/596a1078-e883-4972-9bbc-49e60bebca55
                     if status_code.is_err() {
                         let error = windows_core::Error::from(status_code);
-                        let message = error.message();
-                        if message.is_empty() {
-                            if let Some(hard_coded_message) = more_windows_errors(status) {
-                                println!("{}", hard_coded_message);
-                            }
+                        if let Some(hard_coded_message) = more_windows_errors(status) {
+                            println!("{}", hard_coded_message);
+                        } else {
+                            let message = error.message();
+                            println!("Error: {message}");
                         }
-                        println!("Error: {error}");
                     }
                 }
             }
@@ -103,7 +102,7 @@ fn more_windows_errors(status: i32) -> Option<String> {
         -1073741676 => Some("Integer division by zero".to_string()),
         -1073741675 => Some("Integer overflow".to_string()),
         -1073741571 => Some("Stack overflow".to_string()),
-        -1073741819 => Some("Pointing to invalid memory".to_string()),
+        -1073741819 => Some("Access violation. Pointing to invalid memory".to_string()),
         _ => None
     }
 }

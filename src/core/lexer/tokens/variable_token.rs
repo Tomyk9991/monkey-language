@@ -92,6 +92,7 @@ impl StaticTypeCheck for VariableToken<'=', ';'> {
     fn static_type_check(&self, type_context: &mut StaticTypeContext) -> Result<(), StaticTypeCheckError> {
         if self.define {
             if let AssignableToken::ArrayToken(array_token) = &self.assignable {
+                // check if all types are equal, where the first type is the expected type
                 let all_types = array_token.values
                     .iter()
                     .map(|a| a.infer_type_with_context(type_context, &self.code_line.clone()))
@@ -226,6 +227,7 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for VariableToken<ASSI
         let mut target = String::new();
         target += &ASMBuilder::ident(&ASMBuilder::comment_line(&format!("{}", self)));
 
+
         let general_purpose_options  = match &self.assignable {
             AssignableToken::ArrayToken(arr_token) if arr_token.values.len() > 1 => { None },
             _ => Some(InterimResultOption {
@@ -286,6 +288,12 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for VariableToken<ASSI
                     let final_type = expr.traverse_type(meta).ok_or(ASMGenerateError::InternalError("Cannot infer type".to_string()))?;
                     let r = GeneralPurposeRegister::Bit64(Bit64::Rax).to_size_register(&ByteSize::try_from(final_type.byte_size())?);
 
+                    if let GeneralPurposeRegister::Memory(memory) = &register {
+                        target += &ASMBuilder::mov_x_ident_line(&r, memory, None);
+                        register = r.clone();
+                    }
+
+
                     if let TypeToken::Float(s) = final_type {
                         target += &ASMBuilder::mov_x_ident_line(&r, register, Some(s.byte_size()));
                         register = r;
@@ -293,7 +301,7 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for VariableToken<ASSI
                 }
 
                 target += &ASMBuilder::mov_ident_line(destination, register);
-            }
+            },
             ASMResult::Multiline(source) => {
                 target += &source;
             }

@@ -1,3 +1,4 @@
+use std::fmt::Display;
 use crate::utils::extension_methods::RemoveWhiteSpacesBetween;
 use binary_search_tree::BinarySearchTree;
 use regex::Regex;
@@ -25,6 +26,12 @@ impl CodeLine {
             actual_line_number: 0..0,
             virtual_line_number: 0,
         }
+    }
+}
+
+impl Display for CodeLine {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.line)
     }
 }
 

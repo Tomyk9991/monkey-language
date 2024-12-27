@@ -42,6 +42,7 @@ pub enum InferTypeError {
     MultipleTypesInArray{expected: TypeToken, unexpected_type: TypeToken, unexpected_type_index: usize, code_line: CodeLine},
     IllegalDereference(AssignableToken, TypeToken, CodeLine),
     IllegalArrayTypeLookup(TypeToken, CodeLine),
+    IllegalIndexOperation(TypeToken, CodeLine),
     NoTypePresent(NameToken, CodeLine),
     DefineNotAllowed(VariableToken<'=', ';'>, CodeLine),
     IntegerTooSmall { ty: TypeToken, literal: String ,code_line: CodeLine },
@@ -129,6 +130,7 @@ impl Display for InferTypeError {
             InferTypeError::NoTypePresent(name, code_line) => write!(f, "Line: {:?}\tType not inferred: `{name}`", code_line.actual_line_number),
             InferTypeError::IllegalDereference(assignable, ty, code_line) => write!(f, "Line: {:?}\tType `{ty}` cannot be dereferenced: {assignable}", code_line.actual_line_number),
             InferTypeError::IllegalArrayTypeLookup(ty, code_line) => write!(f, "Line: {:?}\tType `{ty}` cannot be indexed", code_line.actual_line_number),
+            InferTypeError::IllegalIndexOperation(ty, code_line) => write!(f, "Line: {:?}\tType `{ty}` cannot be used as an index", code_line.actual_line_number),
             InferTypeError::IntegerTooSmall { ty, literal: integer, code_line } => write!(f, "Line: {:?}\t`{integer}` doesn't fit into the type `{ty}`", code_line.actual_line_number),
             InferTypeError::FloatTooSmall { ty, float, code_line } =>
                 write!(f, "Line: {:?}\t`{float}` doesn't fit into the type `{ty}`", code_line.actual_line_number),

@@ -10,3 +10,4 @@ mod mixed_operations_bool;
 mod integer_compares;
 mod float_compares;
 mod method_assignable;
+mod arrays;

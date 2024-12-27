@@ -697,6 +697,12 @@ impl Expression {
             let has_index_operation = self.index_operator.is_some();
 
             if has_index_operation {
+                if let Some(index_operator) = &self.index_operator {
+                    let index_type = index_operator.infer_type_with_context(context, code_line)?;
+                    if !matches!(index_type, TypeToken::Integer(_)) {
+                        return Err(InferTypeError::IllegalIndexOperation(index_type, code_line.clone()));
+                    }
+                }
                 let value_type_cloned = value_type?.clone();
                 if let Some(element_type) = value_type_cloned.pop_array() {
                     value_type = Ok(element_type);

@@ -148,13 +148,13 @@ impl ToASM for NameToken {
 
 fn to_multi_line_index_calculation(operand_hint: &str, index_operation: &str, resulting_register: &GeneralPurposeRegister, stack_location: &StackLocation, element_size: usize) -> Result<ASMResult, ASMGenerateError> {
     let mut target = String::new();
-    target += &index_operation;
+    target += index_operation;
 
     if resulting_register.size() as usize != 8 {
         target += &ASMBuilder::ident_line("cdqe");
     }
 
-    let resulting_register = resulting_register.to_size_register(&ByteSize::try_from(element_size)?);
+    let resulting_register = resulting_register.to_64_bit_register();
 
 
     target += &ASMBuilder::ident_line(&format!("imul {resulting_register}, {element_size}"));

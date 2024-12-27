@@ -508,8 +508,9 @@ impl EquationToken {
                 temp.normalize();
 
                 let chars = temp[0].line.chars().collect::<Vec<char>>();
+
                 let (index_operation, sub_string) = if let (Some(left), Some(right)) = (chars.iter().position(|a| *a ==  OPENING_BRACKET), chars.iter().rposition(|a| *a == CLOSING_BRACKET)) {
-                    (Some(Box::new(AssignableToken::from_str_ignore(&temp[0].line[left + 1..right], false)?)), &temp[0].line[..left])
+                    (Some(Box::new(AssignableToken::from_str_ignore(temp[0].line[left + 1..right].trim(), false)?)), &temp[0].line[..left])
                 } else {
                     (None, temp[0].line.as_str())
                 };

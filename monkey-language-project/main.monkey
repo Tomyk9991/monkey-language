@@ -5,9 +5,8 @@ fn index(value: i32): i32 {
 }
 
 fn main(): i32 {
-    let a: [f64, 3] = [1.0_f64, 2.0_f64, 3.0_f64];
-    let l = index();
-    let b = a[1 + index(1)];
-    printf("%f\n", b);
+    let a: [i32, 5] = [1, 2, 3, 4, 5];
+    let k = 1;
+    let b = a[k];
     return 0;
 }
