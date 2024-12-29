@@ -1,5 +1,6 @@
 use std::fmt::{Debug, Display, Formatter};
-use crate::core::code_generator::asm_result::{ASMOptions, ASMResult, ASMResultError};
+use crate::core::code_generator::asm_options::ASMOptions;
+use crate::core::code_generator::asm_result::{ASMResult, ASMResultError};
 use crate::core::io::code_line::CodeLine;
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::target_os::TargetOS;
@@ -16,7 +17,7 @@ pub mod conventions;
 pub mod register_destination;
 pub mod registers;
 pub mod asm_result;
-
+pub mod asm_options;
 
 #[derive(Debug)]
 pub enum ASMGenerateError {

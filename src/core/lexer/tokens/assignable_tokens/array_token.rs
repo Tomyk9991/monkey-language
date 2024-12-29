@@ -1,10 +1,14 @@
+use std::any::Any;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
-use crate::core::code_generator::asm_result::{ASMOptions, ASMResult, InterimResultOption};
+use crate::core::code_generator::asm_result::{ASMResult};
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, register_destination, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
+use crate::core::code_generator::asm_options::ASMOptions;
+use crate::core::code_generator::asm_options::identifier_present::IdentifierPresent;
+use crate::core::code_generator::asm_options::interim_result::InterimResultOption;
 use crate::core::code_generator::registers::{Bit64, ByteSize, GeneralPurposeRegister};
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::static_type_context::StaticTypeContext;
@@ -93,14 +97,29 @@ impl FromStr for ArrayToken {
 }
 
 impl ToASM for ArrayToken {
-    fn to_asm<T: ASMOptions + 'static>(&self, stack: &mut Stack, meta: &mut MetaInfo, _options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
+    fn to_asm<T: ASMOptions + 'static>(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
         let mut target = String::new();
         target += &ASMBuilder::ident(&ASMBuilder::comment_line(&format!("{}", self)));
 
+        let initial_position = match options {
+            Some(options) => {
+                let any_t = &options as &dyn Any;
+                if let Some(concrete_type) = any_t.downcast_ref::<IdentifierPresent>() {
+                    let stack_variable = stack.variables.iter().rfind(|v| v.name.name == concrete_type.identifier).ok_or(ASMGenerateError::InternalError("Cannot find variable".to_string()))?;
+                    stack_variable.position
+                } else {
+                    stack.stack_position
+                }
+            }
+            None => {
+                stack.stack_position
+            }
+        };
+
         let mut offset = if let [first, ..] = &self.values[..] {
-            stack.stack_position + first.byte_size(meta)
+            initial_position + first.byte_size(meta)
         } else {
-            stack.stack_position
+            initial_position
         };
 
         for assignable in self.values.iter() {

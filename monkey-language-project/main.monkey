@@ -5,8 +5,9 @@ fn index(value: i32): i32 {
 }
 
 fn main(): i32 {
-    let a: [i32, 5] = [1, 2, 3, 4, 5];
-    let k = 1;
-    let b = a[k];
+    let mut a: [i32, 5] = [1, 2, 3, 4, 5];
+    a = [5, 4, 3, 2, 1];
+    let b = a[0];
+    printf("%d\n", b);
     return 0;
 }

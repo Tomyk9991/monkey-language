@@ -7,7 +7,10 @@ use std::str::FromStr;
 
 use crate::core::code_generator::{ASMGenerateError, conventions, MetaInfo};
 use crate::core::code_generator::asm_builder::ASMBuilder;
-use crate::core::code_generator::asm_result::{ASMOptions, ASMResult, ASMResultError, ASMResultVariance, InExpressionMethodCall, InterimResultOption};
+use crate::core::code_generator::asm_options::ASMOptions;
+use crate::core::code_generator::asm_options::in_expression_method_call::InExpressionMethodCall;
+use crate::core::code_generator::asm_options::interim_result::InterimResultOption;
+use crate::core::code_generator::asm_result::{ASMResult, ASMResultError, ASMResultVariance};
 use crate::core::code_generator::conventions::CallingRegister;
 use crate::core::code_generator::generator::{Stack};
 use crate::core::code_generator::registers::{Bit64, ByteSize, GeneralPurposeRegister};

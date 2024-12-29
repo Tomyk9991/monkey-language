@@ -4,7 +4,8 @@ use std::str::FromStr;
 
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, register_destination, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
-use crate::core::code_generator::asm_result::{ASMOptions, ASMResult, ASMResultError, ASMResultVariance};
+use crate::core::code_generator::asm_options::ASMOptions;
+use crate::core::code_generator::asm_result::{ASMResult, ASMResultError, ASMResultVariance};
 use crate::core::code_generator::generator::{Stack, StackLocation};
 use crate::core::code_generator::registers::{ByteSize, GeneralPurposeRegister};
 use crate::core::lexer::tokens::assignable_token::AssignableToken;

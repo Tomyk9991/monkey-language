@@ -6,7 +6,9 @@ use uuid::Uuid;
 
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
-use crate::core::code_generator::asm_result::{ASMOptions, ASMResult, PrepareRegisterOption};
+use crate::core::code_generator::asm_options::ASMOptions;
+use crate::core::code_generator::asm_options::prepare_register::PrepareRegisterOption;
+use crate::core::code_generator::asm_result::{ASMResult};
 use crate::core::code_generator::generator::{Stack, StackLocation};
 use crate::core::code_generator::register_destination::{byte_size_from_word, word_from_byte_size};
 use crate::core::code_generator::registers::{ByteSize, GeneralPurposeRegister};
@@ -94,6 +96,7 @@ impl ToASM for NameToken {
                 }
             }
         }
+
 
         if let Some(stack_location) = stack.variables.iter().rfind(|&variable| variable.name.name == self.name.as_str()) {
             if let Some(found_variable) = meta.static_type_information.context.iter().rfind(|v| v.name_token == *self) {

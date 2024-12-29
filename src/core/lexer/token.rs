@@ -1,7 +1,8 @@
 use std::fmt::{Debug, Display, Formatter};
 
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
-use crate::core::code_generator::asm_result::{ASMOptions, ASMResult};
+use crate::core::code_generator::asm_options::ASMOptions;
+use crate::core::code_generator::asm_result::{ASMResult};
 use crate::core::code_generator::generator::Stack;
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::static_type_context::StaticTypeContext;

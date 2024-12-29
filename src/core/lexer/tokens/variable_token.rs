@@ -8,7 +8,10 @@ use anyhow::Context;
 
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, register_destination, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
-use crate::core::code_generator::asm_result::{ASMOptions, ASMResult, ASMResultError, ASMResultVariance, InterimResultOption};
+use crate::core::code_generator::asm_options::ASMOptions;
+use crate::core::code_generator::asm_options::identifier_present::IdentifierPresent;
+use crate::core::code_generator::asm_options::interim_result::InterimResultOption;
+use crate::core::code_generator::asm_result::{ASMResult, ASMResultError, ASMResultVariance};
 use crate::core::code_generator::generator::{Stack, StackLocation};
 use crate::core::code_generator::registers::{Bit64, ByteSize, GeneralPurposeRegister};
 use crate::core::io::code_line::CodeLine;
@@ -227,15 +230,19 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for VariableToken<ASSI
         let mut target = String::new();
         target += &ASMBuilder::ident(&ASMBuilder::comment_line(&format!("{}", self)));
 
-
-        let general_purpose_options  = match &self.assignable {
-            AssignableToken::ArrayToken(arr_token) if arr_token.values.len() > 1 => { None },
-            _ => Some(InterimResultOption {
-                general_purpose_register: GeneralPurposeRegister::iter_from_byte_size(self.assignable.byte_size(meta))?.current().clone(),
-            })
+        let result = match &self.assignable {
+            AssignableToken::ArrayToken(_) => {
+                self.assignable.to_asm(stack, meta, (!self.define).then_some(IdentifierPresent {
+                    identifier: self.name_token.name.clone(),
+                }))?
+            },
+            _ => {
+                let interim_options = Some(InterimResultOption {
+                    general_purpose_register: GeneralPurposeRegister::iter_from_byte_size(self.assignable.byte_size(meta))?.current().clone(),
+                });
+                self.assignable.to_asm(stack, meta, interim_options)?
+            },
         };
-
-        let result = self.assignable.to_asm(stack, meta, general_purpose_options)?;
 
         let destination = if self.define {
             let byte_size = self.assignable.byte_size(meta);
