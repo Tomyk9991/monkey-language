@@ -10,6 +10,7 @@ use monkey_language::core::lexer::tokens::assignable_tokens::integer_token::Inte
 use monkey_language::core::lexer::tokens::assignable_tokens::method_call_token::MethodCallToken;
 use monkey_language::core::lexer::tokens::assignable_tokens::object_token::ObjectToken;
 use monkey_language::core::lexer::tokens::assignable_tokens::string_token::StringToken;
+use monkey_language::core::lexer::tokens::l_value::LValue;
 use monkey_language::core::lexer::tokens::name_token::NameToken;
 use monkey_language::core::lexer::tokens::variable_token::VariableToken;
 use monkey_language::core::lexer::types::float::Float;
@@ -42,7 +43,7 @@ fn variable_test() -> anyhow::Result<()> {
     let expected = vec![
         Token::Variable(
             VariableToken {
-                name_token: NameToken { name: "fisch".to_string() },
+                l_value: LValue::Name(NameToken { name: "fisch".to_string() }),
                 mutability: false,
                 ty: Some(TypeToken::Custom(NameToken { name: String::from("*string") })),
                 define: true,
@@ -52,7 +53,7 @@ fn variable_test() -> anyhow::Result<()> {
         ),
         Token::Variable(
             VariableToken {
-                name_token: NameToken { name: "hallo".to_string() },
+                l_value: LValue::Name(NameToken { name: "hallo".to_string() }),
                 mutability: false,
                 ty: Some(TypeToken::Custom(NameToken { name: String::from("*string") })),
                 define: true,
@@ -62,7 +63,7 @@ fn variable_test() -> anyhow::Result<()> {
         ),
         Token::Variable(
             VariableToken {
-                name_token: NameToken { name: "tschuess".to_string() },
+                l_value: LValue::Name(NameToken { name: "tschuess".to_string() }),
                 mutability: false,
                 ty: Some(TypeToken::Integer(Integer::I32)),
                 define: true,
@@ -72,7 +73,7 @@ fn variable_test() -> anyhow::Result<()> {
         ),
         Token::Variable(
             VariableToken {
-                name_token: NameToken { name: "mallo".to_string() },
+                l_value: LValue::Name(NameToken { name: "mallo".to_string() }),
                 mutability: false,
                 ty: Some(TypeToken::Custom(NameToken { name: String::from("*string") })),
                 define: true,
@@ -82,14 +83,14 @@ fn variable_test() -> anyhow::Result<()> {
         ),
         Token::Variable(
             VariableToken {
-                name_token: NameToken { name: "michi".to_string() },
+                l_value: LValue::Name(NameToken { name: "michi".to_string() }),
                 mutability: false,
                 ty: Some(TypeToken::Custom(NameToken { name: "Data".to_string() })),
                 define: true,
                 assignable: AssignableToken::Object(ObjectToken {
                     variables: vec![
                         VariableToken {
-                            name_token: NameToken { name: "guten".to_string() },
+                            l_value: LValue::Name(NameToken { name: "guten".to_string() }),
                             mutability: false,
                             ty: Some(TypeToken::Custom(NameToken { name: String::from("*string") })),
                             define: false,
@@ -97,7 +98,7 @@ fn variable_test() -> anyhow::Result<()> {
                             code_line: CodeLine { line: "guten : \"Hallo\" ,".to_string(), actual_line_number: 0..0, virtual_line_number: 0 },
                         },
                         VariableToken {
-                            name_token: NameToken { name: "ciau".to_string() },
+                            l_value: LValue::Name(NameToken { name: "ciau".to_string() }),
                             mutability: false,
                             ty: Some(TypeToken::Integer(Integer::I32)),
                             define: false,
@@ -105,7 +106,7 @@ fn variable_test() -> anyhow::Result<()> {
                             code_line: CodeLine { line: "ciau : 5 ,".to_string(), actual_line_number: 0..0, virtual_line_number: 0 },
                         },
                         VariableToken {
-                            name_token: NameToken { name: "rofl".to_string() },
+                            l_value: LValue::Name(NameToken { name: "rofl".to_string() }),
                             mutability: false,
                             ty: None,
                             define: false,
@@ -119,7 +120,7 @@ fn variable_test() -> anyhow::Result<()> {
                             code_line: CodeLine { line: "rofl : name ( ) ,".to_string(), actual_line_number: 0..0, virtual_line_number: 0 },
                         },
                         VariableToken {
-                            name_token: NameToken { name: "mofl".to_string() },
+                            l_value: LValue::Name(NameToken { name: "mofl".to_string() }),
                             mutability: false,
                             ty: None,
                             define: false,
@@ -152,7 +153,7 @@ fn variable_test() -> anyhow::Result<()> {
         ),
         Token::Variable(
             VariableToken {
-                name_token: NameToken { name: "value".to_string() },
+                l_value: LValue::Name(NameToken { name: "value".to_string() }),
                 mutability: false,
                 ty: Some(TypeToken::Integer(Integer::I32)),
                 define: true,
@@ -162,7 +163,7 @@ fn variable_test() -> anyhow::Result<()> {
         ),
         Token::Variable(
             VariableToken {
-                name_token: NameToken { name: "ref_value".to_string() },
+                l_value: LValue::Name(NameToken { name: "ref_value".to_string() }),
                 mutability: false,
                 ty: Some(TypeToken::Custom(NameToken { name: "*i32".to_string() })),
                 define: true,
@@ -189,7 +190,7 @@ fn variable_test() -> anyhow::Result<()> {
         // let pointer_arithmetic = *ref_value + 1;
         Token::Variable(
             VariableToken {
-                name_token: NameToken { name: "pointer_arithmetic".to_string() },
+                l_value: LValue::Name(NameToken { name: "pointer_arithmetic".to_string() }),
                 mutability: false,
                 ty: Some(TypeToken::Integer(Integer::I32)),
                 define: true,

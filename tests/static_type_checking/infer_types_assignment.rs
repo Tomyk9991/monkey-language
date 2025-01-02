@@ -9,6 +9,7 @@ use monkey_language::core::lexer::tokens::assignable_tokens::equation_parser::op
 use monkey_language::core::lexer::tokens::assignable_tokens::integer_token::IntegerToken;
 use monkey_language::core::lexer::tokens::assignable_tokens::method_call_token::MethodCallToken;
 use monkey_language::core::lexer::tokens::if_token::IfToken;
+use monkey_language::core::lexer::tokens::l_value::LValue;
 use monkey_language::core::lexer::tokens::method_definition::MethodDefinition;
 use monkey_language::core::lexer::tokens::name_token::NameToken;
 use monkey_language::core::lexer::tokens::return_token::ReturnToken;
@@ -33,7 +34,7 @@ fn infer_type_assignment() -> anyhow::Result<()> {
 
     let expected: Vec<Token> = vec![
         Token::Variable(VariableToken {
-            name_token: NameToken { name: "a".to_string() },
+            l_value: LValue::Name(NameToken { name: "a".to_string() }),
             mutability: false,
             ty: Some(TypeToken::Integer(Integer::I32)),
             define: true,
@@ -45,7 +46,7 @@ fn infer_type_assignment() -> anyhow::Result<()> {
             },
         }),
         Token::Variable(VariableToken {
-            name_token: NameToken { name: "c".to_string() },
+            l_value: LValue::Name(NameToken { name: "c".to_string() }),
             mutability: false,
             ty: Some(TypeToken::Integer(Integer::I32)),
             define: true,
@@ -83,7 +84,7 @@ fn infer_type_assignment_in_scope() -> anyhow::Result<()> {
             condition: AssignableToken::BooleanToken(BooleanToken { value: true }),
             if_stack: vec![
                 Token::Variable(VariableToken {
-                    name_token: NameToken { name: "a".to_string() },
+                    l_value: LValue::Name(NameToken { name: "a".to_string() }),
                     mutability: false,
                     ty: Some(TypeToken::Integer(Integer::I32)),
                     define: true,
@@ -95,7 +96,7 @@ fn infer_type_assignment_in_scope() -> anyhow::Result<()> {
                     },
                 }),
                 Token::Variable(VariableToken {
-                    name_token: NameToken { name: "c".to_string() },
+                    l_value: LValue::Name(NameToken { name: "c".to_string() }),
                     mutability: false,
                     ty: Some(TypeToken::Integer(Integer::I32)),
                     define: true,
@@ -147,7 +148,7 @@ fn infer_type_assignment_in_scope_complex() -> anyhow::Result<()> {
             code_line: CodeLine { line: "fn constant_1 (  )  :  i32 {".to_string(), actual_line_number: 2..2, virtual_line_number: 1 },
         }),
         Token::Variable(VariableToken {
-            name_token: NameToken { name: "a".to_string() },
+            l_value: LValue::Name(NameToken { name: "a".to_string() }),
             mutability: false,
             ty: Some(TypeToken::Integer(Integer::I32)),
             define: true,
@@ -161,7 +162,7 @@ fn infer_type_assignment_in_scope_complex() -> anyhow::Result<()> {
             condition: AssignableToken::BooleanToken(BooleanToken { value: true }),
             if_stack: vec![
                 Token::Variable(VariableToken::<'=', ';'> {
-                    name_token: NameToken { name: "a".to_string() },
+                    l_value: LValue::Name(NameToken { name: "a".to_string() }),
                     mutability: false,
                     ty: Some(TypeToken::Integer(Integer::I32)),
                     define: true,
@@ -205,7 +206,7 @@ fn infer_type_assignment_in_scope_complex() -> anyhow::Result<()> {
                     }),
                 }),
                 Token::Variable(VariableToken {
-                    name_token: NameToken { name: "c".to_string() },
+                    l_value: LValue::Name(NameToken { name: "c".to_string() }),
                     mutability: false,
                     ty: Some(TypeToken::Integer(Integer::I32)),
                     define: true,
@@ -272,7 +273,7 @@ fn infer_type_assignment_in_scope_complex_in_method() -> anyhow::Result<()> {
                     condition: AssignableToken::BooleanToken(BooleanToken { value: true }),
                     if_stack: vec![
                         Token::Variable(VariableToken::<'=', ';'> {
-                            name_token: NameToken { name: "a".to_string() },
+                            l_value: LValue::Name(NameToken { name: "a".to_string() }),
                             mutability: false,
                             ty: Some(TypeToken::Integer(Integer::I32)),
                             define: true,
@@ -316,7 +317,7 @@ fn infer_type_assignment_in_scope_complex_in_method() -> anyhow::Result<()> {
                             }),
                         }),
                         Token::Variable(VariableToken {
-                            name_token: NameToken { name: "c".to_string() },
+                            l_value: LValue::Name(NameToken { name: "c".to_string() }),
                             mutability: false,
                             ty: Some(TypeToken::Integer(Integer::I32)),
                             define: true,
@@ -347,7 +348,7 @@ fn infer_type_assignment_in_scope_complex_in_method() -> anyhow::Result<()> {
             },
         }),
         Token::Variable(VariableToken {
-            name_token: NameToken { name: "a".to_string() },
+            l_value: LValue::Name(NameToken { name: "a".to_string() }),
             mutability: false,
             ty: Some(TypeToken::Integer(Integer::I32)),
             define: true,

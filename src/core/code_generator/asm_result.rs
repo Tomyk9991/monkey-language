@@ -11,7 +11,6 @@ pub enum ASMResult {
     Multiline(String),
 }
 
-
 pub struct ApplyWith<'a> {
     value: &'a ASMResult,
     target: &'a mut String,
@@ -56,7 +55,7 @@ impl<'a> ApplyWith<'a> {
         self
     }
 
-    pub fn token(&'a mut self, token: &str) -> ApplyWithToken {
+    pub fn token(&'a mut self, token: &str) -> ApplyWithToken<'a> {
         self.token = token.to_owned();
 
         ApplyWithToken {
@@ -66,13 +65,25 @@ impl<'a> ApplyWith<'a> {
 }
 
 impl ASMResult {
-    pub fn apply_with<'a>(&'a self, target: &'a mut String) -> ApplyWith {
+    pub fn apply_with<'a>(&'a self, target: &'a mut String) -> ApplyWith<'a> {
         ApplyWith {
             value: self,
             target,
             actual: ASMResultVariance::from(self),
             allowed: vec![],
             token: "".to_string(),
+        }
+    }
+
+    pub fn remove_latest_line(&mut self) {
+        match self {
+            ASMResult::Inline(_) => {}
+            ASMResult::MultilineResulted(a, _) | ASMResult::Multiline(a) => {
+                let mut lines = a.lines().collect::<Vec<&str>>();
+                lines.pop();
+                *a = lines.join("\n");
+                a.push_str("\n");
+            }
         }
     }
 }

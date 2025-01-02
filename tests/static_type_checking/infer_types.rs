@@ -8,6 +8,7 @@ use monkey_language::core::lexer::tokens::assignable_tokens::float_token::FloatT
 use monkey_language::core::lexer::tokens::assignable_tokens::integer_token::IntegerToken;
 use monkey_language::core::lexer::tokens::assignable_tokens::string_token::StringToken;
 use monkey_language::core::lexer::tokens::if_token::IfToken;
+use monkey_language::core::lexer::tokens::l_value::LValue;
 use monkey_language::core::lexer::tokens::name_token::NameToken;
 use monkey_language::core::lexer::tokens::variable_token::VariableToken;
 use monkey_language::core::lexer::types::float::Float;
@@ -33,7 +34,7 @@ fn infer_type() -> anyhow::Result<()> {
 
     let expected: Vec<Token> = vec![
         Token::Variable(VariableToken {
-            name_token: NameToken { name: "a".to_string() },
+            l_value: LValue::Name(NameToken { name: "a".to_string() }),
             mutability: false,
             ty: Some(TypeToken::Integer(Integer::I32)),
             define: true,
@@ -45,7 +46,7 @@ fn infer_type() -> anyhow::Result<()> {
             },
         }),
         Token::Variable(VariableToken {
-            name_token: NameToken { name: "b".to_string() },
+            l_value: LValue::Name(NameToken { name: "b".to_string() }),
             mutability: false,
             ty: Some(TypeToken::Float(Float::Float32)),
             define: true,
@@ -57,7 +58,7 @@ fn infer_type() -> anyhow::Result<()> {
             },
         }),
         Token::Variable(VariableToken {
-            name_token: NameToken { name: "c".to_string() },
+            l_value: LValue::Name(NameToken { name: "c".to_string() }),
             mutability: false,
             ty: Some(TypeToken::Bool),
             define: true,
@@ -69,7 +70,7 @@ fn infer_type() -> anyhow::Result<()> {
             },
         }),
         Token::Variable(VariableToken {
-            name_token: NameToken { name: "d".to_string() },
+            l_value: LValue::Name(NameToken { name: "d".to_string() }),
             mutability: false,
             ty: Some(TypeToken::Custom(NameToken { name: String::from("*string") })),
             define: true,
@@ -109,7 +110,7 @@ fn infer_type_in_scope() -> anyhow::Result<()> {
             condition: AssignableToken::BooleanToken(BooleanToken { value: true }),
             if_stack: vec![
                 Token::Variable(VariableToken {
-                    name_token: NameToken { name: "a".to_string() },
+                    l_value: LValue::Name(NameToken { name: "a".to_string() }),
                     mutability: false,
                     ty: Some(TypeToken::Integer(Integer::I32)),
                     define: true,
@@ -121,7 +122,7 @@ fn infer_type_in_scope() -> anyhow::Result<()> {
                     },
                 }),
                 Token::Variable(VariableToken {
-                    name_token: NameToken { name: "b".to_string() },
+                    l_value: LValue::Name(NameToken { name: "b".to_string() }),
                     mutability: false,
                     ty: Some(TypeToken::Float(Float::Float32)),
                     define: true,
@@ -133,7 +134,7 @@ fn infer_type_in_scope() -> anyhow::Result<()> {
                     },
                 }),
                 Token::Variable(VariableToken {
-                    name_token: NameToken { name: "c".to_string() },
+                    l_value: LValue::Name(NameToken { name: "c".to_string() }),
                     mutability: false,
                     ty: Some(TypeToken::Bool),
                     define: true,
@@ -145,7 +146,7 @@ fn infer_type_in_scope() -> anyhow::Result<()> {
                     },
                 }),
                 Token::Variable(VariableToken {
-                    name_token: NameToken { name: "d".to_string() },
+                    l_value: LValue::Name(NameToken { name: "d".to_string() }),
                     mutability: false,
                     ty: Some(TypeToken::Custom(NameToken { name: String::from("*string") })),
                     define: true,

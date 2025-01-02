@@ -5,6 +5,7 @@ use crate::core::lexer::scope::{Scope, ScopeError};
 use crate::core::lexer::static_type_context::StaticTypeContext;
 use crate::core::lexer::token::Token;
 use crate::core::lexer::tokens::assignable_token::AssignableToken;
+use crate::core::lexer::tokens::l_value::LValue;
 use crate::core::lexer::tokens::method_definition::MethodDefinition;
 use crate::core::lexer::tokens::parameter_token::ParameterToken;
 use crate::core::lexer::tokens::variable_token::VariableToken;
@@ -70,19 +71,19 @@ impl Lexer {
         for method in methods.iter_mut() {
             let calling_convention = calling_convention_from(unsafe { &(*(*method)) }, &TargetOS::Windows);
 
-            for (index, (argument_name, argument_type)) in unsafe { &(*(*method)) }.arguments.iter().enumerate() {
+            for (index, argument) in unsafe { &(*(*method)) }.arguments.iter().enumerate() {
                 let parameter_token = ParameterToken {
-                    name_token: argument_name.clone(),
-                    ty: argument_type.clone(),
+                    name_token: argument.name.clone(),
+                    ty: argument.type_token.clone(),
                     register: calling_convention[index][0].clone(),
-                    mutablility: false,
+                    mutability: argument.mutability,
                     code_line: unsafe { &(*(*method)) }.code_line.clone(),
                 };
 
                 type_context.context.push(VariableToken {
-                    name_token: argument_name.clone(),
-                    mutability: false,
-                    ty: Some(argument_type.clone()),
+                    l_value: LValue::Name(argument.name.clone()),
+                    mutability: argument.mutability,
+                    ty: Some(argument.type_token.clone()),
                     define: true,
                     assignable: AssignableToken::Parameter(parameter_token),
                     code_line: unsafe { &(*(*method)) }.code_line.clone(),

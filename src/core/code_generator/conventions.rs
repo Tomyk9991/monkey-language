@@ -81,7 +81,7 @@ fn windows_calling_convention(_stack: &mut Stack, meta: &MetaInfo, calling_argum
         return Err(InferTypeError::MethodCallSignatureMismatch {
             signatures: meta.static_type_information.methods
                 .iter().filter(|m| m.name.name == method_name)
-                .map(|m| m.arguments.iter().map(|a| a.1.clone()).collect::<Vec<_>>())
+                .map(|m| m.arguments.iter().map(|a| a.type_token.clone()).collect::<Vec<_>>())
                 .collect::<Vec<_>>(),
             method_name: NameToken { name: method_name.to_string() },
             code_line: meta.code_line.clone(),
@@ -136,9 +136,9 @@ pub fn method_definitions(meta: &StaticTypeContext, code_line: &CodeLine, argume
             continue;
         }
 
-        for (index, (_, argument_type)) in method.arguments.iter().enumerate() {
+        for (index, argument) in method.arguments.iter().enumerate() {
             let calling_type = arguments[index].infer_type_with_context(meta, code_line)?;
-            if *argument_type != calling_type {
+            if argument.type_token != calling_type {
                 continue 'outer;
             }
         }
@@ -166,8 +166,8 @@ fn windows_calling_convention_from(method_definition: &MethodDefinition) -> Vec<
 
     let mut result = vec![];
 
-    for (index, (_, calling_type)) in method_definition.arguments.iter().enumerate() {
-        match calling_type {
+    for (index, argument) in method_definition.arguments.iter().enumerate() {
+        match argument.type_token {
             TypeToken::Integer(_) | TypeToken::Bool | TypeToken::Custom(_) | TypeToken::Array(_, _) => {
                 if index < 4 {
                     result.push(vec![POINTER_ORDER[index].clone()]);

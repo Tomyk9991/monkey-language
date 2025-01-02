@@ -15,6 +15,7 @@ use crate::core::code_generator::registers::{ByteSize, GeneralPurposeRegister};
 use crate::core::constants::KEYWORDS;
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::static_type_context::StaticTypeContext;
+use crate::core::lexer::tokens::l_value::LValue;
 use crate::core::lexer::types::type_token::{InferTypeError, TypeToken};
 
 /// Token for a name. Basically a string that can be used as a variable name.
@@ -74,11 +75,17 @@ impl NameToken {
     }
 
     pub fn infer_type_with_context(&self, context: &StaticTypeContext, code_line: &CodeLine) -> Result<TypeToken, InferTypeError> {
-        if let Some(v) = context.iter().rfind(|v| v.name_token == *self) {
+        if let Some(v) = context.iter().rfind(|v| {
+            if let LValue::Name(n) = &v.l_value {
+                n.name == *self.name
+            } else {
+                false
+            }
+        }) {
             return if let Some(ty) = &v.ty {
                 Ok(ty.clone())
             } else {
-                Err(InferTypeError::NoTypePresent(v.name_token.clone(), v.code_line.clone()))
+                Err(InferTypeError::NoTypePresent(v.l_value.clone(), v.code_line.clone()))
             };
         }
 
@@ -99,7 +106,13 @@ impl ToASM for NameToken {
 
 
         if let Some(stack_location) = stack.variables.iter().rfind(|&variable| variable.name.name == self.name.as_str()) {
-            if let Some(found_variable) = meta.static_type_information.context.iter().rfind(|v| v.name_token == *self) {
+            if let Some(found_variable) = meta.static_type_information.context.iter().rfind(|v| {
+                if let LValue::Name(n) = &v.l_value {
+                    n.name == *self.name
+                } else {
+                    false
+                }
+            }) {
                 if let Some(ty) = &found_variable.ty {
                     let operand_hint = word_from_byte_size(ty.byte_size());
                     let element_size = stack_location.size / stack_location.elements;
@@ -139,7 +152,13 @@ impl ToASM for NameToken {
     }
 
     fn byte_size(&self, meta: &mut MetaInfo) -> usize {
-        if let Some(v) = meta.static_type_information.iter().rfind(|v| v.name_token == *self) {
+        if let Some(v) = meta.static_type_information.iter().rfind(|v| {
+            if let LValue::Name(n) = &v.l_value {
+                n.name == *self.name
+            } else {
+                false
+            }
+        }) {
             if let Some(ty) = &v.ty {
                 return ty.byte_size();
             }

@@ -119,6 +119,9 @@ impl ToASM for PrefixArithmetic {
                         } else {
                             Ok(ASMResult::MultilineResulted(options.target.clone(), options.register_64.to_size_register_ignore_float(&ByteSize::try_from(cast_to.to.byte_size())?)))
                         }
+                    },
+                    PrefixArithmetic::Operation(Operator::Noop) => {
+                        return Ok(ASMResult::MultilineResulted(options.target.clone(), options.register_64.clone()));
                     }
                     PrefixArithmetic::Operation(_) => unimplemented!("Not finished yet"),
                 }

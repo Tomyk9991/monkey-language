@@ -144,7 +144,7 @@ impl StaticTypeCheck for MethodCallToken {
                 .zip(&self.arguments);
 
             for (index, (argument_def, argument_call)) in zipped.enumerate() {
-                let def_type = argument_def.1.clone();
+                let def_type = argument_def.type_token.clone();
                 let call_type = argument_call.infer_type_with_context(type_context, &self.code_line)?;
 
                 if def_type != call_type {
@@ -172,7 +172,7 @@ impl StaticTypeCheck for MethodCallToken {
 
         let signatures = method_defs
             .iter()
-            .map(|m| m.arguments.iter().map(|a| a.1.clone()).collect::<Vec<_>>())
+            .map(|m| m.arguments.iter().map(|a| a.type_token.clone()).collect::<Vec<_>>())
             .collect::<Vec<_>>();
 
         Err(StaticTypeCheckError::InferredError(InferTypeError::MethodCallSignatureMismatch {
@@ -243,7 +243,7 @@ impl ToASM for MethodCallToken {
             return Err(ASMGenerateError::TypeNotInferrable(InferTypeError::MethodCallSignatureMismatch {
                 signatures: meta.static_type_information.methods
                     .iter().filter(|m| m.name.name == self.name.name)
-                    .map(|m| m.arguments.iter().map(|a| a.1.clone()).collect::<Vec<_>>())
+                    .map(|m| m.arguments.iter().map(|a| a.type_token.clone()).collect::<Vec<_>>())
                     .collect::<Vec<_>>(),
                 method_name: self.name.clone(),
                 code_line: meta.code_line.clone(),

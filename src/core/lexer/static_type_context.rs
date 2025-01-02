@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::ops::{Deref, DerefMut, Range};
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::token::Token;
+use crate::core::lexer::tokens::l_value::LValue;
 use crate::core::lexer::tokens::method_definition::{MethodDefinition};
 use crate::core::lexer::tokens::variable_token::VariableToken;
 use crate::core::lexer::types::type_token::{InferTypeError, TypeToken};
@@ -36,20 +37,24 @@ impl StaticTypeContext {
             let context = StaticTypeContext::new(&method.stack);
             let mut hash_map: HashMap<&str, (usize, &CodeLine)> = HashMap::new();
 
-            for (argument_name, _) in &method.arguments {
-                if let Some((counter, _)) = hash_map.get_mut(argument_name.name.as_str()) {
+            for argument in &method.arguments {
+                if let Some((counter, _)) = hash_map.get_mut(argument.name.name.as_str()) {
                     *counter += 1;
                 } else {
-                    hash_map.insert(&argument_name.name, (1, &method.code_line));
+                    hash_map.insert(&argument.name.name, (1, &method.code_line));
                 }
             }
 
             for variable in &context.context {
                 if !variable.define { continue; }
-                if let Some((counter, _)) = hash_map.get_mut(variable.name_token.name.as_str()) {
+                let value = match &variable.l_value {
+                    LValue::Name(a) => a.name.as_str(),
+                    _ => continue,
+                };
+                if let Some((counter, _)) = hash_map.get_mut(value) {
                     *counter += 1;
                 } else {
-                    hash_map.insert(&variable.name_token.name, (1, &variable.code_line));
+                    hash_map.insert(value, (1, &variable.code_line));
                 }
             }
 

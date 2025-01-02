@@ -5,7 +5,8 @@ use monkey_language::core::lexer::tokenizer::Lexer;
 use monkey_language::core::lexer::tokens::assignable_token::AssignableToken;
 use monkey_language::core::lexer::tokens::assignable_tokens::integer_token::IntegerToken;
 use monkey_language::core::lexer::tokens::assignable_tokens::string_token::StringToken;
-use monkey_language::core::lexer::tokens::method_definition::MethodDefinition;
+use monkey_language::core::lexer::tokens::l_value::LValue;
+use monkey_language::core::lexer::tokens::method_definition::{MethodArgument, MethodDefinition};
 use monkey_language::core::lexer::tokens::name_token::NameToken;
 use monkey_language::core::lexer::tokens::variable_token::VariableToken;
 use monkey_language::core::lexer::types::integer::Integer;
@@ -30,12 +31,20 @@ fn function_test() -> anyhow::Result<()> {
             name: NameToken { name: "method_name".to_string() },
             return_type: TypeToken::Void,
             arguments: vec![
-                (NameToken { name: "variable".to_string() }, TypeToken::Integer(Integer::I32)),
-                (NameToken { name: "variable".to_string() }, TypeToken::Integer(Integer::I32)),
+                MethodArgument {
+                    name: NameToken { name: "variable".to_string() },
+                    type_token: TypeToken::Integer(Integer::I32),
+                    mutability: false,
+                },
+                MethodArgument {
+                    name: NameToken { name: "variable".to_string() },
+                    type_token: TypeToken::Integer(Integer::I32),
+                    mutability: false,
+                },
             ],
             stack: vec![
                 Token::Variable(VariableToken {
-                    name_token: NameToken { name: "function_variable_one".to_string() },
+                    l_value: LValue::Name(NameToken { name: "function_variable_one".to_string() }),
                     mutability: false,
                     ty: Some(TypeToken::Integer(Integer::I32)),
                     define: true,
@@ -43,7 +52,7 @@ fn function_test() -> anyhow::Result<()> {
                     code_line: CodeLine { line: "let function_variable_one = 10 ;".to_string(), actual_line_number: 3..3, virtual_line_number: 2 },
                 }),
                 Token::Variable(VariableToken {
-                    name_token: NameToken { name: "function_variable_two".to_string() },
+                    l_value: LValue::Name(NameToken { name: "function_variable_two".to_string() }),
                     mutability: false,
                     ty: Some(TypeToken::Integer(Integer::I32)),
                     define: true,
@@ -88,10 +97,18 @@ fn multiple_functions_test() -> anyhow::Result<()> {
             name: NameToken { name: "f".to_string() },
             return_type: TypeToken::Void,
             arguments: vec![
-                (NameToken { name: "variable1".to_string() }, TypeToken::Integer(Integer::I32)),
-                (NameToken { name: "variable2".to_string() }, TypeToken::Custom(NameToken { name: "Data".to_string() })),
+                MethodArgument {
+                    name: NameToken { name: "variable1".to_string() },
+                    type_token: TypeToken::Integer(Integer::I32),
+                    mutability: false,
+                },
+                MethodArgument {
+                    name: NameToken { name: "variable2".to_string() },
+                    type_token: TypeToken::Custom(NameToken { name: "Data".to_string() }),
+                    mutability: false,
+                },
             ],
-            stack: vec![Token::Variable(VariableToken { name_token: NameToken { name: "function_variable_one".to_string() }, mutability: false, ty: Some(TypeToken::Integer(Integer::I32)), define: true, assignable: AssignableToken::IntegerToken(IntegerToken { value: "10".to_string(), ty: Integer::I32 }), code_line: CodeLine { line: "let function_variable_one = 10 ;".to_string(), actual_line_number: 4..4, virtual_line_number: 2 } })],
+            stack: vec![Token::Variable(VariableToken { l_value: LValue::Name(NameToken { name: "function_variable_one".to_string() }), mutability: false, ty: Some(TypeToken::Integer(Integer::I32)), define: true, assignable: AssignableToken::IntegerToken(IntegerToken { value: "10".to_string(), ty: Integer::I32 }), code_line: CodeLine { line: "let function_variable_one = 10 ;".to_string(), actual_line_number: 4..4, virtual_line_number: 2 } })],
             is_extern: false,
             code_line: CodeLine { line: "fn f ( variable1 :  i32 ,  variable2 :  Data )  :  void {".to_string(), actual_line_number: 2..3, virtual_line_number: 1 },
         }),
@@ -101,10 +118,18 @@ fn multiple_functions_test() -> anyhow::Result<()> {
             },
             return_type: TypeToken::Void,
             arguments: vec![
-                (NameToken { name: "variable1".to_string() }, TypeToken::Bool),
-                (NameToken { name: "variable2".to_string() }, TypeToken::Custom(NameToken { name: String::from("*string") })),
+                MethodArgument {
+                    name: NameToken { name: "variable1".to_string() },
+                    type_token: TypeToken::Bool,
+                    mutability: false,
+                },
+                MethodArgument {
+                    name: NameToken { name: "variable2".to_string() },
+                    type_token: TypeToken::Custom(NameToken { name: "*string".to_string() }),
+                    mutability: false,
+                },
             ],
-            stack: vec![Token::Variable(VariableToken { name_token: NameToken { name: "function_variable_one".to_string() }, mutability: false, ty: Some(TypeToken::Integer(Integer::I32)), define: true, assignable: AssignableToken::IntegerToken(IntegerToken { value: "10".to_string(), ty: Integer::I32 }), code_line: CodeLine { line: "let function_variable_one = 10 ;".to_string(), actual_line_number: 8..8, virtual_line_number: 5 } }), Token::Variable(VariableToken { name_token: NameToken { name: "function_variable_two".to_string() }, mutability: false, ty: Some(TypeToken::Integer(Integer::I32)), define: true, assignable: AssignableToken::IntegerToken(IntegerToken { value: "2".to_string(), ty: Integer::I32 }), code_line: CodeLine { line: "let function_variable_two = 2 ;".to_string(), actual_line_number: 9..9, virtual_line_number: 6 } })],
+            stack: vec![Token::Variable(VariableToken { l_value: LValue::Name(NameToken { name: "function_variable_one".to_string() }), mutability: false, ty: Some(TypeToken::Integer(Integer::I32)), define: true, assignable: AssignableToken::IntegerToken(IntegerToken { value: "10".to_string(), ty: Integer::I32 }), code_line: CodeLine { line: "let function_variable_one = 10 ;".to_string(), actual_line_number: 8..8, virtual_line_number: 5 } }), Token::Variable(VariableToken { l_value: LValue::Name(NameToken { name: "function_variable_two".to_string() }), mutability: false, ty: Some(TypeToken::Integer(Integer::I32)), define: true, assignable: AssignableToken::IntegerToken(IntegerToken { value: "2".to_string(), ty: Integer::I32 }), code_line: CodeLine { line: "let function_variable_two = 2 ;".to_string(), actual_line_number: 9..9, virtual_line_number: 6 } })],
             is_extern: false,
             code_line: CodeLine { line: "fn method_name ( variable1 :  bool ,  variable2 :  *string )  :  void {".to_string(), actual_line_number: 7..7, virtual_line_number: 4 },
         }),
@@ -136,11 +161,19 @@ fn function_different_return_type_test() -> anyhow::Result<()> {
             name: NameToken { name: "f".to_string() },
             return_type: TypeToken::Custom(NameToken { name: String::from("*string") }),
             arguments: vec![
-                (NameToken { name: "variable1".to_string() }, TypeToken::Integer(Integer::I32)),
-                (NameToken { name: "variable2".to_string() }, TypeToken::Integer(Integer::I32)),
+                MethodArgument {
+                    name: NameToken { name: "variable1".to_string() },
+                    type_token: TypeToken::Integer(Integer::I32),
+                    mutability: false,
+                },
+                MethodArgument {
+                    name: NameToken { name: "variable2".to_string() },
+                    type_token: TypeToken::Integer(Integer::I32),
+                    mutability: false,
+                },
             ],
             stack: vec![
-                Token::Variable(VariableToken { name_token: NameToken { name: "function_variable_zero".to_string() }, mutability: false, ty: Some(TypeToken::Custom(NameToken { name: String::from("*string") })), define: true, assignable: AssignableToken::String(StringToken { value: "\"Hallo\"".to_string() }), code_line: CodeLine { line: "let function_variable_zero = \"Hallo\" ;".to_string(), actual_line_number: 4..4, virtual_line_number: 2 } }),
+                Token::Variable(VariableToken { l_value: LValue::Name(NameToken { name: "function_variable_zero".to_string() }), mutability: false, ty: Some(TypeToken::Custom(NameToken { name: String::from("*string") })), define: true, assignable: AssignableToken::String(StringToken { value: "\"Hallo\"".to_string() }), code_line: CodeLine { line: "let function_variable_zero = \"Hallo\" ;".to_string(), actual_line_number: 4..4, virtual_line_number: 2 } }),
             ],
             is_extern: false,
             code_line: CodeLine { line: "fn f ( variable1 :  i32 ,  variable2 :  i32 )  :  *string {".to_string(), actual_line_number: 2..3, virtual_line_number: 1 },
@@ -174,21 +207,36 @@ fn function_in_function_test() -> anyhow::Result<()> {
             name: NameToken { name: "f".to_string() },
             return_type: TypeToken::Void,
             arguments: vec![
-                (NameToken { name: "variable1".to_string() }, TypeToken::Integer(Integer::I32)),
-                (NameToken { name: "variable2".to_string() }, TypeToken::Integer(Integer::I32)),
+                MethodArgument {
+                    name: NameToken { name: "variable1".to_string() },
+                    type_token: TypeToken::Integer(Integer::I32),
+                    mutability: false,
+                },
+                MethodArgument {
+                    name: NameToken { name: "variable2".to_string() },
+                    type_token: TypeToken::Integer(Integer::I32),
+                    mutability: false,
+                }
             ],
             stack: vec![
-                Token::Variable(VariableToken { name_token: NameToken { name: "function_variable_zero".to_string() }, mutability: false, ty: Some(TypeToken::Custom(NameToken { name: String::from("*string") })), define: true, assignable: AssignableToken::String(StringToken { value: "\"Hallo\"".to_string() }), code_line: CodeLine { line: "let function_variable_zero = \"Hallo\" ;".to_string(), actual_line_number: 4..4, virtual_line_number: 2 } }),
+                Token::Variable(VariableToken { l_value: LValue::Name(NameToken { name: "function_variable_zero".to_string() }), mutability: false, ty: Some(TypeToken::Custom(NameToken { name: String::from("*string") })), define: true, assignable: AssignableToken::String(StringToken { value: "\"Hallo\"".to_string() }), code_line: CodeLine { line: "let function_variable_zero = \"Hallo\" ;".to_string(), actual_line_number: 4..4, virtual_line_number: 2 } }),
                 Token::MethodDefinition(MethodDefinition {
                     name: NameToken { name: "method_name".to_string() },
                     return_type: TypeToken::Void,
                     arguments: vec![
-                        (NameToken { name: "variable1".to_string() }, TypeToken::Integer(Integer::I32)),
-                        (NameToken { name: "variable2".to_string() }, TypeToken::Integer(Integer::I32)),
+                        MethodArgument {
+                            name: NameToken { name: "variable1".to_string() },
+                            type_token: TypeToken::Integer(Integer::I32),
+                            mutability: false,
+                        }, MethodArgument {
+                            name: NameToken { name: "variable2".to_string() },
+                            type_token: TypeToken::Integer(Integer::I32),
+                            mutability: false,
+                        }
                     ],
                     stack: vec![
-                        Token::Variable(VariableToken { name_token: NameToken { name: "function_variable_one".to_string() }, mutability: false, ty: Some(TypeToken::Integer(Integer::I32)), define: true, assignable: AssignableToken::IntegerToken(IntegerToken { value: "10".to_string(), ty: Integer::I32 }), code_line: CodeLine { line: "let function_variable_one = 10 ;".to_string(), actual_line_number: 6..6, virtual_line_number: 4 } }),
-                        Token::Variable(VariableToken { name_token: NameToken { name: "function_variable_two".to_string() }, mutability: false, ty: Some(TypeToken::Integer(Integer::I32)), define: true, assignable: AssignableToken::IntegerToken(IntegerToken { value: "2".to_string(), ty: Integer::I32 }), code_line: CodeLine { line: "let function_variable_two = 2 ;".to_string(), actual_line_number: 7..7, virtual_line_number: 5 } }),
+                        Token::Variable(VariableToken { l_value: LValue::Name(NameToken { name: "function_variable_one".to_string() }), mutability: false, ty: Some(TypeToken::Integer(Integer::I32)), define: true, assignable: AssignableToken::IntegerToken(IntegerToken { value: "10".to_string(), ty: Integer::I32 }), code_line: CodeLine { line: "let function_variable_one = 10 ;".to_string(), actual_line_number: 6..6, virtual_line_number: 4 } }),
+                        Token::Variable(VariableToken { l_value: LValue::Name(NameToken { name: "function_variable_two".to_string() }), mutability: false, ty: Some(TypeToken::Integer(Integer::I32)), define: true, assignable: AssignableToken::IntegerToken(IntegerToken { value: "2".to_string(), ty: Integer::I32 }), code_line: CodeLine { line: "let function_variable_two = 2 ;".to_string(), actual_line_number: 7..7, virtual_line_number: 5 } }),
                     ],
                     is_extern: false,
                     code_line: CodeLine { line: "fn method_name ( variable1 :  i32 ,  variable2 :  i32 )  :  void {".to_string(), actual_line_number: 5..5, virtual_line_number: 3 },

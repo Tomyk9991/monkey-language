@@ -10,6 +10,7 @@ use crate::core::lexer::scope::Scope;
 use crate::core::lexer::static_type_context::StaticTypeContext;
 use crate::core::lexer::token::Token;
 use crate::core::lexer::tokens::assignable_token::AssignableToken;
+use crate::core::lexer::tokens::l_value::LValue;
 use crate::core::lexer::tokens::method_definition::MethodDefinition;
 use crate::core::lexer::tokens::name_token::NameToken;
 use crate::core::lexer::tokens::parameter_token::ParameterToken;
@@ -248,28 +249,28 @@ impl ASMGenerator {
 
                     let calling_convention = calling_convention_from(method_definition, &self.target_os);
 
-                    for (index, (argument_name, argument_type)) in method_definition.arguments.iter().enumerate() {
+                    for (index, argument) in method_definition.arguments.iter().enumerate() {
                         let parameter_token = ParameterToken {
-                            name_token: argument_name.clone(),
-                            ty: argument_type.clone(),
+                            name_token: argument.name.clone(),
+                            ty: argument.type_token.clone(),
                             register: calling_convention[index][0].clone(),
-                            mutablility: false,
+                            mutability: argument.mutability,
                             code_line: method_definition.code_line.clone(),
                         };
 
                         self.stack.variables.push(StackLocation {
                             position: self.stack.stack_position,
-                            size: argument_type.byte_size(),
+                            size: argument.type_token.byte_size(),
                             elements: 1,
-                            name: argument_name.clone(),
+                            name: argument.name.clone(),
                         });
 
-                        self.stack.stack_position += argument_type.byte_size();
+                        self.stack.stack_position += argument.type_token.byte_size();
 
                         meta.static_type_information.context.push(VariableToken {
-                            name_token: argument_name.clone(),
-                            mutability: false,
-                            ty: Some(argument_type.clone()),
+                            l_value: LValue::Name(argument.name.clone()),
+                            mutability: parameter_token.mutability,
+                            ty: Some(argument.type_token.clone()),
                             define: true,
                             assignable: AssignableToken::Parameter(parameter_token),
                             code_line: method_definition.code_line.clone(),

@@ -14,6 +14,7 @@ use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::static_type_context::StaticTypeContext;
 use crate::core::lexer::tokens::assignable_token::AssignableToken;
 use crate::core::lexer::tokens::assignable_tokens::method_call_token::dyck_language;
+use crate::core::lexer::tokens::l_value::LValue;
 use crate::core::lexer::tokens::name_token::NameToken;
 use crate::core::lexer::types::type_token::{InferTypeError, TypeToken};
 
@@ -32,14 +33,14 @@ impl Error for ArrayTokenErr { }
 impl ArrayToken {
     pub fn infer_type_with_context(&self, context: &StaticTypeContext, code_line: &CodeLine) -> Result<TypeToken, InferTypeError> {
         if self.values.is_empty() {
-            return Err(InferTypeError::NoTypePresent(NameToken { name: "Array".to_string() }, code_line.clone()))
+            return Err(InferTypeError::NoTypePresent(LValue::Name(NameToken { name: "Array".to_string() }), code_line.clone()))
         }
 
         if let Ok(ty) = self.values[0].infer_type_with_context(context, code_line) {
             return Ok(TypeToken::Array(Box::new(ty), self.values.len()));
         }
 
-        Err(InferTypeError::NoTypePresent(NameToken { name: "Array".to_string() }, code_line.clone()))
+        Err(InferTypeError::NoTypePresent(LValue::Name(NameToken { name: "Array".to_string() }), code_line.clone()))
     }
 }
 
@@ -105,7 +106,7 @@ impl ToASM for ArrayToken {
             Some(options) => {
                 let any_t = &options as &dyn Any;
                 if let Some(concrete_type) = any_t.downcast_ref::<IdentifierPresent>() {
-                    let stack_variable = stack.variables.iter().rfind(|v| v.name.name == concrete_type.identifier).ok_or(ASMGenerateError::InternalError("Cannot find variable".to_string()))?;
+                    let stack_variable = stack.variables.iter().rfind(|v| v.name.name == concrete_type.identifier.name).ok_or(ASMGenerateError::InternalError("Cannot find variable".to_string()))?;
                     stack_variable.position
                 } else {
                     stack.stack_position

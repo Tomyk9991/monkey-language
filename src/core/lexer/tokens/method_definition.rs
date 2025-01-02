@@ -21,6 +21,7 @@ use crate::core::lexer::scope::{PatternNotMatchedError, Scope, ScopeError};
 use crate::core::lexer::static_type_context::{CurrentMethodInfo, StaticTypeContext};
 use crate::core::lexer::token::Token;
 use crate::core::lexer::tokens::assignable_token::AssignableTokenErr;
+use crate::core::lexer::tokens::l_value::LValue;
 use crate::core::lexer::tokens::name_token::{NameToken, NameTokenErr};
 use crate::core::lexer::TryParse;
 use crate::core::lexer::types::type_token::{InferTypeError, MethodCallSignatureMismatchCause, TypeToken};
@@ -33,10 +34,17 @@ use crate::utils::math;
 pub struct MethodDefinition {
     pub name: NameToken,
     pub return_type: TypeToken,
-    pub arguments: Vec<(NameToken, TypeToken)>,
+    pub arguments: Vec<MethodArgument>,
     pub stack: Vec<Token>,
     pub is_extern: bool,
     pub code_line: CodeLine,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct MethodArgument {
+    pub name: NameToken,
+    pub type_token: TypeToken,
+    pub mutability: bool,
 }
 
 #[derive(Debug)]
@@ -82,7 +90,7 @@ impl Display for MethodDefinition {
             self.name,
             self.arguments
                 .iter()
-                .map(|(name, ty)| format!("{}: {}", name, ty))
+                .map(|argument| format!("{}: {}{}", argument.name, if argument.mutability { "mut" } else { "" }, argument.type_token))
                 .collect::<Vec<String>>()
                 .join(", "),
             self.return_type,
@@ -110,11 +118,11 @@ impl Display for MethodDefinitionErr {
 impl StaticTypeCheck for MethodDefinition {
     fn static_type_check(&self, type_context: &mut StaticTypeContext) -> Result<(), StaticTypeCheckError> {
         // add the parameters to the type information
-        for (argument_name, argument_type) in &self.arguments {
+        for argument in &self.arguments {
             type_context.context.push(VariableToken {
-                name_token: argument_name.clone(),
-                mutability: false,
-                ty: Some(argument_type.clone()),
+                l_value: LValue::Name(argument.name.clone()),
+                mutability: argument.mutability,
+                ty: Some(argument.type_token.clone()),
                 define: true,
                 assignable: AssignableToken::default(),
                 code_line: Default::default(),
@@ -127,6 +135,7 @@ impl StaticTypeCheck for MethodDefinition {
             method_header_line: self.code_line.actual_line_number.clone(),
             method_name: self.name.name.to_string(),
         });
+
 
         static_type_check_rec(&self.stack, type_context)?;
 
@@ -221,17 +230,29 @@ impl TryParse for MethodDefinition {
 }
 
 impl MethodDefinition {
-    fn type_arguments(method_header: &CodeLine, arguments: &[&str]) -> Result<Vec<(NameToken, TypeToken)>, MethodDefinitionErr> {
-        let arguments_string = arguments.join("");
-        let arguments = arguments_string.split(',').filter(|a| !a.is_empty()).collect::<Vec<_>>();
+    fn type_arguments(method_header: &CodeLine, arguments: &[&str]) -> Result<Vec<MethodArgument>, MethodDefinitionErr> {
+        let arguments_string = arguments.join(" ");
+        let arguments = arguments_string.split(',').filter(|a| !a.is_empty()).map(|a| a.trim()).collect::<Vec<_>>();
         let mut type_arguments = vec![];
 
         for argument in arguments {
-            if let [name, ty] = &argument.split(':').collect::<Vec<&str>>()[..] {
-                type_arguments.push((NameToken::from_str(name, false)?, TypeToken::from_str(ty)?));
+            let (name, mut ty) = match &argument.split(':').collect::<Vec<&str>>()[..] {
+                [name, ty] => (name.trim(), ty.trim()),
+                _ => return Err(MethodDefinitionErr::PatternNotMatched { target_value: method_header.line.clone() })
+            };
+
+            let mutability = if let ["mut", t] = ty.split_whitespace().collect::<Vec<&str>>()[..] {
+                ty = t.trim();
+                true
             } else {
-                return Err(MethodDefinitionErr::PatternNotMatched { target_value: method_header.line.clone() });
-            }
+                false
+            };
+
+            type_arguments.push(MethodArgument {
+                name: NameToken::from_str(name.trim(), false)?,
+                type_token: TypeToken::from_str(ty.trim())?,
+                mutability,
+            })
         }
 
         Ok(type_arguments)
@@ -245,7 +266,7 @@ impl MethodDefinition {
         let parameters = if self.arguments.is_empty() {
             "void".to_string()
         } else {
-            self.arguments.iter().map(|a| a.1.to_string()).collect::<Vec<String>>().join("_")
+            self.arguments.iter().map(|a| a.type_token.to_string()).collect::<Vec<String>>().join("_")
         }.replace('*', "ptr");
 
 
@@ -271,27 +292,27 @@ impl ToASM for MethodDefinition {
 
         let calling_convention = calling_convention_from(self, &meta.target_os);
 
-        for (index, (argument_name, argument_type)) in self.arguments.iter().enumerate() {
-            if let Some(stack_location) = stack.variables.iter().rfind(|v| v.name.name == argument_name.name) {
+        for (index, argument) in self.arguments.iter().enumerate() {
+            if let Some(stack_location) = stack.variables.iter().rfind(|v| v.name.name == argument.name.name) {
                 let destination = stack_location.name.clone().to_asm(stack, meta, options.clone())?;
                 let source = match &calling_convention[index][0] {
                     CallingRegister::Register(r) => {
-                        if matches!(argument_type, TypeToken::Float(_)) {
+                        if matches!(argument.type_token, TypeToken::Float(_)) {
                             r.to_string()
                         } else {
-                            r.to_size_register(&ByteSize::try_from(argument_type.byte_size())?).to_string()
+                            r.to_size_register(&ByteSize::try_from(argument.type_token.byte_size())?).to_string()
                         }
                     }
                     CallingRegister::Stack => "popppp".to_string()
                 };
 
-                method_scope.push_str(&ASMBuilder::mov_x_ident_line(destination, source, if let TypeToken::Float(f) = &argument_type {
+                method_scope.push_str(&ASMBuilder::mov_x_ident_line(destination, source, if let TypeToken::Float(f) = &argument.type_token {
                     Some(f.byte_size())
                 } else {
                     None
                 }));
             } else {
-                return Err(ASMGenerateError::UnresolvedReference { name: argument_name.name.to_string(), code_line: self.code_line.clone()})
+                return Err(ASMGenerateError::UnresolvedReference { name: argument.name.name.to_string(), code_line: self.code_line.clone()})
             }
         }
 

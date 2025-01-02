@@ -16,7 +16,7 @@ pub struct ParameterToken {
     pub ty: TypeToken,
     /// Where is the data stored?
     pub register: CallingRegister,
-    pub mutablility: bool,
+    pub mutability: bool,
     pub code_line: CodeLine
 }
 

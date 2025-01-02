@@ -638,7 +638,7 @@ fn extract_last_general_purpose_instruction(current_asm: &str) -> Option<String>
 }
 
 impl Expression {
-    fn prefix_arithmetic_to_asm(prefix_arithmetic: &PrefixArithmetic, value: &AssignableToken, target_register: &GeneralPurposeRegister, stack: &mut Stack, meta: &mut MetaInfo) -> Result<ASMResult, ASMGenerateError> {
+    pub fn prefix_arithmetic_to_asm(prefix_arithmetic: &PrefixArithmetic, value: &AssignableToken, target_register: &GeneralPurposeRegister, stack: &mut Stack, meta: &mut MetaInfo) -> Result<ASMResult, ASMGenerateError> {
         let mut target = String::new();
         let register_to_use = stack.register_to_use.last()?;
         let register_64 = register_to_use.to_64_bit_register();

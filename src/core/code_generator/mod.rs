@@ -6,6 +6,7 @@ use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::target_os::TargetOS;
 use crate::core::lexer::static_type_context::StaticTypeContext;
 use crate::core::lexer::tokens::assignable_token::AssignableToken;
+use crate::core::lexer::tokens::l_value::LValue;
 use crate::core::lexer::types::cast_to::CastToError;
 use crate::core::lexer::types::type_token::InferTypeError;
 
@@ -25,6 +26,7 @@ pub enum ASMGenerateError {
     UnresolvedReference { name: String, code_line: CodeLine },
     CastUnsupported(CastToError, CodeLine),
     EntryPointNotFound,
+    LValueAssignment(LValue, CodeLine),
     MultipleEntryPointsFound(Vec<CodeLine>),
     TypeNotInferrable(InferTypeError),
     InternalError(String),
@@ -62,6 +64,7 @@ impl Display for ASMGenerateError {
                     .collect::<Vec<String>>()
                     .join(",\n")
             }),
+            ASMGenerateError::LValueAssignment(lvalue, code_line) => write!(f, "Line: {:?}\tCannot assign to value: {}", code_line.actual_line_number, lvalue),
         }
     }
 }

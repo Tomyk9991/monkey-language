@@ -4,15 +4,16 @@ use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::scope::Scope;
 use crate::core::lexer::static_type_context::{StaticTypeContext};
 use crate::core::lexer::token::Token;
-use crate::core::lexer::tokens::name_token::NameToken;
+use crate::core::lexer::tokens::l_value::LValue;
 use crate::core::lexer::types::type_token::{InferTypeError, MethodCallSignatureMismatchCause, TypeToken};
 use crate::core::type_checker::StaticTypeCheck;
 
 #[derive(Debug)]
 pub enum StaticTypeCheckError {
-    UnresolvedReference { name: NameToken, code_line: CodeLine },
-    NoTypePresent { name: NameToken, code_line: CodeLine },
-    ImmutabilityViolated { name: NameToken, code_line: CodeLine },
+    UnresolvedReference { name: LValue, code_line: CodeLine },
+    NoTypePresent { name: LValue, code_line: CodeLine },
+    InvalidPointerDereference { name: LValue, code_line: CodeLine },
+    ImmutabilityViolated { name: LValue, code_line: CodeLine },
     InferredError(InferTypeError),
 }
 
@@ -25,6 +26,7 @@ impl Display for StaticTypeCheckError {
             StaticTypeCheckError::InferredError(err) => err.to_string(),
             StaticTypeCheckError::NoTypePresent { name, code_line } => format!("Line: {:?}\tType not inferred: `{name}`", code_line.actual_line_number),
             StaticTypeCheckError::ImmutabilityViolated { name, code_line } => format!("Line: {:?}\tThis symbol isn't declared mutable: `{name}`", code_line.actual_line_number),
+            StaticTypeCheckError::InvalidPointerDereference { name, code_line } => format!("Line: {:?}\tInvalid pointer dereference: `{name}`", code_line.actual_line_number),
         })
     }
 }
