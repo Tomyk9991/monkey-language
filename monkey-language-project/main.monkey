@@ -1,15 +1,11 @@
 module monkey-language-project/std.monkey;
 
-fn inc(a: i32): i32 {
-    return a + 1;
+fn mut_ref(x: mut *i32): void {
+    *x = *x + 1;
 }
 
 fn main(): i32 {
-    let mut a: i32 = 0;
-
-    for (let mut i: i32 = 0; i < 5; i = i + 1) {
-        a = inc(a);
-    }
-
+    let mut a: i32 = 5;
+    mut_ref(&a);
     return 0;
 }
