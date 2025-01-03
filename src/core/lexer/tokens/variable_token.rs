@@ -23,7 +23,7 @@ use crate::core::lexer::tokens::assignable_tokens::equation_parser::prefix_arith
 use crate::core::lexer::tokens::l_value::{LValue, LValueErr};
 use crate::core::lexer::tokens::name_token::{NameTokenErr};
 use crate::core::lexer::TryParse;
-use crate::core::lexer::types::type_token::{InferTypeError, TypeToken};
+use crate::core::lexer::types::type_token::{InferTypeError, Mutability, TypeToken};
 use crate::core::type_checker::{InferType, StaticTypeCheck};
 use crate::core::type_checker::static_type_checker::StaticTypeCheckError;
 
@@ -124,6 +124,12 @@ impl StaticTypeCheck for VariableToken<'=', ';'> {
                 }
             }
 
+            let ty = self.assignable.infer_type_with_context(type_context, &self.code_line)?;
+            if matches!(ty, TypeToken::Void) {
+                return Err(StaticTypeCheckError::VoidType { assignable_token: self.assignable.clone(), code_line: self.code_line.clone() });
+            }
+
+
             if self.ty.is_some() {
                 type_context.context.push(self.clone());
                 return Ok(());
@@ -157,7 +163,7 @@ impl StaticTypeCheck for VariableToken<'=', ';'> {
                         ty.clone()
                     };
 
-                    if ty != inferred_type {
+                    if ty > inferred_type {
                         return Err(InferTypeError::MismatchedTypes { expected: ty.clone(), actual: inferred_type.clone(), code_line: self.code_line.clone() }.into());
                     }
 
@@ -348,7 +354,7 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for VariableToken<ASSI
                     }
 
 
-                    if let TypeToken::Float(s) = final_type {
+                    if let TypeToken::Float(s, _) = final_type {
                         target += &ASMBuilder::mov_x_ident_line(&r, register, Some(s.byte_size()));
                         register = r;
                     }
@@ -418,7 +424,7 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> VariableToken<ASSIGNMENT, SE
             ["let", name, ":", type_str, assignment_token, middle @ .., separator_token] if assignment_token == &assignment && separator_token == &separator => {
                 final_variable_name = name;
                 assignable = AssignableToken::from_str(middle.join(" ").as_str()).context(code_line.line.clone())?;
-                type_token = Some(TypeToken::from_str(type_str)?);
+                type_token = Some(TypeToken::from_str(type_str, Mutability::Immutable)?);
 
                 let_used = true;
                 mut_used = false;
@@ -426,7 +432,7 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> VariableToken<ASSIGNMENT, SE
             ["let", name, ":", "[", type_str, ",", type_size, "]", assignment_token, middle @ .., separator_token] if assignment_token == &assignment && separator_token == &separator => {
                 final_variable_name = name;
                 assignable = AssignableToken::from_str(middle.join(" ").as_str()).context(code_line.line.clone())?;
-                type_token = Some(TypeToken::from_str(&format!("[ {} , {} ]", type_str, type_size))?);
+                type_token = Some(TypeToken::from_str(&format!("[ {} , {} ]", type_str, type_size), Mutability::Immutable)?);
 
                 let_used = true;
                 mut_used = false;
@@ -443,7 +449,7 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> VariableToken<ASSIGNMENT, SE
             ["let", "mut", name, ":", type_str, assignment_token, middle @ .., separator_token] if assignment_token == &assignment && separator_token == &separator => {
                 final_variable_name = name;
                 assignable = AssignableToken::from_str(middle.join(" ").as_str()).context(code_line.line.clone())?;
-                type_token = Some(TypeToken::from_str(type_str)?);
+                type_token = Some(TypeToken::from_str(type_str, Mutability::Mutable)?);
 
                 let_used = true;
                 mut_used = true;
@@ -451,7 +457,7 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> VariableToken<ASSIGNMENT, SE
             ["let", "mut", name, ":", "[", type_str, ",", type_size, "]", assignment_token, middle @ .., separator_token] if assignment_token == &assignment && separator_token == &separator => {
                 final_variable_name = name;
                 assignable = AssignableToken::from_str(middle.join(" ").as_str()).context(code_line.line.clone())?;
-                type_token = Some(TypeToken::from_str(&format!("[ {} , {} ]", type_str, type_size))?);
+                type_token = Some(TypeToken::from_str(&format!("[ {} , {} ]", type_str, type_size), Mutability::Mutable)?);
 
                 let_used = true;
                 mut_used = true;

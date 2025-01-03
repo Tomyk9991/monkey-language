@@ -15,7 +15,7 @@ use monkey_language::core::lexer::tokens::name_token::NameToken;
 use monkey_language::core::lexer::tokens::return_token::ReturnToken;
 use monkey_language::core::lexer::tokens::variable_token::VariableToken;
 use monkey_language::core::lexer::types::integer::Integer;
-use monkey_language::core::lexer::types::type_token::TypeToken;
+use monkey_language::core::lexer::types::type_token::{Mutability, TypeToken};
 use monkey_language::core::type_checker::static_type_checker::static_type_check;
 
 #[test]
@@ -36,7 +36,7 @@ fn infer_type_assignment() -> anyhow::Result<()> {
         Token::Variable(VariableToken {
             l_value: LValue::Name(NameToken { name: "a".to_string() }),
             mutability: false,
-            ty: Some(TypeToken::Integer(Integer::I32)),
+            ty: Some(TypeToken::Integer(Integer::I32, Mutability::Immutable)),
             define: true,
             assignable: AssignableToken::IntegerToken(IntegerToken { value: "1".to_string(), ty: Integer::I32 }),
             code_line: CodeLine {
@@ -48,7 +48,7 @@ fn infer_type_assignment() -> anyhow::Result<()> {
         Token::Variable(VariableToken {
             l_value: LValue::Name(NameToken { name: "c".to_string() }),
             mutability: false,
-            ty: Some(TypeToken::Integer(Integer::I32)),
+            ty: Some(TypeToken::Integer(Integer::I32, Mutability::Immutable)),
             define: true,
             assignable: AssignableToken::NameToken(NameToken { name: "a".to_string() }),
             code_line: CodeLine {
@@ -86,7 +86,7 @@ fn infer_type_assignment_in_scope() -> anyhow::Result<()> {
                 Token::Variable(VariableToken {
                     l_value: LValue::Name(NameToken { name: "a".to_string() }),
                     mutability: false,
-                    ty: Some(TypeToken::Integer(Integer::I32)),
+                    ty: Some(TypeToken::Integer(Integer::I32, Mutability::Immutable)),
                     define: true,
                     assignable: AssignableToken::IntegerToken(IntegerToken { value: "1".to_string(), ty: Integer::I32 }),
                     code_line: CodeLine {
@@ -98,7 +98,7 @@ fn infer_type_assignment_in_scope() -> anyhow::Result<()> {
                 Token::Variable(VariableToken {
                     l_value: LValue::Name(NameToken { name: "c".to_string() }),
                     mutability: false,
-                    ty: Some(TypeToken::Integer(Integer::I32)),
+                    ty: Some(TypeToken::Integer(Integer::I32, Mutability::Immutable)),
                     define: true,
                     assignable: AssignableToken::NameToken(NameToken { name: "a".to_string() }),
                     code_line: CodeLine {
@@ -138,7 +138,7 @@ fn infer_type_assignment_in_scope_complex() -> anyhow::Result<()> {
     let expected: Vec<Token> = vec![
         Token::MethodDefinition(MethodDefinition {
             name: NameToken { name: "constant_1".to_string() },
-            return_type: TypeToken::Integer(Integer::I32),
+            return_type: TypeToken::Integer(Integer::I32, Mutability::Immutable),
             arguments: vec![],
             stack: vec![Token::Return(ReturnToken {
                 assignable: Some(AssignableToken::IntegerToken(IntegerToken { value: "5".to_string(), ty: Integer::I32 })),
@@ -150,7 +150,7 @@ fn infer_type_assignment_in_scope_complex() -> anyhow::Result<()> {
         Token::Variable(VariableToken {
             l_value: LValue::Name(NameToken { name: "a".to_string() }),
             mutability: false,
-            ty: Some(TypeToken::Integer(Integer::I32)),
+            ty: Some(TypeToken::Integer(Integer::I32, Mutability::Immutable)),
             define: true,
             assignable: AssignableToken::IntegerToken(IntegerToken { value: "5".to_string(), ty: Integer::I32 }),
             code_line: CodeLine { line: "let a :  i32 = 5 ;".to_string(),
@@ -164,7 +164,7 @@ fn infer_type_assignment_in_scope_complex() -> anyhow::Result<()> {
                 Token::Variable(VariableToken::<'=', ';'> {
                     l_value: LValue::Name(NameToken { name: "a".to_string() }),
                     mutability: false,
-                    ty: Some(TypeToken::Integer(Integer::I32)),
+                    ty: Some(TypeToken::Integer(Integer::I32, Mutability::Immutable)),
                     define: true,
                     code_line: CodeLine {
                         line: "let a = a / constant_1 (  )  ;".to_string(),
@@ -208,7 +208,7 @@ fn infer_type_assignment_in_scope_complex() -> anyhow::Result<()> {
                 Token::Variable(VariableToken {
                     l_value: LValue::Name(NameToken { name: "c".to_string() }),
                     mutability: false,
-                    ty: Some(TypeToken::Integer(Integer::I32)),
+                    ty: Some(TypeToken::Integer(Integer::I32, Mutability::Immutable)),
                     define: true,
                     assignable: AssignableToken::NameToken(NameToken { name: "a".to_string() }),
                     code_line: CodeLine {
@@ -255,7 +255,7 @@ fn infer_type_assignment_in_scope_complex_in_method() -> anyhow::Result<()> {
     let expected: Vec<Token> = vec![
         Token::MethodDefinition(MethodDefinition {
             name: NameToken { name: "constant_1".to_string() },
-            return_type: TypeToken::Integer(Integer::I32),
+            return_type: TypeToken::Integer(Integer::I32, Mutability::Immutable),
             arguments: vec![],
             stack: vec![Token::Return(ReturnToken {
                 assignable: Some(AssignableToken::IntegerToken(IntegerToken { value: "5".to_string(), ty: Integer::I32 })),
@@ -266,7 +266,7 @@ fn infer_type_assignment_in_scope_complex_in_method() -> anyhow::Result<()> {
         }),
         Token::MethodDefinition(MethodDefinition {
             name: NameToken { name: "test".to_string() },
-            return_type: TypeToken::Integer(Integer::I32),
+            return_type: TypeToken::Integer(Integer::I32, Mutability::Immutable),
             arguments: vec![],
             stack: vec![
                 Token::If(IfToken {
@@ -275,7 +275,7 @@ fn infer_type_assignment_in_scope_complex_in_method() -> anyhow::Result<()> {
                         Token::Variable(VariableToken::<'=', ';'> {
                             l_value: LValue::Name(NameToken { name: "a".to_string() }),
                             mutability: false,
-                            ty: Some(TypeToken::Integer(Integer::I32)),
+                            ty: Some(TypeToken::Integer(Integer::I32, Mutability::Immutable)),
                             define: true,
                             code_line: CodeLine {
                                 line: "let a = a / constant_1 (  )  ;".to_string(),
@@ -319,7 +319,7 @@ fn infer_type_assignment_in_scope_complex_in_method() -> anyhow::Result<()> {
                         Token::Variable(VariableToken {
                             l_value: LValue::Name(NameToken { name: "c".to_string() }),
                             mutability: false,
-                            ty: Some(TypeToken::Integer(Integer::I32)),
+                            ty: Some(TypeToken::Integer(Integer::I32, Mutability::Immutable)),
                             define: true,
                             assignable: AssignableToken::NameToken(NameToken { name: "a".to_string() }),
                             code_line: CodeLine {
@@ -350,7 +350,7 @@ fn infer_type_assignment_in_scope_complex_in_method() -> anyhow::Result<()> {
         Token::Variable(VariableToken {
             l_value: LValue::Name(NameToken { name: "a".to_string() }),
             mutability: false,
-            ty: Some(TypeToken::Integer(Integer::I32)),
+            ty: Some(TypeToken::Integer(Integer::I32, Mutability::Immutable)),
             define: true,
             assignable: AssignableToken::IntegerToken(IntegerToken { value: "5".to_string(), ty: Integer::I32 }),
             code_line: CodeLine { line: "let a :  i32 = 5 ;".to_string(),

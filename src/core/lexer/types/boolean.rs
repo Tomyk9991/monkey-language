@@ -12,7 +12,7 @@ use crate::core::code_generator::registers::{Bit32, GeneralPurposeRegister};
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::operator::{AssemblerOperation, Operator, OperatorToASM};
 use crate::core::lexer::types::cast_to::{Castable, CastTo};
 use crate::core::lexer::types::integer::Integer;
-use crate::core::lexer::types::type_token::TypeToken;
+use crate::core::lexer::types::type_token::{Mutability, TypeToken};
 
 #[allow(dead_code)]
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
@@ -135,13 +135,13 @@ impl OperatorToASM for Boolean {
 
 impl Castable<Boolean, Integer> for Boolean {
     fn add_casts(cast_matrix: &mut HashMap<(TypeToken, TypeToken), &'static str>) {
-        cast_matrix.insert((TypeToken::Bool, TypeToken::Integer(Integer::I32)), "movzx");
+        cast_matrix.insert((TypeToken::Bool(Mutability::Immutable), TypeToken::Integer(Integer::I32, Mutability::Immutable)), "movzx");
     }
 
     fn cast_from_to(_: &Boolean, t2: &Integer, source: &str, stack: &mut Stack, meta: &mut MetaInfo) -> Result<ASMResult, ASMGenerateError> {
         let cast_to = CastTo {
-            from: TypeToken::Bool,
-            to: TypeToken::Integer(t2.clone()),
+            from: TypeToken::Bool(Mutability::Immutable),
+            to: TypeToken::Integer(t2.clone(), Mutability::Immutable),
         };
 
         // no instruction is needed. just pretend the bool is an u8
@@ -190,11 +190,11 @@ impl Castable<Boolean, Integer> for Boolean {
 
 impl Boolean {
     pub fn operation_matrix(base_type_matrix: &mut HashMap<(TypeToken, Operator, TypeToken), TypeToken>) {
-        base_type_matrix.insert((TypeToken::Bool, Operator::BitwiseAnd, TypeToken::Bool), TypeToken::Bool);
-        base_type_matrix.insert((TypeToken::Bool, Operator::BitwiseOr, TypeToken::Bool), TypeToken::Bool);
+        base_type_matrix.insert((TypeToken::Bool(Mutability::Immutable), Operator::BitwiseAnd, TypeToken::Bool(Mutability::Immutable)), TypeToken::Bool(Mutability::Immutable));
+        base_type_matrix.insert((TypeToken::Bool(Mutability::Immutable), Operator::BitwiseOr, TypeToken::Bool(Mutability::Immutable)), TypeToken::Bool(Mutability::Immutable));
 
-        base_type_matrix.insert((TypeToken::Bool, Operator::LogicalAnd, TypeToken::Bool), TypeToken::Bool);
-        base_type_matrix.insert((TypeToken::Bool, Operator::LogicalOr, TypeToken::Bool), TypeToken::Bool);
+        base_type_matrix.insert((TypeToken::Bool(Mutability::Immutable), Operator::LogicalAnd, TypeToken::Bool(Mutability::Immutable)), TypeToken::Bool(Mutability::Immutable));
+        base_type_matrix.insert((TypeToken::Bool(Mutability::Immutable), Operator::LogicalOr, TypeToken::Bool(Mutability::Immutable)), TypeToken::Bool(Mutability::Immutable));
     }
 
     fn is_stack_variable(value: &str) -> bool {

@@ -8,7 +8,7 @@ use crate::core::lexer::tokens::assignable_tokens::equation_parser::operator::Op
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::prefix_arithmetic::{PointerArithmetic, PrefixArithmetic};
 use crate::core::lexer::tokens::assignable_tokens::method_call_token::dyck_language;
 use crate::core::lexer::tokens::name_token::NameTokenErr;
-use crate::core::lexer::types::type_token::{InferTypeError, TypeToken};
+use crate::core::lexer::types::type_token::{InferTypeError, Mutability, TypeToken};
 
 pub mod expression;
 pub mod operator;
@@ -424,7 +424,7 @@ impl EquationToken {
         }
 
         if self.peek('(') {
-            if let Some((cast_type, amount_skip)) = self.collect_until(1, ')', |a| TypeToken::from_str(a).is_ok()) {
+            if let Some((cast_type, amount_skip)) = self.collect_until(1, ')', |a| TypeToken::from_str(a, Mutability::Immutable).is_ok()) {
                 self.next_char_amount(amount_skip);
 
                 if !self.peek(')') && self.pos < self.source_code.chars().count() as i32 {
@@ -432,7 +432,7 @@ impl EquationToken {
                     x = Box::<Expression>::default();
 
                     x.value = Some(Box::new(AssignableToken::ArithmeticEquation(*value)));
-                    x.prefix_arithmetic = Some(PrefixArithmetic::Cast(TypeToken::from_str(&cast_type)?));
+                    x.prefix_arithmetic = Some(PrefixArithmetic::Cast(TypeToken::from_str(&cast_type, Mutability::Immutable)?));
 
                     return Ok(x);
                 }

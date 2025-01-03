@@ -94,7 +94,7 @@ impl StaticTypeCheck for ReturnToken {
             if let Some(assignable) = &self.assignable {
                 let actual_type = assignable.infer_type_with_context(type_context, &self.code_line)?;
 
-                if expected_return_type.return_type != actual_type {
+                if expected_return_type.return_type < actual_type {
                     return Err(StaticTypeCheckError::InferredError(InferTypeError::MethodReturnArgumentTypeMismatch {
                         expected: expected_return_type.return_type.clone(),
                         actual: actual_type,

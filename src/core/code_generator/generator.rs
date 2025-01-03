@@ -17,7 +17,7 @@ use crate::core::lexer::tokens::parameter_token::ParameterToken;
 use crate::core::lexer::tokens::return_token::ReturnToken;
 use crate::core::lexer::tokens::variable_token::VariableToken;
 use crate::core::lexer::types::integer::Integer;
-use crate::core::lexer::types::type_token::TypeToken;
+use crate::core::lexer::types::type_token::{Mutability, TypeToken};
 use crate::core::model::data_section::DataSection;
 
 #[derive(Debug)]
@@ -214,7 +214,7 @@ impl ASMGenerator {
             }
             let main_function = Token::MethodDefinition(MethodDefinition {
                 name: NameToken { name: "main".to_string() },
-                return_type: TypeToken::Integer(Integer::I32),
+                return_type: TypeToken::Integer(Integer::I32, Mutability::Immutable),
                 arguments: vec![],
                 stack: main_stack,
                 is_extern: false,
@@ -254,7 +254,7 @@ impl ASMGenerator {
                             name_token: argument.name.clone(),
                             ty: argument.type_token.clone(),
                             register: calling_convention[index][0].clone(),
-                            mutability: argument.mutability,
+                            mutability: argument.type_token.mutable(),
                             code_line: method_definition.code_line.clone(),
                         };
 

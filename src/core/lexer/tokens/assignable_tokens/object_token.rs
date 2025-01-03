@@ -11,7 +11,7 @@ use crate::core::lexer::tokens::assignable_token::AssignableTokenErr;
 use crate::core::lexer::tokens::assignable_tokens::method_call_token::{dyck_language, DyckError};
 use crate::core::lexer::tokens::name_token::{NameToken, NameTokenErr};
 use crate::core::lexer::tokens::variable_token::{ParseVariableTokenErr, VariableToken};
-use crate::core::lexer::types::type_token::TypeToken;
+use crate::core::lexer::types::type_token::{Mutability, TypeToken};
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct ObjectToken {
@@ -124,7 +124,7 @@ impl ObjectToken {
                 .map(|s| VariableToken::try_parse(&CodeLine::imaginary(s)))
                 .collect::<Result<Vec<_>, _>>()?;
 
-            let type_token = TypeToken::Custom(NameToken::from_str(object_type, false)?);
+            let type_token = TypeToken::Custom(NameToken::from_str(object_type, false)?, Mutability::Immutable);
             
             Ok(ObjectToken {
                 variables: arguments,

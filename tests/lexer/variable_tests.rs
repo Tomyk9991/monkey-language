@@ -16,7 +16,7 @@ use monkey_language::core::lexer::tokens::variable_token::VariableToken;
 use monkey_language::core::lexer::types::float::Float;
 use monkey_language::core::lexer::types::integer::Integer;
 use monkey_language::core::lexer::types::type_token;
-use monkey_language::core::lexer::types::type_token::TypeToken;
+use monkey_language::core::lexer::types::type_token::{Mutability, TypeToken};
 
 #[test]
 fn variable_test() -> anyhow::Result<()> {
@@ -45,7 +45,7 @@ fn variable_test() -> anyhow::Result<()> {
             VariableToken {
                 l_value: LValue::Name(NameToken { name: "fisch".to_string() }),
                 mutability: false,
-                ty: Some(TypeToken::Custom(NameToken { name: String::from("*string") })),
+                ty: Some(TypeToken::Custom(NameToken { name: String::from("*string") }, Mutability::Immutable)),
                 define: true,
                 assignable: AssignableToken::String(StringToken { value: "\"Fische sind wirklich wirklich toll\"".to_string() }),
                 code_line: CodeLine { line: "let fisch = \"Fische sind wirklich wirklich toll\" ;".to_string(), actual_line_number: 2..2, virtual_line_number: 1 },
@@ -55,7 +55,7 @@ fn variable_test() -> anyhow::Result<()> {
             VariableToken {
                 l_value: LValue::Name(NameToken { name: "hallo".to_string() }),
                 mutability: false,
-                ty: Some(TypeToken::Custom(NameToken { name: String::from("*string") })),
+                ty: Some(TypeToken::Custom(NameToken { name: String::from("*string") }, Mutability::Immutable)),
                 define: true,
                 assignable: AssignableToken::String(StringToken { value: "\"Thomas\"".to_string() }),
                 code_line: CodeLine { line: "let hallo = \"Thomas\" ;".to_string(), actual_line_number: 3..3, virtual_line_number: 2 },
@@ -65,7 +65,7 @@ fn variable_test() -> anyhow::Result<()> {
             VariableToken {
                 l_value: LValue::Name(NameToken { name: "tschuess".to_string() }),
                 mutability: false,
-                ty: Some(TypeToken::Integer(Integer::I32)),
+                ty: Some(TypeToken::Integer(Integer::I32, Mutability::Immutable)),
                 define: true,
                 assignable: AssignableToken::IntegerToken(IntegerToken { value: "5".to_string(), ty: Integer::I32 }),
                 code_line: CodeLine { line: "let tschuess = 5 ;".to_string(), actual_line_number: 3..3, virtual_line_number: 3 },
@@ -75,7 +75,7 @@ fn variable_test() -> anyhow::Result<()> {
             VariableToken {
                 l_value: LValue::Name(NameToken { name: "mallo".to_string() }),
                 mutability: false,
-                ty: Some(TypeToken::Custom(NameToken { name: String::from("*string") })),
+                ty: Some(TypeToken::Custom(NameToken { name: String::from("*string") }, Mutability::Immutable)),
                 define: true,
                 assignable: AssignableToken::String(StringToken { value: "\"\"".to_string() }),
                 code_line: CodeLine { line: "let mallo = \"\" ;".to_string(), actual_line_number: 4..4, virtual_line_number: 4 },
@@ -85,14 +85,14 @@ fn variable_test() -> anyhow::Result<()> {
             VariableToken {
                 l_value: LValue::Name(NameToken { name: "michi".to_string() }),
                 mutability: false,
-                ty: Some(TypeToken::Custom(NameToken { name: "Data".to_string() })),
+                ty: Some(TypeToken::Custom(NameToken { name: "Data".to_string() }, Mutability::Immutable)),
                 define: true,
                 assignable: AssignableToken::Object(ObjectToken {
                     variables: vec![
                         VariableToken {
                             l_value: LValue::Name(NameToken { name: "guten".to_string() }),
                             mutability: false,
-                            ty: Some(TypeToken::Custom(NameToken { name: String::from("*string") })),
+                            ty: Some(TypeToken::Custom(NameToken { name: String::from("*string") }, Mutability::Immutable)),
                             define: false,
                             assignable: AssignableToken::String(StringToken { value: "\"Hallo\"".to_string() }),
                             code_line: CodeLine { line: "guten : \"Hallo\" ,".to_string(), actual_line_number: 0..0, virtual_line_number: 0 },
@@ -100,7 +100,7 @@ fn variable_test() -> anyhow::Result<()> {
                         VariableToken {
                             l_value: LValue::Name(NameToken { name: "ciau".to_string() }),
                             mutability: false,
-                            ty: Some(TypeToken::Integer(Integer::I32)),
+                            ty: Some(TypeToken::Integer(Integer::I32, Mutability::Immutable)),
                             define: false,
                             assignable: AssignableToken::IntegerToken(IntegerToken { value: "5".to_string(), ty: Integer::I32 }),
                             code_line: CodeLine { line: "ciau : 5 ,".to_string(), actual_line_number: 0..0, virtual_line_number: 0 },
@@ -146,7 +146,7 @@ fn variable_test() -> anyhow::Result<()> {
                             }),
                             code_line: CodeLine { line: "mofl : name ( nestedMethod ( \"Hallo\" , moin ( \"Ciao\" , 5 ) ) ) ,".to_string(), actual_line_number: 0..0, virtual_line_number: 0 },
                         }],
-                    ty: TypeToken::Custom(NameToken { name: "Data".to_string() }),
+                    ty: TypeToken::Custom(NameToken { name: "Data".to_string() }, Mutability::Immutable),
                 }),
                 code_line: CodeLine { line: "let michi = Data {  guten :  \"Hallo\" ,  ciau :  5 ,  rofl :  name (  )  ,  mofl :  name ( nestedMethod ( \"Hallo\" ,  moin ( \"Ciao\" ,  5 )  )  )  }  ;".to_string(), actual_line_number: 5..11, virtual_line_number: 5 },
             }
@@ -155,7 +155,7 @@ fn variable_test() -> anyhow::Result<()> {
             VariableToken {
                 l_value: LValue::Name(NameToken { name: "value".to_string() }),
                 mutability: false,
-                ty: Some(TypeToken::Integer(Integer::I32)),
+                ty: Some(TypeToken::Integer(Integer::I32, Mutability::Immutable)),
                 define: true,
                 assignable: AssignableToken::IntegerToken(IntegerToken { value: "9".to_string(), ty: Integer::I32 }),
                 code_line: CodeLine { line: "let value = 9 ;".to_string(), actual_line_number: 12..12, virtual_line_number: 6 },
@@ -165,7 +165,7 @@ fn variable_test() -> anyhow::Result<()> {
             VariableToken {
                 l_value: LValue::Name(NameToken { name: "ref_value".to_string() }),
                 mutability: false,
-                ty: Some(TypeToken::Custom(NameToken { name: "*i32".to_string() })),
+                ty: Some(TypeToken::Custom(NameToken { name: "*i32".to_string() }, Mutability::Immutable)),
                 define: true,
                 assignable: AssignableToken::ArithmeticEquation(Expression {
                     lhs: None,
@@ -192,7 +192,7 @@ fn variable_test() -> anyhow::Result<()> {
             VariableToken {
                 l_value: LValue::Name(NameToken { name: "pointer_arithmetic".to_string() }),
                 mutability: false,
-                ty: Some(TypeToken::Integer(Integer::I32)),
+                ty: Some(TypeToken::Integer(Integer::I32, Mutability::Immutable)),
                 define: true,
                 assignable: AssignableToken::ArithmeticEquation(Expression {
                     lhs: Some(Box::new(Expression {
@@ -255,12 +255,12 @@ fn variable_test_types() -> anyhow::Result<()> {
     let expected = vec![
         type_token::common::string(),
         type_token::common::string(),
-        TypeToken::Integer(Integer::I32),
+        TypeToken::Integer(Integer::I32, Mutability::Immutable),
         type_token::common::string(),
-        TypeToken::Custom(NameToken { name: "Data".to_string() }),
-        TypeToken::Integer(Integer::I32),
-        TypeToken::Custom(NameToken { name: "*i32".to_string() }),
-        TypeToken::Integer(Integer::I32),
+        TypeToken::Custom(NameToken { name: "Data".to_string() }, Mutability::Immutable),
+        TypeToken::Integer(Integer::I32, Mutability::Immutable),
+        TypeToken::Custom(NameToken { name: "*i32".to_string() }, Mutability::Immutable),
+        TypeToken::Integer(Integer::I32, Mutability::Immutable),
     ];
 
     for (index, token) in top_level_scope.tokens.iter().enumerate() {
@@ -296,12 +296,12 @@ fn variable_test_casting() -> anyhow::Result<()> {
     println!("{:?}", top_level_scope);
 
     let expected = vec![
-        TypeToken::Float(Float::Float32),
-        TypeToken::Float(Float::Float32),
-        TypeToken::Integer(Integer::I32),
-        TypeToken::Float(Float::Float32),
-        TypeToken::Float(Float::Float32),
-        TypeToken::Float(Float::Float32),
+        TypeToken::Float(Float::Float32, Mutability::Immutable),
+        TypeToken::Float(Float::Float32, Mutability::Immutable),
+        TypeToken::Integer(Integer::I32, Mutability::Immutable),
+        TypeToken::Float(Float::Float32, Mutability::Immutable),
+        TypeToken::Float(Float::Float32, Mutability::Immutable),
+        TypeToken::Float(Float::Float32, Mutability::Immutable),
     ];
 
     for (index, token) in top_level_scope.tokens.iter().enumerate() {
@@ -329,7 +329,7 @@ fn variable_test_double_casting() -> anyhow::Result<()> {
     let top_level_scope = lexer.tokenize()?;
 
     let expected = vec![
-        TypeToken::Float(Float::Float32),
+        TypeToken::Float(Float::Float32, Mutability::Immutable),
     ];
 
     let s = None;
@@ -386,15 +386,15 @@ fn variable_test_casting_complex_expression() -> anyhow::Result<()> {
     let top_level_scope = lexer.tokenize()?;
 
     let expected = vec![
-        TypeToken::Integer(Integer::I32),
-        TypeToken::Custom(NameToken { name: "*i32".to_string() }),
-        TypeToken::Integer(Integer::I32),
-        TypeToken::Custom(NameToken { name: "*i32".to_string() }),
-        TypeToken::Float(Float::Float32),
-        TypeToken::Float(Float::Float32),
-        TypeToken::Float(Float::Float32),
-        TypeToken::Integer(Integer::I32),
-        TypeToken::Integer(Integer::I32),
+        TypeToken::Integer(Integer::I32, Mutability::Immutable),
+        TypeToken::Custom(NameToken { name: "*i32".to_string() }, Mutability::Immutable),
+        TypeToken::Integer(Integer::I32, Mutability::Immutable),
+        TypeToken::Custom(NameToken { name: "*i32".to_string() }, Mutability::Immutable),
+        TypeToken::Float(Float::Float32, Mutability::Immutable),
+        TypeToken::Float(Float::Float32, Mutability::Immutable),
+        TypeToken::Float(Float::Float32, Mutability::Immutable),
+        TypeToken::Integer(Integer::I32, Mutability::Immutable),
+        TypeToken::Integer(Integer::I32, Mutability::Immutable),
     ];
 
     for (index, token) in top_level_scope.tokens.iter().enumerate() {
@@ -429,11 +429,11 @@ fn variable_test_casting_complex() -> anyhow::Result<()> {
     println!("{:#?}", top_level_scope);
 
     let expected = vec![
-        TypeToken::Integer(Integer::I32),
-        TypeToken::Custom(NameToken { name: "*i32".to_string() }),
-        TypeToken::Integer(Integer::I32),
-        TypeToken::Integer(Integer::I32),
-        TypeToken::Integer(Integer::I32),
+        TypeToken::Integer(Integer::I32, Mutability::Immutable),
+        TypeToken::Custom(NameToken { name: "*i32".to_string() }, Mutability::Immutable),
+        TypeToken::Integer(Integer::I32, Mutability::Immutable),
+        TypeToken::Integer(Integer::I32, Mutability::Immutable),
+        TypeToken::Integer(Integer::I32, Mutability::Immutable),
     ];
 
     for token in &top_level_scope.tokens {
@@ -481,16 +481,16 @@ fn variable_test_integers() -> anyhow::Result<()> {
     println!("{:#?}", top_level_scope);
 
     let expected = vec![
-        TypeToken::Integer(Integer::I32),
-        TypeToken::Integer(Integer::I64),
-        TypeToken::Integer(Integer::I16),
-        TypeToken::Integer(Integer::I8),
-        TypeToken::Integer(Integer::I64),
-        TypeToken::Integer(Integer::U8),
-        TypeToken::Integer(Integer::U16),
-        TypeToken::Integer(Integer::U32),
-        TypeToken::Integer(Integer::U64),
-        TypeToken::Integer(Integer::U64),
+        TypeToken::Integer(Integer::I32, Mutability::Immutable),
+        TypeToken::Integer(Integer::I64, Mutability::Immutable),
+        TypeToken::Integer(Integer::I16, Mutability::Immutable),
+        TypeToken::Integer(Integer::I8, Mutability::Immutable),
+        TypeToken::Integer(Integer::I64, Mutability::Immutable),
+        TypeToken::Integer(Integer::U8, Mutability::Immutable),
+        TypeToken::Integer(Integer::U16, Mutability::Immutable),
+        TypeToken::Integer(Integer::U32, Mutability::Immutable),
+        TypeToken::Integer(Integer::U64, Mutability::Immutable),
+        TypeToken::Integer(Integer::U64, Mutability::Immutable),
     ];
 
     for token in &top_level_scope.tokens {
@@ -534,14 +534,14 @@ fn variable_test_integers_assignable() -> anyhow::Result<()> {
     println!("{:#?}", top_level_scope);
 
     let expected = vec![
-        TypeToken::Integer(Integer::I32),
-        TypeToken::Integer(Integer::I64),
-        TypeToken::Integer(Integer::I16),
-        TypeToken::Integer(Integer::I8),
-        TypeToken::Integer(Integer::U8),
-        TypeToken::Integer(Integer::U16),
-        TypeToken::Integer(Integer::U32),
-        TypeToken::Integer(Integer::U64),
+        TypeToken::Integer(Integer::I32, Mutability::Immutable),
+        TypeToken::Integer(Integer::I64, Mutability::Immutable),
+        TypeToken::Integer(Integer::I16, Mutability::Immutable),
+        TypeToken::Integer(Integer::I8, Mutability::Immutable),
+        TypeToken::Integer(Integer::U8, Mutability::Immutable),
+        TypeToken::Integer(Integer::U16, Mutability::Immutable),
+        TypeToken::Integer(Integer::U32, Mutability::Immutable),
+        TypeToken::Integer(Integer::U64, Mutability::Immutable),
     ];
 
     for token in &top_level_scope.tokens {
@@ -553,7 +553,7 @@ fn variable_test_integers_assignable() -> anyhow::Result<()> {
         match token {
             Token::Variable(v) if v.ty.is_some() => {
                 if let AssignableToken::IntegerToken(i) = &v.assignable {
-                    assert_eq!(&expected[index], &TypeToken::Integer(i.ty.clone()), "FAILED AT: {token}");
+                    assert_eq!(&expected[index], &TypeToken::Integer(i.ty.clone(), Mutability::Immutable), "FAILED AT: {token}");
                 } else {
                     assert!(false, "Didnt expect not inferred type {}", v);
                 }

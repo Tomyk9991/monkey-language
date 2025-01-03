@@ -20,7 +20,7 @@ use crate::core::lexer::tokens::name_token::NameToken;
 use crate::core::lexer::types::boolean::Boolean;
 use crate::core::lexer::types::float::Float;
 use crate::core::lexer::types::integer::Integer;
-use crate::core::lexer::types::type_token::{InferTypeError, TypeToken};
+use crate::core::lexer::types::type_token::{InferTypeError, Mutability, TypeToken};
 
 #[derive(Clone, PartialEq)]
 #[allow(unused)]
@@ -39,7 +39,7 @@ impl Expression {
         if let Some(lhs) = &self.lhs {
             let ty = &lhs.traverse_type(meta).ok_or(ASMGenerateError::InternalError("Could not traverse type".to_string()))?;
 
-            return Ok(if let TypeToken::Float(f) = ty {
+            return Ok(if let TypeToken::Float(f, _) = ty {
                 (GeneralPurposeRegister::iter_from_byte_size(lhs_size)?, Some(f.clone()))
             } else {
                 (GeneralPurposeRegister::iter_from_byte_size(lhs_size)?, None)
@@ -703,7 +703,7 @@ impl Expression {
             if has_index_operation {
                 if let Some(index_operator) = &self.index_operator {
                     let index_type = index_operator.infer_type_with_context(context, code_line)?;
-                    if !matches!(index_type, TypeToken::Integer(_)) {
+                    if !matches!(index_type, TypeToken::Integer(_, _)) {
                         return Err(InferTypeError::IllegalIndexOperation(index_type, code_line.clone()));
                     }
                 }
@@ -717,7 +717,7 @@ impl Expression {
 
             return if let (true, Ok(value_type)) = (has_prefix_arithmetics, &value_type) {
                 let current_pointer_arithmetic: String = match value_type {
-                    TypeToken::Custom(name) if name.name.starts_with(['*', '&']) => {
+                    TypeToken::Custom(name, _) if name.name.starts_with(['*', '&']) => {
                         if let Some(index) = name.name.chars().position(|m| m.is_ascii_alphanumeric()) {
                             name.name[..index].to_string()
                         } else {
@@ -746,14 +746,14 @@ impl Expression {
                             return Err(InferTypeError::IllegalDereference(*value.clone(), value_type, code_line.clone()));
                         }
                         PrefixArithmetic::Cast(casting_to) => {
-                            value_type = TypeToken::from_str(&casting_to.to_string())?;
+                            value_type = TypeToken::from_str(&casting_to.to_string(), Mutability::Immutable)?;
                         }
                         PrefixArithmetic::Operation(_) => {}
                     }
                 }
 
                 if value_type.is_pointer() {
-                    Ok(TypeToken::Custom(NameToken { name: format!("{}", value_type) }))
+                    Ok(TypeToken::Custom(NameToken { name: format!("{}", value_type) }, Mutability::from(value_type.mutable())))
                 } else {
                     Ok(value_type)
                 }
@@ -772,13 +772,19 @@ impl Expression {
                 let rhs_type = rhs.traverse_type_resulted(context, code_line)?;
 
                 let mut base_type_matrix: HashMap<(TypeToken, Operator, TypeToken), TypeToken> = HashMap::new();
-                base_type_matrix.insert((TypeToken::Custom(NameToken { name: "string".to_string() }), Operator::Add, TypeToken::Custom(NameToken { name: "string".to_string() })), TypeToken::Custom(NameToken { name: "*string".to_string() }));
+                base_type_matrix.insert((TypeToken::Custom(NameToken { name: "string".to_string() }, Mutability::Immutable), Operator::Add, TypeToken::Custom(NameToken { name: "string".to_string() }, Mutability::Immutable)), TypeToken::Custom(NameToken { name: "*string".to_string() }, Mutability::Immutable));
 
                 Integer::operation_matrix(&mut base_type_matrix);
                 Float::operation_matrix(&mut base_type_matrix);
                 Boolean::operation_matrix(&mut base_type_matrix);
 
-                if let Some(result_type) = base_type_matrix.get(&(lhs_type.clone(), operator.clone(), rhs_type.clone())) {
+                // I do not care, if the expression is mutable or not. The type is the relevant factor
+                let mut lhs_clone = lhs_type.clone();
+                lhs_clone.set_mutability(Mutability::Immutable);
+                let mut rhs_clone = rhs_type.clone();
+                rhs_clone.set_mutability(Mutability::Immutable);
+
+                if let Some(result_type) = base_type_matrix.get(&(lhs_clone, operator.clone(), rhs_clone)) {
                     return Ok(result_type.clone());
                 }
 

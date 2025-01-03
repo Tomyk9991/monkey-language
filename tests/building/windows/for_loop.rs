@@ -8,7 +8,7 @@ use monkey_language::core::type_checker::static_type_checker::static_type_check;
 fn single_for() -> anyhow::Result<()> {
     let code = r#"
     let mut a = 0;
-    for (let i = 0; i < 5; i = i + 1) {
+    for (let mut i = 0; i < 5; i = i + 1) {
         a = a + i;
     }
     "#;
@@ -77,8 +77,8 @@ fn inc(a: i32): i32 {
 
 let mut a: i32 = 0;
 
-for (let i: i32 = 0; i < 5; i = i + 1) {
-    for (let j: i32 = 0; j < 5; j = j + 1) {
+for (let mut i: i32 = 0; i < 5; i = i + 1) {
+    for (let mut j: i32 = 0; j < 5; j = j + 1) {
         a = inc(a);
     }
 }

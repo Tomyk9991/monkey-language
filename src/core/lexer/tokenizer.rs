@@ -76,13 +76,13 @@ impl Lexer {
                     name_token: argument.name.clone(),
                     ty: argument.type_token.clone(),
                     register: calling_convention[index][0].clone(),
-                    mutability: argument.mutability,
+                    mutability: argument.type_token.mutable(),
                     code_line: unsafe { &(*(*method)) }.code_line.clone(),
                 };
 
                 type_context.context.push(VariableToken {
                     l_value: LValue::Name(argument.name.clone()),
-                    mutability: argument.mutability,
+                    mutability: argument.type_token.mutable(),
                     ty: Some(argument.type_token.clone()),
                     define: true,
                     assignable: AssignableToken::Parameter(parameter_token),

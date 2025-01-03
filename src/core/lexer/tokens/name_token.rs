@@ -98,7 +98,7 @@ impl ToASM for NameToken {
         if let Some(options) = options {
             let any_t = &options as &dyn Any;
             if let Some(s) = any_t.downcast_ref::<PrepareRegisterOption>() {
-                if let TypeToken::Float(_) = self.infer_type_with_context(&meta.static_type_information, &meta.code_line)? {
+                if let TypeToken::Float(_, _) = self.infer_type_with_context(&meta.static_type_information, &meta.code_line)? {
                     return s.transform(stack, meta);
                 }
             }

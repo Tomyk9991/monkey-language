@@ -15,7 +15,7 @@ use crate::core::lexer::tokens::name_token::NameTokenErr;
 use crate::core::lexer::types::cast_to::{Castable, CastTo};
 use crate::core::lexer::types::float::Float::{Float32, Float64};
 use crate::core::lexer::types::integer::Integer;
-use crate::core::lexer::types::type_token::{InferTypeError, TypeToken};
+use crate::core::lexer::types::type_token::{InferTypeError, Mutability, TypeToken};
 
 #[derive(Debug, Default, PartialEq, Eq, Hash, Clone)]
 pub enum Float {
@@ -28,15 +28,15 @@ pub enum Float {
 impl Castable<Float, Integer> for Float {
     fn add_casts(cast_matrix: &mut HashMap<(TypeToken, TypeToken), &'static str>) {
         for ty in &[Integer::I8, Integer::I16, Integer::I32, Integer::I64, Integer::U8, Integer::U16, Integer::U32, Integer::U64] {
-            cast_matrix.insert((TypeToken::Float(Float32), TypeToken::Integer(ty.clone())), "cvtss2si");
-            cast_matrix.insert((TypeToken::Float(Float64), TypeToken::Integer(ty.clone())), "cvtsd2si");
+            cast_matrix.insert((TypeToken::Float(Float32, Mutability::Immutable), TypeToken::Integer(ty.clone(), Mutability::Immutable)), "cvtss2si");
+            cast_matrix.insert((TypeToken::Float(Float64, Mutability::Immutable), TypeToken::Integer(ty.clone(), Mutability::Immutable)), "cvtsd2si");
         }
     }
 
     fn cast_from_to(t1: &Float, t2: &Integer, source: &str, stack: &mut Stack, meta: &mut MetaInfo) -> Result<ASMResult, ASMGenerateError> {
         let cast_to = CastTo {
-            from: TypeToken::Float(t1.clone()),
-            to: TypeToken::Integer(t2.clone()),
+            from: TypeToken::Float(t1.clone(), Mutability::Immutable),
+            to: TypeToken::Integer(t2.clone(), Mutability::Immutable),
         };
 
         let instruction = cast_to.to_asm::<InterimResultOption>(stack, meta, None)?.to_string();
@@ -113,14 +113,14 @@ impl Castable<Float, Integer> for Float {
 
 impl Castable<Float, Float> for Float {
     fn add_casts(cast_matrix: &mut HashMap<(TypeToken, TypeToken), &'static str>) {
-        cast_matrix.insert((TypeToken::Float(Float32), TypeToken::Float(Float64)), "cvtss2sd");
-        cast_matrix.insert((TypeToken::Float(Float64), TypeToken::Float(Float32)), "cvtsd2ss");
+        cast_matrix.insert((TypeToken::Float(Float32, Mutability::Immutable), TypeToken::Float(Float64, Mutability::Immutable)), "cvtss2sd");
+        cast_matrix.insert((TypeToken::Float(Float64, Mutability::Immutable), TypeToken::Float(Float32, Mutability::Immutable)), "cvtsd2ss");
     }
 
     fn cast_from_to(t1: &Float, t2: &Float, source: &str, stack: &mut Stack, meta: &mut MetaInfo) -> Result<ASMResult, ASMGenerateError> {
         let cast_to = CastTo {
-            from: TypeToken::Float(t1.clone()),
-            to: TypeToken::Float(t2.clone()),
+            from: TypeToken::Float(t1.clone(), Mutability::Immutable),
+            to: TypeToken::Float(t2.clone(), Mutability::Immutable),
         };
 
         let instruction = cast_to.to_asm::<InterimResultOption>(stack, meta, None)?.to_string();
@@ -159,18 +159,18 @@ impl Float {
         let types = [Float32, Float64];
 
         for ty in &types {
-            base_type_matrix.insert((TypeToken::Float(ty.clone()), Operator::Add, TypeToken::Float(ty.clone())), TypeToken::Float(ty.clone()));
-            base_type_matrix.insert((TypeToken::Float(ty.clone()), Operator::Sub, TypeToken::Float(ty.clone())), TypeToken::Float(ty.clone()));
-            base_type_matrix.insert((TypeToken::Float(ty.clone()), Operator::Mul, TypeToken::Float(ty.clone())), TypeToken::Float(ty.clone()));
-            base_type_matrix.insert((TypeToken::Float(ty.clone()), Operator::Div, TypeToken::Float(ty.clone())), TypeToken::Float(ty.clone()));
+            base_type_matrix.insert((TypeToken::Float(ty.clone(), Mutability::Immutable), Operator::Add, TypeToken::Float(ty.clone(), Mutability::Immutable)), TypeToken::Float(ty.clone(), Mutability::Immutable));
+            base_type_matrix.insert((TypeToken::Float(ty.clone(), Mutability::Immutable), Operator::Sub, TypeToken::Float(ty.clone(), Mutability::Immutable)), TypeToken::Float(ty.clone(), Mutability::Immutable));
+            base_type_matrix.insert((TypeToken::Float(ty.clone(), Mutability::Immutable), Operator::Mul, TypeToken::Float(ty.clone(), Mutability::Immutable)), TypeToken::Float(ty.clone(), Mutability::Immutable));
+            base_type_matrix.insert((TypeToken::Float(ty.clone(), Mutability::Immutable), Operator::Div, TypeToken::Float(ty.clone(), Mutability::Immutable)), TypeToken::Float(ty.clone(), Mutability::Immutable));
 
-            base_type_matrix.insert((TypeToken::Float(ty.clone()), Operator::LessThan, TypeToken::Float(ty.clone())), TypeToken::Bool);
-            base_type_matrix.insert((TypeToken::Float(ty.clone()), Operator::GreaterThan, TypeToken::Float(ty.clone())), TypeToken::Bool);
-            base_type_matrix.insert((TypeToken::Float(ty.clone()), Operator::LessThanEqual, TypeToken::Float(ty.clone())), TypeToken::Bool);
-            base_type_matrix.insert((TypeToken::Float(ty.clone()), Operator::GreaterThanEqual, TypeToken::Float(ty.clone())), TypeToken::Bool);
+            base_type_matrix.insert((TypeToken::Float(ty.clone(), Mutability::Immutable), Operator::LessThan, TypeToken::Float(ty.clone(), Mutability::Immutable)), TypeToken::Bool(Mutability::Immutable));
+            base_type_matrix.insert((TypeToken::Float(ty.clone(), Mutability::Immutable), Operator::GreaterThan, TypeToken::Float(ty.clone(), Mutability::Immutable)), TypeToken::Bool(Mutability::Immutable));
+            base_type_matrix.insert((TypeToken::Float(ty.clone(), Mutability::Immutable), Operator::LessThanEqual, TypeToken::Float(ty.clone(), Mutability::Immutable)), TypeToken::Bool(Mutability::Immutable));
+            base_type_matrix.insert((TypeToken::Float(ty.clone(), Mutability::Immutable), Operator::GreaterThanEqual, TypeToken::Float(ty.clone(), Mutability::Immutable)), TypeToken::Bool(Mutability::Immutable));
 
-            base_type_matrix.insert((TypeToken::Float(ty.clone()), Operator::Equal, TypeToken::Float(ty.clone())), TypeToken::Bool);
-            base_type_matrix.insert((TypeToken::Float(ty.clone()), Operator::NotEqual, TypeToken::Float(ty.clone())), TypeToken::Bool);
+            base_type_matrix.insert((TypeToken::Float(ty.clone(), Mutability::Immutable), Operator::Equal, TypeToken::Float(ty.clone(), Mutability::Immutable)), TypeToken::Bool(Mutability::Immutable));
+            base_type_matrix.insert((TypeToken::Float(ty.clone(), Mutability::Immutable), Operator::NotEqual, TypeToken::Float(ty.clone(), Mutability::Immutable)), TypeToken::Bool(Mutability::Immutable));
         }
     }
 

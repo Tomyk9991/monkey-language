@@ -2,7 +2,6 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::iter::Peekable;
 use std::slice::Iter;
-use std::str::FromStr;
 use crate::core::lexer::tokens::assignable_token::AssignableToken;
 use crate::core::lexer::tokens::variable_token::VariableToken;
 use crate::core::code_generator::conventions::calling_convention_from;
@@ -24,7 +23,7 @@ use crate::core::lexer::tokens::assignable_token::AssignableTokenErr;
 use crate::core::lexer::tokens::l_value::LValue;
 use crate::core::lexer::tokens::name_token::{NameToken, NameTokenErr};
 use crate::core::lexer::TryParse;
-use crate::core::lexer::types::type_token::{InferTypeError, MethodCallSignatureMismatchCause, TypeToken};
+use crate::core::lexer::types::type_token::{InferTypeError, MethodCallSignatureMismatchCause, Mutability, TypeToken};
 use crate::core::type_checker::static_type_checker::{static_type_check_rec, StaticTypeCheckError};
 use crate::core::type_checker::StaticTypeCheck;
 use crate::utils::math;
@@ -44,7 +43,6 @@ pub struct MethodDefinition {
 pub struct MethodArgument {
     pub name: NameToken,
     pub type_token: TypeToken,
-    pub mutability: bool,
 }
 
 #[derive(Debug)]
@@ -55,6 +53,22 @@ pub enum MethodDefinitionErr {
     AssignableTokenErr(AssignableTokenErr),
     ScopeErrorErr(ScopeError),
     EmptyIterator(EmptyIteratorErr),
+}
+
+impl TypeToken {
+    pub fn mutable(&self) -> bool {
+        match self {
+            TypeToken::Integer(_, a) |
+            TypeToken::Float(_, a) |
+            TypeToken::Bool(a) |
+            TypeToken::Array(_, _, a) |
+            TypeToken::Custom(_, a) => match a {
+                Mutability::Mutable => true,
+                Mutability::Immutable => false
+            }
+            TypeToken::Void => false
+        }
+    }
 }
 
 impl PatternNotMatchedError for MethodDefinitionErr {
@@ -90,7 +104,7 @@ impl Display for MethodDefinition {
             self.name,
             self.arguments
                 .iter()
-                .map(|argument| format!("{}: {}{}", argument.name, if argument.mutability { "mut" } else { "" }, argument.type_token))
+                .map(|argument| format!("{}: {}{}", argument.name, if argument.type_token.mutable() { "mut" } else { "" }, argument.type_token))
                 .collect::<Vec<String>>()
                 .join(", "),
             self.return_type,
@@ -121,7 +135,7 @@ impl StaticTypeCheck for MethodDefinition {
         for argument in &self.arguments {
             type_context.context.push(VariableToken {
                 l_value: LValue::Name(argument.name.clone()),
-                mutability: argument.mutability,
+                mutability: argument.type_token.mutable(),
                 ty: Some(argument.type_token.clone()),
                 define: true,
                 assignable: AssignableToken::default(),
@@ -220,7 +234,7 @@ impl TryParse for MethodDefinition {
 
         Ok(MethodDefinition {
             name: NameToken::from_str(fn_name, false)?,
-            return_type: TypeToken::from_str(return_type)?,
+            return_type: TypeToken::from_str(return_type, Mutability::Immutable)?,
             arguments: Self::type_arguments(method_header, arguments)?,
             stack: tokens,
             is_extern,
@@ -250,8 +264,7 @@ impl MethodDefinition {
 
             type_arguments.push(MethodArgument {
                 name: NameToken::from_str(name.trim(), false)?,
-                type_token: TypeToken::from_str(ty.trim())?,
-                mutability,
+                type_token: TypeToken::from_str(ty.trim(), Mutability::from(mutability))?
             })
         }
 
@@ -297,7 +310,7 @@ impl ToASM for MethodDefinition {
                 let destination = stack_location.name.clone().to_asm(stack, meta, options.clone())?;
                 let source = match &calling_convention[index][0] {
                     CallingRegister::Register(r) => {
-                        if matches!(argument.type_token, TypeToken::Float(_)) {
+                        if matches!(argument.type_token, TypeToken::Float(_, _)) {
                             r.to_string()
                         } else {
                             r.to_size_register(&ByteSize::try_from(argument.type_token.byte_size())?).to_string()
@@ -306,7 +319,7 @@ impl ToASM for MethodDefinition {
                     CallingRegister::Stack => "popppp".to_string()
                 };
 
-                method_scope.push_str(&ASMBuilder::mov_x_ident_line(destination, source, if let TypeToken::Float(f) = &argument.type_token {
+                method_scope.push_str(&ASMBuilder::mov_x_ident_line(destination, source, if let TypeToken::Float(f, _) = &argument.type_token {
                     Some(f.byte_size())
                 } else {
                     None

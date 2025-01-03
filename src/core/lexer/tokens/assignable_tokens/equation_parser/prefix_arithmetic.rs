@@ -94,11 +94,11 @@ impl ToASM for PrefixArithmetic {
 
 
                         let result = match (&cast_to.from, &cast_to.to) {
-                            (TypeToken::Float(f1), TypeToken::Float(f2)) => Float::cast_from_to(f1, f2, &options.register_or_stack_address, stack, meta)?,
-                            (TypeToken::Integer(i1), TypeToken::Float(f2)) => Integer::cast_from_to(i1, f2, &options.register_or_stack_address, stack, meta)?,
-                            (TypeToken::Bool, TypeToken::Integer(i2)) => Boolean::cast_from_to(&Boolean::True, i2, &options.register_or_stack_address, stack, meta)?,
-                            (TypeToken::Float(f1), TypeToken::Integer(i2)) => Float::cast_from_to(f1, i2, &options.register_or_stack_address, stack, meta)?,
-                            (TypeToken::Integer(i1), TypeToken::Integer(i2)) => Integer::cast_from_to(i1, i2, &options.register_or_stack_address, stack, meta)?,
+                            (TypeToken::Float(f1, _), TypeToken::Float(f2, _)) => Float::cast_from_to(f1, f2, &options.register_or_stack_address, stack, meta)?,
+                            (TypeToken::Integer(i1, _), TypeToken::Float(f2, _)) => Integer::cast_from_to(i1, f2, &options.register_or_stack_address, stack, meta)?,
+                            (TypeToken::Bool(_), TypeToken::Integer(i2, _)) => Boolean::cast_from_to(&Boolean::True, i2, &options.register_or_stack_address, stack, meta)?,
+                            (TypeToken::Float(f1, _), TypeToken::Integer(i2, _)) => Float::cast_from_to(f1, i2, &options.register_or_stack_address, stack, meta)?,
+                            (TypeToken::Integer(i1, _), TypeToken::Integer(i2, _)) => Integer::cast_from_to(i1, i2, &options.register_or_stack_address, stack, meta)?,
                             _ => return Err(ASMGenerateError::CastUnsupported(CastToError::CastUnsupported(cast_to.clone()), meta.code_line.clone()))
                         };
 
@@ -111,7 +111,7 @@ impl ToASM for PrefixArithmetic {
 
 
 
-                        return if let TypeToken::Float(_) = &cast_to.to {
+                        return if let TypeToken::Float(_, _) = &cast_to.to {
                             let d = options.register_64.to_float_register();
                             let r = options.register_64.to_size_register_ignore_float(&ByteSize::try_from(cast_to.to.byte_size())?);
                             options.target.push_str(&ASMBuilder::mov_x_ident_line(&d, r, Some(cast_to.to.byte_size())));

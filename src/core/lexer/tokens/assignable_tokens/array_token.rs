@@ -16,7 +16,7 @@ use crate::core::lexer::tokens::assignable_token::AssignableToken;
 use crate::core::lexer::tokens::assignable_tokens::method_call_token::dyck_language;
 use crate::core::lexer::tokens::l_value::LValue;
 use crate::core::lexer::tokens::name_token::NameToken;
-use crate::core::lexer::types::type_token::{InferTypeError, TypeToken};
+use crate::core::lexer::types::type_token::{InferTypeError, Mutability, TypeToken};
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct ArrayToken {
@@ -37,7 +37,7 @@ impl ArrayToken {
         }
 
         if let Ok(ty) = self.values[0].infer_type_with_context(context, code_line) {
-            return Ok(TypeToken::Array(Box::new(ty), self.values.len()));
+            return Ok(TypeToken::Array(Box::new(ty), self.values.len(), Mutability::Immutable));
         }
 
         Err(InferTypeError::NoTypePresent(LValue::Name(NameToken { name: "Array".to_string() }), code_line.clone()))
@@ -148,7 +148,7 @@ impl ToASM for ArrayToken {
                         let final_type = expr.traverse_type(meta).ok_or(ASMGenerateError::InternalError("Cannot infer type".to_string()))?;
                         let r = GeneralPurposeRegister::Bit64(Bit64::Rax).to_size_register(&ByteSize::try_from(final_type.byte_size())?);
 
-                        if let TypeToken::Float(s) = final_type {
+                        if let TypeToken::Float(s, _) = final_type {
                             target += &ASMBuilder::mov_x_ident_line(&r, register, Some(s.byte_size()));
                             register = r;
                         }

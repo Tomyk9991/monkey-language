@@ -21,7 +21,7 @@ use crate::core::lexer::tokens::assignable_tokens::string_token::StringToken;
 use crate::core::lexer::tokens::name_token::NameToken;
 use crate::core::lexer::tokens::parameter_token::ParameterToken;
 use crate::core::lexer::types::type_token;
-use crate::core::lexer::types::type_token::{InferTypeError, TypeToken};
+use crate::core::lexer::types::type_token::{InferTypeError, Mutability, TypeToken};
 
 /// Token for assignable tokens. Numbers, strings, method calls, other variables, objects, and arithmetic / boolean equations.
 #[derive(Debug, PartialEq, Clone)]
@@ -103,11 +103,11 @@ impl AssignableToken {
     pub fn infer_type_with_context(&self, context: &StaticTypeContext, code_line: &CodeLine) -> Result<TypeToken, InferTypeError> {
         match self {
             AssignableToken::String(_) => Ok(type_token::common::string()),
-            AssignableToken::IntegerToken(a) => Ok(TypeToken::Integer(a.ty.clone())),
+            AssignableToken::IntegerToken(a) => Ok(TypeToken::Integer(a.ty.clone(), Mutability::Immutable)),
             AssignableToken::ArrayToken(array_token) => Ok(array_token.infer_type_with_context(context, code_line)?),
-            AssignableToken::FloatToken(a) => Ok(TypeToken::Float(a.ty.clone())),
-            AssignableToken::BooleanToken(_) => Ok(TypeToken::Bool),
-            AssignableToken::Object(object) => Ok(TypeToken::Custom(NameToken { name: object.ty.to_string() })),
+            AssignableToken::FloatToken(a) => Ok(TypeToken::Float(a.ty.clone(), Mutability::Immutable)),
+            AssignableToken::BooleanToken(_) => Ok(TypeToken::Bool(Mutability::Immutable)),
+            AssignableToken::Object(object) => Ok(TypeToken::Custom(NameToken { name: object.ty.to_string() }, Mutability::Immutable)),
             AssignableToken::ArithmeticEquation(arithmetic_expression) => Ok(arithmetic_expression.traverse_type_resulted(context, code_line)?),
             AssignableToken::MethodCallToken(method_call) => Ok(method_call.infer_type_with_context(context, code_line)?),
             AssignableToken::NameToken(var) => Ok(var.infer_type_with_context(context, code_line)?),

@@ -99,14 +99,14 @@ fn windows_calling_convention(_stack: &mut Stack, meta: &MetaInfo, calling_argum
         let calling_ty: TypeToken = calling_argument.infer_type_with_context(&meta.static_type_information, &meta.code_line)?;
 
         match calling_ty {
-            TypeToken::Integer(_) | TypeToken::Bool | TypeToken::Custom(_) | TypeToken::Array(_, _) => {
+            TypeToken::Integer(_, _) | TypeToken::Bool(_) | TypeToken::Custom(_, _) | TypeToken::Array(_, _, _) => {
                 if index < 4 {
                     result.push(vec![POINTER_ORDER[index].clone()]);
                 } else {
                     result.push(vec![CallingRegister::Stack]);
                 }
             }
-            TypeToken::Float(_) => {
+            TypeToken::Float(_, _) => {
                 let mut r = vec![];
                 if method_def.is_extern {
                     r.push(POINTER_ORDER[index].clone());
@@ -138,7 +138,7 @@ pub fn method_definitions(meta: &StaticTypeContext, code_line: &CodeLine, argume
 
         for (index, argument) in method.arguments.iter().enumerate() {
             let calling_type = arguments[index].infer_type_with_context(meta, code_line)?;
-            if argument.type_token != calling_type {
+            if argument.type_token < calling_type {
                 continue 'outer;
             }
         }
@@ -168,14 +168,14 @@ fn windows_calling_convention_from(method_definition: &MethodDefinition) -> Vec<
 
     for (index, argument) in method_definition.arguments.iter().enumerate() {
         match argument.type_token {
-            TypeToken::Integer(_) | TypeToken::Bool | TypeToken::Custom(_) | TypeToken::Array(_, _) => {
+            TypeToken::Integer(_, _) | TypeToken::Bool(_) | TypeToken::Custom(_, _) | TypeToken::Array(_, _, _) => {
                 if index < 4 {
                     result.push(vec![POINTER_ORDER[index].clone()]);
                 } else {
                     result.push(vec![CallingRegister::Stack]);
                 }
             }
-            TypeToken::Float(_) => {
+            TypeToken::Float(_, _) => {
                 let mut r = vec![];
                 if index < 4 {
                     r.push(FLOAT_ORDER[index].clone());

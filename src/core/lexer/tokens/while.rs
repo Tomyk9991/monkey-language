@@ -17,7 +17,7 @@ use crate::core::lexer::token::Token;
 use crate::core::lexer::tokens::assignable_token::{AssignableToken, AssignableTokenErr};
 use crate::core::lexer::tokens::assignable_tokens::method_call_token::DyckError;
 use crate::core::lexer::TryParse;
-use crate::core::lexer::types::type_token::{InferTypeError, TypeToken};
+use crate::core::lexer::types::type_token::{InferTypeError, Mutability, TypeToken};
 use crate::core::type_checker::{InferType, StaticTypeCheck};
 use crate::core::type_checker::static_type_checker::{static_type_check_rec, StaticTypeCheckError};
 
@@ -96,9 +96,9 @@ impl StaticTypeCheck for WhileToken {
         let variables_len = type_context.context.len();
         let condition_type = self.condition.infer_type_with_context(type_context, &self.code_line)?;
 
-        if condition_type != TypeToken::Bool {
+        if !matches!(condition_type, TypeToken::Bool(_)) {
             return Err(StaticTypeCheckError::InferredError(InferTypeError::MismatchedTypes {
-                expected: TypeToken::Bool,
+                expected: TypeToken::Bool(Mutability::Immutable),
                 actual: condition_type,
                 code_line: self.code_line.clone(),
             }));

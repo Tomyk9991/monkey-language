@@ -13,7 +13,7 @@ use monkey_language::core::lexer::tokens::name_token::NameToken;
 use monkey_language::core::lexer::tokens::variable_token::VariableToken;
 use monkey_language::core::lexer::types::float::Float;
 use monkey_language::core::lexer::types::integer::Integer;
-use monkey_language::core::lexer::types::type_token::TypeToken;
+use monkey_language::core::lexer::types::type_token::{Mutability, TypeToken};
 use monkey_language::core::type_checker::static_type_checker::static_type_check;
 
 #[test]
@@ -36,7 +36,7 @@ fn infer_type() -> anyhow::Result<()> {
         Token::Variable(VariableToken {
             l_value: LValue::Name(NameToken { name: "a".to_string() }),
             mutability: false,
-            ty: Some(TypeToken::Integer(Integer::I32)),
+            ty: Some(TypeToken::Integer(Integer::I32, Mutability::Immutable)),
             define: true,
             assignable: AssignableToken::IntegerToken(IntegerToken { value: "1".to_string(), ty: Integer::I32 }),
             code_line: CodeLine {
@@ -48,7 +48,7 @@ fn infer_type() -> anyhow::Result<()> {
         Token::Variable(VariableToken {
             l_value: LValue::Name(NameToken { name: "b".to_string() }),
             mutability: false,
-            ty: Some(TypeToken::Float(Float::Float32)),
+            ty: Some(TypeToken::Float(Float::Float32, Mutability::Immutable)),
             define: true,
             assignable: AssignableToken::FloatToken(FloatToken { value: 2.0, ty: Float::Float32 }),
             code_line: CodeLine {
@@ -60,7 +60,7 @@ fn infer_type() -> anyhow::Result<()> {
         Token::Variable(VariableToken {
             l_value: LValue::Name(NameToken { name: "c".to_string() }),
             mutability: false,
-            ty: Some(TypeToken::Bool),
+            ty: Some(TypeToken::Bool(Mutability::Immutable)),
             define: true,
             assignable: AssignableToken::BooleanToken(BooleanToken { value: true }),
             code_line: CodeLine {
@@ -72,7 +72,7 @@ fn infer_type() -> anyhow::Result<()> {
         Token::Variable(VariableToken {
             l_value: LValue::Name(NameToken { name: "d".to_string() }),
             mutability: false,
-            ty: Some(TypeToken::Custom(NameToken { name: String::from("*string") })),
+            ty: Some(TypeToken::Custom(NameToken { name: String::from("*string") }, Mutability::Immutable)),
             define: true,
             assignable: AssignableToken::String(StringToken { value: "\"KEKW\"".to_string() }),
             code_line: CodeLine {
@@ -112,9 +112,9 @@ fn infer_type_in_scope() -> anyhow::Result<()> {
                 Token::Variable(VariableToken {
                     l_value: LValue::Name(NameToken { name: "a".to_string() }),
                     mutability: false,
-                    ty: Some(TypeToken::Integer(Integer::I32)),
+                    ty: Some(TypeToken::Integer(Integer::I32, Mutability::Immutable)),
                     define: true,
-                    assignable: AssignableToken::IntegerToken(IntegerToken { value: "1".to_string(), ty: Integer::I32  }),
+                    assignable: AssignableToken::IntegerToken(IntegerToken { value: "1".to_string(), ty: Integer::I32 }),
                     code_line: CodeLine {
                         line: "let a = 1 ;".to_string(),
                         actual_line_number: 3..3,
@@ -124,7 +124,7 @@ fn infer_type_in_scope() -> anyhow::Result<()> {
                 Token::Variable(VariableToken {
                     l_value: LValue::Name(NameToken { name: "b".to_string() }),
                     mutability: false,
-                    ty: Some(TypeToken::Float(Float::Float32)),
+                    ty: Some(TypeToken::Float(Float::Float32, Mutability::Immutable)),
                     define: true,
                     assignable: AssignableToken::FloatToken(FloatToken { value: 2.0, ty: Float::Float32 }),
                     code_line: CodeLine {
@@ -136,7 +136,7 @@ fn infer_type_in_scope() -> anyhow::Result<()> {
                 Token::Variable(VariableToken {
                     l_value: LValue::Name(NameToken { name: "c".to_string() }),
                     mutability: false,
-                    ty: Some(TypeToken::Bool),
+                    ty: Some(TypeToken::Bool(Mutability::Immutable)),
                     define: true,
                     assignable: AssignableToken::BooleanToken(BooleanToken { value: true }),
                     code_line: CodeLine {
@@ -148,7 +148,7 @@ fn infer_type_in_scope() -> anyhow::Result<()> {
                 Token::Variable(VariableToken {
                     l_value: LValue::Name(NameToken { name: "d".to_string() }),
                     mutability: false,
-                    ty: Some(TypeToken::Custom(NameToken { name: String::from("*string") })),
+                    ty: Some(TypeToken::Custom(NameToken { name: String::from("*string") }, Mutability::Immutable)),
                     define: true,
                     assignable: AssignableToken::String(StringToken { value: "\"KEKW\"".to_string() }),
                     code_line: CodeLine {

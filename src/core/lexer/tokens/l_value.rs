@@ -1,19 +1,16 @@
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
-use std::ops::Deref;
 use std::str::FromStr;
-use crate::core::lexer::tokens::assignable_tokens::equation_parser::operator::Operator;
 use crate::core::code_generator::asm_options::ASMOptions;
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::code_generator::asm_result::ASMResult;
 use crate::core::code_generator::register_destination::word_from_byte_size;
 use crate::core::code_generator::registers::{GeneralPurposeRegister};
-use crate::core::lexer::tokens::assignable_token::AssignableToken;
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::EquationToken;
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::expression::Expression;
 use crate::core::lexer::tokens::name_token::{NameToken, NameTokenErr};
-use crate::core::lexer::tokens::assignable_tokens::equation_parser::prefix_arithmetic::{PointerArithmetic, PrefixArithmetic};
+use crate::core::lexer::tokens::assignable_tokens::equation_parser::prefix_arithmetic::PointerArithmetic;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum LValue {
@@ -98,13 +95,13 @@ impl ToASM for LValue {
             LValue::Name(name) => name.to_asm(stack, meta, options),
             LValue::PrefixArithmetic(name, arithmetic) => {
                 let str = format!("{}{}", arithmetic.iter().map(|p| p.to_string()).collect::<String>(), name.to_string());
-                let mut l_value_equation = EquationToken::from_str(&str).map_err(|_| ASMGenerateError::LValueAssignment(self.clone(), meta.code_line.clone()))?;
+                let l_value_equation = EquationToken::from_str(&str).map_err(|_| ASMGenerateError::LValueAssignment(self.clone(), meta.code_line.clone()))?;
                 let resulting_type = l_value_equation.traverse_type(meta).ok_or(ASMGenerateError::LValueAssignment(self.clone(), meta.code_line.clone()))?;
 
 
                 if let (Some(prefix_arithmetic), Some(inner_value)) = (&l_value_equation.prefix_arithmetic, l_value_equation.value) {
                     let last_register = stack.register_to_use.last().ok_or(ASMGenerateError::LValueAssignment(self.clone(), meta.code_line.clone()))?;
-                    let mut result = Expression::prefix_arithmetic_to_asm(
+                    let result = Expression::prefix_arithmetic_to_asm(
                         prefix_arithmetic,
                         &inner_value,
                         &GeneralPurposeRegister::Memory(format!("{} [{}]", word_from_byte_size(resulting_type.byte_size()), last_register.to_64_bit_register())),
