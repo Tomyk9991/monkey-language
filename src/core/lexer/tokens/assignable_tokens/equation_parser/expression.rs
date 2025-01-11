@@ -49,6 +49,15 @@ impl Expression {
         Err(ASMGenerateError::InternalError("Internal error".to_string()))
     }
 
+    /// identifier expects a variable name. Expressions per se dont have variables names, but the identifier function is called on a l_value
+    pub fn identifier(&self) -> Option<String> {
+        if let Some(value) = &self.value {
+            return value.identifier();
+        }
+
+        None
+    }
+
     fn latest_used_destination_register(&self, meta: &mut MetaInfo, target: &str, lhs_size: usize) -> Result<GeneralPurposeRegister, ASMGenerateError> {
         let pushing_register: GeneralPurposeRegister = if let Some(last_instruction) = extract_last_general_purpose_instruction(target) {
             let (mut i, _) = self.iterator_from_type(meta, lhs_size)?;
@@ -652,7 +661,8 @@ impl Expression {
                         .apply_with(&mut target)
                         .allow(ASMResultVariance::MultilineResulted)
                         .allow(ASMResultVariance::MultilineResulted)
-                        .token("Expression").finish()?;
+                        .token("Expression")
+                        .finish()?;
 
 
                     register_or_stack_address = match prefix_arithmetic {

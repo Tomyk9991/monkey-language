@@ -175,7 +175,7 @@ impl Display for TypeToken {
             TypeToken::Bool(_) => "bool".to_string(),
             TypeToken::Void => "void".to_string(),
             TypeToken::Array(array_type, size, _) => format!("[{}; {size}]", array_type),
-            TypeToken::Custom(name, _) => format!("{}", name.name.clone()),
+            TypeToken::Custom(name, _) => name.name.clone().to_string(),
         })
     }
 }

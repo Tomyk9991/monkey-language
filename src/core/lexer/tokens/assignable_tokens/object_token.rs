@@ -111,7 +111,7 @@ impl ObjectToken {
         let split_alloc = code_line.split(vec![' ', ';']);
         let split = split_alloc.iter().map(|a| a.as_str()).collect::<Vec<_>>();
 
-        return if let [object_type, "{", arguments_segments @ .., "}", ";"] = &split[..] {
+        if let [object_type, "{", arguments_segments @ .., "}", ";"] = &split[..] {
             let mut argument_strings = dyck_language(&arguments_segments.join(" "),[vec!['{', '('], vec![','], vec!['}', ')']])?;
             argument_strings.iter_mut().for_each(|s|
                 if !s.ends_with(',') {
@@ -132,6 +132,6 @@ impl ObjectToken {
             })
         } else {
             Err(ObjectTokenErr::PatternNotMatched { target_value: code_line.line.to_string() })
-        };
+        }
     }
 }

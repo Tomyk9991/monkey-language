@@ -82,7 +82,7 @@ impl ASMResult {
                 let mut lines = a.lines().collect::<Vec<&str>>();
                 lines.pop();
                 *a = lines.join("\n");
-                a.push_str("\n");
+                a.push('\n');
             }
         }
     }

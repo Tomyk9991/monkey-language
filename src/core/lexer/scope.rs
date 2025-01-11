@@ -1,9 +1,6 @@
 use std::collections::{HashSet};
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
-use std::iter::Peekable;
-use std::slice::Iter;
-use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::errors::EmptyIteratorErr;
 use crate::core::lexer::static_type_context::StaticTypeContext;
 use crate::core::lexer::token::Token;
@@ -16,7 +13,7 @@ use crate::core::lexer::tokens::if_token::IfToken;
 use crate::core::lexer::tokens::method_definition::MethodDefinition;
 use crate::core::lexer::tokens::scope_ending::ScopeEnding;
 use crate::core::lexer::tokens::variable_token::VariableToken;
-use crate::core::lexer::TryParse;
+use crate::core::lexer::{Lines, TryParse};
 use crate::core::lexer::tokens::import_token::ImportToken;
 use crate::core::lexer::tokens::r#while::WhileToken;
 use crate::core::lexer::tokens::return_token::ReturnToken;
@@ -279,7 +276,7 @@ impl TryParse for Scope {
     /// # Returns
     /// * Ok(Token) if the code lines iterator can be parsed into a scope
     /// * Err(ScopeError) if the code lines iterator cannot be parsed into a scope
-    fn try_parse(code_lines_iterator: &mut Peekable<Iter<CodeLine>>) -> anyhow::Result<Self::Output, ScopeError> {
+    fn try_parse(code_lines_iterator: &mut Lines<'_>) -> anyhow::Result<Self::Output, ScopeError> {
         // let mut pattern_distances: Vec<(usize, Box<dyn Error>)> = vec![];
         let code_line = *code_lines_iterator.peek().ok_or(ScopeError::EmptyIterator(EmptyIteratorErr))?;
 

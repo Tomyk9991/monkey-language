@@ -1,8 +1,6 @@
 use std::cmp::Ordering;
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
-use std::iter::Peekable;
-use std::slice::Iter;
 use std::str::FromStr;
 
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
@@ -18,7 +16,7 @@ use crate::core::lexer::token::Token;
 use crate::core::lexer::tokens::assignable_token::{AssignableToken, AssignableTokenErr};
 use crate::core::lexer::tokens::assignable_tokens::method_call_token::{dyck_language, DyckError};
 use crate::core::lexer::tokens::variable_token::{ParseVariableTokenErr, VariableToken};
-use crate::core::lexer::TryParse;
+use crate::core::lexer::{Lines, TryParse};
 use crate::core::lexer::types::type_token::{InferTypeError, Mutability, TypeToken};
 use crate::core::type_checker::{InferType, StaticTypeCheck};
 use crate::core::type_checker::static_type_checker::{static_type_check, static_type_check_rec, StaticTypeCheckError};
@@ -147,7 +145,7 @@ impl TryParse for ForToken {
     type Output = ForToken;
     type Err = ForTokenErr;
 
-    fn try_parse(code_lines_iterator: &mut Peekable<Iter<CodeLine>>) -> anyhow::Result<Self::Output, Self::Err> {
+    fn try_parse(code_lines_iterator: &mut Lines<'_>) -> anyhow::Result<Self::Output, Self::Err> {
         let for_header = *code_lines_iterator
             .peek()
             .ok_or(ForTokenErr::EmptyIterator(EmptyIteratorErr))?;

@@ -49,6 +49,16 @@ impl AssignableToken {
         self.infer_type_with_context(&StaticTypeContext::default(), code_line).ok()
     }
 
+    pub fn identifier(&self) -> Option<String> {
+        match self {
+            AssignableToken::NameToken(name_token) => Some(name_token.name.clone()),
+            AssignableToken::ArithmeticEquation(value) => {
+                value.identifier()
+            }
+            _ => None
+        }
+    }
+
     pub fn prefix_arithmetic(&self) -> Option<PrefixArithmetic> {
         match self {
             AssignableToken::ArithmeticEquation(a) => {

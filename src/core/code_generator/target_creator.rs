@@ -44,7 +44,7 @@ impl TargetCreator {
         }
 
         let mut file = File::create(format!("{}/{}", self.path_to_target_directory, file_name))?;
-        return file.write_all(content.as_bytes());
+        file.write_all(content.as_bytes())
     }
 }
 

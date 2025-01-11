@@ -20,8 +20,8 @@ const CLOSING: char = ')';
 const OPENING_BRACKET: char = '[';
 const CLOSING_BRACKET: char = ']';
 
-#[derive(Debug, PartialEq)]
-pub struct EquationToken<> {
+#[derive(Debug, PartialEq, Clone)]
+pub struct EquationToken {
     source_code: String,
     pub syntax_tree: Box<Expression>,
     pos: i32,
@@ -533,13 +533,13 @@ impl EquationToken {
     fn undefined_or_empty(&self) -> Result<Box<Expression>, Error> {
         let s = self.ch.map(|a| a.to_string());
 
-        return if let Some(character) = s {
+        if let Some(character) = s {
             Err(Error::UndefinedSequence(character))
         } else if let Some(last_character) = self.source_code.chars().last() {
             Err(Error::UndefinedSequence(last_character.to_string()))
         } else {
             Err(Error::SourceEmpty)
-        };
+        }
     }
     fn operator_sequence(&mut self) -> bool {
         static OPERATORS: [&str; 18] = ["+", "-", "*", "%", "/", "<<", ">>", "<", ">", "<=", ">=", "==", "!=", "&&", "||", "&", "^", "|"];

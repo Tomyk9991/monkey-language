@@ -5,6 +5,9 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[lints.rust]
+rust_2018_idioms = "deny"
+
 [target.'cfg(target_os = "windows")'.dependencies]
 windows = "0.52.0"
 windows-core = "0.52.0"

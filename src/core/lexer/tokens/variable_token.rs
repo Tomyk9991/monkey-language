@@ -1,7 +1,5 @@
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
-use std::iter::Peekable;
-use std::slice::Iter;
 use std::str::FromStr;
 
 use anyhow::Context;
@@ -19,10 +17,9 @@ use crate::core::lexer::errors::EmptyIteratorErr;
 use crate::core::lexer::scope::PatternNotMatchedError;
 use crate::core::lexer::static_type_context::StaticTypeContext;
 use crate::core::lexer::tokens::assignable_token::{AssignableToken, AssignableTokenErr};
-use crate::core::lexer::tokens::assignable_tokens::equation_parser::prefix_arithmetic::PointerArithmetic;
 use crate::core::lexer::tokens::l_value::{LValue, LValueErr};
 use crate::core::lexer::tokens::name_token::{NameTokenErr};
-use crate::core::lexer::TryParse;
+use crate::core::lexer::{Lines, TryParse};
 use crate::core::lexer::types::type_token::{InferTypeError, Mutability, TypeToken};
 use crate::core::type_checker::{InferType, StaticTypeCheck};
 use crate::core::type_checker::static_type_checker::StaticTypeCheckError;
@@ -66,7 +63,7 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> InferType for VariableToken<
             Some(ty) => {
                 let inferred_type = self.assignable.infer_type_with_context(type_context, &self.code_line)?;
 
-                if ty != &inferred_type {
+                if ty > &inferred_type {
                     // let a: i64 = 5; instead of let a: i32 = 5;
                     if let Some(implicit_cast) = inferred_type.implicit_cast_to(&mut self.assignable, ty, &self.code_line)? {
                         self.ty = Some(implicit_cast);
@@ -140,30 +137,30 @@ impl StaticTypeCheck for VariableToken<'=', ';'> {
             if let Some(found_variable) = type_context.iter().rfind(|v| v.l_value.identifier() == self.l_value.identifier()) {
                 let inferred_type = self.assignable.infer_type_with_context(type_context, &self.code_line)?;
                 if let Some(ty) = &found_variable.ty {
+                    // self.l_value.
+                    // let ty = if let LValue::PrefixArithmetic(_, prefix_arithmetic) = &self.l_value {
+                    //     let mut final_type = ty.clone();
+                    //     for prefix in prefix_arithmetic.iter().rev() {
+                    //         match prefix {
+                    //             PointerArithmetic::Ampersand => {
+                    //                 final_type.push_pointer();
+                    //             }
+                    //             PointerArithmetic::Asterics => {
+                    //                 if let Some(result) = final_type.pop_pointer() {
+                    //                     final_type = result;
+                    //                 } else {
+                    //                     return Err(StaticTypeCheckError::InvalidPointerDereference { name: self.l_value.clone(), code_line: self.code_line.clone() });
+                    //                 }
+                    //             }
+                    //         }
+                    //     }
+                    //
+                    //     final_type
+                    // } else {
+                    //     ty.clone()
+                    // };
 
-                    let ty = if let LValue::PrefixArithmetic(_, prefix_arithmetic) = &self.l_value {
-                        let mut final_type = ty.clone();
-                        for prefix in prefix_arithmetic.iter().rev() {
-                            match prefix {
-                                PointerArithmetic::Ampersand => {
-                                    final_type.push_pointer();
-                                }
-                                PointerArithmetic::Asterics => {
-                                    if let Some(result) = final_type.pop_pointer() {
-                                        final_type = result;
-                                    } else {
-                                        return Err(StaticTypeCheckError::InvalidPointerDereference { name: self.l_value.clone(), code_line: self.code_line.clone() });
-                                    }
-                                }
-                            }
-                        }
-
-                        final_type
-                    } else {
-                        ty.clone()
-                    };
-
-                    if ty > inferred_type {
+                    if ty > &inferred_type {
                         return Err(InferTypeError::MismatchedTypes { expected: ty.clone(), actual: inferred_type.clone(), code_line: self.code_line.clone() }.into());
                     }
 
@@ -388,7 +385,7 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> TryParse for VariableToken<A
     type Output = VariableToken<ASSIGNMENT, SEPARATOR>;
     type Err = ParseVariableTokenErr;
 
-    fn try_parse(code_lines_iterator: &mut Peekable<Iter<CodeLine>>) -> anyhow::Result<Self::Output, Self::Err> {
+    fn try_parse(code_lines_iterator: &mut Lines<'_>) -> anyhow::Result<Self::Output, Self::Err> {
         let code_line = *code_lines_iterator.peek().ok_or(ParseVariableTokenErr::EmptyIterator(EmptyIteratorErr))?;
         VariableToken::try_parse(code_line)
     }
@@ -402,6 +399,9 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> VariableToken<ASSIGNMENT, SE
 
         let assignment = ASSIGNMENT.to_string();
         let separator = SEPARATOR.to_string();
+
+        let binding = process_name_collapse(&split, &assignment);
+        let split: Vec<&str> = binding.iter().map(|a| a.as_str()).collect();
 
         let let_used;
         let mut_used;
@@ -462,7 +462,7 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> VariableToken<ASSIGNMENT, SE
                 let_used = true;
                 mut_used = true;
             }
-            [name, assignment_token, middle @ .., separator_token] if assignment_token == &assignment && separator_token == &separator => {
+            [name , assignment_token, middle @ .., separator_token] if assignment_token == &assignment && separator_token == &separator => {
                 final_variable_name = name;
                 assignable = AssignableToken::from_str(middle.join(" ").as_str()).context(code_line.line.clone())?;
                 type_token = assignable.infer_type(code_line);
@@ -513,4 +513,27 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> VariableToken<ASSIGNMENT, SE
 
         Err(InferTypeError::UnresolvedReference(self.assignable.to_string(), self.code_line.clone()))
     }
+}
+
+// trys to collapse everything that can belong to the l_value
+fn process_name_collapse(regex_split: &[&str], assignment_token: &str) -> Vec<String> {
+    if let Some(assignment_index) = regex_split.iter().position(|a| a == &assignment_token) {
+        let (l_value, right_value) = regex_split.split_at(assignment_index);
+        let l_value = match &l_value[..] {
+            [name, "[", middle@ .., "]"] => {
+                let mut result = name.to_string();
+                result.push_str(" [ ");
+                result.extend(middle.iter().map(|a| a.to_string()));
+                result.push_str(" ]");
+                result
+            },
+            _ => return regex_split.iter().map(|a| a.to_string()).collect(),
+        };
+
+        let mut resulting_vec = vec![l_value, assignment_token.to_string()];
+        resulting_vec.extend(right_value.iter().skip(1).map(|a| a.to_string()));
+        return resulting_vec;
+    }
+
+    regex_split.iter().map(|a| a.to_string()).collect()
 }

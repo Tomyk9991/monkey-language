@@ -1,8 +1,6 @@
 use std::any::Any;
 use std::cmp::{Ordering, PartialOrd};
 use std::fmt::{Display, Formatter};
-use std::iter::Peekable;
-use std::slice::Iter;
 use std::str::FromStr;
 use crate::core::code_generator::{ASMGenerateError, conventions, MetaInfo};
 use crate::core::code_generator::asm_builder::ASMBuilder;
@@ -20,7 +18,7 @@ use crate::core::lexer::scope::PatternNotMatchedError;
 use crate::core::lexer::static_type_context::StaticTypeContext;
 use crate::core::lexer::tokens::assignable_token::{AssignableToken, AssignableTokenErr};
 use crate::core::lexer::tokens::name_token::{NameToken, NameTokenErr};
-use crate::core::lexer::TryParse;
+use crate::core::lexer::{Lines, TryParse};
 use crate::core::lexer::types::type_token::{InferTypeError, MethodCallArgumentTypeMismatch, Mutability, TypeToken};
 use crate::core::type_checker::static_type_checker::StaticTypeCheckError;
 use crate::core::type_checker::StaticTypeCheck;
@@ -115,7 +113,7 @@ impl TryParse for MethodCallToken {
     type Output = MethodCallToken;
     type Err = MethodCallTokenErr;
 
-    fn try_parse(code_lines_iterator: &mut Peekable<Iter<CodeLine>>) -> anyhow::Result<Self::Output, Self::Err> {
+    fn try_parse(code_lines_iterator: &mut Lines<'_>) -> anyhow::Result<Self::Output, Self::Err> {
         let code_line = *code_lines_iterator.peek().ok_or(MethodCallTokenErr::EmptyIterator(EmptyIteratorErr))?;
         MethodCallToken::try_parse(code_line)
     }
@@ -132,7 +130,7 @@ impl PartialOrd for TypeToken {
             _ => return Some(Ordering::Less)
         };
 
-        let result = if equal_types {
+        if equal_types {
             match (m1, m2) {
                 (Mutability::Mutable, Mutability::Immutable) => Some(Ordering::Less),
                 (Mutability::Immutable, Mutability::Mutable) => Some(Ordering::Greater),
@@ -140,9 +138,7 @@ impl PartialOrd for TypeToken {
             }
         } else {
             Some(Ordering::Less)
-        };
-
-        result
+        }
     }
 }
 
@@ -429,11 +425,11 @@ impl ToASM for MethodCallToken {
     }
 
     fn byte_size(&self, meta: &mut MetaInfo) -> usize {
-        return if let Some(method_def) = meta.static_type_information.methods.iter().find(|m| m.name == self.name) {
+        if let Some(method_def) = meta.static_type_information.methods.iter().find(|m| m.name == self.name) {
             method_def.return_type.byte_size()
         } else {
             0
-        };
+        }
     }
 
     fn data_section(&self, stack: &mut Stack, meta: &mut MetaInfo) -> bool {
@@ -511,12 +507,12 @@ pub fn dyck_language<T: ArrayOrObject<char>>(parameter_string: &str, values: [T;
         }
     }
 
-    return match counter {
+    match counter {
         number if number > 0 => Err(DyckError {
             target_value: parameter_string.to_string(),
             ordering: Ordering::Less,
         }),
-        number if number < 0 => return Err(DyckError {
+        number if number < 0 => Err(DyckError {
             target_value: parameter_string.to_string(),
             ordering: Ordering::Greater,
         }),
@@ -528,5 +524,5 @@ pub fn dyck_language<T: ArrayOrObject<char>>(parameter_string: &str, values: [T;
 
             Ok(individual_parameters)
         }
-    };
+    }
 }

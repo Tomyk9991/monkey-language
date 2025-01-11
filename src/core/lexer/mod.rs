@@ -11,11 +11,13 @@ pub mod errors;
 pub mod static_type_context;
 pub mod types;
 
+
+pub type Lines<'a> = Peekable<Iter<'a, CodeLine>>;
 pub trait TryParse {
     type Output;
     type Err: PatternNotMatchedError;
 
-    fn try_parse(code_lines_iterator: &mut Peekable<Iter<CodeLine>>) -> anyhow::Result<Self::Output, Self::Err>;
+    fn try_parse(code_lines_iterator: &mut Lines<'_>) -> anyhow::Result<Self::Output, Self::Err>;
 }
 
 #[allow(unused)]

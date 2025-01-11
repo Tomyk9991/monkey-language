@@ -1,11 +1,12 @@
 module monkey-language-project/std.monkey;
 
-fn mut_ref(x: mut *i32): void {
-    *x = *x + 1;
-}
-
 fn main(): i32 {
-    let mut a: i32 = 5;
-    mut_ref(&a);
+    let mut a: [i32, 5] = [1, 2, 3, 4, 5];
+    let b = a[0];
+    a[0] = 10;
+    let c = a[0];
+
+    printf("%d\n", b);
+    printf("%d\n", c);
     return 0;
 }

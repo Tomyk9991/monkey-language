@@ -50,17 +50,14 @@ fn run_compiler() -> anyhow::Result<()> {
         return Ok(())
     }
 
-    let s = std::env::current_dir()?;
-
-    std::env::set_current_dir(target_creator.path_to_target_directory.as_str())?;
-    {
+    with_path(target_creator.path_to_target_directory.as_str(), || {
         let build_status = target_creator.compile(args.target_os.clone());
         println!("Completing build. Status: {build_status} {}", match build_status {
             0 => "Successful".green(),
             _ => "Failed".red(),
         });
 
-// 4) Running
+        // 4) Running
         if !args.build {
             let status = target_creator.execute(&args.target_os);
             println!("Process finished with exit code {}", status);
@@ -83,8 +80,8 @@ fn run_compiler() -> anyhow::Result<()> {
                 }
             }
         }
-    }
-    std::env::set_current_dir(s)?;
+        Ok(())
+    })?;
 
     Ok(())
 }
@@ -93,6 +90,16 @@ fn main() {
     if let Err(error) = run_compiler() {
         eprintln!("{} {error}", "Error:".red());
     }
+}
+
+fn with_path<F>(path: &str, f: F) -> anyhow::Result<()> where F: FnOnce() -> anyhow::Result<()> {
+    let s = std::env::current_dir()?;
+
+    std::env::set_current_dir(path)?;
+    f()?;
+    std::env::set_current_dir(s)?;
+
+    Ok(())
 }
 
 #[cfg(target_os = "windows")]

@@ -1,7 +1,5 @@
 use std::error::Error;
 use std::fmt::{Display, Formatter};
-use std::iter::Peekable;
-use std::slice::Iter;
 use crate::core::lexer::tokens::assignable_token::AssignableToken;
 use crate::core::lexer::tokens::variable_token::VariableToken;
 use crate::core::code_generator::conventions::calling_convention_from;
@@ -22,7 +20,7 @@ use crate::core::lexer::token::Token;
 use crate::core::lexer::tokens::assignable_token::AssignableTokenErr;
 use crate::core::lexer::tokens::l_value::LValue;
 use crate::core::lexer::tokens::name_token::{NameToken, NameTokenErr};
-use crate::core::lexer::TryParse;
+use crate::core::lexer::{Lines, TryParse};
 use crate::core::lexer::types::type_token::{InferTypeError, MethodCallSignatureMismatchCause, Mutability, TypeToken};
 use crate::core::type_checker::static_type_checker::{static_type_check_rec, StaticTypeCheckError};
 use crate::core::type_checker::StaticTypeCheck;
@@ -196,7 +194,7 @@ impl TryParse for MethodDefinition {
     type Output = MethodDefinition;
     type Err = MethodDefinitionErr;
 
-    fn try_parse(code_lines_iterator: &mut Peekable<Iter<CodeLine>>) -> anyhow::Result<Self, MethodDefinitionErr> {
+    fn try_parse(code_lines_iterator: &mut Lines<'_>) -> anyhow::Result<Self, MethodDefinitionErr> {
         let method_header = *code_lines_iterator
             .peek()
             .ok_or(MethodDefinitionErr::EmptyIterator(EmptyIteratorErr))?;

@@ -1,7 +1,5 @@
 use std::error::Error;
 use std::fmt::{Display, Formatter};
-use std::iter::Peekable;
-use std::slice::Iter;
 use std::str::FromStr;
 
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
@@ -16,7 +14,7 @@ use crate::core::lexer::scope::{PatternNotMatchedError, Scope, ScopeError};
 use crate::core::lexer::static_type_context::StaticTypeContext;
 use crate::core::lexer::token::Token;
 use crate::core::lexer::tokens::assignable_token::{AssignableToken, AssignableTokenErr};
-use crate::core::lexer::TryParse;
+use crate::core::lexer::{Lines, TryParse};
 use crate::core::lexer::types::type_token::{InferTypeError, Mutability, TypeToken};
 use crate::core::type_checker::{InferType, StaticTypeCheck};
 use crate::core::type_checker::static_type_checker::{static_type_check_rec, StaticTypeCheckError};
@@ -156,7 +154,7 @@ impl TryParse for IfToken {
     type Output = IfToken;
     type Err = IfDefinitionErr;
 
-    fn try_parse(code_lines_iterator: &mut Peekable<Iter<CodeLine>>) -> anyhow::Result<Self::Output, Self::Err> {
+    fn try_parse(code_lines_iterator: &mut Lines<'_>) -> anyhow::Result<Self::Output, Self::Err> {
         let if_header = *code_lines_iterator
             .peek()
             .ok_or(IfDefinitionErr::EmptyIterator(EmptyIteratorErr))?;
