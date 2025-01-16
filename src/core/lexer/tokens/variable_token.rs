@@ -63,7 +63,7 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> InferType for VariableToken<
             Some(ty) => {
                 let inferred_type = self.assignable.infer_type_with_context(type_context, &self.code_line)?;
 
-                if ty > &inferred_type {
+                if ty < &inferred_type {
                     // let a: i64 = 5; instead of let a: i32 = 5;
                     if let Some(implicit_cast) = inferred_type.implicit_cast_to(&mut self.assignable, ty, &self.code_line)? {
                         self.ty = Some(implicit_cast);
@@ -137,28 +137,6 @@ impl StaticTypeCheck for VariableToken<'=', ';'> {
             if let Some(found_variable) = type_context.iter().rfind(|v| v.l_value.identifier() == self.l_value.identifier()) {
                 let inferred_type = self.assignable.infer_type_with_context(type_context, &self.code_line)?;
                 if let Some(ty) = &found_variable.ty {
-                    // self.l_value.
-                    // let ty = if let LValue::PrefixArithmetic(_, prefix_arithmetic) = &self.l_value {
-                    //     let mut final_type = ty.clone();
-                    //     for prefix in prefix_arithmetic.iter().rev() {
-                    //         match prefix {
-                    //             PointerArithmetic::Ampersand => {
-                    //                 final_type.push_pointer();
-                    //             }
-                    //             PointerArithmetic::Asterics => {
-                    //                 if let Some(result) = final_type.pop_pointer() {
-                    //                     final_type = result;
-                    //                 } else {
-                    //                     return Err(StaticTypeCheckError::InvalidPointerDereference { name: self.l_value.clone(), code_line: self.code_line.clone() });
-                    //                 }
-                    //             }
-                    //         }
-                    //     }
-                    //
-                    //     final_type
-                    // } else {
-                    //     ty.clone()
-                    // };
 
                     if ty > &inferred_type {
                         return Err(InferTypeError::MismatchedTypes { expected: ty.clone(), actual: inferred_type.clone(), code_line: self.code_line.clone() }.into());
@@ -519,6 +497,7 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> VariableToken<ASSIGNMENT, SE
 fn process_name_collapse(regex_split: &[&str], assignment_token: &str) -> Vec<String> {
     if let Some(assignment_index) = regex_split.iter().position(|a| a == &assignment_token) {
         let (l_value, right_value) = regex_split.split_at(assignment_index);
+        #[allow(clippy::redundant_slicing)] // slicing must happen, otherwise middle is not a slice with a length known at compile time
         let l_value = match &l_value[..] {
             [name, "[", middle@ .., "]"] => {
                 let mut result = name.to_string();

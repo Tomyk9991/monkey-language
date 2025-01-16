@@ -4,15 +4,13 @@ use std::str::FromStr;
 use crate::core::code_generator::asm_options::ASMOptions;
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
-use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::asm_options::interim_result::InterimResultOption;
 use crate::core::code_generator::asm_result::ASMResult;
 use crate::core::code_generator::register_destination::word_from_byte_size;
 use crate::core::code_generator::registers::{GeneralPurposeRegister};
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::EquationToken;
 use crate::core::lexer::tokens::assignable_tokens::equation_parser::expression::Expression;
-use crate::core::lexer::tokens::name_token::{NameToken, NameTokenErr};
-use crate::core::lexer::tokens::assignable_tokens::equation_parser::prefix_arithmetic::PointerArithmetic;
+use crate::core::lexer::tokens::name_token::NameToken;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum LValue {
@@ -68,27 +66,6 @@ impl LValue {
             LValue::Expression(e) => e.identifier().unwrap_or(e.to_string())
         }
     }
-
-    fn arithmetic(s: &str, is_attribute: bool) -> Result<(NameToken, Vec<PointerArithmetic>), NameTokenErr> {
-        let mut arithmetic = vec![];
-        let mut target = s;
-        while let Some(char) = target.chars().nth(0) {
-            let a = match char {
-                '&' => Some(PointerArithmetic::Ampersand),
-                '*' => Some(PointerArithmetic::Asterics),
-                _ => None
-            };
-            if let Some(a) = a {
-                arithmetic.push(a);
-                target = &target[1..];
-            } else {
-                break;
-            }
-        }
-
-        let name = NameToken::from_str(target, is_attribute)?;
-        Ok((name, arithmetic))
-    }
 }
 
 impl ToASM for LValue {
@@ -102,7 +79,7 @@ impl ToASM for LValue {
                     let last_register = stack.register_to_use.last().ok_or(ASMGenerateError::LValueAssignment(self.clone(), meta.code_line.clone()))?;
                     let result = Expression::prefix_arithmetic_to_asm(
                         prefix_arithmetic,
-                        &inner_value,
+                        inner_value,
                         &GeneralPurposeRegister::Memory(format!("{} [{}]", word_from_byte_size(resulting_type.byte_size()), last_register.to_64_bit_register())),
                         stack, meta);
 
@@ -119,35 +96,6 @@ impl ToASM for LValue {
                     stack.indexing = None;
 
                     result
-                    // let mut target = String::new();
-                    // target += &ASMBuilder::ident_comment_line(&format!("LValue: {}", self));
-                    //
-                    // let mut last_register = stack.register_to_use.last().ok_or(ASMGenerateError::LValueAssignment(self.clone(), meta.code_line.clone()))?.clone();
-                    //
-                    // match index_operation.to_asm::<InterimResultOption>(stack, meta, None)? {
-                    //     ASMResult::Inline(a) => {
-                    //         target += &ASMBuilder::mov_ident_line(last_register.to_64_bit_register(), a);
-                    //     }
-                    //     ASMResult::MultilineResulted(asm, resulting_register) => {
-                    //         last_register = resulting_register;
-                    //         target.push_str(&asm);
-                    //     }
-                    //     ASMResult::Multiline(_) => { unreachable!() }
-                    // }
-                    //
-                    // let destination = match inner_value.to_asm::<InterimResultOption>(stack, meta, None)? {
-                    //     ASMResult::Inline(a) => {
-                    //         GeneralPurposeRegister::Memory(a)
-                    //     }
-                    //     ASMResult::MultilineResulted(asm, resulting_register) => {
-                    //         target.push_str(&asm);
-                    //         resulting_register
-                    //     }
-                    //     ASMResult::Multiline(_) => { unreachable!() }
-                    // };
-                    //
-                    //
-                    // return Ok(ASMResult::MultilineResulted(target, GeneralPurposeRegister::Memory(format!("{} [{}]", word_from_byte_size(resulting_type.byte_size()), last_register.to_64_bit_register()))))
                 }
                 else {
                     Err(ASMGenerateError::LValueAssignment(self.clone(), meta.code_line.clone()))

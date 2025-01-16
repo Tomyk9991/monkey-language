@@ -11,3 +11,4 @@ mod integer_compares;
 mod float_compares;
 mod method_assignable;
 mod arrays;
+mod l_values;

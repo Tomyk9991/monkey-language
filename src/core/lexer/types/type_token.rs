@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::ops::Range;
@@ -103,6 +104,29 @@ pub struct MethodCallArgumentTypeMismatch {
     pub actual: TypeToken,
     pub nth_parameter: usize,
     pub code_line: CodeLine,
+}
+
+impl PartialOrd for TypeToken {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        let (equal_types, m1, m2) = match (self, other) {
+            (TypeToken::Float(f1, m1), TypeToken::Float(f2, m2)) if f1 == f2 => (true, m1, m2),
+            (TypeToken::Integer(i1, m1), TypeToken::Integer(i2, m2)) if i1 == i2 => (true, m1, m2),
+            (TypeToken::Bool(m1), TypeToken::Bool(m2)) => (true, m1, m2),
+            (TypeToken::Array(t1, s1, m1), TypeToken::Array(t2, s2, m2)) if t1.partial_cmp(t2)?.is_le() && s1 == s2 => (true, m1, m2),
+            (TypeToken::Custom(n1, m1), TypeToken::Custom(n2, m2)) if n1 == n2 => (true, m1, m2),
+            _ => return Some(Ordering::Less)
+        };
+
+        if equal_types {
+            match (m1, m2) {
+                (Mutability::Mutable, Mutability::Immutable) => Some(Ordering::Less),
+                (Mutability::Immutable, Mutability::Mutable) => Some(Ordering::Greater),
+                _ => Some(Ordering::Equal)
+            }
+        } else {
+            Some(Ordering::Less)
+        }
+    }
 }
 
 impl OperatorToASM for TypeToken {
@@ -329,6 +353,20 @@ impl TypeToken {
                         },
                         _ => Err(InferTypeError::FloatTooSmall { ty: desired_type.clone(), float: float_token.value, code_line: code_line.clone() })
                     }
+                }
+            },
+            (TypeToken::Array(array_type, size, mutability), TypeToken::Array(_desired_inner_type, desired_size, _)) => {
+                //todo: check desired_inner_type with actual array_type
+                if let AssignableToken::ArrayToken(_) = assignable_token {
+                    if size != desired_size {
+                        return Err(InferTypeError::MismatchedTypes {
+                            expected: desired_type.clone(),
+                            actual: TypeToken::Array(array_type.clone(), *size, mutability.clone()),
+                            code_line: Default::default(),
+                        });
+                    }
+
+                    return Ok(Some(desired_type.clone()));
                 }
             },
             _ => { }

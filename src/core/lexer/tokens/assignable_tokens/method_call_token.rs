@@ -1,5 +1,5 @@
 use std::any::Any;
-use std::cmp::{Ordering, PartialOrd};
+use std::cmp::Ordering;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 use crate::core::code_generator::{ASMGenerateError, conventions, MetaInfo};
@@ -19,7 +19,7 @@ use crate::core::lexer::static_type_context::StaticTypeContext;
 use crate::core::lexer::tokens::assignable_token::{AssignableToken, AssignableTokenErr};
 use crate::core::lexer::tokens::name_token::{NameToken, NameTokenErr};
 use crate::core::lexer::{Lines, TryParse};
-use crate::core::lexer::types::type_token::{InferTypeError, MethodCallArgumentTypeMismatch, Mutability, TypeToken};
+use crate::core::lexer::types::type_token::{InferTypeError, MethodCallArgumentTypeMismatch, TypeToken};
 use crate::core::type_checker::static_type_checker::StaticTypeCheckError;
 use crate::core::type_checker::StaticTypeCheck;
 
@@ -116,29 +116,6 @@ impl TryParse for MethodCallToken {
     fn try_parse(code_lines_iterator: &mut Lines<'_>) -> anyhow::Result<Self::Output, Self::Err> {
         let code_line = *code_lines_iterator.peek().ok_or(MethodCallTokenErr::EmptyIterator(EmptyIteratorErr))?;
         MethodCallToken::try_parse(code_line)
-    }
-}
-
-impl PartialOrd for TypeToken {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        let (equal_types, m1, m2) = match (self, other) {
-            (TypeToken::Float(f1, m1), TypeToken::Float(f2, m2)) if f1 == f2 => (true, m1, m2),
-            (TypeToken::Integer(i1, m1), TypeToken::Integer(i2, m2)) if i1 == i2 => (true, m1, m2),
-            (TypeToken::Bool(m1), TypeToken::Bool(m2)) => (true, m1, m2),
-            (TypeToken::Array(t1, s1, m1), TypeToken::Array(t2, s2, m2)) if t1 == t2 && s1 == s2 => (true, m1, m2),
-            (TypeToken::Custom(n1, m1), TypeToken::Custom(n2, m2)) if n1 == n2 => (true, m1, m2),
-            _ => return Some(Ordering::Less)
-        };
-
-        if equal_types {
-            match (m1, m2) {
-                (Mutability::Mutable, Mutability::Immutable) => Some(Ordering::Less),
-                (Mutability::Immutable, Mutability::Mutable) => Some(Ordering::Greater),
-                _ => Some(Ordering::Equal)
-            }
-        } else {
-            Some(Ordering::Less)
-        }
     }
 }
 
