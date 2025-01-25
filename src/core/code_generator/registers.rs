@@ -1,7 +1,6 @@
 use std::cmp::Ordering;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
-
 use crate::core::code_generator::ASMGenerateError;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -317,14 +316,14 @@ impl GeneralPurposeRegister {
     }
 
     pub fn size(&self) -> ByteSize {
-       match self {
-           GeneralPurposeRegister::Bit64(_) => ByteSize::_8,
-           GeneralPurposeRegister::Float(_) => ByteSize::_8,
-           GeneralPurposeRegister::Bit32(_) => ByteSize::_4,
-           GeneralPurposeRegister::Bit16(_) => ByteSize::_2,
-           GeneralPurposeRegister::Bit8(_) => ByteSize::_1,
-           GeneralPurposeRegister::Memory(_) => ByteSize::_1
-       }
+        match self {
+            GeneralPurposeRegister::Bit64(_) => ByteSize::_8,
+            GeneralPurposeRegister::Float(_) => ByteSize::_8,
+            GeneralPurposeRegister::Bit32(_) => ByteSize::_4,
+            GeneralPurposeRegister::Bit16(_) => ByteSize::_2,
+            GeneralPurposeRegister::Bit8(_) => ByteSize::_1,
+            GeneralPurposeRegister::Memory(_) => ByteSize::_1
+        }
     }
 
     pub fn is_float_register(&self) -> bool {
@@ -554,7 +553,7 @@ impl GeneralPurposeRegister {
                     _ => todo!("Not enough general purpose registers")
                 }
             }
-            GeneralPurposeRegister::Memory(_) => unreachable!("Memory assignment cannot be converted to 64 bit register")
+            GeneralPurposeRegister::Memory(a) => GeneralPurposeRegister::Memory(a.clone()),
         }
     }
 

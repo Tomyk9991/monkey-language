@@ -5,9 +5,8 @@ fn main(): i32 {
     a[0] = 10;
 
     for (let mut i = 0; i < 5; i = i + 1) {
-        let d = a[i];
         printf("Iteration %d", i);
-        printf("' = %d'\n", d);
+        printf("= '%d'\n", a[i]);
     }
 
     return 0;

@@ -10,6 +10,7 @@ use crate::core::code_generator::asm_options::interim_result::InterimResultOptio
 use crate::core::code_generator::asm_result::{ASMResult, ASMResultError, ASMResultVariance};
 use crate::core::code_generator::conventions::CallingRegister;
 use crate::core::code_generator::generator::{Stack};
+use crate::core::code_generator::register_destination::byte_size_from_word;
 use crate::core::code_generator::registers::{Bit64, ByteSize, GeneralPurposeRegister};
 use crate::core::code_generator::ToASM;
 use crate::core::io::code_line::CodeLine;
@@ -311,7 +312,21 @@ impl ToASM for MethodCallToken {
                             target += &ASMBuilder::mov_x_ident_line(r.to_64_bit_register(), &r, Some(r.size() as usize));
                         }
 
-                        target += &ASMBuilder::ident_line(&format!("push {}", r.to_64_bit_register()));
+                        if let GeneralPurposeRegister::Memory(stack_position) = &r {
+                            let inline_stack_word_size = byte_size_from_word(stack_position.split(" ")
+                                .next()
+                                .ok_or(ASMGenerateError::InternalError(format!("Could not parse {stack_position} as a byte size")))?);
+
+                            let destination_register = stack
+                                .register_to_use
+                                .last()
+                                .unwrap_or(&GeneralPurposeRegister::Bit64(Bit64::Rax)).to_size_register(&ByteSize::try_from(inline_stack_word_size)?);
+
+                            target += &ASMBuilder::mov_ident_line(&destination_register, &r);
+                            target += &ASMBuilder::ident_line(&format!("push {}", destination_register.to_64_bit_register()));
+                        } else {
+                            target += &ASMBuilder::ident_line(&format!("push {}", r.to_64_bit_register()));
+                        }
                     }
 
                 }
