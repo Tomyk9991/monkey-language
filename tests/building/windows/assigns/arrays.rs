@@ -35,13 +35,13 @@ main:
     sub rsp, 64
     ; let a: [i32; 5] = [1, 2, 3, 4, 5]
     ; [1, 2, 3, 4, 5]
-    mov DWORD [rbp - 4], 1
-    mov DWORD [rbp - 8], 2
+    mov DWORD [rbp - 20], 1
+    mov DWORD [rbp - 16], 2
     mov DWORD [rbp - 12], 3
-    mov DWORD [rbp - 16], 4
-    mov DWORD [rbp - 20], 5
+    mov DWORD [rbp - 8], 4
+    mov DWORD [rbp - 4], 5
     ; let b: i32 = a[0]
-    mov eax, DWORD [rbp - (4 + 0 * 4)]
+    mov eax, DWORD [rbp - (4 + 4 * 4)]
     mov DWORD [rbp - 24], eax
     ; return 0
     mov eax, 0
@@ -85,20 +85,18 @@ main:
     sub rsp, 64
     ; let a: [i32; 5] = [1, 2, 3, 4, 5]
     ; [1, 2, 3, 4, 5]
-    mov DWORD [rbp - 4], 1
-    mov DWORD [rbp - 8], 2
+    mov DWORD [rbp - 20], 1
+    mov DWORD [rbp - 16], 2
     mov DWORD [rbp - 12], 3
-    mov DWORD [rbp - 16], 4
-    mov DWORD [rbp - 20], 5
+    mov DWORD [rbp - 8], 4
+    mov DWORD [rbp - 4], 5
     ; let k: i32 = 1
     mov DWORD [rbp - 24], 1
     ; let b: i32 = a[k]
     mov eax, DWORD [rbp - 24]
     cdqe
     imul rax, 4
-    sub rax, 0
-    neg rax
-    mov eax, DWORD [rbp - 4 + rax]
+    mov eax, DWORD [rbp - 20 + rax]
     mov DWORD [rbp - 28], eax
     ; return 0
     mov eax, 0
@@ -114,7 +112,6 @@ main:
 fn array_test_complex() -> anyhow::Result<()> {
     let code = r#"
     let a: [i32, 5] = [1, 2, 3, 4, 5];
-    let k = 1;
     let b = a[12 / 3 - 3];
     "#;
 
@@ -142,13 +139,11 @@ main:
     sub rsp, 64
     ; let a: [i32; 5] = [1, 2, 3, 4, 5]
     ; [1, 2, 3, 4, 5]
-    mov DWORD [rbp - 4], 1
-    mov DWORD [rbp - 8], 2
+    mov DWORD [rbp - 20], 1
+    mov DWORD [rbp - 16], 2
     mov DWORD [rbp - 12], 3
-    mov DWORD [rbp - 16], 4
-    mov DWORD [rbp - 20], 5
-    ; let k: i32 = 1
-    mov DWORD [rbp - 24], 1
+    mov DWORD [rbp - 8], 4
+    mov DWORD [rbp - 4], 5
     ; let b: i32 = a[((12 / 3) - 3)]
     ; ((12 / 3) - 3)
     ; (12 / 3)
@@ -156,8 +151,7 @@ main:
     mov r14d, edx
     mov r13d, eax
     mov r12d, ecx
-    mov ecx, eax
-    mov eax, 3
+    mov ecx, 3
     mov edx, 0
     idiv ecx
     mov edx, r14d
@@ -165,10 +159,8 @@ main:
     sub eax, 3
     cdqe
     imul rax, 4
-    sub rax, 0
-    neg rax
-    mov eax, DWORD [rbp - 4 + rax]
-    mov DWORD [rbp - 28], eax
+    mov eax, DWORD [rbp - 20 + rax]
+    mov DWORD [rbp - 24], eax
     ; return 0
     mov eax, 0
     leave

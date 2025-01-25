@@ -56,7 +56,9 @@ impl InferType for ForToken {
 
 impl Display for ForToken {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "for ({}; {}; {}) {{Body}}", self.initialization, self.condition, self.update)
+        let mut scope = String::new();
+        self.stack.iter().for_each(|a| scope += &format!("\t{}\n", a));
+        write!(f, "for ({}; {}; {}) \n{scope}", self.initialization, self.condition, self.update)
     }
 }
 

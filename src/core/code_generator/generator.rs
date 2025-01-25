@@ -101,11 +101,15 @@ impl Stack {
         self.begin_scope();
 
         for token in tokens {
+            meta.code_line = token.code_line();
+
             target += match &token.to_asm(self, meta, options.clone())? {
                 ASMResult::Inline(t) => t,
                 ASMResult::MultilineResulted(t, _) => t,
                 ASMResult::Multiline(t) => t
             };
+
+            token.data_section(self, meta);
         }
 
         self.end_scope();

@@ -333,8 +333,14 @@ impl OperatorToASM for Integer {
                     String::new()
                 };
 
+                let saving_registers: Vec<&T> = if matches!(operator, Operator::Div) {
+                    registers.iter().rev().collect::<Vec<_>>()
+                } else {
+                    registers.iter().collect()
+                };
+
                 Ok(AssemblerOperation {
-                    prefix: Some(AssemblerOperation::save_rax_rcx_rdx(self.byte_size(), registers)?),
+                    prefix: Some(AssemblerOperation::save_rax_rcx_rdx(self.byte_size(), &saving_registers)?),
                     operation: format!("{prefix}div {}{}", GeneralPurposeRegister::Bit64(Bit64::Rcx).to_size_register(&ByteSize::try_from(integer_size)?), operation_postfix),
                     postfix: Some(AssemblerOperation::load_rax_rcx_rdx(self.byte_size(), registers)?),
                     result_expected: rax,

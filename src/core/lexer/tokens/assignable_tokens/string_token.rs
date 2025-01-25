@@ -72,7 +72,7 @@ impl ToASM for StringToken {
         let tab_included = replace_add_quote(&new_line_included, "\\t", 9);
 
 
-        let key = if let Some(k) = stack.data_section.str_key(&self.value) {
+        let key = if let Some(k) = stack.data_section.str_key(&tab_included) {
             k.to_string()
         } else {
             stack.get_latest_label()

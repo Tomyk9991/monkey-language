@@ -118,7 +118,7 @@ impl ToASM for ArrayToken {
         };
 
         let mut offset = if let [first, ..] = &self.values[..] {
-            initial_position + first.byte_size(meta)
+            initial_position + first.byte_size(meta) * self.values.len()
         } else {
             initial_position
         };
@@ -161,7 +161,7 @@ impl ToASM for ArrayToken {
                 }
             }
 
-            offset += byte_size;
+            offset -= byte_size;
         }
 
         Ok(ASMResult::Multiline(target))

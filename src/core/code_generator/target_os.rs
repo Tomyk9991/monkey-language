@@ -104,7 +104,7 @@ impl TargetOS {
             TargetOS::Windows => {
                 // nasm -f win64 main.asm ; gcc main.obj -o main ; .\main.exe ; echo $LASTEXITCODE
                 if build {
-                    TargetOS::run_generic_commands("nasm", vec!["-f", "win64", "main.asm"], false);
+                    TargetOS::run_generic_commands("nasm", vec!["-gcv8", "-f", "win64", "main.asm"], false);
                     TargetOS::run_generic_commands("gcc", vec!["main.obj", "-o", "main"], false);
                 }
                 if execute {

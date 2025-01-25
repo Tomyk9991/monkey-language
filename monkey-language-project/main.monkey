@@ -1,9 +1,14 @@
+module monkey-language-project/std.monkey;
+
 fn main(): i32 {
-    let mut value: i32 = 5;
     let mut a: [i32, 5] = [1, 2, 3, 4, 5];
-    let b = a[0];
     a[0] = 10;
-    let c = a[0];
+
+    for (let mut i = 0; i < 5; i = i + 1) {
+        let d = a[i];
+        printf("Iteration %d", i);
+        printf("' = %d'\n", d);
+    }
 
     return 0;
 }

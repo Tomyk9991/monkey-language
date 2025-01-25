@@ -148,6 +148,8 @@ impl Scope {
             let called_methods = Self::method_calls_in_stack(&main_method.stack);
             let mut uncalled_methods = vec![];
 
+
+
             for token in &self.tokens {
                 if let Token::MethodDefinition(method_definition) = token {
                     if method_definition.name.name == "main" { continue; }

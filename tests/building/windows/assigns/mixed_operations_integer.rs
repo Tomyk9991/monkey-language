@@ -89,8 +89,7 @@ main:
     mov r14d, edx
     mov r13d, eax
     mov r12d, ecx
-    mov ecx, eax
-    mov eax, 100
+    mov ecx, 100
     mov edx, 0
     idiv ecx
     mov edx, r14d
@@ -200,8 +199,7 @@ main:
     mov r14d, edx
     mov r13d, eax
     mov r12d, ecx
-    mov ecx, eax
-    mov eax, edi
+    mov ecx, edi
     mov edx, 0
     idiv ecx
     mov edx, r14d
@@ -263,8 +261,7 @@ main:
     mov r14d, edx
     mov r13d, eax
     mov r12d, ecx
-    mov ecx, eax
-    mov eax, 2
+    mov ecx, 2
     mov edx, 0
     idiv ecx
     mov edx, r14d
@@ -285,8 +282,7 @@ main:
     mov r14d, edx
     mov r13d, eax
     mov r12d, ecx
-    mov ecx, eax
-    mov eax, 2
+    mov ecx, 2
     mov edx, 0
     idiv ecx
     mov edx, r14d
@@ -329,8 +325,7 @@ main:
     mov r14d, edx
     mov r13d, eax
     mov r12d, ecx
-    mov ecx, eax
-    mov eax, edi
+    mov ecx, edi
     mov edx, 0
     idiv ecx
     mov edx, r14d
@@ -543,8 +538,7 @@ main:
     mov r14d, edx
     mov r13d, eax
     mov r12d, ecx
-    mov ecx, eax
-    mov eax, 0
+    mov ecx, 0
     mov edx, 0
     idiv ecx
     mov edx, r14d

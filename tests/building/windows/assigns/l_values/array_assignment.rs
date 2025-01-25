@@ -35,18 +35,18 @@ main:
     sub rsp, 64
     ; let a: [i32; 5] = [1, 2, 3, 4, 5]
     ; [1, 2, 3, 4, 5]
-    mov DWORD [rbp - 4], 1
-    mov DWORD [rbp - 8], 2
+    mov DWORD [rbp - 20], 1
+    mov DWORD [rbp - 16], 2
     mov DWORD [rbp - 12], 3
-    mov DWORD [rbp - 16], 4
-    mov DWORD [rbp - 20], 5
+    mov DWORD [rbp - 8], 4
+    mov DWORD [rbp - 4], 5
     ; let b: i32 = a[0]
-    mov eax, DWORD [rbp - (4 + 0 * 4)]
+    mov eax, DWORD [rbp - (4 + 4 * 4)]
     mov DWORD [rbp - 24], eax
     ; a[0]: i32 = 10
-    mov DWORD [rbp - (4 + 0 * 4)], 10
+    mov DWORD [rbp - (4 + 4 * 4)], 10
     ; let c: i32 = a[0]
-    mov eax, DWORD [rbp - (4 + 0 * 4)]
+    mov eax, DWORD [rbp - (4 + 4 * 4)]
     mov DWORD [rbp - 28], eax
     ; return 0
     mov eax, 0

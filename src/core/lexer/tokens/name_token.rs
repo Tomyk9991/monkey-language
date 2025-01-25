@@ -1,7 +1,6 @@
 use std::any::Any;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
-
 use uuid::Uuid;
 
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
@@ -115,22 +114,27 @@ impl ToASM for NameToken {
             }) {
                 if let Some(ty) = &found_variable.ty {
                     let operand_hint = word_from_byte_size(ty.byte_size());
+                    let amount_elements = stack_location.elements;
                     let element_size = stack_location.size / stack_location.elements;
 
                     return match &stack.indexing {
-                        Some(ASMResult::Inline(a)) => {
-                            let is_number = a.parse::<i32>().ok().is_some();
+                        Some(ASMResult::Inline(offset)) => {
+                            return match offset.parse::<i32>() {
+                                Ok(offset) => {
+                                    let base_address = stack_location.position + element_size;
+                                    let index = (amount_elements as i32) - offset - 1;
 
-                            if !is_number {
-                                let inline_stack_word_size = byte_size_from_word(a.split(" ").next().ok_or(ASMGenerateError::InternalError(format!("Could not parse {a} as a byte size")))?);
-                                let register_iterator = GeneralPurposeRegister::iter_from_byte_size(inline_stack_word_size)?.current();
-                                let resulting_register= stack.register_to_use.last().unwrap_or(&register_iterator).to_size_register(&ByteSize::try_from(inline_stack_word_size)?);
-                                let index_operation = &ASMBuilder::mov_x_ident_line(&resulting_register, a, Some(inline_stack_word_size));
-                                return to_multi_line_index_calculation(&operand_hint, index_operation, &resulting_register, stack_location, element_size);
+                                    Ok(ASMResult::Inline(format!("{operand_hint} [rbp - ({base_address} + {index} * {element_size})]")))
+                                }
+                                Err(_) => {
+                                    let inline_stack_word_size = byte_size_from_word(offset.split(" ").next().ok_or(ASMGenerateError::InternalError(format!("Could not parse {offset} as a byte size")))?);
+                                    let register_iterator = GeneralPurposeRegister::iter_from_byte_size(inline_stack_word_size)?.current();
+                                    let resulting_register = stack.register_to_use.last().unwrap_or(&register_iterator).to_size_register(&ByteSize::try_from(inline_stack_word_size)?);
+                                    let index_operation = &ASMBuilder::mov_x_ident_line(&resulting_register, offset, Some(inline_stack_word_size));
+                                    to_multi_line_index_calculation(&operand_hint, index_operation, &resulting_register, stack_location, element_size)
+                                }
                             }
-
-                            return Ok(ASMResult::Inline(format!("{operand_hint} [rbp - ({} + {a} * {element_size})]", stack_location.position + element_size)))
-                        },
+                        }
                         Some(ASMResult::MultilineResulted(index_operation, resulting_register)) => {
                             to_multi_line_index_calculation(&operand_hint, index_operation, resulting_register, stack_location, element_size)
                         }
@@ -178,10 +182,11 @@ fn to_multi_line_index_calculation(operand_hint: &str, index_operation: &str, re
 
     let resulting_register = resulting_register.to_64_bit_register();
 
+    let base_address = stack_location.position + element_size;
+    let first_element_address = base_address + (element_size * (stack_location.elements - 1));
+
 
     target += &ASMBuilder::ident_line(&format!("imul {resulting_register}, {element_size}"));
-    target += &ASMBuilder::ident_line(&format!("sub {resulting_register}, {stack_location}", stack_location = stack_location.position));
-    target += &ASMBuilder::ident_line(&format!("neg {resulting_register}"));
-    let assignment = format!("{operand_hint} [rbp - {} + {resulting_register}]", stack_location.position + element_size);
+    let assignment = format!("{operand_hint} [rbp - {} + {resulting_register}]", first_element_address);
     Ok(ASMResult::MultilineResulted(target, GeneralPurposeRegister::Memory(assignment)))
 }
