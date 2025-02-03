@@ -12,41 +12,41 @@ use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::errors::EmptyIteratorErr;
 use crate::core::lexer::scope::{PatternNotMatchedError, Scope, ScopeError};
 use crate::core::lexer::static_type_context::StaticTypeContext;
-use crate::core::lexer::token::Token;
-use crate::core::lexer::tokens::assignable_token::{AssignableToken, AssignableTokenErr};
-use crate::core::lexer::tokens::assignable_tokens::method_call_token::{dyck_language, DyckError};
-use crate::core::lexer::tokens::variable_token::{ParseVariableTokenErr, VariableToken};
+use crate::core::lexer::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
+use crate::core::lexer::abstract_syntax_tree_nodes::assignable::{Assignable, AssignableErr};
+use crate::core::lexer::abstract_syntax_tree_nodes::assignables::method_call::{dyck_language, DyckError};
+use crate::core::lexer::abstract_syntax_tree_nodes::variable::{ParseVariableErr, Variable};
 use crate::core::lexer::{Lines, TryParse};
-use crate::core::lexer::types::type_token::{InferTypeError, Mutability, TypeToken};
+use crate::core::lexer::types::r#type::{InferTypeError, Mutability, Type};
 use crate::core::type_checker::{InferType, StaticTypeCheck};
 use crate::core::type_checker::static_type_checker::{static_type_check, static_type_check_rec, StaticTypeCheckError};
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct ForToken {
-    pub initialization: VariableToken<'=', ';'>,
-    pub condition: AssignableToken,
-    pub update: VariableToken<'=', ';'>,
-    pub stack: Vec<Token>,
+pub struct For {
+    pub initialization: Variable<'=', ';'>,
+    pub condition: Assignable,
+    pub update: Variable<'=', ';'>,
+    pub stack: Vec<AbstractSyntaxTreeNode>,
     pub code_line: CodeLine,
 }
 
 #[derive(Debug)]
-pub enum ForTokenErr {
+pub enum ForErr {
     PatternNotMatched { target_value: String },
-    AssignableTokenErr(AssignableTokenErr),
-    ParseVariableTokenErr(ParseVariableTokenErr),
+    AssignableErr(AssignableErr),
+    ParseVariableErr(ParseVariableErr),
     ScopeErrorErr(ScopeError),
     DyckLanguageErr { target_value: String, ordering: Ordering },
     EmptyIterator(EmptyIteratorErr),
 }
 
-impl PatternNotMatchedError for ForTokenErr {
+impl PatternNotMatchedError for ForErr {
     fn is_pattern_not_matched_error(&self) -> bool {
-        matches!(self, ForTokenErr::PatternNotMatched { .. })
+        matches!(self, ForErr::PatternNotMatched { .. })
     }
 }
 
-impl InferType for ForToken {
+impl InferType for For {
     fn infer_type(&mut self, type_context: &mut StaticTypeContext) -> Result<(), InferTypeError> {
         Scope::infer_type(&mut self.stack, type_context)?;
 
@@ -54,7 +54,7 @@ impl InferType for ForToken {
     }
 }
 
-impl Display for ForToken {
+impl Display for For {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let mut scope = String::new();
         self.stack.iter().for_each(|a| scope += &format!("\t{}\n", a));
@@ -62,36 +62,36 @@ impl Display for ForToken {
     }
 }
 
-impl From<DyckError> for ForTokenErr {
+impl From<DyckError> for ForErr {
     fn from(s: DyckError) -> Self {
-        ForTokenErr::DyckLanguageErr { target_value: s.target_value, ordering: s.ordering }
+        ForErr::DyckLanguageErr { target_value: s.target_value, ordering: s.ordering }
     }
 }
 
-impl From<ParseVariableTokenErr> for ForTokenErr {
-    fn from(value: ParseVariableTokenErr) -> Self {
-        ForTokenErr::ParseVariableTokenErr(value)
+impl From<ParseVariableErr> for ForErr {
+    fn from(value: ParseVariableErr) -> Self {
+        ForErr::ParseVariableErr(value)
     }
 }
 
-impl From<AssignableTokenErr> for ForTokenErr {
-    fn from(value: AssignableTokenErr) -> Self {
-        ForTokenErr::AssignableTokenErr(value)
+impl From<AssignableErr> for ForErr {
+    fn from(value: AssignableErr) -> Self {
+        ForErr::AssignableErr(value)
     }
 }
 
-impl Error for ForTokenErr {}
+impl Error for ForErr {}
 
-impl Display for ForTokenErr {
+impl Display for ForErr {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", match self {
-            ForTokenErr::PatternNotMatched { target_value } =>
+            ForErr::PatternNotMatched { target_value } =>
                 format!("Pattern mot matched for: `{target_value}`\n\t for (initializiation; condition; update) {{}}"),
-            ForTokenErr::AssignableTokenErr(a) => a.to_string(),
-            ForTokenErr::ParseVariableTokenErr(a) => a.to_string(),
-            ForTokenErr::ScopeErrorErr(a) => a.to_string(),
-            ForTokenErr::EmptyIterator(e) => e.to_string(),
-            ForTokenErr::DyckLanguageErr { target_value, ordering } =>
+            ForErr::AssignableErr(a) => a.to_string(),
+            ForErr::ParseVariableErr(a) => a.to_string(),
+            ForErr::ScopeErrorErr(a) => a.to_string(),
+            ForErr::EmptyIterator(e) => e.to_string(),
+            ForErr::DyckLanguageErr { target_value, ordering } =>
                 {
                     let error: String = match ordering {
                         Ordering::Less => String::from("Expected `)`"),
@@ -104,7 +104,7 @@ impl Display for ForTokenErr {
     }
 }
 
-impl StaticTypeCheck for ForToken {
+impl StaticTypeCheck for For {
     fn static_type_check(&self, type_context: &mut StaticTypeContext) -> Result<(), StaticTypeCheckError> {
         // add for header variables
         type_context.context.push(self.initialization.clone());
@@ -112,18 +112,18 @@ impl StaticTypeCheck for ForToken {
         let variables_len = type_context.context.len();
         let condition_type = self.condition.infer_type_with_context(type_context, &self.code_line)?;
 
-        if !matches!(condition_type, TypeToken::Bool(_)) {
+        if !matches!(condition_type, Type::Bool(_)) {
             return Err(StaticTypeCheckError::InferredError(InferTypeError::MismatchedTypes {
-                expected: TypeToken::Bool(Mutability::Immutable),
+                expected: Type::Bool(Mutability::Immutable),
                 actual: condition_type,
                 code_line: self.code_line.clone(),
             }));
         }
 
         static_type_check(&Scope {
-            tokens: vec![
-                Token::Variable(self.initialization.clone()),
-                Token::Variable(self.update.clone()),
+            ast_nodes: vec![
+                AbstractSyntaxTreeNode::Variable(self.initialization.clone()),
+                AbstractSyntaxTreeNode::Variable(self.update.clone()),
             ],
         })?;
 
@@ -143,21 +143,21 @@ impl StaticTypeCheck for ForToken {
     }
 }
 
-impl TryParse for ForToken {
-    type Output = ForToken;
-    type Err = ForTokenErr;
+impl TryParse for For {
+    type Output = For;
+    type Err = ForErr;
 
     fn try_parse(code_lines_iterator: &mut Lines<'_>) -> anyhow::Result<Self::Output, Self::Err> {
         let for_header = *code_lines_iterator
             .peek()
-            .ok_or(ForTokenErr::EmptyIterator(EmptyIteratorErr))?;
+            .ok_or(ForErr::EmptyIterator(EmptyIteratorErr))?;
 
         let split_alloc = for_header.split(vec![' ']);
         let split_ref = split_alloc.iter().map(|a| a.as_str()).collect::<Vec<_>>();
         let split_values = dyck_language(&split_ref.join(" ").to_string(), [vec![], vec![';'], vec![]])?;
 
         if split_values.len() != 3 {
-            return Err(ForTokenErr::PatternNotMatched {
+            return Err(ForErr::PatternNotMatched {
                 target_value: for_header.line.clone(),
             })
         }
@@ -175,40 +175,40 @@ impl TryParse for ForToken {
         split.reverse();
         split.iter().for_each(|a| split_ref.push(a));
 
-        let mut tokens = vec![];
+        let mut nodes = vec![];
         if let ["for", "(", initialization, ";", condition, ";", update, ")", "{"] = &split_ref[..] {
-            let initialization = VariableToken::<'=', ';'>::try_parse(&CodeLine::imaginary(&format!("{} ;", initialization)))?;
-            let condition = AssignableToken::from_str(condition)?;
-            let update = VariableToken::<'=', ';'>::try_parse(&CodeLine::imaginary(&format!("{} ;", update)))?;
+            let initialization = Variable::<'=', ';'>::try_parse(&CodeLine::imaginary(&format!("{} ;", initialization)))?;
+            let condition = Assignable::from_str(condition)?;
+            let update = Variable::<'=', ';'>::try_parse(&CodeLine::imaginary(&format!("{} ;", update)))?;
 
             // consume the header
             let _ = code_lines_iterator.next();
             while code_lines_iterator.peek().is_some() {
-                let token = Scope::try_parse(code_lines_iterator).map_err(ForTokenErr::ScopeErrorErr)?;
+                let node = Scope::try_parse(code_lines_iterator).map_err(ForErr::ScopeErrorErr)?;
 
-                if let Token::ScopeClosing(_) = token {
+                if let AbstractSyntaxTreeNode::ScopeClosing(_) = node {
                     break;
                 }
 
-                tokens.push(token);
+                nodes.push(node);
             }
 
-            return Ok(ForToken {
+            return Ok(For {
                 initialization,
                 condition,
                 update,
-                stack: tokens,
+                stack: nodes,
                 code_line: for_header.clone(),
             });
         }
 
-        Err(ForTokenErr::PatternNotMatched {
+        Err(ForErr::PatternNotMatched {
             target_value: for_header.line.to_string(),
         })
     }
 }
 
-impl ToASM for ForToken {
+impl ToASM for For {
     fn to_asm<T: ASMOptions + 'static>(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
         let label1 = stack.create_label();
         let label2 = stack.create_label();
@@ -220,7 +220,7 @@ impl ToASM for ForToken {
             .allow(ASMResultVariance::Inline)
             .allow(ASMResultVariance::MultilineResulted)
             .allow(ASMResultVariance::Multiline)
-            .token("for")
+            .ast_node("for")
             .finish()?;
 
         target += &ASMBuilder::ident_line(&format!("jmp {label1}"));
@@ -235,14 +235,14 @@ impl ToASM for ForToken {
             .allow(ASMResultVariance::Inline)
             .allow(ASMResultVariance::MultilineResulted)
             .allow(ASMResultVariance::Multiline)
-            .token("for")
+            .ast_node("for")
             .finish()?;
 
         target += &ASMBuilder::line(&format!("{label1}:"));
         let general_purpose_register = self.condition.to_asm(stack, meta, options.clone())?
             .apply_with(&mut target)
             .allow(ASMResultVariance::MultilineResulted)
-            .token("for")
+            .ast_node("for")
             .finish()?;
 
         if let Some(general_purpose_register) = general_purpose_register {
@@ -252,7 +252,7 @@ impl ToASM for ForToken {
             return Err(ASMGenerateError::ASMResult(ASMResultError::UnexpectedVariance {
                 expected: vec![ASMResultVariance::MultilineResulted],
                 actual: ASMResultVariance::from(&self.condition.to_asm(stack, meta, options)?),
-                token: "for".to_string(),
+                ast_node: "for".to_string(),
             }));
         }
 
@@ -272,8 +272,8 @@ impl ToASM for ForToken {
         let mut has_before_label_asm = false;
         let count_before = stack.label_count;
 
-        for token in &self.stack {
-            if token.data_section(stack, meta) {
+        for node in &self.stack {
+            if node.data_section(stack, meta) {
                 has_before_label_asm = true;
                 stack.label_count -= 1;
             }

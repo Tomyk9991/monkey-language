@@ -8,36 +8,36 @@ use crate::core::code_generator::asm_result::{ASMResult};
 use crate::core::code_generator::generator::Stack;
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct BooleanToken {
+pub struct Boolean {
     pub value: bool,
 }
 
 #[derive(Debug)]
-pub enum BooleanTokenErr {
+pub enum BooleanErr {
     UnmatchedRegex,
     ParseBoolError(ParseBoolError),
 }
 
-impl From<ParseBoolError> for BooleanTokenErr {
-    fn from(value: ParseBoolError) -> Self { BooleanTokenErr::ParseBoolError(value) }
+impl From<ParseBoolError> for BooleanErr {
+    fn from(value: ParseBoolError) -> Self { BooleanErr::ParseBoolError(value) }
 }
 
-impl Display for BooleanTokenErr {
+impl Display for BooleanErr {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", match self {
-            BooleanTokenErr::UnmatchedRegex => "Boolean must match ^(?i:true|false)$".to_string(),
-            BooleanTokenErr::ParseBoolError(err) => err.to_string()
+            BooleanErr::UnmatchedRegex => "Boolean must match ^(?i:true|false)$".to_string(),
+            BooleanErr::ParseBoolError(err) => err.to_string()
         })
     }
 }
 
-impl Error for BooleanTokenErr {}
+impl Error for BooleanErr {}
 
-impl Display for BooleanToken {
+impl Display for Boolean {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result { write!(f, "{}", self.value) }
 }
 
-impl ToASM for BooleanToken {
+impl ToASM for Boolean {
     fn to_asm<T: ASMOptions>(&self, _stack: &mut Stack, _meta: &mut MetaInfo, _options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
         Ok(ASMResult::Inline((if self.value { "1" } else { "0" }).to_string()))
     }
@@ -51,15 +51,15 @@ impl ToASM for BooleanToken {
     }
 }
 
-impl FromStr for BooleanToken {
-    type Err = BooleanTokenErr;
+impl FromStr for Boolean {
+    type Err = BooleanErr;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if !lazy_regex::regex_is_match!("^(?i:true|false)$", s) {
-            return Err(BooleanTokenErr::UnmatchedRegex);
+            return Err(BooleanErr::UnmatchedRegex);
         }
 
-        Ok(BooleanToken {
+        Ok(Boolean {
             value: s.parse::<bool>()?
         })
     }

@@ -16,19 +16,19 @@ pub struct ApplyWith<'a> {
     target: &'a mut String,
     actual: ASMResultVariance,
     allowed: Vec<ASMResultVariance>,
-    token: String
+    ast_node: String
 }
-pub struct ApplyWithToken<'a> {
+pub struct ApplyWithASTNode<'a> {
     apply_with: &'a mut ApplyWith<'a>
 }
 
-impl ApplyWithToken<'_> {
+impl ApplyWithASTNode<'_> {
     pub fn finish(&mut self) -> Result<Option<GeneralPurposeRegister>, ASMResultError> {
         if !self.apply_with.allowed.contains(&self.apply_with.actual) {
             return Err(ASMResultError::UnexpectedVariance {
                 expected: self.apply_with.allowed.clone(),
                 actual: self.apply_with.actual.clone(),
-                token: self.apply_with.token.to_string(),
+                ast_node: self.apply_with.ast_node.to_string(),
             })
         }
 
@@ -55,10 +55,10 @@ impl<'a> ApplyWith<'a> {
         self
     }
 
-    pub fn token(&'a mut self, token: &str) -> ApplyWithToken<'a> {
-        self.token = token.to_owned();
+    pub fn ast_node(&'a mut self, ast_node: &str) -> ApplyWithASTNode<'a> {
+        self.ast_node = ast_node.to_owned();
 
-        ApplyWithToken {
+        ApplyWithASTNode {
             apply_with: self,
         }
     }
@@ -71,7 +71,7 @@ impl ASMResult {
             target,
             actual: ASMResultVariance::from(self),
             allowed: vec![],
-            token: "".to_string(),
+            ast_node: "".to_string(),
         }
     }
 
@@ -118,15 +118,15 @@ impl From<&ASMResult> for ASMResultVariance {
 
 #[derive(Debug)]
 pub enum ASMResultError {
-    UnexpectedVariance { expected: Vec<ASMResultVariance>, actual: ASMResultVariance, token: String },
+    UnexpectedVariance { expected: Vec<ASMResultVariance>, actual: ASMResultVariance, ast_node: String },
     NoOptionProvided(String),
 }
 
 impl Display for ASMResultError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            ASMResultError::UnexpectedVariance { expected, actual, token } => {
-                write!(f, "Expected `{expected:?}` asm result but `{actual:?}` was provided in token: `{token}`")
+            ASMResultError::UnexpectedVariance { expected, actual, ast_node } => {
+                write!(f, "Expected `{expected:?}` asm result but `{actual:?}` was provided in ast node: `{ast_node}`")
             }
             ASMResultError::NoOptionProvided(s) => write!(f, "No option for the asm result is provided in: {s}")
         }

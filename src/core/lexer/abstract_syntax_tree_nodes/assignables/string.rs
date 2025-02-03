@@ -13,32 +13,32 @@ use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::registers::GeneralPurposeRegister;
 
 #[derive(Debug, Eq, PartialEq, Clone)]
-pub struct StringToken {
+pub struct StaticString {
     pub value: String,
 }
 
-impl Display for StringToken {
+impl Display for StaticString {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.value)
     }
 }
 
 #[derive(Debug)]
-pub enum StringTokenErr {
+pub enum StaticStringErr {
     UnmatchedRegex,
 }
 
-impl Error for StringTokenErr {}
+impl Error for StaticStringErr {}
 
-impl Display for StringTokenErr {
+impl Display for StaticStringErr {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", match self {
-            StringTokenErr::UnmatchedRegex => "Name must match: ^\".*\"$ ",
+            StaticStringErr::UnmatchedRegex => "Name must match: ^\".*\"$ ",
         })
     }
 }
 
-impl ToASM for StringToken {
+impl ToASM for StaticString {
     fn to_asm<T: ASMOptions + 'static>(&self, stack: &mut Stack, _meta: &mut MetaInfo, options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
         let label = if let Some(key) = stack.data_section.str_key(&self.value) {
             key.to_string()
@@ -92,15 +92,15 @@ fn replace_add_quote(value: &str, occurrence: &str, replace_value: usize) -> Str
 }
 
 
-impl FromStr for StringToken {
-    type Err = StringTokenErr;
+impl FromStr for StaticString {
+    type Err = StaticStringErr;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if !lazy_regex::regex_is_match!("^\".*\"$", s) {
-            return Err(StringTokenErr::UnmatchedRegex);
+            return Err(StaticStringErr::UnmatchedRegex);
         }
 
-        Ok(StringToken {
+        Ok(StaticString {
             value: s.to_string()
         })
     }

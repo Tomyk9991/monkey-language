@@ -1,19 +1,19 @@
 use monkey_language::core::io::code_line::CodeLine;
 use monkey_language::core::io::monkey_file::MonkeyFile;
-use monkey_language::core::lexer::token::Token;
-use monkey_language::core::lexer::tokenizer::Lexer;
-use monkey_language::core::lexer::tokens::assignable_token::AssignableToken;
-use monkey_language::core::lexer::tokens::assignable_tokens::boolean_token::BooleanToken;
-use monkey_language::core::lexer::tokens::assignable_tokens::float_token::FloatToken;
-use monkey_language::core::lexer::tokens::assignable_tokens::integer_token::IntegerToken;
-use monkey_language::core::lexer::tokens::assignable_tokens::string_token::StringToken;
-use monkey_language::core::lexer::tokens::if_token::IfToken;
-use monkey_language::core::lexer::tokens::l_value::LValue;
-use monkey_language::core::lexer::tokens::name_token::NameToken;
-use monkey_language::core::lexer::tokens::variable_token::VariableToken;
+use monkey_language::core::lexer::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
+use monkey_language::core::lexer::abstract_syntax_tree_nodes::assignable::Assignable;
+use monkey_language::core::lexer::abstract_syntax_tree_nodes::assignables::boolean::Boolean;
+use monkey_language::core::lexer::abstract_syntax_tree_nodes::assignables::float::FloatAST;
+use monkey_language::core::lexer::abstract_syntax_tree_nodes::assignables::integer::IntegerAST;
+use monkey_language::core::lexer::abstract_syntax_tree_nodes::assignables::string::StaticString;
+use monkey_language::core::lexer::abstract_syntax_tree_nodes::identifier::Identifier;
+use monkey_language::core::lexer::parser::Lexer;
+use monkey_language::core::lexer::abstract_syntax_tree_nodes::r#if::If;
+use monkey_language::core::lexer::abstract_syntax_tree_nodes::l_value::LValue;
+use monkey_language::core::lexer::abstract_syntax_tree_nodes::variable::Variable;
 use monkey_language::core::lexer::types::float::Float;
 use monkey_language::core::lexer::types::integer::Integer;
-use monkey_language::core::lexer::types::type_token::{Mutability, TypeToken};
+use monkey_language::core::lexer::types::r#type::{Mutability, Type};
 use monkey_language::core::type_checker::static_type_checker::static_type_check;
 
 #[test]
@@ -28,53 +28,53 @@ fn infer_type() -> anyhow::Result<()> {
 
     let monkey_file: MonkeyFile = MonkeyFile::read_from_str(function);
     let mut lexer = Lexer::from(monkey_file);
-    let top_level_scope = lexer.tokenize()?;
+    let top_level_scope = lexer.parse()?;
 
     static_type_check(&top_level_scope)?;
 
-    let expected: Vec<Token> = vec![
-        Token::Variable(VariableToken {
-            l_value: LValue::Name(NameToken { name: "a".to_string() }),
+    let expected: Vec<AbstractSyntaxTreeNode> = vec![
+        AbstractSyntaxTreeNode::Variable(Variable {
+            l_value: LValue::Identifier(Identifier { name: "a".to_string() }),
             mutability: false,
-            ty: Some(TypeToken::Integer(Integer::I32, Mutability::Immutable)),
+            ty: Some(Type::Integer(Integer::I32, Mutability::Immutable)),
             define: true,
-            assignable: AssignableToken::IntegerToken(IntegerToken { value: "1".to_string(), ty: Integer::I32 }),
+            assignable: Assignable::Integer(IntegerAST { value: "1".to_string(), ty: Integer::I32 }),
             code_line: CodeLine {
                 line: "let a = 1 ;".to_string(),
                 actual_line_number: 2..2,
                 virtual_line_number: 1,
             },
         }),
-        Token::Variable(VariableToken {
-            l_value: LValue::Name(NameToken { name: "b".to_string() }),
+        AbstractSyntaxTreeNode::Variable(Variable {
+            l_value: LValue::Identifier(Identifier { name: "b".to_string() }),
             mutability: false,
-            ty: Some(TypeToken::Float(Float::Float32, Mutability::Immutable)),
+            ty: Some(Type::Float(Float::Float32, Mutability::Immutable)),
             define: true,
-            assignable: AssignableToken::FloatToken(FloatToken { value: 2.0, ty: Float::Float32 }),
+            assignable: Assignable::Float(FloatAST { value: 2.0, ty: Float::Float32 }),
             code_line: CodeLine {
                 line: "let b = 2.0 ;".to_string(),
                 actual_line_number: 3..3,
                 virtual_line_number: 2,
             },
         }),
-        Token::Variable(VariableToken {
-            l_value: LValue::Name(NameToken { name: "c".to_string() }),
+        AbstractSyntaxTreeNode::Variable(Variable {
+            l_value: LValue::Identifier(Identifier { name: "c".to_string() }),
             mutability: false,
-            ty: Some(TypeToken::Bool(Mutability::Immutable)),
+            ty: Some(Type::Bool(Mutability::Immutable)),
             define: true,
-            assignable: AssignableToken::BooleanToken(BooleanToken { value: true }),
+            assignable: Assignable::Boolean(Boolean { value: true }),
             code_line: CodeLine {
                 line: "let c = true ;".to_string(),
                 actual_line_number: 4..4,
                 virtual_line_number: 3,
             },
         }),
-        Token::Variable(VariableToken {
-            l_value: LValue::Name(NameToken { name: "d".to_string() }),
+        AbstractSyntaxTreeNode::Variable(Variable {
+            l_value: LValue::Identifier(Identifier { name: "d".to_string() }),
             mutability: false,
-            ty: Some(TypeToken::Custom(NameToken { name: String::from("*string") }, Mutability::Immutable)),
+            ty: Some(Type::Custom(Identifier { name: String::from("*string") }, Mutability::Immutable)),
             define: true,
-            assignable: AssignableToken::String(StringToken { value: "\"KEKW\"".to_string() }),
+            assignable: Assignable::String(StaticString { value: "\"KEKW\"".to_string() }),
             code_line: CodeLine {
                 line: "let d = \"KEKW\" ;".to_string(),
                 actual_line_number: 5..5,
@@ -83,7 +83,7 @@ fn infer_type() -> anyhow::Result<()> {
         }),
     ];
 
-    assert_eq!(expected, top_level_scope.tokens);
+    assert_eq!(expected, top_level_scope.ast_nodes);
     Ok(())
 }
 
@@ -101,56 +101,56 @@ fn infer_type_in_scope() -> anyhow::Result<()> {
 
     let monkey_file: MonkeyFile = MonkeyFile::read_from_str(function);
     let mut lexer = Lexer::from(monkey_file);
-    let top_level_scope = lexer.tokenize()?;
+    let top_level_scope = lexer.parse()?;
 
     static_type_check(&top_level_scope)?;
 
-    let expected: Vec<Token> = vec![
-        Token::If(IfToken {
-            condition: AssignableToken::BooleanToken(BooleanToken { value: true }),
+    let expected: Vec<AbstractSyntaxTreeNode> = vec![
+        AbstractSyntaxTreeNode::If(If {
+            condition: Assignable::Boolean(Boolean { value: true }),
             if_stack: vec![
-                Token::Variable(VariableToken {
-                    l_value: LValue::Name(NameToken { name: "a".to_string() }),
+                AbstractSyntaxTreeNode::Variable(Variable {
+                    l_value: LValue::Identifier(Identifier { name: "a".to_string() }),
                     mutability: false,
-                    ty: Some(TypeToken::Integer(Integer::I32, Mutability::Immutable)),
+                    ty: Some(Type::Integer(Integer::I32, Mutability::Immutable)),
                     define: true,
-                    assignable: AssignableToken::IntegerToken(IntegerToken { value: "1".to_string(), ty: Integer::I32 }),
+                    assignable: Assignable::Integer(IntegerAST { value: "1".to_string(), ty: Integer::I32 }),
                     code_line: CodeLine {
                         line: "let a = 1 ;".to_string(),
                         actual_line_number: 3..3,
                         virtual_line_number: 2,
                     },
                 }),
-                Token::Variable(VariableToken {
-                    l_value: LValue::Name(NameToken { name: "b".to_string() }),
+                AbstractSyntaxTreeNode::Variable(Variable {
+                    l_value: LValue::Identifier(Identifier { name: "b".to_string() }),
                     mutability: false,
-                    ty: Some(TypeToken::Float(Float::Float32, Mutability::Immutable)),
+                    ty: Some(Type::Float(Float::Float32, Mutability::Immutable)),
                     define: true,
-                    assignable: AssignableToken::FloatToken(FloatToken { value: 2.0, ty: Float::Float32 }),
+                    assignable: Assignable::Float(FloatAST { value: 2.0, ty: Float::Float32 }),
                     code_line: CodeLine {
                         line: "let b = 2.0 ;".to_string(),
                         actual_line_number: 4..4,
                         virtual_line_number: 3,
                     },
                 }),
-                Token::Variable(VariableToken {
-                    l_value: LValue::Name(NameToken { name: "c".to_string() }),
+                AbstractSyntaxTreeNode::Variable(Variable {
+                    l_value: LValue::Identifier(Identifier { name: "c".to_string() }),
                     mutability: false,
-                    ty: Some(TypeToken::Bool(Mutability::Immutable)),
+                    ty: Some(Type::Bool(Mutability::Immutable)),
                     define: true,
-                    assignable: AssignableToken::BooleanToken(BooleanToken { value: true }),
+                    assignable: Assignable::Boolean(Boolean { value: true }),
                     code_line: CodeLine {
                         line: "let c = true ;".to_string(),
                         actual_line_number: 5..5,
                         virtual_line_number: 4,
                     },
                 }),
-                Token::Variable(VariableToken {
-                    l_value: LValue::Name(NameToken { name: "d".to_string() }),
+                AbstractSyntaxTreeNode::Variable(Variable {
+                    l_value: LValue::Identifier(Identifier { name: "d".to_string() }),
                     mutability: false,
-                    ty: Some(TypeToken::Custom(NameToken { name: String::from("*string") }, Mutability::Immutable)),
+                    ty: Some(Type::Custom(Identifier { name: String::from("*string") }, Mutability::Immutable)),
                     define: true,
-                    assignable: AssignableToken::String(StringToken { value: "\"KEKW\"".to_string() }),
+                    assignable: Assignable::String(StaticString { value: "\"KEKW\"".to_string() }),
                     code_line: CodeLine {
                         line: "let d = \"KEKW\" ;".to_string(),
                         actual_line_number: 6..6,
@@ -163,6 +163,6 @@ fn infer_type_in_scope() -> anyhow::Result<()> {
         })
     ];
 
-    assert_eq!(expected, top_level_scope.tokens);
+    assert_eq!(expected, top_level_scope.ast_nodes);
     Ok(())
 }

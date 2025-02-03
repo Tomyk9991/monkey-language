@@ -8,16 +8,16 @@ use crate::core::code_generator::registers::{GeneralPurposeRegister};
 use crate::core::code_generator::target_os::TargetOS;
 use crate::core::lexer::scope::Scope;
 use crate::core::lexer::static_type_context::StaticTypeContext;
-use crate::core::lexer::token::Token;
-use crate::core::lexer::tokens::assignable_token::AssignableToken;
-use crate::core::lexer::tokens::l_value::LValue;
-use crate::core::lexer::tokens::method_definition::MethodDefinition;
-use crate::core::lexer::tokens::name_token::NameToken;
-use crate::core::lexer::tokens::parameter_token::ParameterToken;
-use crate::core::lexer::tokens::return_token::ReturnToken;
-use crate::core::lexer::tokens::variable_token::VariableToken;
+use crate::core::lexer::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
+use crate::core::lexer::abstract_syntax_tree_nodes::assignable::Assignable;
+use crate::core::lexer::abstract_syntax_tree_nodes::l_value::LValue;
+use crate::core::lexer::abstract_syntax_tree_nodes::method_definition::MethodDefinition;
+use crate::core::lexer::abstract_syntax_tree_nodes::identifier::Identifier;
+use crate::core::lexer::abstract_syntax_tree_nodes::parameter::Parameter;
+use crate::core::lexer::abstract_syntax_tree_nodes::r#return::Return;
+use crate::core::lexer::abstract_syntax_tree_nodes::variable::Variable;
 use crate::core::lexer::types::integer::Integer;
-use crate::core::lexer::types::type_token::{Mutability, TypeToken};
+use crate::core::lexer::types::r#type::{Mutability, Type};
 use crate::core::model::data_section::DataSection;
 
 #[derive(Debug)]
@@ -25,7 +25,7 @@ pub struct StackLocation {
     pub position: usize,
     pub size: usize,
     pub elements: usize,
-    pub name: NameToken,
+    pub name: Identifier,
 }
 
 impl StackLocation {
@@ -34,7 +34,7 @@ impl StackLocation {
             position,
             size,
             elements: 1,
-            name: NameToken::uuid(),
+            name: Identifier::uuid(),
         }
     }
 }
@@ -95,21 +95,21 @@ impl Stack {
     }
 
 
-    pub fn generate_scope<T: ASMOptions + 'static>(&mut self, tokens: &Vec<Token>, meta: &mut MetaInfo, options: Option<T>) -> Result<String, ASMGenerateError> {
+    pub fn generate_scope<T: ASMOptions + 'static>(&mut self, nodes: &Vec<AbstractSyntaxTreeNode>, meta: &mut MetaInfo, options: Option<T>) -> Result<String, ASMGenerateError> {
         let mut target = String::new();
 
         self.begin_scope();
 
-        for token in tokens {
-            meta.code_line = token.code_line();
+        for node in nodes {
+            meta.code_line = node.code_line();
 
-            target += match &token.to_asm(self, meta, options.clone())? {
+            target += match &node.to_asm(self, meta, options.clone())? {
                 ASMResult::Inline(t) => t,
                 ASMResult::MultilineResulted(t, _) => t,
                 ASMResult::Multiline(t) => t
             };
 
-            token.data_section(self, meta);
+            node.data_section(self, meta);
         }
 
         self.end_scope();
@@ -159,11 +159,11 @@ impl ASMGenerator {
         boiler_plate += &ASMBuilder::line("");
 
         let mut added_extern_methods: Vec<&str> = vec![];
-        self.top_level_scope.tokens.iter().for_each(|a|
-            if let Token::MethodDefinition(method_def) = a {
-                if method_def.is_extern && !added_extern_methods.contains(&method_def.name.name.as_str()) {
-                    boiler_plate += &ASMBuilder::line(&format!("extern {}", &method_def.name.name));
-                    added_extern_methods.push(&method_def.name.name);
+        self.top_level_scope.ast_nodes.iter().for_each(|a|
+            if let AbstractSyntaxTreeNode::MethodDefinition(method_def) = a {
+                if method_def.is_extern && !added_extern_methods.contains(&method_def.identifier.name.as_str()) {
+                    boiler_plate += &ASMBuilder::line(&format!("extern {}", &method_def.identifier.name));
+                    added_extern_methods.push(&method_def.identifier.name);
                 }
             }
         );
@@ -172,12 +172,12 @@ impl ASMGenerator {
 
         if self.require_main {
             // search for main function
-            let main_entry = self.top_level_scope.tokens.iter().filter(|a| matches!(a, Token::MethodDefinition(md) if md.name.name == "main")).collect::<Vec<&Token>>();
+            let main_entry = self.top_level_scope.ast_nodes.iter().filter(|a| matches!(a, AbstractSyntaxTreeNode::MethodDefinition(md) if md.identifier.name == "main")).collect::<Vec<&AbstractSyntaxTreeNode>>();
 
             let value: Result<String, ASMGenerateError> = match main_entry.len() {
                 0 => return Err(ASMGenerateError::EntryPointNotFound),
                 1 => {
-                    if let Some(Token::MethodDefinition(main)) = main_entry.first() {
+                    if let Some(AbstractSyntaxTreeNode::MethodDefinition(main)) = main_entry.first() {
                         if main.is_extern {
                             return Err(ASMGenerateError::EntryPointNotFound);
                         }
@@ -186,7 +186,7 @@ impl ASMGenerator {
                         let mut meta = MetaInfo {
                             code_line: main.code_line.clone(),
                             target_os: self.target_os.clone(),
-                            static_type_information: StaticTypeContext::new(&self.top_level_scope.tokens),
+                            static_type_information: StaticTypeContext::new(&self.top_level_scope.ast_nodes),
                         };
 
                         meta.static_type_information.merge(StaticTypeContext::new(&main.stack));
@@ -208,30 +208,30 @@ impl ASMGenerator {
         } else {
             self.require_main = true;
 
-            let method_definitions = self.top_level_scope.tokens.iter().filter(|t| matches!(t, Token::MethodDefinition(_))).cloned().collect::<Vec<_>>();
-            let mut main_stack = self.top_level_scope.tokens.iter().filter(|t| !matches!(t, Token::Import(_) | Token::MethodDefinition(_))).cloned().collect::<Vec<Token>>();
+            let method_definitions = self.top_level_scope.ast_nodes.iter().filter(|t| matches!(t, AbstractSyntaxTreeNode::MethodDefinition(_))).cloned().collect::<Vec<_>>();
+            let mut main_stack = self.top_level_scope.ast_nodes.iter().filter(|t| !matches!(t, AbstractSyntaxTreeNode::Import(_) | AbstractSyntaxTreeNode::MethodDefinition(_))).cloned().collect::<Vec<AbstractSyntaxTreeNode>>();
             // last element of main stack via pattern matching
             if let [.., last] = &main_stack[..] {
-                if !matches!(last, Token::Return(_)) {
-                     main_stack.push(Token::Return(ReturnToken::num_0()));
+                if !matches!(last, AbstractSyntaxTreeNode::Return(_)) {
+                     main_stack.push(AbstractSyntaxTreeNode::Return(Return::num_0()));
                 }
             }
-            let main_function = Token::MethodDefinition(MethodDefinition {
-                name: NameToken { name: "main".to_string() },
-                return_type: TypeToken::Integer(Integer::I32, Mutability::Immutable),
+            let main_function = AbstractSyntaxTreeNode::MethodDefinition(MethodDefinition {
+                identifier: Identifier { name: "main".to_string() },
+                return_type: Type::Integer(Integer::I32, Mutability::Immutable),
                 arguments: vec![],
                 stack: main_stack,
                 is_extern: false,
                 code_line: Default::default(),
             });
 
-            self.top_level_scope.tokens.clear();
-            let imports = self.top_level_scope.tokens.iter().filter(|t| matches!(t, Token::Import(_))).cloned().collect::<Vec<Token>>();
+            self.top_level_scope.ast_nodes.clear();
+            let imports = self.top_level_scope.ast_nodes.iter().filter(|t| matches!(t, AbstractSyntaxTreeNode::Import(_))).cloned().collect::<Vec<AbstractSyntaxTreeNode>>();
 
-            method_definitions.iter().for_each(|t| self.top_level_scope.tokens.push(t.clone()));
-            imports.iter().for_each(|t| self.top_level_scope.tokens.push(t.clone()));
+            method_definitions.iter().for_each(|t| self.top_level_scope.ast_nodes.push(t.clone()));
+            imports.iter().for_each(|t| self.top_level_scope.ast_nodes.push(t.clone()));
 
-            self.top_level_scope.tokens.push(main_function);
+            self.top_level_scope.ast_nodes.push(main_function);
             self.generate()
         }
     }
@@ -239,44 +239,44 @@ impl ASMGenerator {
     fn generate_method_definitions(&mut self) -> Result<String, ASMGenerateError> {
         let mut method_definitions = String::new();
 
-        for token in &self.top_level_scope.tokens {
+        for node in &self.top_level_scope.ast_nodes {
             let mut meta = MetaInfo {
-                code_line: token.code_line(),
+                code_line: node.code_line(),
                 target_os: self.target_os.clone(),
-                static_type_information: StaticTypeContext::new(&self.top_level_scope.tokens),
+                static_type_information: StaticTypeContext::new(&self.top_level_scope.ast_nodes),
             };
 
 
-            if let Token::MethodDefinition(method_definition) = token {
-                if !method_definition.is_extern && method_definition.name.name != "main" {
+            if let AbstractSyntaxTreeNode::MethodDefinition(method_definition) = node {
+                if !method_definition.is_extern && method_definition.identifier.name != "main" {
                     self.stack.clear_stack();
 
                     let calling_convention = calling_convention_from(method_definition, &self.target_os);
 
                     for (index, argument) in method_definition.arguments.iter().enumerate() {
-                        let parameter_token = ParameterToken {
-                            name_token: argument.name.clone(),
-                            ty: argument.type_token.clone(),
+                        let parameter = Parameter {
+                            identifier: argument.name.clone(),
+                            ty: argument.ty.clone(),
                             register: calling_convention[index][0].clone(),
-                            mutability: argument.type_token.mutable(),
+                            mutability: argument.ty.mutable(),
                             code_line: method_definition.code_line.clone(),
                         };
 
                         self.stack.variables.push(StackLocation {
                             position: self.stack.stack_position,
-                            size: argument.type_token.byte_size(),
+                            size: argument.ty.byte_size(),
                             elements: 1,
                             name: argument.name.clone(),
                         });
 
-                        self.stack.stack_position += argument.type_token.byte_size();
+                        self.stack.stack_position += argument.ty.byte_size();
 
-                        meta.static_type_information.context.push(VariableToken {
-                            l_value: LValue::Name(argument.name.clone()),
-                            mutability: parameter_token.mutability,
-                            ty: Some(argument.type_token.clone()),
+                        meta.static_type_information.context.push(Variable {
+                            l_value: LValue::Identifier(argument.name.clone()),
+                            mutability: parameter.mutability,
+                            ty: Some(argument.ty.clone()),
                             define: true,
-                            assignable: AssignableToken::Parameter(parameter_token),
+                            assignable: Assignable::Parameter(parameter),
                             code_line: method_definition.code_line.clone(),
                         });
                     }

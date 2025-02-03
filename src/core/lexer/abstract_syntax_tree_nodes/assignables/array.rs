@@ -12,92 +12,92 @@ use crate::core::code_generator::asm_options::interim_result::InterimResultOptio
 use crate::core::code_generator::registers::{Bit64, ByteSize, GeneralPurposeRegister};
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::static_type_context::StaticTypeContext;
-use crate::core::lexer::tokens::assignable_token::AssignableToken;
-use crate::core::lexer::tokens::assignable_tokens::method_call_token::dyck_language;
-use crate::core::lexer::tokens::l_value::LValue;
-use crate::core::lexer::tokens::name_token::NameToken;
-use crate::core::lexer::types::type_token::{InferTypeError, Mutability, TypeToken};
+use crate::core::lexer::abstract_syntax_tree_nodes::assignable::Assignable;
+use crate::core::lexer::abstract_syntax_tree_nodes::assignables::method_call::dyck_language;
+use crate::core::lexer::abstract_syntax_tree_nodes::l_value::LValue;
+use crate::core::lexer::abstract_syntax_tree_nodes::identifier::Identifier;
+use crate::core::lexer::types::r#type::{InferTypeError, Mutability, Type};
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct ArrayToken {
-    pub values: Vec<AssignableToken>,
+pub struct Array {
+    pub values: Vec<Assignable>,
 }
 
 #[derive(Debug)]
-pub enum ArrayTokenErr {
+pub enum ArrayErr {
     UnmatchedRegex,
 }
 
-impl Error for ArrayTokenErr { }
+impl Error for ArrayErr { }
 
-impl ArrayToken {
-    pub fn infer_type_with_context(&self, context: &StaticTypeContext, code_line: &CodeLine) -> Result<TypeToken, InferTypeError> {
+impl Array {
+    pub fn infer_type_with_context(&self, context: &StaticTypeContext, code_line: &CodeLine) -> Result<Type, InferTypeError> {
         if self.values.is_empty() {
-            return Err(InferTypeError::NoTypePresent(LValue::Name(NameToken { name: "Array".to_string() }), code_line.clone()))
+            return Err(InferTypeError::NoTypePresent(LValue::Identifier(Identifier { name: "Array".to_string() }), code_line.clone()))
         }
 
         if let Ok(ty) = self.values[0].infer_type_with_context(context, code_line) {
-            return Ok(TypeToken::Array(Box::new(ty), self.values.len(), Mutability::Immutable));
+            return Ok(Type::Array(Box::new(ty), self.values.len(), Mutability::Immutable));
         }
 
-        Err(InferTypeError::NoTypePresent(LValue::Name(NameToken { name: "Array".to_string() }), code_line.clone()))
+        Err(InferTypeError::NoTypePresent(LValue::Identifier(Identifier { name: "Array".to_string() }), code_line.clone()))
     }
 }
 
-impl Display for ArrayTokenErr {
+impl Display for ArrayErr {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", match self {
-            ArrayTokenErr::UnmatchedRegex => "Array must match: [type, size]"
+            ArrayErr::UnmatchedRegex => "Array must match: [type, size]"
         })
     }
 }
 
 
-impl Display for ArrayToken {
+impl Display for Array {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let a = self.values.iter().map(|a| format!("{}", a)).collect::<Vec<_>>();
         write!(f, "[{}]", a.join(", "))
     }
 }
 
-impl FromStr for ArrayToken {
-    type Err = ArrayTokenErr;
+impl FromStr for Array {
+    type Err = ArrayErr;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if !lazy_regex::regex_is_match!(r"^\[.*\]$", s) {
-            return Err(ArrayTokenErr::UnmatchedRegex);
+            return Err(ArrayErr::UnmatchedRegex);
         }
 
         if s.replace(" ", "") == "[]" {
-            return Ok(ArrayToken {
+            return Ok(Array {
                 values: vec![]
             })
         }
 
         if let ["[ ", array_content @ .., "]"] = &s.split_inclusive(' ').collect::<Vec<_>>()[..] {
             let array_elements_str = dyck_language(&array_content.join(" "), [vec!['{', '('], vec![','], vec!['}', ')']])
-                .map_err(|_| ArrayTokenErr::UnmatchedRegex)?;
+                .map_err(|_| ArrayErr::UnmatchedRegex)?;
 
             if array_elements_str.is_empty() {
-                return Err(ArrayTokenErr::UnmatchedRegex);
+                return Err(ArrayErr::UnmatchedRegex);
             }
 
             let mut values = vec![];
 
             for array_element in &array_elements_str {
-                values.push(AssignableToken::from_str(array_element).map_err(|_| ArrayTokenErr::UnmatchedRegex)?);
+                values.push(Assignable::from_str(array_element).map_err(|_| ArrayErr::UnmatchedRegex)?);
             }
 
-            return Ok(ArrayToken {
+            return Ok(Array {
                 values,
             })
         }
 
-        Err(ArrayTokenErr::UnmatchedRegex)
+        Err(ArrayErr::UnmatchedRegex)
     }
 }
 
-impl ToASM for ArrayToken {
+impl ToASM for Array {
     fn to_asm<T: ASMOptions + 'static>(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
         let mut target = String::new();
         target += &ASMBuilder::ident(&ASMBuilder::comment_line(&format!("{}", self)));
@@ -144,11 +144,11 @@ impl ToASM for ArrayToken {
                 ASMResult::MultilineResulted(source, mut register) => {
                     target += &source;
 
-                    if let AssignableToken::ArithmeticEquation(expr) = assignable {
+                    if let Assignable::ArithmeticEquation(expr) = assignable {
                         let final_type = expr.traverse_type(meta).ok_or(ASMGenerateError::InternalError("Cannot infer type".to_string()))?;
                         let r = GeneralPurposeRegister::Bit64(Bit64::Rax).to_size_register(&ByteSize::try_from(final_type.byte_size())?);
 
-                        if let TypeToken::Float(s, _) = final_type {
+                        if let Type::Float(s, _) = final_type {
                             target += &ASMBuilder::mov_x_ident_line(&r, register, Some(s.byte_size()));
                             register = r;
                         }

@@ -8,13 +8,13 @@ use crate::core::code_generator::asm_options::interim_result::InterimResultOptio
 use crate::core::code_generator::asm_result::ASMResult;
 use crate::core::code_generator::register_destination::word_from_byte_size;
 use crate::core::code_generator::registers::{GeneralPurposeRegister};
-use crate::core::lexer::tokens::assignable_tokens::equation_parser::EquationToken;
-use crate::core::lexer::tokens::assignable_tokens::equation_parser::expression::Expression;
-use crate::core::lexer::tokens::name_token::NameToken;
+use crate::core::lexer::abstract_syntax_tree_nodes::assignables::equation_parser::Equation;
+use crate::core::lexer::abstract_syntax_tree_nodes::assignables::equation_parser::expression::Expression;
+use crate::core::lexer::abstract_syntax_tree_nodes::identifier::Identifier;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum LValue {
-    Name(NameToken),
+    Identifier(Identifier),
     Expression(Expression),
 }
 
@@ -39,7 +39,7 @@ impl Error for LValueErr { }
 impl Display for LValue {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", match self {
-            LValue::Name(name) => name.to_string(),
+            LValue::Identifier(name) => name.to_string(),
             LValue::Expression(e) => e.to_string()
         })
     }
@@ -49,9 +49,9 @@ impl FromStr for LValue {
     type Err = LValueErr;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if let Ok(name) = NameToken::from_str(s, false) {
-            Ok(LValue::Name(name))
-        } else if let Ok(equation) = EquationToken::from_str(s) {
+        if let Ok(name) = Identifier::from_str(s, false) {
+            Ok(LValue::Identifier(name))
+        } else if let Ok(equation) = Equation::from_str(s) {
             Ok(LValue::Expression(equation))
         } else {
             return Err(LValueErr::KeywordReserved(s.to_string()))
@@ -62,7 +62,7 @@ impl FromStr for LValue {
 impl LValue {
     pub fn identifier(&self) -> String {
         match self {
-            LValue::Name(name) => name.name.clone(),
+            LValue::Identifier(name) => name.name.clone(),
             LValue::Expression(e) => e.identifier().unwrap_or(e.to_string())
         }
     }
@@ -71,7 +71,7 @@ impl LValue {
 impl ToASM for LValue {
     fn to_asm<T: ASMOptions + 'static>(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
         match self {
-            LValue::Name(name) => name.to_asm(stack, meta, options),
+            LValue::Identifier(name) => name.to_asm(stack, meta, options),
             LValue::Expression(l_value_equation) => {
                 let resulting_type = l_value_equation.traverse_type(meta).ok_or(ASMGenerateError::LValueAssignment(self.clone(), meta.code_line.clone()))?;
 
@@ -106,14 +106,14 @@ impl ToASM for LValue {
 
     fn is_stack_look_up(&self, stack: &mut Stack, meta: &MetaInfo) -> bool {
         match self {
-            LValue::Name(a) => a.is_stack_look_up(stack, meta),
+            LValue::Identifier(a) => a.is_stack_look_up(stack, meta),
             LValue::Expression(e) => e.is_stack_look_up(stack, meta)
         }
     }
 
     fn byte_size(&self, meta: &mut MetaInfo) -> usize {
         match self {
-            LValue::Name(a) => a.byte_size(meta),
+            LValue::Identifier(a) => a.byte_size(meta),
             LValue::Expression(e) => e.byte_size(meta)
         }
     }

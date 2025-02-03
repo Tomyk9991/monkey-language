@@ -14,35 +14,35 @@ use crate::core::code_generator::registers::{ByteSize, GeneralPurposeRegister};
 use crate::core::constants::KEYWORDS;
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::static_type_context::StaticTypeContext;
-use crate::core::lexer::tokens::l_value::LValue;
-use crate::core::lexer::types::type_token::{InferTypeError, TypeToken};
+use crate::core::lexer::abstract_syntax_tree_nodes::l_value::LValue;
+use crate::core::lexer::types::r#type::{InferTypeError, Type};
 
-/// Token for a name. Basically a string that can be used as a variable name.
+/// AST node for a name. Basically a string that can be used as a variable name.
 /// Everything is allowed except for reserved keywords and special characters in the beginning
 #[derive(Debug, Eq, PartialEq, Default, Hash, Clone)]
-pub struct NameToken {
+pub struct Identifier {
     pub name: String,
 }
 
 #[derive(Debug)]
-pub enum NameTokenErr {
+pub enum IdentifierErr {
     UnmatchedRegex { target_value: String },
     KeywordReserved(String),
 }
 
-impl Display for NameToken {
+impl Display for Identifier {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.name)
     }
 }
 
-impl Error for NameTokenErr {}
+impl Error for IdentifierErr {}
 
-impl Display for NameTokenErr {
+impl Display for IdentifierErr {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let message = match self {
-            NameTokenErr::UnmatchedRegex { target_value } => format!("\"{target_value}\" must match: ^[a-zA-Z_$][a-zA-Z_$0-9$]*$"),
-            NameTokenErr::KeywordReserved(value) => {
+            IdentifierErr::UnmatchedRegex { target_value } => format!("\"{target_value}\" must match: ^[a-zA-Z_$][a-zA-Z_$0-9$]*$"),
+            IdentifierErr::KeywordReserved(value) => {
                 format!("The variable name \"{}\" variable name can't have the same name as a reserved keyword", value)
             }
         };
@@ -50,32 +50,32 @@ impl Display for NameTokenErr {
     }
 }
 
-impl NameToken {
-    pub fn uuid() -> NameToken {
-        NameToken {
+impl Identifier {
+    pub fn uuid() -> Identifier {
+        Identifier {
             name: Uuid::new_v4().to_string(),
         }
     }
 
-    pub fn from_str(s: &str, allow_reserved: bool) -> Result<NameToken, NameTokenErr> {
+    pub fn from_str(s: &str, allow_reserved: bool) -> Result<Identifier, IdentifierErr> {
         if !allow_reserved && KEYWORDS.iter().any(|keyword| keyword.to_lowercase() == s.to_lowercase()) {
-            return Err(NameTokenErr::KeywordReserved(s.to_string()));
+            return Err(IdentifierErr::KeywordReserved(s.to_string()));
         }
 
         if !lazy_regex::regex_is_match!(r"^[a-zA-Z_$][a-zA-Z_$0-9]*$", s) {
-            return Err(NameTokenErr::UnmatchedRegex {
+            return Err(IdentifierErr::UnmatchedRegex {
                 target_value: s.to_string(),
             });
         }
 
-        Ok(NameToken {
+        Ok(Identifier {
             name: s.to_string()
         })
     }
 
-    pub fn infer_type_with_context(&self, context: &StaticTypeContext, code_line: &CodeLine) -> Result<TypeToken, InferTypeError> {
+    pub fn infer_type_with_context(&self, context: &StaticTypeContext, code_line: &CodeLine) -> Result<Type, InferTypeError> {
         if let Some(v) = context.iter().rfind(|v| {
-            if let LValue::Name(n) = &v.l_value {
+            if let LValue::Identifier(n) = &v.l_value {
                 n.name == *self.name
             } else {
                 false
@@ -92,12 +92,12 @@ impl NameToken {
     }
 }
 
-impl ToASM for NameToken {
+impl ToASM for Identifier {
     fn to_asm<T: ASMOptions + 'static>(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
         if let Some(options) = options {
             let any_t = &options as &dyn Any;
             if let Some(s) = any_t.downcast_ref::<PrepareRegisterOption>() {
-                if let TypeToken::Float(_, _) = self.infer_type_with_context(&meta.static_type_information, &meta.code_line)? {
+                if let Type::Float(_, _) = self.infer_type_with_context(&meta.static_type_information, &meta.code_line)? {
                     return s.transform(stack, meta);
                 }
             }
@@ -106,7 +106,7 @@ impl ToASM for NameToken {
 
         if let Some(stack_location) = stack.variables.iter().rfind(|&variable| variable.name.name == self.name.as_str()) {
             if let Some(found_variable) = meta.static_type_information.context.iter().rfind(|v| {
-                if let LValue::Name(n) = &v.l_value {
+                if let LValue::Identifier(n) = &v.l_value {
                     n.name == *self.name
                 } else {
                     false
@@ -157,7 +157,7 @@ impl ToASM for NameToken {
 
     fn byte_size(&self, meta: &mut MetaInfo) -> usize {
         if let Some(v) = meta.static_type_information.iter().rfind(|v| {
-            if let LValue::Name(n) = &v.l_value {
+            if let LValue::Identifier(n) = &v.l_value {
                 n.name == *self.name
             } else {
                 false

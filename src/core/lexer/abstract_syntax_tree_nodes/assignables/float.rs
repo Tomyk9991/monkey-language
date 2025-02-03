@@ -9,25 +9,27 @@ use crate::core::code_generator::asm_options::interim_result::InterimResultOptio
 use crate::core::code_generator::asm_options::prepare_register::PrepareRegisterOption;
 use crate::core::code_generator::asm_result::{ASMResult, ASMResultError};
 use crate::core::code_generator::registers::{ByteSize};
-use crate::core::lexer::tokens::assignable_tokens::integer_token::NumberTokenErr;
-use crate::core::lexer::types::float::Float;
+use crate::core::lexer::abstract_syntax_tree_nodes::assignables::integer::NumberErr;
+
+type FloatType = crate::core::lexer::types::float::Float;
+
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct FloatToken {
+pub struct FloatAST {
     // https://pastebin.com/DWcHQbT5
-    // there is no need to use a string literal instead of a f64 like in the integer token, because
+    // there is no need to use a string literal instead of a f64 like in the integerASTNode, because
     // you cant have a float that's bigger than the biggest value of f64. but you can have a bigger value than a i64. consider every number that's between i64::MAX and u64::MAX
     pub value: f64,
-    pub ty: Float
+    pub ty: FloatType
 }
 
-impl Display for FloatToken {
+impl Display for FloatAST {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.value)
     }
 }
 
-impl ToASM for FloatToken {
+impl ToASM for FloatAST {
     fn to_asm<T: ASMOptions + 'static>(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
         if let Some(options) = options {
             let any_t = &options as &dyn Any;
@@ -39,10 +41,10 @@ impl ToASM for FloatToken {
                 };
 
                 return match self.ty {
-                    Float::Float32 => Ok(ASMResult::MultilineResulted(
+                    FloatType::Float32 => Ok(ASMResult::MultilineResulted(
                         ASMBuilder::mov_ident_line(concrete_type.general_purpose_register.to_size_register(&ByteSize::_4), format!("__?float32?__({})", value_str)), concrete_type.general_purpose_register.clone())
                     ),
-                    Float::Float64 => Ok(ASMResult::MultilineResulted(
+                    FloatType::Float64 => Ok(ASMResult::MultilineResulted(
                         ASMBuilder::mov_ident_line(concrete_type.general_purpose_register.to_size_register(&ByteSize::_8), format!("__?float64?__({})", value_str)), concrete_type.general_purpose_register.clone())
                     )
                 }
@@ -63,25 +65,25 @@ impl ToASM for FloatToken {
 
     fn byte_size(&self, _meta: &mut MetaInfo) -> usize {
         match self.ty {
-            Float::Float32 => 4,
-            Float::Float64 => 8,
+            FloatType::Float32 => 4,
+            FloatType::Float64 => 8,
         }
     }
 }
 
 
-impl FromStr for FloatToken {
-    type Err = NumberTokenErr;
+impl FromStr for FloatAST {
+    type Err = NumberErr;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if !lazy_regex::regex_is_match!("^[+-]?(\\d+\\.\\d*|\\d*\\.\\d+)(_f64|_f32)?$", s) {
-            return Err(NumberTokenErr::UnmatchedRegex);
+            return Err(NumberErr::UnmatchedRegex);
         }
 
         let expected_type = match s {
-            a if a.ends_with("_f64") => Float::Float64,
-            a if a.ends_with("_f32") => Float::Float32,
-            _ => Float::Float32
+            a if a.ends_with("_f64") => FloatType::Float64,
+            a if a.ends_with("_f32") => FloatType::Float32,
+            _ => FloatType::Float32
         };
 
         let s = s.replace("_f64", "").replace("_f32", "");
@@ -89,19 +91,19 @@ impl FromStr for FloatToken {
         let value = s.parse::<f64>()?;
 
         let final_type = if (-3.40282347e+38..=3.40282347e+38).contains(&value) {
-            if matches!(expected_type, Float::Float64) {
-                Float::Float64
+            if matches!(expected_type, FloatType::Float64) {
+                FloatType::Float64
             } else {
-                Float::Float32
+                FloatType::Float32
             }
         } else {
-            if matches!(expected_type, Float::Float32) {
-                return Err(NumberTokenErr::UnmatchedRegex)
+            if matches!(expected_type, FloatType::Float32) {
+                return Err(NumberErr::UnmatchedRegex)
             }
-            Float::Float64
+            FloatType::Float64
         };
 
-        Ok(FloatToken {
+        Ok(FloatAST {
             value,
             ty: final_type,
         })

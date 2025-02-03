@@ -5,10 +5,10 @@ use crate::core::io::code_line::CodeLine;
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::target_os::TargetOS;
 use crate::core::lexer::static_type_context::StaticTypeContext;
-use crate::core::lexer::tokens::assignable_token::AssignableToken;
-use crate::core::lexer::tokens::l_value::LValue;
+use crate::core::lexer::abstract_syntax_tree_nodes::assignable::Assignable;
+use crate::core::lexer::abstract_syntax_tree_nodes::l_value::LValue;
 use crate::core::lexer::types::cast_to::CastToError;
-use crate::core::lexer::types::type_token::InferTypeError;
+use crate::core::lexer::types::r#type::InferTypeError;
 
 pub mod generator;
 pub mod target_creator;
@@ -31,8 +31,8 @@ pub enum ASMGenerateError {
     TypeNotInferrable(InferTypeError),
     InternalError(String),
     ASMResult(ASMResultError),
-    AssignmentNotImplemented { assignable_token: AssignableToken, },
-    NotImplemented { token: String, },
+    AssignmentNotImplemented { assignable: Assignable, },
+    NotImplemented { ast_node: String, },
 }
 
 impl From<ASMResultError> for ASMGenerateError {
@@ -52,8 +52,8 @@ impl Display for ASMGenerateError {
         match self {
             ASMGenerateError::_VariableAlreadyUsed { name, code_line } => write!(f, "Line:{:?}:\tVariable already in use: {}", code_line.actual_line_number, name),
             ASMGenerateError::UnresolvedReference { name, code_line } => write!(f, "Line:{:?}:\tCannot resolve variable: {}", code_line.actual_line_number, name),
-            ASMGenerateError::AssignmentNotImplemented { assignable_token } => write!(f, "ASM implementation for this Assignment is missing: {}", assignable_token),
-            ASMGenerateError::NotImplemented { token } => write!(f, "Cannot build ASM from this token: {}", token),
+            ASMGenerateError::AssignmentNotImplemented { assignable } => write!(f, "ASM implementation for this Assignment is missing: {}", assignable),
+            ASMGenerateError::NotImplemented { ast_node } => write!(f, "Cannot build ASM from this abstract syntax tree node: {}", ast_node),
             ASMGenerateError::TypeNotInferrable(infer) => write!(f, "{}", infer),
             ASMGenerateError::InternalError(message) => write!(f, "Internal Error: {}", message),
             ASMGenerateError::CastUnsupported(cast_to, code_line) => write!(f, "Line: {:?}:\t{}", code_line.actual_line_number, cast_to),
@@ -81,7 +81,7 @@ pub struct MetaInfo {
 
 
 pub trait ToASM {
-    /// Generates a String that represents the token in assembler language
+    /// Generates a String that represents the ast node in assembler language
     fn to_asm<T: ASMOptions + 'static>(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<T>) -> Result<ASMResult, ASMGenerateError>;
     /// returns a bool, if the current implementor needs to look up it's state in the stack
     fn is_stack_look_up(&self, stack: &mut Stack, meta: &MetaInfo) -> bool;

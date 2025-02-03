@@ -1,18 +1,18 @@
 use std::str::FromStr;
 
 use monkey_language::core::io::code_line::CodeLine;
-use monkey_language::core::lexer::tokens::assignable_token::AssignableToken;
-use monkey_language::core::lexer::tokens::assignable_tokens::boolean_token::BooleanToken;
-use monkey_language::core::lexer::tokens::assignable_tokens::float_token::FloatToken;
-use monkey_language::core::lexer::tokens::assignable_tokens::equation_parser::EquationToken;
-use monkey_language::core::lexer::tokens::assignable_tokens::equation_parser::expression::Expression;
-use monkey_language::core::lexer::tokens::assignable_tokens::equation_parser::operator::Operator;
-use monkey_language::core::lexer::tokens::assignable_tokens::equation_parser::prefix_arithmetic::{PointerArithmetic, PrefixArithmetic};
-use monkey_language::core::lexer::tokens::assignable_tokens::integer_token::IntegerToken;
-use monkey_language::core::lexer::tokens::assignable_tokens::method_call_token::MethodCallToken;
-use monkey_language::core::lexer::tokens::assignable_tokens::object_token::ObjectToken;
-use monkey_language::core::lexer::tokens::assignable_tokens::string_token::StringToken;
-use monkey_language::core::lexer::tokens::name_token::NameToken;
+use monkey_language::core::lexer::abstract_syntax_tree_nodes::assignable::Assignable;
+use monkey_language::core::lexer::abstract_syntax_tree_nodes::assignables::boolean::Boolean;
+use monkey_language::core::lexer::abstract_syntax_tree_nodes::assignables::equation_parser::Equation;
+use monkey_language::core::lexer::abstract_syntax_tree_nodes::assignables::equation_parser::expression::Expression;
+use monkey_language::core::lexer::abstract_syntax_tree_nodes::assignables::equation_parser::operator::Operator;
+use monkey_language::core::lexer::abstract_syntax_tree_nodes::assignables::equation_parser::prefix_arithmetic::{PointerArithmetic, PrefixArithmetic};
+use monkey_language::core::lexer::abstract_syntax_tree_nodes::assignables::float::FloatAST;
+use monkey_language::core::lexer::abstract_syntax_tree_nodes::assignables::integer::IntegerAST;
+use monkey_language::core::lexer::abstract_syntax_tree_nodes::assignables::method_call::MethodCall;
+use monkey_language::core::lexer::abstract_syntax_tree_nodes::assignables::object::Object;
+use monkey_language::core::lexer::abstract_syntax_tree_nodes::assignables::string::StaticString;
+use monkey_language::core::lexer::abstract_syntax_tree_nodes::identifier::Identifier;
 use monkey_language::core::lexer::types::integer::Integer;
 
 #[test]
@@ -32,12 +32,12 @@ fn assignable_string() -> anyhow::Result<()> {
     ];
 
     for (expected_result, value) in &values {
-        let token = StringToken::from_str(value);
+        let static_string = StaticString::from_str(value);
         if !*expected_result {
             if !*expected_result {
-                println!("{}", token.err().unwrap());
+                println!("{}", static_string.err().unwrap());
             } else {
-                token.unwrap();
+                static_string.unwrap();
             }
         }
     }
@@ -63,11 +63,11 @@ fn assignable_integer() -> anyhow::Result<()> {
     ];
 
     for (expected_result, value) in &values {
-        let token = IntegerToken::from_str(value);
+        let integer = IntegerAST::from_str(value);
         if !*expected_result {
-            println!("{}", token.err().unwrap());
+            println!("{}", integer.err().unwrap());
         } else {
-            token.unwrap();
+            integer.unwrap();
         }
     }
 
@@ -89,12 +89,12 @@ fn assignable_double() -> anyhow::Result<()> {
     ];
 
     for (expected_result, value) in &values {
-        let token = FloatToken::from_str(value);
+        let float = FloatAST::from_str(value);
         println!("{}", value);
         if !*expected_result {
-            println!("{}", token.err().unwrap());
+            println!("{}", float.err().unwrap());
         } else {
-            token.unwrap();
+            float.unwrap();
         }
     }
 
@@ -124,11 +124,11 @@ fn assignable_object() -> anyhow::Result<()> {
     ];
 
     for (expected_result, value) in &values {
-        let token = ObjectToken::from_str(value);
+        let object = Object::from_str(value);
 
         match *expected_result {
-            true => assert!(token.is_ok(), "{:?}", token),
-            false => assert!(token.is_err(), "{:?}", token)
+            true => assert!(object.is_ok(), "{:?}", object),
+            false => assert!(object.is_err(), "{:?}", object)
         }
     }
 
@@ -165,11 +165,11 @@ fn assignable_imaginary_fn_calls() -> anyhow::Result<()> {
     ];
 
     for (expected_result, value) in &values {
-        let token = MethodCallToken::from_str(value);
+        let node = MethodCall::from_str(value);
 
         match *expected_result {
-            true => assert!(token.is_ok(), "{:?}", value),
-            false => assert!(token.is_err(), "{:?}", value)
+            true => assert!(node.is_ok(), "{:?}", value),
+            false => assert!(node.is_err(), "{:?}", value)
         }
     }
 
@@ -191,11 +191,11 @@ fn assignable_booleans() -> anyhow::Result<()> {
     ];
 
     for (value, expected_result) in &values {
-        let token = BooleanToken::from_str(value);
+        let node = Boolean::from_str(value);
 
         match *expected_result {
-            true => assert!(token.is_ok(), "{:?}", value),
-            false => assert!(token.is_err(), "{:?}", value)
+            true => assert!(node.is_ok(), "{:?}", value),
+            false => assert!(node.is_err(), "{:?}", value)
         }
     }
 
@@ -206,23 +206,23 @@ fn assignable_booleans() -> anyhow::Result<()> {
 fn assignable_arithmetic_equation() -> anyhow::Result<()> {
     let values: Vec<(bool, String, Option<Expression>)> = vec![
         (true, "a*b".to_string(), Some(Expression {
-            lhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, prefix_arithmetic: None, value: Some(Box::new(AssignableToken::NameToken(NameToken { name: String::from("a") }))), index_operator: None, positive: true })),
+            lhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, prefix_arithmetic: None, value: Some(Box::new(Assignable::Identifier(Identifier { name: String::from("a") }))), index_operator: None, positive: true })),
             operator: Operator::Mul,
-            rhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, value: Some(Box::new(AssignableToken::NameToken(NameToken { name: String::from("b") }))), index_operator: None, positive: true, prefix_arithmetic: None })),
+            rhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, value: Some(Box::new(Assignable::Identifier(Identifier { name: String::from("b") }))), index_operator: None, positive: true, prefix_arithmetic: None })),
             value: None,
             index_operator: None,
             positive: true,
             prefix_arithmetic: None,
         })),
         (true, "a**b".to_string(), Some(Expression {
-            lhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, prefix_arithmetic: None, value: Some(Box::new(AssignableToken::NameToken(NameToken { name: String::from("a") }))), index_operator: None, positive: true })),
+            lhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, prefix_arithmetic: None, value: Some(Box::new(Assignable::Identifier(Identifier { name: String::from("a") }))), index_operator: None, positive: true })),
             operator: Operator::Mul,
-            rhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, prefix_arithmetic: Some(PrefixArithmetic::PointerArithmetic(PointerArithmetic::Asterics)), value: Some(Box::new(AssignableToken::ArithmeticEquation(Expression {
+            rhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, prefix_arithmetic: Some(PrefixArithmetic::PointerArithmetic(PointerArithmetic::Asterics)), value: Some(Box::new(Assignable::ArithmeticEquation(Expression {
                 lhs: None,
                 rhs: None,
                 operator: Operator::Noop,
                 prefix_arithmetic: None,
-                value: Some(Box::new(AssignableToken::NameToken(NameToken { name: String::from("b") }))),
+                value: Some(Box::new(Assignable::Identifier(Identifier { name: String::from("b") }))),
                 index_operator: None,
                 positive: true,
             }))),
@@ -235,11 +235,11 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
         })),
         (false, "sqrt(b*c)/".to_string(), None),
         (true, "a+b*b".to_string(), Some(Expression {
-            lhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, value: Some(Box::new(AssignableToken::NameToken(NameToken { name: String::from("a") }))), index_operator: None, positive: true, prefix_arithmetic: None })),
+            lhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, value: Some(Box::new(Assignable::Identifier(Identifier { name: String::from("a") }))), index_operator: None, positive: true, prefix_arithmetic: None })),
             operator: Operator::Add,
             rhs: Some(Box::new(Expression {
-                lhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, prefix_arithmetic: None, value: Some(Box::new(AssignableToken::NameToken(NameToken { name: String::from("b") }))), index_operator: None, positive: true })),
-                rhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, prefix_arithmetic: None, value: Some(Box::new(AssignableToken::NameToken(NameToken { name: String::from("b") }))), index_operator: None, positive: true })),
+                lhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, prefix_arithmetic: None, value: Some(Box::new(Assignable::Identifier(Identifier { name: String::from("b") }))), index_operator: None, positive: true })),
+                rhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, prefix_arithmetic: None, value: Some(Box::new(Assignable::Identifier(Identifier { name: String::from("b") }))), index_operator: None, positive: true })),
                 operator: Operator::Mul,
                 prefix_arithmetic: None,
                 value: None,
@@ -252,27 +252,27 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
             prefix_arithmetic: None,
         })),
         (true, "1--1".to_string(), Some(Expression {
-            lhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, prefix_arithmetic: None, value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: "1".to_string(), ty: Integer::I32 }))), index_operator: None, positive: true })),
+            lhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, prefix_arithmetic: None, value: Some(Box::new(Assignable::Integer(IntegerAST { value: "1".to_string(), ty: Integer::I32 }))), index_operator: None, positive: true })),
             operator: Operator::Sub,
-            rhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, prefix_arithmetic: None, value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: "-1".to_string(), ty: Integer::I32 }))), index_operator: None, positive: false })),
+            rhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, prefix_arithmetic: None, value: Some(Box::new(Assignable::Integer(IntegerAST { value: "-1".to_string(), ty: Integer::I32 }))), index_operator: None, positive: false })),
             value: None,
             index_operator: None,
             positive: true,
             prefix_arithmetic: None,
         })),
         (true, "1*-2".to_string(), Some(Expression {
-            lhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: "1".to_string(), ty: Integer::I32 }))), index_operator: None, positive: true, prefix_arithmetic: None })),
+            lhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, value: Some(Box::new(Assignable::Integer(IntegerAST { value: "1".to_string(), ty: Integer::I32 }))), index_operator: None, positive: true, prefix_arithmetic: None })),
             operator: Operator::Mul,
-            rhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, prefix_arithmetic: None, value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: "-2".to_string(), ty: Integer::I32 }))), index_operator: None, positive: false })),
+            rhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, prefix_arithmetic: None, value: Some(Box::new(Assignable::Integer(IntegerAST { value: "-2".to_string(), ty: Integer::I32 }))), index_operator: None, positive: false })),
             value: None,
             index_operator: None,
             positive: true,
             prefix_arithmetic: None,
         })),
         (true, "-(-1+-3)".to_string(), Some(Expression {
-            lhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, prefix_arithmetic: None, value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: "-1".to_string(), ty: Integer::I32 }))), index_operator: None, positive: false })),
+            lhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, prefix_arithmetic: None, value: Some(Box::new(Assignable::Integer(IntegerAST { value: "-1".to_string(), ty: Integer::I32 }))), index_operator: None, positive: false })),
             operator: Operator::Add,
-            rhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, prefix_arithmetic: None, value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: "-3".to_string(), ty: Integer::I32 }))), index_operator: None, positive: false })),
+            rhs: Some(Box::new(Expression { lhs: None, rhs: None, operator: Operator::Noop, prefix_arithmetic: None, value: Some(Box::new(Assignable::Integer(IntegerAST { value: "-3".to_string(), ty: Integer::I32 }))), index_operator: None, positive: false })),
             value: None,
             index_operator: None,
             positive: false,
@@ -287,7 +287,7 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                             lhs: None,
                             rhs: None,
                             positive: true,
-                            value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: "4".to_string(), ty: Integer::I32 }))),
+                            value: Some(Box::new(Assignable::Integer(IntegerAST { value: "4".to_string(), ty: Integer::I32 }))),
                             prefix_arithmetic: None,
                             index_operator: None,
                         })),
@@ -299,7 +299,7 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                                     lhs: None,
                                     rhs: None,
                                     positive: true,
-                                    value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: "2".to_string(), ty: Integer::I32 }))),
+                                    value: Some(Box::new(Assignable::Integer(IntegerAST { value: "2".to_string(), ty: Integer::I32 }))),
                                     prefix_arithmetic: None,
                                     index_operator: None,
                                 })),
@@ -309,7 +309,7 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                                     lhs: None,
                                     rhs: None,
                                     positive: true,
-                                    value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: "3".to_string(), ty: Integer::I32 }))),
+                                    value: Some(Box::new(Assignable::Integer(IntegerAST { value: "3".to_string(), ty: Integer::I32 }))),
                                     prefix_arithmetic: None,
                                     index_operator: None,
                                 })),
@@ -324,7 +324,7 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                                 lhs: None,
                                 rhs: None,
                                 positive: true,
-                                value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: "5".to_string(), ty: Integer::I32 }))),
+                                value: Some(Box::new(Assignable::Integer(IntegerAST { value: "5".to_string(), ty: Integer::I32 }))),
                                 prefix_arithmetic: None,
                                 index_operator: None,
                             })),
@@ -340,7 +340,7 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                     })),
                     operator: Operator::Add,
                     rhs: Some(Box::new(Expression {
-                        value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: "1".to_string(), ty: Integer::I32 }))),
+                        value: Some(Box::new(Assignable::Integer(IntegerAST { value: "1".to_string(), ty: Integer::I32 }))),
                         operator: Operator::Noop,
                         lhs: None,
                         rhs: None,
@@ -362,7 +362,7 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                             lhs: None,
                             rhs: None,
                             positive: true,
-                            value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: "3".to_string(), ty: Integer::I32 }))),
+                            value: Some(Box::new(Assignable::Integer(IntegerAST { value: "3".to_string(), ty: Integer::I32 }))),
                             prefix_arithmetic: None,
                             index_operator: None,
                         })),
@@ -373,7 +373,7 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                             lhs: None,
                             rhs: None,
                             positive: true,
-                            value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: "3".to_string(), ty: Integer::I32 }))),
+                            value: Some(Box::new(Assignable::Integer(IntegerAST { value: "3".to_string(), ty: Integer::I32 }))),
                             prefix_arithmetic: None,
                             index_operator: None,
                         })),
@@ -388,7 +388,7 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                             lhs: None,
                             rhs: None,
                             positive: true,
-                            value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: "4".to_string(), ty: Integer::I32 }))),
+                            value: Some(Box::new(Assignable::Integer(IntegerAST { value: "4".to_string(), ty: Integer::I32 }))),
                             operator: Operator::Noop,
                             prefix_arithmetic: None,
                             index_operator: None,
@@ -399,7 +399,7 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                             lhs: None,
                             rhs: None,
                             positive: true,
-                            value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: "4".to_string(), ty: Integer::I32 }))),
+                            value: Some(Box::new(Assignable::Integer(IntegerAST { value: "4".to_string(), ty: Integer::I32 }))),
                             operator: Operator::Noop,
                             prefix_arithmetic: None,
                             index_operator: None,
@@ -422,7 +422,7 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                 lhs: None,
                 rhs: None,
                 positive: true,
-                value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: "2".to_string(), ty: Integer::I32 }))),
+                value: Some(Box::new(Assignable::Integer(IntegerAST { value: "2".to_string(), ty: Integer::I32 }))),
                 prefix_arithmetic: None,
                 index_operator: None,
             })),
@@ -440,7 +440,7 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                             lhs: None,
                             rhs: None,
                             positive: true,
-                            value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: "4".to_string(), ty: Integer::I32 }))),
+                            value: Some(Box::new(Assignable::Integer(IntegerAST { value: "4".to_string(), ty: Integer::I32 }))),
                             prefix_arithmetic: None,
                             index_operator: None,
                         })),
@@ -452,7 +452,7 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                                     lhs: None,
                                     rhs: None,
                                     positive: true,
-                                    value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: "2".to_string(), ty: Integer::I32 }))),
+                                    value: Some(Box::new(Assignable::Integer(IntegerAST { value: "2".to_string(), ty: Integer::I32 }))),
                                     prefix_arithmetic: None,
                                     index_operator: None,
                                 })),
@@ -462,7 +462,7 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                                     lhs: None,
                                     rhs: None,
                                     positive: true,
-                                    value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: "3".to_string(), ty: Integer::I32 }))),
+                                    value: Some(Box::new(Assignable::Integer(IntegerAST { value: "3".to_string(), ty: Integer::I32 }))),
                                     prefix_arithmetic: None,
                                     index_operator: None,
                                 })),
@@ -477,7 +477,7 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                                 lhs: None,
                                 rhs: None,
                                 positive: true,
-                                value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: "5".to_string(), ty: Integer::I32 }))),
+                                value: Some(Box::new(Assignable::Integer(IntegerAST { value: "5".to_string(), ty: Integer::I32 }))),
                                 prefix_arithmetic: None,
                                 index_operator: None,
                             })),
@@ -493,7 +493,7 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                     })),
                     operator: Operator::Add,
                     rhs: Some(Box::new(Expression {
-                        value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: "1".to_string(), ty: Integer::I32 }))),
+                        value: Some(Box::new(Assignable::Integer(IntegerAST { value: "1".to_string(), ty: Integer::I32 }))),
                         operator: Operator::Noop,
                         lhs: None,
                         rhs: None,
@@ -512,7 +512,7 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                     lhs: None,
                     operator: Operator::Noop,
                     prefix_arithmetic: None,
-                    value: Some(Box::new(AssignableToken::NameToken(NameToken { name: String::from("sqrt") }))),
+                    value: Some(Box::new(Assignable::Identifier(Identifier { name: String::from("sqrt") }))),
                     rhs: None,
                     positive: false,
                     index_operator: None,
@@ -527,7 +527,7 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                 lhs: None,
                 rhs: None,
                 positive: true,
-                value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: "2".to_string(), ty: Integer::I32 }))),
+                value: Some(Box::new(Assignable::Integer(IntegerAST { value: "2".to_string(), ty: Integer::I32 }))),
                 prefix_arithmetic: None,
                 index_operator: None,
             })),
@@ -546,8 +546,8 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                                 operator: Operator::Noop,
                                 rhs: None,
                                 value: Some(Box::new(
-                                    AssignableToken::IntegerToken(
-                                        IntegerToken {
+                                    Assignable::Integer(
+                                        IntegerAST {
                                             value: "4".to_string(), ty: Integer::I32
                                         },
                                     ),
@@ -564,8 +564,8 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                                         operator: Operator::Noop,
                                         rhs: None,
                                         value: Some(Box::new(
-                                            AssignableToken::IntegerToken(
-                                                IntegerToken {
+                                            Assignable::Integer(
+                                                IntegerAST {
                                                     value: "2".to_string(), ty: Integer::I32
                                                 },
                                             ),
@@ -581,8 +581,8 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                                     operator: Operator::Noop,
                                     rhs: None,
                                     value: Some(Box::new(
-                                        AssignableToken::IntegerToken(
-                                            IntegerToken {
+                                        Assignable::Integer(
+                                            IntegerAST {
                                                 value: "3".to_string(), ty: Integer::I32
                                             },
                                         ),
@@ -609,8 +609,8 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                             operator: Operator::Noop,
                             rhs: None,
                             value: Some(Box::new(
-                                AssignableToken::IntegerToken(
-                                    IntegerToken {
+                                Assignable::Integer(
+                                    IntegerAST {
                                         value: "1".to_string(), ty: Integer::I32
                                     },
                                 )),
@@ -631,13 +631,13 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                     operator: Operator::Noop,
                     rhs: None,
                     value: Some(Box::new(
-                        AssignableToken::MethodCallToken(
-                            MethodCallToken {
-                                name: NameToken {
+                        Assignable::MethodCall(
+                            MethodCall {
+                                identifier: Identifier {
                                     name: String::from("sqrt"),
                                 },
                                 arguments: vec![
-                                    AssignableToken::ArithmeticEquation(
+                                    Assignable::ArithmeticEquation(
                                         Expression {
                                             lhs: Some(Box::new(Expression {
                                                 lhs: Some(Box::new(
@@ -646,8 +646,8 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                                                         operator: Operator::Noop,
                                                         rhs: None,
                                                         value: Some(Box::new(
-                                                            AssignableToken::IntegerToken(
-                                                                IntegerToken {
+                                                            Assignable::Integer(
+                                                                IntegerAST {
                                                                     value: "3".to_string(), ty: Integer::I32
                                                                 },
                                                             ),
@@ -664,8 +664,8 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                                                         operator: Operator::Noop,
                                                         rhs: None,
                                                         value: Some(Box::new(
-                                                            AssignableToken::IntegerToken(
-                                                                IntegerToken {
+                                                            Assignable::Integer(
+                                                                IntegerAST {
                                                                     value: "3".to_string(), ty: Integer::I32
                                                                 },
                                                             ),
@@ -689,8 +689,8 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                                                             operator: Operator::Noop,
                                                             rhs: None,
                                                             value: Some(Box::new(
-                                                                AssignableToken::IntegerToken(
-                                                                    IntegerToken {
+                                                                Assignable::Integer(
+                                                                    IntegerAST {
                                                                         value: "4".to_string(), ty: Integer::I32
                                                                     },
                                                                 ),
@@ -707,8 +707,8 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                                                             operator: Operator::Noop,
                                                             rhs: None,
                                                             value: Some(Box::new(
-                                                                AssignableToken::IntegerToken(
-                                                                    IntegerToken {
+                                                                Assignable::Integer(
+                                                                    IntegerAST {
                                                                         value: "4".to_string(), ty: Integer::I32
                                                                     },
                                                                 ),
@@ -752,8 +752,8 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                     operator: Operator::Noop,
                     rhs: None,
                     value: Some(Box::new(
-                        AssignableToken::IntegerToken(
-                            IntegerToken {
+                        Assignable::Integer(
+                            IntegerAST {
                                 value: "2".to_string(), ty: Integer::I32
                             },
                         )),
@@ -773,31 +773,31 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
             operator: Operator::Noop,
             rhs: None,
             value: Some(Box::new(
-                AssignableToken::MethodCallToken(
-                    MethodCallToken {
-                        name: NameToken {
+                Assignable::MethodCall(
+                    MethodCall {
+                        identifier: Identifier {
                             name: String::from("a"),
                         },
                         arguments: vec![
-                            AssignableToken::MethodCallToken(
-                                MethodCallToken {
-                                    name: NameToken {
+                            Assignable::MethodCall(
+                                MethodCall {
+                                    identifier: Identifier {
                                         name: String::from("b"),
                                     },
                                     arguments: vec![
-                                        AssignableToken::MethodCallToken(
-                                            MethodCallToken {
-                                                name: NameToken {
+                                        Assignable::MethodCall(
+                                            MethodCall {
+                                                identifier: Identifier {
                                                     name: String::from("c"),
                                                 },
                                                 arguments: vec![
-                                                    AssignableToken::MethodCallToken(
-                                                        MethodCallToken {
-                                                            name: NameToken {
+                                                    Assignable::MethodCall(
+                                                        MethodCall {
+                                                            identifier: Identifier {
                                                                 name: String::from("d"),
                                                             },
                                                             arguments: vec![
-                                                                AssignableToken::ArithmeticEquation(
+                                                                Assignable::ArithmeticEquation(
                                                                     Expression {
                                                                         lhs: Some(Box::new(
                                                                             Expression {
@@ -805,8 +805,8 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                                                                                 operator: Operator::Noop,
                                                                                 rhs: None,
                                                                                 value: Some(Box::new(
-                                                                                    AssignableToken::NameToken(
-                                                                                        NameToken {
+                                                                                    Assignable::Identifier(
+                                                                                        Identifier {
                                                                                             name: String::from("e"),
                                                                                         },
                                                                                     ),
@@ -823,8 +823,8 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
                                                                                 operator: Operator::Noop,
                                                                                 rhs: None,
                                                                                 value: Some(Box::new(
-                                                                                    AssignableToken::NameToken(
-                                                                                        NameToken {
+                                                                                    Assignable::Identifier(
+                                                                                        Identifier {
                                                                                             name: String::from("f"),
                                                                                         },
                                                                                     ),
@@ -867,23 +867,23 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
     ];
 
     for (expected_result, value, expected) in &values {
-        let token = EquationToken::from_str(value);
+        let node = Equation::from_str(value);
 
 
         match *expected_result {
             true => {
-                if let Ok(token) = &token {
+                if let Ok(new_node) = &node {
                     let s = expected.as_ref().unwrap();
-                    assert_eq!(*s, *token);
+                    assert_eq!(*s, *new_node);
                 }
 
-                assert!(token.is_ok(), "{value}, {:?}", token);
+                assert!(node.is_ok(), "{value}, {:?}", node);
             }
             false => {
-                if let Err(err) = &token {
+                if let Err(err) = &node {
                     println!("{:<5}{:?}", " ", err);
                 }
-                assert!(token.is_err(), "{:?}", value)
+                assert!(node.is_err(), "{:?}", value)
             }
         }
     }
@@ -893,36 +893,36 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
 
 #[test]
 fn assignable_boolean_equation() -> anyhow::Result<()> {
-    let values: Vec<(bool, String)> = vec![
-        (true, "a&b".to_string()),
-        (true, "a|b&b".to_string()),
-        (true, "a|b&b".to_string()),
-        (true, "((true | (true&false) & true | false) & |(false&false|true&true)) & true".to_string()),
-        (true, "((true | (true&false) & true | false) & |(false&false|true&true)) & true".to_string()),
-        (true, "((true | (true&false) & true | false) & |(false&false|true&true)) & true".to_string()),
-        (true, "((true | (true&false) & true | false) & |(false&false|true&true)) & true".to_string()),
-        (true, "((true | (true&false) & true | false) & |sqrt) & true".to_string()),
-        (true, "((true | true & false | false) & |sqrt(false&false|true&true)) & true".to_string()),
-        (true, "((true | true&false | false) |sqrt(false&false|true&true)) & true".to_string()),
-        (true, "a(b(c(d(e&f))))".to_string()),
-        (false, "((true | true & ) |sqrt(false&false|true&true)) & true".to_string()),
-    ];
+    // let values: Vec<(bool, String)> = vec![
+    //     (true, "a&b".to_string()),
+    //     (true, "a|b&b".to_string()),
+    //     (true, "a|b&b".to_string()),
+    //     (true, "((true | (true&false) & true | false) & |(false&false|true&true)) & true".to_string()),
+    //     (true, "((true | (true&false) & true | false) & |(false&false|true&true)) & true".to_string()),
+    //     (true, "((true | (true&false) & true | false) & |(false&false|true&true)) & true".to_string()),
+    //     (true, "((true | (true&false) & true | false) & |(false&false|true&true)) & true".to_string()),
+    //     (true, "((true | (true&false) & true | false) & |sqrt) & true".to_string()),
+    //     (true, "((true | true & false | false) & |sqrt(false&false|true&true)) & true".to_string()),
+    //     (true, "((true | true&false | false) |sqrt(false&false|true&true)) & true".to_string()),
+    //     (true, "a(b(c(d(e&f))))".to_string()),
+    //     (false, "((true | true & ) |sqrt(false&false|true&true)) & true".to_string()),
+    // ];
 
     // todo: make this work again lol
-    for (_expected_result, _value) in &values {
-        // let token = EquationToken::<ArithmeticEquationOptions>::from_str(value);
-        //
-        //
-        // match *expected_result {
-        //     true => {
-        //         if let Ok(token) = &token {
-        //             println!("{}", token);
-        //         }
-        //         assert!(token.is_ok(), "{value}, {:?}", token);
-        //     }
-        //     false => assert!(token.is_err(), "{:?}", value)
-        // }
-    }
-
+    // for (expected_result, value) in &values {
+    //     let node = Equation::from_str(value);
+    //
+    //
+    //     match *expected_result {
+    //         true => {
+    //             if let Ok(new_node) = &node {
+    //                 println!("{}", new_node);
+    //             }
+    //             assert!(node.is_ok(), "{value}, {:?}", node);
+    //         }
+    //         false => assert!(node.is_err(), "{:?}", value)
+    //     }
+    // }
+    //
     Ok(())
 }

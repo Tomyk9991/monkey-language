@@ -9,14 +9,14 @@ use crate::core::code_generator::asm_result::{ASMResult};
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::register_destination::word_from_byte_size;
 use crate::core::code_generator::registers::{Bit64, ByteSize, FloatRegister, GeneralPurposeRegister};
-use crate::core::lexer::tokens::assignable_tokens::equation_parser::operator::{AssemblerOperation, OperatorToASM};
-use crate::core::lexer::tokens::assignable_tokens::equation_parser::operator::Operator;
-use crate::core::lexer::tokens::assignable_tokens::integer_token::IntegerToken;
-use crate::core::lexer::tokens::name_token::NameTokenErr;
+use crate::core::lexer::abstract_syntax_tree_nodes::assignables::equation_parser::operator::{AssemblerOperation, OperatorToASM};
+use crate::core::lexer::abstract_syntax_tree_nodes::assignables::equation_parser::operator::Operator;
+use crate::core::lexer::abstract_syntax_tree_nodes::identifier::IdentifierErr;
 use crate::core::lexer::types::cast_to::{Castable, CastTo};
 use crate::core::lexer::types::float::Float;
-use crate::core::lexer::types::type_token::{InferTypeError, Mutability, TypeToken};
+use crate::core::lexer::types::r#type::{InferTypeError, Mutability, Type};
 
+type IntegerImplementation = crate::core::lexer::abstract_syntax_tree_nodes::assignables::integer::IntegerAST;
 #[derive(Debug, Default, PartialEq, Eq, Hash, Clone)]
 pub enum Integer {
     I8,
@@ -31,19 +31,19 @@ pub enum Integer {
 }
 
 impl Castable<Integer, Float> for Integer {
-    fn add_casts(cast_matrix: &mut HashMap<(TypeToken, TypeToken), &'static str>) {
+    fn add_casts(cast_matrix: &mut HashMap<(Type, Type), &'static str>) {
         let types = [Integer::U8, Integer::I8, Integer::U16, Integer::I16, Integer::U32, Integer::I32, Integer::U64, Integer::I64];
 
         for t1 in &types {
-            cast_matrix.insert((TypeToken::Integer(t1.clone(), Mutability::Immutable), TypeToken::Float(Float::Float32, Mutability::Immutable)), "cvtsi2ss");
-            cast_matrix.insert((TypeToken::Integer(t1.clone(), Mutability::Immutable), TypeToken::Float(Float::Float64, Mutability::Immutable)), "cvtsi2sd");
+            cast_matrix.insert((Type::Integer(t1.clone(), Mutability::Immutable), Type::Float(Float::Float32, Mutability::Immutable)), "cvtsi2ss");
+            cast_matrix.insert((Type::Integer(t1.clone(), Mutability::Immutable), Type::Float(Float::Float64, Mutability::Immutable)), "cvtsi2sd");
         }
     }
 
     fn cast_from_to(t1: &Integer, t2: &Float, source: &str, stack: &mut Stack, meta: &mut MetaInfo) -> Result<ASMResult, ASMGenerateError> {
         let cast_to = CastTo {
-            from: TypeToken::Integer(t1.clone(), Mutability::Immutable),
-            to: TypeToken::Float(t2.clone(), Mutability::Immutable),
+            from: Type::Integer(t1.clone(), Mutability::Immutable),
+            to: Type::Float(t2.clone(), Mutability::Immutable),
         };
 
         let instruction = cast_to.to_asm::<InterimResultOption>(stack, meta, None)?;
@@ -74,7 +74,7 @@ impl Castable<Integer, Float> for Integer {
             }
 
             cast_from_register = last_register.to_size_register(&ByteSize::_4);
-        } else if IntegerToken::from_str(source).is_ok() || is_stack_variable {
+        } else if IntegerImplementation::from_str(source).is_ok() || is_stack_variable {
             target += &ASMBuilder::mov_ident_line(&cast_from_register, source);
         }
 
@@ -88,7 +88,7 @@ impl Castable<Integer, Float> for Integer {
 
 
 impl Castable<Integer, Integer> for Integer {
-    fn add_casts(cast_matrix: &mut HashMap<(TypeToken, TypeToken), &'static str>) {
+    fn add_casts(cast_matrix: &mut HashMap<(Type, Type), &'static str>) {
         let types = [Integer::U8, Integer::I8, Integer::U16, Integer::I16, Integer::U32, Integer::I32, Integer::U64, Integer::I64];
 
         for t1 in &types {
@@ -102,95 +102,9 @@ impl Castable<Integer, Integer> for Integer {
                     _ => "mov"
                 };
 
-                cast_matrix.insert((TypeToken::Integer(t1.clone(), Mutability::Immutable), TypeToken::Integer(t2.clone(), Mutability::Immutable)), instruction);
+                cast_matrix.insert((Type::Integer(t1.clone(), Mutability::Immutable), Type::Integer(t2.clone(), Mutability::Immutable)), instruction);
             }
         }
-
-        // // U8
-        // cast_matrix.insert((TypeToken::Integer(Integer::U8), TypeToken::Integer(Integer::I8)), "mov");
-        // cast_matrix.insert((TypeToken::Integer(Integer::U8), TypeToken::Integer(Integer::I16)), "movzx");
-        // cast_matrix.insert((TypeToken::Integer(Integer::U8), TypeToken::Integer(Integer::I32)), "movzx");
-        // cast_matrix.insert((TypeToken::Integer(Integer::U8), TypeToken::Integer(Integer::I64)), "movzx");
-        //
-        // cast_matrix.insert((TypeToken::Integer(Integer::U8), TypeToken::Integer(Integer::U16)), "movzx");
-        // cast_matrix.insert((TypeToken::Integer(Integer::U8), TypeToken::Integer(Integer::U32)), "movzx");
-        // cast_matrix.insert((TypeToken::Integer(Integer::U8), TypeToken::Integer(Integer::U64)), "movzx");
-        //
-        // // I8
-        // cast_matrix.insert((TypeToken::Integer(Integer::I8), TypeToken::Integer(Integer::U8)), "mov");
-        // cast_matrix.insert((TypeToken::Integer(Integer::I8), TypeToken::Integer(Integer::U16)), "movsx");
-        // cast_matrix.insert((TypeToken::Integer(Integer::I8), TypeToken::Integer(Integer::U32)), "movsx");
-        // cast_matrix.insert((TypeToken::Integer(Integer::I8), TypeToken::Integer(Integer::U64)), "movsx");
-        //
-        // cast_matrix.insert((TypeToken::Integer(Integer::I8), TypeToken::Integer(Integer::I16)), "movsx");
-        // cast_matrix.insert((TypeToken::Integer(Integer::I8), TypeToken::Integer(Integer::I32)), "movsx");
-        // cast_matrix.insert((TypeToken::Integer(Integer::I8), TypeToken::Integer(Integer::I64)), "movsx");
-        //
-        // // U16
-        // cast_matrix.insert((TypeToken::Integer(Integer::U16), TypeToken::Integer(Integer::I8)), "mov");
-        // cast_matrix.insert((TypeToken::Integer(Integer::U16), TypeToken::Integer(Integer::I16)), "mov");
-        // cast_matrix.insert((TypeToken::Integer(Integer::U16), TypeToken::Integer(Integer::I32)), "movzx");
-        // cast_matrix.insert((TypeToken::Integer(Integer::U16), TypeToken::Integer(Integer::I64)), "movzx");
-        //
-        // cast_matrix.insert((TypeToken::Integer(Integer::U16), TypeToken::Integer(Integer::U8)), "mov");
-        // cast_matrix.insert((TypeToken::Integer(Integer::U16), TypeToken::Integer(Integer::U16)), "mov");
-        // cast_matrix.insert((TypeToken::Integer(Integer::U16), TypeToken::Integer(Integer::U32)), "movsx");
-        // cast_matrix.insert((TypeToken::Integer(Integer::U16), TypeToken::Integer(Integer::U64)), "movsx");
-        //
-        // // I16
-        // cast_matrix.insert((TypeToken::Integer(Integer::I16), TypeToken::Integer(Integer::I8)), "mov");
-        // cast_matrix.insert((TypeToken::Integer(Integer::I16), TypeToken::Integer(Integer::I16)), "mov");
-        // cast_matrix.insert((TypeToken::Integer(Integer::I16), TypeToken::Integer(Integer::I32)), "movsx");
-        // cast_matrix.insert((TypeToken::Integer(Integer::I16), TypeToken::Integer(Integer::I64)), "movsx");
-        //
-        // cast_matrix.insert((TypeToken::Integer(Integer::I16), TypeToken::Integer(Integer::U8)), "mov");
-        // cast_matrix.insert((TypeToken::Integer(Integer::I16), TypeToken::Integer(Integer::U16)), "mov");
-        // cast_matrix.insert((TypeToken::Integer(Integer::I16), TypeToken::Integer(Integer::U32)), "movzx");
-        // cast_matrix.insert((TypeToken::Integer(Integer::I16), TypeToken::Integer(Integer::U64)), "movzx");
-        //
-        // // U32
-        // cast_matrix.insert((TypeToken::Integer(Integer::U32), TypeToken::Integer(Integer::I8)), "mov");
-        // cast_matrix.insert((TypeToken::Integer(Integer::U32), TypeToken::Integer(Integer::I16)), "mov");
-        // cast_matrix.insert((TypeToken::Integer(Integer::U32), TypeToken::Integer(Integer::I32)), "mov");
-        // cast_matrix.insert((TypeToken::Integer(Integer::U32), TypeToken::Integer(Integer::I64)), "");
-        //
-        // cast_matrix.insert((TypeToken::Integer(Integer::U32), TypeToken::Integer(Integer::U8)), "mov");
-        // cast_matrix.insert((TypeToken::Integer(Integer::U32), TypeToken::Integer(Integer::U16)), "mov");
-        // cast_matrix.insert((TypeToken::Integer(Integer::U32), TypeToken::Integer(Integer::U32)), "mov");
-        // cast_matrix.insert((TypeToken::Integer(Integer::U32), TypeToken::Integer(Integer::U64)), "movsx");
-        //
-        // // I32
-        // cast_matrix.insert((TypeToken::Integer(Integer::I32), TypeToken::Integer(Integer::I8)), "mov");
-        // cast_matrix.insert((TypeToken::Integer(Integer::I32), TypeToken::Integer(Integer::I16)), "mov");
-        // cast_matrix.insert((TypeToken::Integer(Integer::I32), TypeToken::Integer(Integer::I32)), "mov");
-        // cast_matrix.insert((TypeToken::Integer(Integer::I32), TypeToken::Integer(Integer::I64)), "movsx");
-        //
-        // cast_matrix.insert((TypeToken::Integer(Integer::I32), TypeToken::Integer(Integer::U8)), "mov");
-        // cast_matrix.insert((TypeToken::Integer(Integer::I32), TypeToken::Integer(Integer::U16)), "mov");
-        // cast_matrix.insert((TypeToken::Integer(Integer::I32), TypeToken::Integer(Integer::U32)), "mov");
-        // cast_matrix.insert((TypeToken::Integer(Integer::I32), TypeToken::Integer(Integer::U64)), "movzx");
-        //
-        // // U64
-        // cast_matrix.insert((TypeToken::Integer(Integer::U64), TypeToken::Integer(Integer::I8)), "mov");
-        // cast_matrix.insert((TypeToken::Integer(Integer::U64), TypeToken::Integer(Integer::I16)), "mov");
-        // cast_matrix.insert((TypeToken::Integer(Integer::U64), TypeToken::Integer(Integer::I32)), "mov");
-        // cast_matrix.insert((TypeToken::Integer(Integer::U64), TypeToken::Integer(Integer::I64)), "mov");
-        //
-        // cast_matrix.insert((TypeToken::Integer(Integer::U64), TypeToken::Integer(Integer::U8)), "mov");
-        // cast_matrix.insert((TypeToken::Integer(Integer::U64), TypeToken::Integer(Integer::U16)), "mov");
-        // cast_matrix.insert((TypeToken::Integer(Integer::U64), TypeToken::Integer(Integer::U32)), "mov");
-        // cast_matrix.insert((TypeToken::Integer(Integer::U64), TypeToken::Integer(Integer::U64)), "mov");
-        //
-        // // I64
-        // cast_matrix.insert((TypeToken::Integer(Integer::I64), TypeToken::Integer(Integer::I8)), "mov");
-        // cast_matrix.insert((TypeToken::Integer(Integer::I64), TypeToken::Integer(Integer::I16)), "mov");
-        // cast_matrix.insert((TypeToken::Integer(Integer::I64), TypeToken::Integer(Integer::I32)), "mov");
-        // cast_matrix.insert((TypeToken::Integer(Integer::I64), TypeToken::Integer(Integer::I64)), "mov");
-        //
-        // cast_matrix.insert((TypeToken::Integer(Integer::I64), TypeToken::Integer(Integer::U8)), "mov");
-        // cast_matrix.insert((TypeToken::Integer(Integer::I64), TypeToken::Integer(Integer::U16)), "mov");
-        // cast_matrix.insert((TypeToken::Integer(Integer::I64), TypeToken::Integer(Integer::U32)), "mov");
-        // cast_matrix.insert((TypeToken::Integer(Integer::I64), TypeToken::Integer(Integer::U64)), "mov");
     }
 
 
@@ -198,8 +112,8 @@ impl Castable<Integer, Integer> for Integer {
         let mut source = source.to_string();
 
         let cast_to = CastTo {
-            from: TypeToken::Integer(i1.clone(), Mutability::Immutable),
-            to: TypeToken::Integer(i2.clone(), Mutability::Immutable),
+            from: Type::Integer(i1.clone(), Mutability::Immutable),
+            to: Type::Integer(i2.clone(), Mutability::Immutable),
         };
 
         let instruction = cast_to.to_asm::<InterimResultOption>(stack, meta, None)?.to_string();
@@ -238,7 +152,7 @@ impl Castable<Integer, Integer> for Integer {
             return Ok(ASMResult::MultilineResulted(target, cast_from_register));
         }
 
-        if IntegerToken::from_str(&source).is_ok() {
+        if IntegerImplementation::from_str(&source).is_ok() {
             target += &ASMBuilder::mov_ident_line(&cast_from_register, &source);
             Ok(ASMResult::MultilineResulted(target, cast_from_register))
         } else {
@@ -262,36 +176,36 @@ impl Castable<Integer, Integer> for Integer {
 
 impl Integer {
     pub fn from_number_str<T: FromStr>(value: &str) -> Result<T, InferTypeError> {
-        value.parse().map_err(|_| InferTypeError::TypeNotAllowed(NameTokenErr::UnmatchedRegex { target_value: String::from(value) }))
+        value.parse().map_err(|_| InferTypeError::TypeNotAllowed(IdentifierErr::UnmatchedRegex { target_value: String::from(value) }))
     }
 
     pub fn signed(&self) -> bool {
         matches!(self, Integer::I8 | Integer::I16 | Integer::I32 | Integer::I64)
     }
 
-    pub fn operation_matrix(base_type_matrix: &mut HashMap<(TypeToken, Operator, TypeToken), TypeToken>) {
+    pub fn operation_matrix(base_type_matrix: &mut HashMap<(Type, Operator, Type), Type>) {
         let types = [Integer::I8, Integer::U8, Integer::I16, Integer::U16, Integer::I32, Integer::U32, Integer::I64, Integer::U64];
 
         for ty in &types {
-            base_type_matrix.insert((TypeToken::Integer(ty.clone(), Mutability::Immutable), Operator::Add, TypeToken::Integer(ty.clone(), Mutability::Immutable)), TypeToken::Integer(ty.clone(), Mutability::Immutable));
-            base_type_matrix.insert((TypeToken::Integer(ty.clone(), Mutability::Immutable), Operator::Sub, TypeToken::Integer(ty.clone(), Mutability::Immutable)), TypeToken::Integer(ty.clone(), Mutability::Immutable));
-            base_type_matrix.insert((TypeToken::Integer(ty.clone(), Mutability::Immutable), Operator::Mul, TypeToken::Integer(ty.clone(), Mutability::Immutable)), TypeToken::Integer(ty.clone(), Mutability::Immutable));
-            base_type_matrix.insert((TypeToken::Integer(ty.clone(), Mutability::Immutable), Operator::Div, TypeToken::Integer(ty.clone(), Mutability::Immutable)), TypeToken::Integer(ty.clone(), Mutability::Immutable));
-            base_type_matrix.insert((TypeToken::Integer(ty.clone(), Mutability::Immutable), Operator::Mod, TypeToken::Integer(ty.clone(), Mutability::Immutable)), TypeToken::Integer(ty.clone(), Mutability::Immutable));
-            base_type_matrix.insert((TypeToken::Integer(ty.clone(), Mutability::Immutable), Operator::LeftShift, TypeToken::Integer(ty.clone(), Mutability::Immutable)), TypeToken::Integer(ty.clone(), Mutability::Immutable));
-            base_type_matrix.insert((TypeToken::Integer(ty.clone(), Mutability::Immutable), Operator::RightShift, TypeToken::Integer(ty.clone(), Mutability::Immutable)), TypeToken::Integer(ty.clone(), Mutability::Immutable));
+            base_type_matrix.insert((Type::Integer(ty.clone(), Mutability::Immutable), Operator::Add, Type::Integer(ty.clone(), Mutability::Immutable)), Type::Integer(ty.clone(), Mutability::Immutable));
+            base_type_matrix.insert((Type::Integer(ty.clone(), Mutability::Immutable), Operator::Sub, Type::Integer(ty.clone(), Mutability::Immutable)), Type::Integer(ty.clone(), Mutability::Immutable));
+            base_type_matrix.insert((Type::Integer(ty.clone(), Mutability::Immutable), Operator::Mul, Type::Integer(ty.clone(), Mutability::Immutable)), Type::Integer(ty.clone(), Mutability::Immutable));
+            base_type_matrix.insert((Type::Integer(ty.clone(), Mutability::Immutable), Operator::Div, Type::Integer(ty.clone(), Mutability::Immutable)), Type::Integer(ty.clone(), Mutability::Immutable));
+            base_type_matrix.insert((Type::Integer(ty.clone(), Mutability::Immutable), Operator::Mod, Type::Integer(ty.clone(), Mutability::Immutable)), Type::Integer(ty.clone(), Mutability::Immutable));
+            base_type_matrix.insert((Type::Integer(ty.clone(), Mutability::Immutable), Operator::LeftShift, Type::Integer(ty.clone(), Mutability::Immutable)), Type::Integer(ty.clone(), Mutability::Immutable));
+            base_type_matrix.insert((Type::Integer(ty.clone(), Mutability::Immutable), Operator::RightShift, Type::Integer(ty.clone(), Mutability::Immutable)), Type::Integer(ty.clone(), Mutability::Immutable));
 
-            base_type_matrix.insert((TypeToken::Integer(ty.clone(), Mutability::Immutable), Operator::LessThan, TypeToken::Integer(ty.clone(), Mutability::Immutable)), TypeToken::Bool(Mutability::Immutable));
-            base_type_matrix.insert((TypeToken::Integer(ty.clone(), Mutability::Immutable), Operator::GreaterThan, TypeToken::Integer(ty.clone(), Mutability::Immutable)), TypeToken::Bool(Mutability::Immutable));
-            base_type_matrix.insert((TypeToken::Integer(ty.clone(), Mutability::Immutable), Operator::LessThanEqual, TypeToken::Integer(ty.clone(), Mutability::Immutable)), TypeToken::Bool(Mutability::Immutable));
-            base_type_matrix.insert((TypeToken::Integer(ty.clone(), Mutability::Immutable), Operator::GreaterThanEqual, TypeToken::Integer(ty.clone(), Mutability::Immutable)), TypeToken::Bool(Mutability::Immutable));
+            base_type_matrix.insert((Type::Integer(ty.clone(), Mutability::Immutable), Operator::LessThan, Type::Integer(ty.clone(), Mutability::Immutable)), Type::Bool(Mutability::Immutable));
+            base_type_matrix.insert((Type::Integer(ty.clone(), Mutability::Immutable), Operator::GreaterThan, Type::Integer(ty.clone(), Mutability::Immutable)), Type::Bool(Mutability::Immutable));
+            base_type_matrix.insert((Type::Integer(ty.clone(), Mutability::Immutable), Operator::LessThanEqual, Type::Integer(ty.clone(), Mutability::Immutable)), Type::Bool(Mutability::Immutable));
+            base_type_matrix.insert((Type::Integer(ty.clone(), Mutability::Immutable), Operator::GreaterThanEqual, Type::Integer(ty.clone(), Mutability::Immutable)), Type::Bool(Mutability::Immutable));
 
-            base_type_matrix.insert((TypeToken::Integer(ty.clone(), Mutability::Immutable), Operator::Equal, TypeToken::Integer(ty.clone(), Mutability::Immutable)), TypeToken::Bool(Mutability::Immutable));
-            base_type_matrix.insert((TypeToken::Integer(ty.clone(), Mutability::Immutable), Operator::NotEqual, TypeToken::Integer(ty.clone(), Mutability::Immutable)), TypeToken::Bool(Mutability::Immutable));
+            base_type_matrix.insert((Type::Integer(ty.clone(), Mutability::Immutable), Operator::Equal, Type::Integer(ty.clone(), Mutability::Immutable)), Type::Bool(Mutability::Immutable));
+            base_type_matrix.insert((Type::Integer(ty.clone(), Mutability::Immutable), Operator::NotEqual, Type::Integer(ty.clone(), Mutability::Immutable)), Type::Bool(Mutability::Immutable));
 
-            base_type_matrix.insert((TypeToken::Integer(ty.clone(), Mutability::Immutable), Operator::BitwiseAnd, TypeToken::Integer(ty.clone(), Mutability::Immutable)), TypeToken::Integer(ty.clone(), Mutability::Immutable));
-            base_type_matrix.insert((TypeToken::Integer(ty.clone(), Mutability::Immutable), Operator::BitwiseXor, TypeToken::Integer(ty.clone(), Mutability::Immutable)), TypeToken::Integer(ty.clone(), Mutability::Immutable));
-            base_type_matrix.insert((TypeToken::Integer(ty.clone(), Mutability::Immutable), Operator::BitwiseOr, TypeToken::Integer(ty.clone(), Mutability::Immutable)), TypeToken::Integer(ty.clone(), Mutability::Immutable));
+            base_type_matrix.insert((Type::Integer(ty.clone(), Mutability::Immutable), Operator::BitwiseAnd, Type::Integer(ty.clone(), Mutability::Immutable)), Type::Integer(ty.clone(), Mutability::Immutable));
+            base_type_matrix.insert((Type::Integer(ty.clone(), Mutability::Immutable), Operator::BitwiseXor, Type::Integer(ty.clone(), Mutability::Immutable)), Type::Integer(ty.clone(), Mutability::Immutable));
+            base_type_matrix.insert((Type::Integer(ty.clone(), Mutability::Immutable), Operator::BitwiseOr, Type::Integer(ty.clone(), Mutability::Immutable)), Type::Integer(ty.clone(), Mutability::Immutable));
         }
     }
 
@@ -395,7 +309,7 @@ impl FromStr for Integer {
             "u32" => Integer::U32,
             "i64" => Integer::I64,
             "u64" => Integer::U64,
-            _ => return Err(InferTypeError::TypeNotAllowed(NameTokenErr::UnmatchedRegex { target_value: String::from(s) }))
+            _ => return Err(InferTypeError::TypeNotAllowed(IdentifierErr::UnmatchedRegex { target_value: String::from(s) }))
         })
     }
 }

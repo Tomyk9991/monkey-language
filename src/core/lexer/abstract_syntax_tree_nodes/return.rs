@@ -13,44 +13,45 @@ use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::errors::EmptyIteratorErr;
 use crate::core::lexer::scope::PatternNotMatchedError;
 use crate::core::lexer::static_type_context::StaticTypeContext;
-use crate::core::lexer::tokens::assignable_token::{AssignableToken, AssignableTokenErr};
-use crate::core::lexer::tokens::assignable_tokens::integer_token::IntegerToken;
+use crate::core::lexer::abstract_syntax_tree_nodes::assignable::{Assignable, AssignableErr};
 use crate::core::lexer::{Lines, TryParse};
-use crate::core::lexer::types::integer::Integer;
-use crate::core::lexer::types::type_token::{InferTypeError};
+use crate::core::lexer::types::r#type::{InferTypeError};
 use crate::core::type_checker::static_type_checker::StaticTypeCheckError;
 use crate::core::type_checker::StaticTypeCheck;
 
+type Integer = crate::core::lexer::abstract_syntax_tree_nodes::assignables::integer::IntegerAST;
+type IntegerType = crate::core::lexer::types::integer::Integer;
+
 #[derive(Debug, PartialEq, Clone)]
-pub struct ReturnToken {
-    pub assignable: Option<AssignableToken>,
+pub struct Return {
+    pub assignable: Option<Assignable>,
     pub code_line: CodeLine
 }
 
-impl ReturnToken {
-    /// returns a ReturnToken with an assignable, the assignable is an integer containing 0
-    pub fn num_0() -> ReturnToken {
-        ReturnToken {
-            assignable: Some(AssignableToken::IntegerToken(IntegerToken { value: "0".to_string(), ty: Integer::I32 })),
+impl Return {
+    /// returns a `Return` with an assignable, the assignable is an integer containing 0
+    pub fn num_0() -> Return {
+        Return {
+            assignable: Some(Assignable::Integer(Integer { value: "0".to_string(), ty: IntegerType::I32 })),
             code_line: CodeLine::imaginary("return 0;")
         }
     }
 }
 
 #[derive(Debug)]
-pub enum ReturnTokenError {
+pub enum ReturnError {
     PatternNotMatched { target_value: String },
-    AssignableError(AssignableTokenErr),
+    AssignableError(AssignableErr),
     EmptyIterator(EmptyIteratorErr)
 }
 
-impl PatternNotMatchedError for ReturnTokenError {
+impl PatternNotMatchedError for ReturnError {
     fn is_pattern_not_matched_error(&self) -> bool {
-        matches!(self, ReturnTokenError::PatternNotMatched {..})
+        matches!(self, ReturnError::PatternNotMatched {..})
     }
 }
 
-impl Display for ReturnToken {
+impl Display for Return {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "return{}", if let Some(assignable) = &self.assignable {
             format!(" {}", assignable)
@@ -60,33 +61,33 @@ impl Display for ReturnToken {
     }
 }
 
-impl Display for ReturnTokenError {
+impl Display for ReturnError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", match self {
-            ReturnTokenError::PatternNotMatched { target_value } => {
+            ReturnError::PatternNotMatched { target_value } => {
                 format!("Pattern not matched for: `{}?\n\t return assignable;", target_value)
             }
-            ReturnTokenError::AssignableError(e) => e.to_string(),
-            ReturnTokenError::EmptyIterator(e) => e.to_string(),
+            ReturnError::AssignableError(e) => e.to_string(),
+            ReturnError::EmptyIterator(e) => e.to_string(),
         })
     }
 }
 
-impl Error for ReturnTokenError { }
+impl Error for ReturnError { }
 
-impl From<AssignableTokenErr> for ReturnTokenError {
-    fn from(value: AssignableTokenErr) -> Self {
-        ReturnTokenError::AssignableError(value)
+impl From<AssignableErr> for ReturnError {
+    fn from(value: AssignableErr) -> Self {
+        ReturnError::AssignableError(value)
     }
 }
 
-impl From<anyhow::Error> for ReturnTokenError {
+impl From<anyhow::Error> for ReturnError {
     fn from(value: anyhow::Error) -> Self {
-        ReturnTokenError::PatternNotMatched { target_value: value.to_string() }
+        ReturnError::PatternNotMatched { target_value: value.to_string() }
     }
 }
 
-impl StaticTypeCheck for ReturnToken {
+impl StaticTypeCheck for Return {
     fn static_type_check(&self, type_context: &mut StaticTypeContext) -> Result<(), StaticTypeCheckError> {
         if let Some(expected_return_type) = &type_context.expected_return_type {
             if let Some(assignable) = &self.assignable {
@@ -106,17 +107,17 @@ impl StaticTypeCheck for ReturnToken {
     }
 }
 
-impl TryParse for ReturnToken {
-    type Output = ReturnToken;
-    type Err = ReturnTokenError;
+impl TryParse for Return {
+    type Output = Return;
+    type Err = ReturnError;
 
     fn try_parse(code_lines_iterator: &mut Lines<'_>) -> anyhow::Result<Self::Output, Self::Err> {
-        let code_line = *code_lines_iterator.peek().ok_or(ReturnTokenError::EmptyIterator(EmptyIteratorErr))?;
-        ReturnToken::try_parse(code_line)
+        let code_line = *code_lines_iterator.peek().ok_or(ReturnError::EmptyIterator(EmptyIteratorErr))?;
+        Return::try_parse(code_line)
     }
 }
 
-impl ToASM for ReturnToken {
+impl ToASM for Return {
     fn to_asm<T: ASMOptions>(&self, stack: &mut Stack, meta: &mut MetaInfo, _options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
         let mut target = String::new();
         target += &ASMBuilder::ident(&ASMBuilder::comment_line(&format!("{}", self)));
@@ -143,7 +144,7 @@ impl ToASM for ReturnToken {
                 ASMResult::Multiline(_) => return Err(ASMGenerateError::ASMResult(ASMResultError::UnexpectedVariance {
                     expected: vec![ASMResultVariance::Inline, ASMResultVariance::MultilineResulted],
                     actual: ASMResultVariance::Multiline,
-                    token: "Return".to_string(),
+                    ast_node: "Return".to_string(),
                 }))
 
             }
@@ -180,25 +181,25 @@ impl ToASM for ReturnToken {
     }
 }
 
-impl ReturnToken {
-    pub fn try_parse(code_line: &CodeLine) -> anyhow::Result<Self, ReturnTokenError> {
+impl Return {
+    pub fn try_parse(code_line: &CodeLine) -> anyhow::Result<Self, ReturnError> {
         let split_alloc = code_line.split(vec![' ', ';']);
         let split = split_alloc.iter().map(|a| a.as_str()).collect::<Vec<_>>();
 
         if let ["return", assignable @ .., ";"] = &split[..] {
             let joined = &assignable.join(" ");
 
-            Ok(ReturnToken {
-                assignable: Some(AssignableToken::from_str(joined)?),
+            Ok(Return {
+                assignable: Some(Assignable::from_str(joined)?),
                 code_line: code_line.clone(),
             })
         } else if let ["return", ";"] = &split[..] {
-            return Ok(ReturnToken {
+            return Ok(Return {
                 assignable: None,
                 code_line: code_line.clone(),
             })
         } else {
-            Err(ReturnTokenError::PatternNotMatched { target_value: code_line.line.clone() })
+            Err(ReturnError::PatternNotMatched { target_value: code_line.line.clone() })
         }
     }
 }

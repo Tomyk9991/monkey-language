@@ -6,7 +6,7 @@ use crate::core::code_generator::generator::ASMGenerator;
 use crate::core::code_generator::target_creator::TargetCreator;
 use crate::core::code_generator::target_os::TargetOS;
 use crate::core::io::monkey_file::MonkeyFile;
-use crate::core::lexer::tokenizer::Lexer;
+use crate::core::lexer::parser::Lexer;
 use crate::core::type_checker::static_type_checker::static_type_check;
 
 mod core;
@@ -22,7 +22,7 @@ fn run_compiler() -> anyhow::Result<()> {
     let monkey_file: MonkeyFile = MonkeyFile::read(entry_point_file)?;
 
 // 1) Build AST
-    let mut top_level_scope = Lexer::from(monkey_file).tokenize()?;
+    let mut top_level_scope = Lexer::from(monkey_file).parse()?;
 
     if let Some(print_scope) = &args.print_scope {
         match print_scope {
@@ -32,11 +32,11 @@ fn run_compiler() -> anyhow::Result<()> {
     }
 
 // 2) Static Type Checking
-    static_type_check(&top_level_scope)?;
+    let static_type_context = static_type_check(&top_level_scope)?;
 
 // 3) o1 Optimization
     if args.optimization_level == OptimizationLevel::O1 {
-        top_level_scope.o1();
+        top_level_scope.o1(&static_type_context);
     }
 
 // 3) Building

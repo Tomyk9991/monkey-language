@@ -1,15 +1,15 @@
 use std::collections::HashMap;
 use std::ops::{Deref, DerefMut, Range};
 use crate::core::io::code_line::CodeLine;
-use crate::core::lexer::token::Token;
-use crate::core::lexer::tokens::l_value::LValue;
-use crate::core::lexer::tokens::method_definition::{MethodDefinition};
-use crate::core::lexer::tokens::variable_token::VariableToken;
-use crate::core::lexer::types::type_token::{InferTypeError, TypeToken};
+use crate::core::lexer::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
+use crate::core::lexer::abstract_syntax_tree_nodes::l_value::LValue;
+use crate::core::lexer::abstract_syntax_tree_nodes::method_definition::{MethodDefinition};
+use crate::core::lexer::abstract_syntax_tree_nodes::variable::Variable;
+use crate::core::lexer::types::r#type::{InferTypeError, Type};
 
 #[derive(Debug, Clone)]
 pub struct CurrentMethodInfo {
-    pub return_type: TypeToken,
+    pub return_type: Type,
     pub method_header_line: Range<usize>,
     pub method_name: String,
 }
@@ -18,7 +18,7 @@ pub struct CurrentMethodInfo {
 /// At the moment variables and method definitions are included
 #[derive(Debug, Default, Clone)]
 pub struct StaticTypeContext {
-    pub context: Vec<VariableToken<'=', ';'>>,
+    pub context: Vec<Variable<'=', ';'>>,
     pub expected_return_type: Option<CurrentMethodInfo>,
     pub methods: Vec<MethodDefinition>
 }
@@ -26,8 +26,8 @@ pub struct StaticTypeContext {
 impl StaticTypeContext {
     // adds all information from the other context to this context
     pub fn merge(&mut self, other: StaticTypeContext) {
-        for token in other.context {
-            self.context.push(token);
+        for variable in other.context {
+            self.context.push(variable);
         }
     }
 
@@ -48,7 +48,7 @@ impl StaticTypeContext {
             for variable in &context.context {
                 if !variable.define { continue; }
                 let value = match &variable.l_value {
-                    LValue::Name(a) => a.name.as_str(),
+                    LValue::Identifier(a) => a.name.as_str(),
                     _ => continue,
                 };
                 if let Some((counter, _)) = hash_map.get_mut(value) {
@@ -70,7 +70,7 @@ impl StaticTypeContext {
 }
 
 impl Deref for StaticTypeContext {
-    type Target = Vec<VariableToken<'=', ';'>>;
+    type Target = Vec<Variable<'=', ';'>>;
 
     fn deref(&self) -> &Self::Target {
         &self.context
@@ -85,26 +85,26 @@ impl DerefMut for StaticTypeContext {
 
 impl StaticTypeContext {
     /// Constructs a context containing all type information the ast can infer. This is especially useful to infer further types, that could not be inferred before like function calls and variable assignments
-    pub fn new(scope: &Vec<Token>) -> StaticTypeContext {
-        let mut context: Vec<VariableToken<'=', ';'>> = Vec::new();
+    pub fn new(scope: &Vec<AbstractSyntaxTreeNode>) -> StaticTypeContext {
+        let mut context: Vec<Variable<'=', ';'>> = Vec::new();
         let mut methods = Vec::new();
 
-        for token in scope {
-            match token {
-                Token::Variable(variable) => {
+        for node in scope {
+            match node {
+                AbstractSyntaxTreeNode::Variable(variable) => {
                     if variable.ty.is_some() {
                         context.push(variable.clone());
                     }
                 }
-                Token::MethodDefinition(method_definition) => {
+                AbstractSyntaxTreeNode::MethodDefinition(method_definition) => {
                     methods.push(method_definition.clone());
                 },
-                Token::For(for_loop) => {
+                AbstractSyntaxTreeNode::For(for_loop) => {
                     if for_loop.initialization.ty.is_some() {
                         context.push(for_loop.initialization.clone());
                     }
                 },
-                Token::While(_) | Token::ScopeClosing(_) | Token::MethodCall(_) | Token::If(_) | Token::Import(_) | Token::Return(_) => {}
+                AbstractSyntaxTreeNode::While(_) | AbstractSyntaxTreeNode::ScopeClosing(_) | AbstractSyntaxTreeNode::MethodCall(_) | AbstractSyntaxTreeNode::If(_) | AbstractSyntaxTreeNode::Import(_) | AbstractSyntaxTreeNode::Return(_) => {}
             }
         }
 

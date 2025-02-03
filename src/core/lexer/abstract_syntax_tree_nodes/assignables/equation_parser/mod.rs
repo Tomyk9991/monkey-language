@@ -2,13 +2,13 @@ use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
 
 use crate::core::io::code_line::{CodeLine, Normalizable};
-use crate::core::lexer::tokens::assignable_token::{AssignableToken, AssignableTokenErr};
-use crate::core::lexer::tokens::assignable_tokens::equation_parser::expression::{Expression};
-use crate::core::lexer::tokens::assignable_tokens::equation_parser::operator::Operator;
-use crate::core::lexer::tokens::assignable_tokens::equation_parser::prefix_arithmetic::{PointerArithmetic, PrefixArithmetic};
-use crate::core::lexer::tokens::assignable_tokens::method_call_token::dyck_language;
-use crate::core::lexer::tokens::name_token::NameTokenErr;
-use crate::core::lexer::types::type_token::{InferTypeError, Mutability, TypeToken};
+use crate::core::lexer::abstract_syntax_tree_nodes::assignable::{Assignable, AssignableErr};
+use crate::core::lexer::abstract_syntax_tree_nodes::assignables::equation_parser::expression::{Expression};
+use crate::core::lexer::abstract_syntax_tree_nodes::assignables::equation_parser::operator::Operator;
+use crate::core::lexer::abstract_syntax_tree_nodes::assignables::equation_parser::prefix_arithmetic::{PointerArithmetic, PrefixArithmetic};
+use crate::core::lexer::abstract_syntax_tree_nodes::assignables::method_call::dyck_language;
+use crate::core::lexer::abstract_syntax_tree_nodes::identifier::IdentifierErr;
+use crate::core::lexer::types::r#type::{InferTypeError, Mutability, Type};
 
 pub mod expression;
 pub mod operator;
@@ -21,7 +21,7 @@ const OPENING_BRACKET: char = '[';
 const CLOSING_BRACKET: char = ']';
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct EquationToken {
+pub struct Equation {
     source_code: String,
     pub syntax_tree: Box<Expression>,
     pos: i32,
@@ -55,16 +55,16 @@ impl From<InferTypeError> for Error {
 }
 
 
-impl From<AssignableTokenErr> for Error {
-    fn from(value: AssignableTokenErr) -> Self {
+impl From<AssignableErr> for Error {
+    fn from(value: AssignableErr) -> Self {
         Error::TermNotParsable(match value {
-            AssignableTokenErr::PatternNotMatched { target_value } => target_value
+            AssignableErr::PatternNotMatched { target_value } => target_value
         })
     }
 }
 
-impl From<NameTokenErr> for Error {
-    fn from(value: NameTokenErr) -> Self { Error::UndefinedSequence(value.to_string()) }
+impl From<IdentifierErr> for Error {
+    fn from(value: IdentifierErr) -> Self { Error::UndefinedSequence(value.to_string()) }
 }
 
 impl Display for Error {
@@ -86,9 +86,9 @@ impl Display for Error {
 impl std::error::Error for Error {}
 
 #[allow(clippy::should_implement_trait)]
-impl EquationToken {
+impl Equation {
     pub fn from_str(string: &str) -> Result<Expression, Error> {
-        let mut s: EquationToken = EquationToken::new(string);
+        let mut s: Equation = Equation::new(string);
         let f = s.parse()?.clone();
         Ok(f)
     }
@@ -424,15 +424,15 @@ impl EquationToken {
         }
 
         if self.peek('(') {
-            if let Some((cast_type, amount_skip)) = self.collect_until(1, ')', |a| TypeToken::from_str(a, Mutability::Immutable).is_ok()) {
+            if let Some((cast_type, amount_skip)) = self.collect_until(1, ')', |a| Type::from_str(a, Mutability::Immutable).is_ok()) {
                 self.next_char_amount(amount_skip);
 
                 if !self.peek(')') && self.pos < self.source_code.chars().count() as i32 {
                     let value = self.parse_factor()?;
                     x = Box::<Expression>::default();
 
-                    x.value = Some(Box::new(AssignableToken::ArithmeticEquation(*value)));
-                    x.prefix_arithmetic = Some(PrefixArithmetic::Cast(TypeToken::from_str(&cast_type, Mutability::Immutable)?));
+                    x.value = Some(Box::new(Assignable::ArithmeticEquation(*value)));
+                    x.prefix_arithmetic = Some(PrefixArithmetic::Cast(Type::from_str(&cast_type, Mutability::Immutable)?));
 
                     return Ok(x);
                 }
@@ -446,7 +446,7 @@ impl EquationToken {
             let value = self.parse_factor()?;
             x = Box::<Expression>::default();
 
-            x.value = Some(Box::new(AssignableToken::ArithmeticEquation(*value)));
+            x.value = Some(Box::new(Assignable::ArithmeticEquation(*value)));
             x.prefix_arithmetic = Some(PrefixArithmetic::PointerArithmetic(PointerArithmetic::Asterics));
 
             return Ok(x);
@@ -456,7 +456,7 @@ impl EquationToken {
             let value = self.parse_factor()?;
             x = Box::<Expression>::default();
 
-            x.value = Some(Box::new(AssignableToken::ArithmeticEquation(*value)));
+            x.value = Some(Box::new(Assignable::ArithmeticEquation(*value)));
             x.prefix_arithmetic = Some(PrefixArithmetic::PointerArithmetic(PointerArithmetic::Ampersand));
 
             return Ok(x);
@@ -479,7 +479,7 @@ impl EquationToken {
                 }
 
                 let sub_string: &str = &self.source_code[start_pos as usize..self.pos as usize];
-                let assignment = AssignableToken::from_str(sub_string)?;
+                let assignment = Assignable::from_str(sub_string)?;
                 x = Box::new(Expression::from(Some(Box::new(assignment))));
             } else if (self.ch >= Some('A') && self.ch <= Some('Z')) || (self.ch >= Some('a') && self.ch <= Some('z')) {
                 let mut ident = 0;
@@ -510,14 +510,14 @@ impl EquationToken {
                 let chars = temp[0].line.chars().collect::<Vec<char>>();
 
                 let (index_operation, sub_string) = if let (Some(left), Some(right)) = (chars.iter().position(|a| *a ==  OPENING_BRACKET), chars.iter().rposition(|a| *a == CLOSING_BRACKET)) {
-                    (Some(Box::new(AssignableToken::from_str_ignore(temp[0].line[left + 1..right].trim(), false)?)), &temp[0].line[..left])
+                    (Some(Box::new(Assignable::from_str_ignore(temp[0].line[left + 1..right].trim(), false)?)), &temp[0].line[..left])
                 } else {
                     (None, temp[0].line.as_str())
                 };
 
-                let assignable_token = AssignableToken::from_str_ignore(sub_string, sub_string.len() == self.source_code.len())?;
+                let assignable = Assignable::from_str_ignore(sub_string, sub_string.len() == self.source_code.len())?;
 
-                let s = Expression::from(Some(Box::new(assignable_token)));
+                let s = Expression::from(Some(Box::new(assignable)));
                 x = Box::new(s);
                 x.index_operator = index_operation;
             } else {

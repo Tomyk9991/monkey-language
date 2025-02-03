@@ -7,7 +7,7 @@ use crate::core::code_generator::asm_options::ASMOptions;
 use crate::core::code_generator::asm_result::{ASMResult};
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::registers::{Bit64, ByteSize, GeneralPurposeRegister};
-use crate::core::lexer::types::type_token::TypeToken;
+use crate::core::lexer::types::r#type::Type;
 
 #[allow(unused)]
 #[derive(PartialEq, Clone, Debug, Eq, Hash)]
@@ -100,7 +100,7 @@ impl ToASM for Operator {
 }
 
 impl Operator {
-    pub fn specific_operation<T: Display>(&self, rhs_type: &TypeToken, registers: &[T], stack: &mut Stack, meta: &mut MetaInfo) -> Result<AssemblerOperation, ASMGenerateError> {
+    pub fn specific_operation<T: Display>(&self, rhs_type: &Type, registers: &[T], stack: &mut Stack, meta: &mut MetaInfo) -> Result<AssemblerOperation, ASMGenerateError> {
         rhs_type.operation_to_asm(self, registers, stack, meta)
     }
 }

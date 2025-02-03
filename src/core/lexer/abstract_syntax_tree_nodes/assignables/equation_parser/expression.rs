@@ -13,14 +13,14 @@ use crate::core::code_generator::generator::{LastUnchecked, Stack};
 use crate::core::code_generator::registers::{ByteSize, FloatRegister, GeneralPurposeRegister, GeneralPurposeRegisterIterator};
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::static_type_context::StaticTypeContext;
-use crate::core::lexer::tokens::assignable_token::AssignableToken;
-use crate::core::lexer::tokens::assignable_tokens::equation_parser::operator::Operator;
-use crate::core::lexer::tokens::assignable_tokens::equation_parser::prefix_arithmetic::{PointerArithmetic, PrefixArithmetic, PrefixArithmeticOptions};
-use crate::core::lexer::tokens::name_token::NameToken;
+use crate::core::lexer::abstract_syntax_tree_nodes::assignable::Assignable;
+use crate::core::lexer::abstract_syntax_tree_nodes::assignables::equation_parser::operator::Operator;
+use crate::core::lexer::abstract_syntax_tree_nodes::assignables::equation_parser::prefix_arithmetic::{PointerArithmetic, PrefixArithmetic, PrefixArithmeticOptions};
+use crate::core::lexer::abstract_syntax_tree_nodes::identifier::Identifier;
 use crate::core::lexer::types::boolean::Boolean;
 use crate::core::lexer::types::float::Float;
 use crate::core::lexer::types::integer::Integer;
-use crate::core::lexer::types::type_token::{InferTypeError, Mutability, TypeToken};
+use crate::core::lexer::types::r#type::{InferTypeError, Mutability, Type};
 
 #[derive(Clone, PartialEq)]
 #[allow(unused)]
@@ -29,8 +29,8 @@ pub struct Expression {
     pub rhs: Option<Box<Expression>>,
     pub operator: Operator,
     pub prefix_arithmetic: Option<PrefixArithmetic>,
-    pub value: Option<Box<AssignableToken>>,
-    pub index_operator: Option<Box<AssignableToken>>,
+    pub value: Option<Box<Assignable>>,
+    pub index_operator: Option<Box<Assignable>>,
     pub positive: bool,
 }
 
@@ -39,7 +39,7 @@ impl Expression {
         if let Some(lhs) = &self.lhs {
             let ty = &lhs.traverse_type(meta).ok_or(ASMGenerateError::InternalError("Could not traverse type".to_string()))?;
 
-            return Ok(if let TypeToken::Float(f, _) = ty {
+            return Ok(if let Type::Float(f, _) = ty {
                 (GeneralPurposeRegister::iter_from_byte_size(lhs_size)?, Some(f.clone()))
             } else {
                 (GeneralPurposeRegister::iter_from_byte_size(lhs_size)?, None)
@@ -110,7 +110,7 @@ impl Expression {
 
                 match lhs.to_asm(stack, meta, Some(PrepareRegisterOption {
                     general_purpose_register: destination_register.clone(),
-                    assignable_token: lhs.value.clone().map(|value| value.as_ref().clone()),
+                    assignable: lhs.value.clone().map(|value| value.as_ref().clone()),
                 }))? {
                     ASMResult::Inline(inline) => target += &ASMBuilder::mov_x_ident_line(&destination_register, inline, Some(lhs.byte_size(meta))),
                     ASMResult::MultilineResulted(s, r) => {
@@ -121,7 +121,7 @@ impl Expression {
                     ASMResult::Multiline(_) => return Err(ASMGenerateError::ASMResult(ASMResultError::UnexpectedVariance {
                         expected: vec![ASMResultVariance::Inline, ASMResultVariance::MultilineResulted],
                         actual: ASMResultVariance::Multiline,
-                        token: "Expression".to_string(),
+                        ast_node: "Expression".to_string(),
                     }))
                 }
                 stack.register_to_use.pop();
@@ -130,7 +130,7 @@ impl Expression {
                 let mut target_register = stack.register_to_use.last()?;
                 match rhs.to_asm(stack, meta, Some(PrepareRegisterOption {
                     general_purpose_register: target_register.clone(),
-                    assignable_token: rhs.value.clone().map(|value| value.as_ref().clone()),
+                    assignable: rhs.value.clone().map(|value| value.as_ref().clone()),
                 }))? {
                     ASMResult::Inline(inline) => target += &ASMBuilder::mov_x_ident_line(&target_register, inline, Some(rhs.byte_size(meta))),
                     ASMResult::MultilineResulted(s, r) => {
@@ -141,7 +141,7 @@ impl Expression {
                     ASMResult::Multiline(_) => return Err(ASMGenerateError::ASMResult(ASMResultError::UnexpectedVariance {
                         expected: vec![ASMResultVariance::Inline, ASMResultVariance::MultilineResulted],
                         actual: ASMResultVariance::Multiline,
-                        token: "Expression".to_string(),
+                        ast_node: "Expression".to_string(),
                     }))
                 }
                 stack.register_to_use.pop();
@@ -175,7 +175,7 @@ impl Expression {
 
         match lhs.to_asm(stack, meta, Some(PrepareRegisterOption {
             general_purpose_register: destination_register.clone(),
-            assignable_token: lhs.value.clone().map(|value| value.as_ref().clone()),
+            assignable: lhs.value.clone().map(|value| value.as_ref().clone()),
         }))? {
             ASMResult::Inline(inline) => target += &ASMBuilder::mov_x_ident_line(&destination_register, inline, Some(rhs.byte_size(meta))),
             ASMResult::MultilineResulted(s, new_register) => {
@@ -189,7 +189,7 @@ impl Expression {
             ASMResult::Multiline(_) => return Err(ASMGenerateError::ASMResult(ASMResultError::UnexpectedVariance {
                 expected: vec![ASMResultVariance::Inline, ASMResultVariance::MultilineResulted],
                 actual: ASMResultVariance::Multiline,
-                token: "Expression".to_string(),
+                ast_node: "Expression".to_string(),
             }))
         }
 
@@ -200,7 +200,7 @@ impl Expression {
 
         match rhs.to_asm(stack, meta, Some(PrepareRegisterOption {
             general_purpose_register: target_register.clone(),
-            assignable_token: rhs.value.clone().map(|value| value.as_ref().clone()),
+            assignable: rhs.value.clone().map(|value| value.as_ref().clone()),
         }))? {
             ASMResult::Inline(inline) => {
                 let ty = rhs.traverse_type(meta).ok_or(ASMGenerateError::InternalError("Could not traverse type".to_string()))?;
@@ -226,7 +226,7 @@ impl Expression {
             ASMResult::Multiline(_) => return Err(ASMGenerateError::ASMResult(ASMResultError::UnexpectedVariance {
                 expected: vec![ASMResultVariance::Inline, ASMResultVariance::MultilineResulted],
                 actual: ASMResultVariance::Multiline,
-                token: "Expression".to_string(),
+                ast_node: "Expression".to_string(),
             }))
         }
         stack.register_to_use.pop();
@@ -255,7 +255,7 @@ impl Expression {
         let mut destination_register = stack.register_to_use.last()?;
         match lhs.to_asm(stack, meta, Some(PrepareRegisterOption {
             general_purpose_register: destination_register.clone(),
-            assignable_token: lhs.value.clone().map(|value| value.as_ref().clone()),
+            assignable: lhs.value.clone().map(|value| value.as_ref().clone()),
         }))? {
             ASMResult::Inline(inline) => target += &ASMBuilder::mov_x_ident_line(&destination_register, inline, Some(rhs.byte_size(meta))),
             ASMResult::MultilineResulted(s, new_register) => {
@@ -269,7 +269,7 @@ impl Expression {
             ASMResult::Multiline(_) => return Err(ASMGenerateError::ASMResult(ASMResultError::UnexpectedVariance {
                 expected: vec![ASMResultVariance::Inline, ASMResultVariance::MultilineResulted],
                 actual: ASMResultVariance::Multiline,
-                token: "Expression".to_string(),
+                ast_node: "Expression".to_string(),
             }))
         }
 
@@ -279,7 +279,7 @@ impl Expression {
         let target_register = stack.register_to_use.last()?;
         match rhs.to_asm(stack, meta, Some(PrepareRegisterOption {
             general_purpose_register: target_register.clone(),
-            assignable_token: rhs.value.clone().map(|value| value.as_ref().clone()),
+            assignable: rhs.value.clone().map(|value| value.as_ref().clone()),
         }))? {
             ASMResult::Inline(inline) => {
                 let ty = rhs.traverse_type(meta).ok_or(ASMGenerateError::InternalError("Could not traverse type".to_string()))?;
@@ -304,7 +304,7 @@ impl Expression {
             ASMResult::Multiline(_) => return Err(ASMGenerateError::ASMResult(ASMResultError::UnexpectedVariance {
                 expected: vec![ASMResultVariance::Inline, ASMResultVariance::MultilineResulted],
                 actual: ASMResultVariance::Multiline,
-                token: "Expression".to_string(),
+                ast_node: "Expression".to_string(),
             }))
         }
         stack.register_to_use.pop();
@@ -330,7 +330,7 @@ impl Expression {
         let mut target_register = stack.register_to_use.last()?;
         match rhs.to_asm(stack, meta, Some(PrepareRegisterOption {
             general_purpose_register: target_register.clone(),
-            assignable_token: rhs.value.clone().map(|value| value.as_ref().clone()),
+            assignable: rhs.value.clone().map(|value| value.as_ref().clone()),
         }))? {
             ASMResult::Inline(inline) => target += &ASMBuilder::mov_x_ident_line(&target_register, inline, Some(rhs.byte_size(meta))),
             ASMResult::MultilineResulted(s, new_register) => {
@@ -342,7 +342,7 @@ impl Expression {
             ASMResult::Multiline(_) => return Err(ASMGenerateError::ASMResult(ASMResultError::UnexpectedVariance {
                 expected: vec![ASMResultVariance::Inline, ASMResultVariance::MultilineResulted],
                 actual: ASMResultVariance::Multiline,
-                token: "Expression".to_string(),
+                ast_node: "Expression".to_string(),
             }))
         }
 
@@ -352,7 +352,7 @@ impl Expression {
         let mut destination_register = stack.register_to_use.last()?;
         match lhs.to_asm(stack, meta, Some(PrepareRegisterOption {
             general_purpose_register: destination_register.clone(),
-            assignable_token: lhs.value.clone().map(|value| value.as_ref().clone()),
+            assignable: lhs.value.clone().map(|value| value.as_ref().clone()),
         }))? {
             ASMResult::Inline(inline) => {
                 let ty = rhs.traverse_type(meta).ok_or(ASMGenerateError::InternalError("Could not traverse type".to_string()))?;
@@ -377,7 +377,7 @@ impl Expression {
             ASMResult::Multiline(_) => return Err(ASMGenerateError::ASMResult(ASMResultError::UnexpectedVariance {
                 expected: vec![ASMResultVariance::Inline, ASMResultVariance::MultilineResulted],
                 actual: ASMResultVariance::Multiline,
-                token: "Expression".to_string(),
+                ast_node: "Expression".to_string(),
             }))
         }
         stack.register_to_use.pop();
@@ -398,7 +398,7 @@ impl Expression {
         let mut destination_register = stack.register_to_use.last()?;
         match lhs.to_asm(stack, meta, Some(PrepareRegisterOption {
             general_purpose_register: destination_register.clone(),
-            assignable_token: lhs.value.clone().map(|value| value.as_ref().clone()),
+            assignable: lhs.value.clone().map(|value| value.as_ref().clone()),
         }))? {
             ASMResult::Inline(inline) => target += &ASMBuilder::mov_x_ident_line(&destination_register, inline, Some(lhs.byte_size(meta))),
             ASMResult::MultilineResulted(s, new_register) => {
@@ -409,7 +409,7 @@ impl Expression {
             ASMResult::Multiline(_) => return Err(ASMGenerateError::ASMResult(ASMResultError::UnexpectedVariance {
                 expected: vec![ASMResultVariance::Inline, ASMResultVariance::MultilineResulted],
                 actual: ASMResultVariance::Multiline,
-                token: "Expression".to_string(),
+                ast_node: "Expression".to_string(),
             }))
         }
         stack.register_to_use.pop();
@@ -427,7 +427,7 @@ impl Expression {
         let mut target_register = stack.register_to_use.last()?;
         match rhs.to_asm(stack, meta, Some(PrepareRegisterOption {
             general_purpose_register: target_register.clone(),
-            assignable_token: rhs.value.clone().map(|value| value.as_ref().clone()),
+            assignable: rhs.value.clone().map(|value| value.as_ref().clone()),
         }))? {
             ASMResult::Inline(inline) => target += &ASMBuilder::mov_x_ident_line(&target_register, inline, Some(rhs.byte_size(meta))),
             ASMResult::MultilineResulted(s, r) => {
@@ -438,7 +438,7 @@ impl Expression {
             ASMResult::Multiline(_) => return Err(ASMGenerateError::ASMResult(ASMResultError::UnexpectedVariance {
                 expected: vec![ASMResultVariance::Inline, ASMResultVariance::MultilineResulted],
                 actual: ASMResultVariance::Multiline,
-                token: "Expression".to_string(),
+                ast_node: "Expression".to_string(),
             }))
         }
         stack.register_to_use.pop();
@@ -539,8 +539,8 @@ impl Display for Expression {
 }
 
 
-impl From<Option<Box<AssignableToken>>> for Expression {
-    fn from(value: Option<Box<AssignableToken>>) -> Self {
+impl From<Option<Box<Assignable>>> for Expression {
+    fn from(value: Option<Box<Assignable>>) -> Self {
         Expression {
             value,
             ..Default::default()
@@ -567,7 +567,7 @@ impl ToASM for Expression {
 
             let s = if let Some(prefix_arithmetic) = &self.prefix_arithmetic {
                 Self::prefix_arithmetic_to_asm(prefix_arithmetic, value, &stack.register_to_use.last()?, stack, meta)
-            } else if matches!(value.as_ref(), AssignableToken::MethodCallToken(_)) {
+            } else if matches!(value.as_ref(), Assignable::MethodCall(_)) {
                 value.to_asm(stack, meta, Some(InExpressionMethodCall))
             } else {
                 value.to_asm(stack, meta, options)
@@ -590,7 +590,7 @@ impl ToASM for Expression {
                 if let Some(t) = &self.expression_some_some_some_some(stack, meta, lhs, rhs)? {
                     if let Ok(Some(new_register)) = t.apply_with(&mut target)
                         .allow(ASMResultVariance::MultilineResulted)
-                        .token("Expression")
+                        .ast_node("Expression")
                         .finish() {
                         return Ok(ASMResult::MultilineResulted(target, new_register.clone()));
                     }
@@ -603,7 +603,7 @@ impl ToASM for Expression {
                     (None, None) => self.expression_none_none(stack, meta, lhs, rhs), // ((1 + 2) + (3 + 4)) + ((5 + 6) + (7 + 8)) // any depth
                 }
             }
-            (_, _) => Err(ASMGenerateError::NotImplemented { token: "Something went wrong. Neither rhs nor lhs are valid".to_string() })
+            (_, _) => Err(ASMGenerateError::NotImplemented { ast_node: "Something went wrong. Neither rhs nor lhs are valid".to_string() })
         }
     }
 
@@ -626,7 +626,7 @@ fn lhs_rhs_byte_sizes(a: &Expression, b: &Expression, meta: &mut MetaInfo) -> Re
     let rhs_size = b.byte_size(meta);
 
     if lhs_size != rhs_size {
-        return Err(ASMGenerateError::NotImplemented { token: format!("Expected both types to be the same byte size. lhs: {}, rhs: {}", lhs_size, rhs_size) });
+        return Err(ASMGenerateError::NotImplemented { ast_node: format!("Expected both types to be the same byte size. lhs: {}, rhs: {}", lhs_size, rhs_size) });
     }
 
     Ok((lhs_size, rhs_size))
@@ -647,7 +647,7 @@ fn extract_last_general_purpose_instruction(current_asm: &str) -> Option<String>
 }
 
 impl Expression {
-    pub fn prefix_arithmetic_to_asm(prefix_arithmetic: &PrefixArithmetic, value: &AssignableToken, target_register: &GeneralPurposeRegister, stack: &mut Stack, meta: &mut MetaInfo) -> Result<ASMResult, ASMGenerateError> {
+    pub fn prefix_arithmetic_to_asm(prefix_arithmetic: &PrefixArithmetic, value: &Assignable, target_register: &GeneralPurposeRegister, stack: &mut Stack, meta: &mut MetaInfo) -> Result<ASMResult, ASMGenerateError> {
         let mut target = String::new();
         let register_to_use = stack.register_to_use.last()?;
         let register_64 = register_to_use.to_64_bit_register();
@@ -655,13 +655,13 @@ impl Expression {
         let mut register_or_stack_address = String::new();
 
         if let Some(prefix_arithmetic) = value.prefix_arithmetic() {
-            if let AssignableToken::ArithmeticEquation(a) = value {
+            if let Assignable::ArithmeticEquation(a) = value {
                 if let Some(child) = &a.value {
                     Self::prefix_arithmetic_to_asm(&prefix_arithmetic, child, target_register, stack, meta)?
                         .apply_with(&mut target)
                         .allow(ASMResultVariance::MultilineResulted)
                         .allow(ASMResultVariance::MultilineResulted)
-                        .token("Expression")
+                        .ast_node("Expression")
                         .finish()?;
 
 
@@ -700,11 +700,11 @@ impl Expression {
         }))
     }
 
-    pub fn traverse_type(&self, meta: &MetaInfo) -> Option<TypeToken> {
+    pub fn traverse_type(&self, meta: &MetaInfo) -> Option<Type> {
         self.traverse_type_resulted(&meta.static_type_information, &meta.code_line).ok()
     }
 
-    pub fn traverse_type_resulted(&self, context: &StaticTypeContext, code_line: &CodeLine) -> Result<TypeToken, InferTypeError> {
+    pub fn traverse_type_resulted(&self, context: &StaticTypeContext, code_line: &CodeLine) -> Result<Type, InferTypeError> {
         if let Some(value) = &self.value {
             let mut value_type = value.infer_type_with_context(context, code_line);
             let has_prefix_arithmetics = self.prefix_arithmetic.is_some();
@@ -713,7 +713,7 @@ impl Expression {
             if has_index_operation {
                 if let Some(index_operator) = &self.index_operator {
                     let index_type = index_operator.infer_type_with_context(context, code_line)?;
-                    if !matches!(index_type, TypeToken::Integer(_, _)) {
+                    if !matches!(index_type, Type::Integer(_, _)) {
                         return Err(InferTypeError::IllegalIndexOperation(index_type, code_line.clone()));
                     }
                 }
@@ -727,7 +727,7 @@ impl Expression {
 
             return if let (true, Ok(value_type)) = (has_prefix_arithmetics, &value_type) {
                 let current_pointer_arithmetic: String = match value_type {
-                    TypeToken::Custom(name, _) if name.name.starts_with(['*', '&']) => {
+                    Type::Custom(name, _) if name.name.starts_with(['*', '&']) => {
                         if let Some(index) = name.name.chars().position(|m| m.is_ascii_alphanumeric()) {
                             name.name[..index].to_string()
                         } else {
@@ -756,14 +756,14 @@ impl Expression {
                             return Err(InferTypeError::IllegalDereference(*value.clone(), value_type, code_line.clone()));
                         }
                         PrefixArithmetic::Cast(casting_to) => {
-                            value_type = TypeToken::from_str(&casting_to.to_string(), Mutability::Immutable)?;
+                            value_type = Type::from_str(&casting_to.to_string(), Mutability::Immutable)?;
                         }
                         PrefixArithmetic::Operation(_) => {}
                     }
                 }
 
                 if value_type.is_pointer() {
-                    Ok(TypeToken::Custom(NameToken { name: format!("{}", value_type) }, Mutability::from(value_type.mutable())))
+                    Ok(Type::Custom(Identifier { name: format!("{}", value_type) }, Mutability::from(value_type.mutable())))
                 } else {
                     Ok(value_type)
                 }
@@ -775,14 +775,14 @@ impl Expression {
         Self::check_operator_compatibility(self.to_string(), &self.lhs, self.operator.clone(), &self.rhs, context, code_line)
     }
 
-    fn check_operator_compatibility(error_message: String, lhs: &Option<Box<Expression>>, operator: Operator, rhs: &Option<Box<Expression>>, context: &StaticTypeContext, code_line: &CodeLine) -> Result<TypeToken, InferTypeError> {
+    fn check_operator_compatibility(error_message: String, lhs: &Option<Box<Expression>>, operator: Operator, rhs: &Option<Box<Expression>>, context: &StaticTypeContext, code_line: &CodeLine) -> Result<Type, InferTypeError> {
         if let Some(lhs) = &lhs {
             if let Some(rhs) = &rhs {
                 let lhs_type = lhs.traverse_type_resulted(context, code_line)?;
                 let rhs_type = rhs.traverse_type_resulted(context, code_line)?;
 
-                let mut base_type_matrix: HashMap<(TypeToken, Operator, TypeToken), TypeToken> = HashMap::new();
-                base_type_matrix.insert((TypeToken::Custom(NameToken { name: "string".to_string() }, Mutability::Immutable), Operator::Add, TypeToken::Custom(NameToken { name: "string".to_string() }, Mutability::Immutable)), TypeToken::Custom(NameToken { name: "*string".to_string() }, Mutability::Immutable));
+                let mut base_type_matrix: HashMap<(Type, Operator, Type), Type> = HashMap::new();
+                base_type_matrix.insert((Type::Custom(Identifier { name: "string".to_string() }, Mutability::Immutable), Operator::Add, Type::Custom(Identifier { name: "string".to_string() }, Mutability::Immutable)), Type::Custom(Identifier { name: "*string".to_string() }, Mutability::Immutable));
 
                 Integer::operation_matrix(&mut base_type_matrix);
                 Float::operation_matrix(&mut base_type_matrix);
@@ -805,7 +805,7 @@ impl Expression {
         Err(InferTypeError::UnresolvedReference(error_message, code_line.clone()))
     }
 
-    pub fn set(&mut self, lhs: Option<Box<Expression>>, operation: Operator, rhs: Option<Box<Expression>>, value: Option<Box<AssignableToken>>) {
+    pub fn set(&mut self, lhs: Option<Box<Expression>>, operation: Operator, rhs: Option<Box<Expression>>, value: Option<Box<Assignable>>) {
         self.lhs = lhs;
         self.rhs = rhs;
         self.operator = operation;
@@ -814,11 +814,11 @@ impl Expression {
     }
 
     pub fn flip_value(&mut self) {
-        if let Some(AssignableToken::IntegerToken(i)) = &mut self.value.as_deref_mut() {
+        if let Some(Assignable::Integer(i)) = &mut self.value.as_deref_mut() {
             i.value = "-".to_string() + &i.value;
         }
 
-        if let Some(AssignableToken::FloatToken(f)) = &mut self.value.as_deref_mut() {
+        if let Some(Assignable::Float(f)) = &mut self.value.as_deref_mut() {
             f.value *= -1.0;
         }
 

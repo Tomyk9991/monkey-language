@@ -5,24 +5,24 @@ use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::asm_options::ASMOptions;
 use crate::core::code_generator::asm_options::interim_result::InterimResultOption;
 use crate::core::code_generator::registers::{ByteSize, GeneralPurposeRegister};
-use crate::core::lexer::tokens::assignable_token::AssignableToken;
+use crate::core::lexer::abstract_syntax_tree_nodes::assignable::Assignable;
 
-/// Builds the assembly instructions to load a float token into a general purpose register
+/// Builds the assembly instructions to load a float AST node into a general purpose register
 /// and finally to a register, where a float operation can be operated on
 #[derive(Clone)]
 pub struct PrepareRegisterOption {
     pub general_purpose_register: GeneralPurposeRegister,
-    pub assignable_token: Option<AssignableToken>,
+    pub assignable: Option<Assignable>,
 }
 
 impl ASMOptions for PrepareRegisterOption {
     fn transform(&self, stack: &mut Stack, meta: &mut MetaInfo) -> Result<ASMResult, ASMGenerateError> {
-        if let Some(AssignableToken::FloatToken(float_token)) = &self.assignable_token {
-            let size = float_token.byte_size(meta);
+        if let Some(Assignable::Float(float_node)) = &self.assignable {
+            let size = float_node.byte_size(meta);
             let general_purpose_register_sized = self.general_purpose_register.to_size_register(&ByteSize::try_from(size)?);
             let float_register = &self.general_purpose_register.to_float_register();
 
-            let mut target = match float_token.to_asm(stack, meta, Some(InterimResultOption::from(&general_purpose_register_sized)))? {
+            let mut target = match float_node.to_asm(stack, meta, Some(InterimResultOption::from(&general_purpose_register_sized)))? {
                 ASMResult::Inline(t) | ASMResult::MultilineResulted(t, _) | ASMResult::Multiline(t) => t
             };
 
@@ -30,12 +30,12 @@ impl ASMOptions for PrepareRegisterOption {
             return Ok(ASMResult::MultilineResulted(target, float_register.clone()));
         }
 
-        if let Some(AssignableToken::NameToken(name_token)) = &self.assignable_token {
-            let size = name_token.byte_size(meta);
+        if let Some(Assignable::Identifier(identifier)) = &self.assignable {
+            let size = identifier.byte_size(meta);
             let general_purpose_register_sized = self.general_purpose_register.to_size_register(&ByteSize::try_from(size)?);
             let float_register = &self.general_purpose_register.to_float_register();
 
-            let mut target = match name_token.to_asm::<InterimResultOption>(stack, meta, None)? {
+            let mut target = match identifier.to_asm::<InterimResultOption>(stack, meta, None)? {
                 ASMResult::Inline(t) | ASMResult::MultilineResulted(t, _) | ASMResult::Multiline(t) => {
                     ASMBuilder::mov_ident_line(&general_purpose_register_sized, t)
                 }

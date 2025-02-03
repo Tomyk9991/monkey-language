@@ -11,37 +11,37 @@ use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::errors::EmptyIteratorErr;
 use crate::core::lexer::scope::{PatternNotMatchedError, Scope, ScopeError};
 use crate::core::lexer::static_type_context::StaticTypeContext;
-use crate::core::lexer::token::Token;
-use crate::core::lexer::tokens::assignable_token::{AssignableToken, AssignableTokenErr};
-use crate::core::lexer::tokens::assignable_tokens::method_call_token::DyckError;
+use crate::core::lexer::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
+use crate::core::lexer::abstract_syntax_tree_nodes::assignable::{Assignable, AssignableErr};
+use crate::core::lexer::abstract_syntax_tree_nodes::assignables::method_call::DyckError;
 use crate::core::lexer::{Lines, TryParse};
-use crate::core::lexer::types::type_token::{InferTypeError, Mutability, TypeToken};
+use crate::core::lexer::types::r#type::{InferTypeError, Mutability, Type};
 use crate::core::type_checker::{InferType, StaticTypeCheck};
 use crate::core::type_checker::static_type_checker::{static_type_check_rec, StaticTypeCheckError};
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct WhileToken {
-    pub condition: AssignableToken,
-    pub stack: Vec<Token>,
+pub struct While {
+    pub condition: Assignable,
+    pub stack: Vec<AbstractSyntaxTreeNode>,
     pub code_line: CodeLine
 }
 
 #[derive(Debug)]
-pub enum WhileTokenErr {
+pub enum WhileErr {
     PatternNotMatched { target_value: String },
-    AssignableTokenErr(AssignableTokenErr),
+    AssignableErr(AssignableErr),
     ScopeErrorErr(ScopeError),
     DyckLanguageErr { target_value: String, ordering: Ordering },
     EmptyIterator(EmptyIteratorErr)
 }
 
-impl PatternNotMatchedError for WhileTokenErr {
+impl PatternNotMatchedError for WhileErr {
     fn is_pattern_not_matched_error(&self) -> bool {
-        matches!(self, WhileTokenErr::PatternNotMatched { .. })
+        matches!(self, WhileErr::PatternNotMatched { .. })
     }
 }
 
-impl InferType for WhileToken {
+impl InferType for While {
     fn infer_type(&mut self, type_context: &mut StaticTypeContext) -> Result<(), InferTypeError> {
         Scope::infer_type(&mut self.stack, type_context)?;
 
@@ -49,35 +49,35 @@ impl InferType for WhileToken {
     }
 }
 
-impl Display for WhileToken {
+impl Display for While {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "while ({}) {{Body}}", self.condition)
     }
 }
 
-impl From<DyckError> for WhileTokenErr {
+impl From<DyckError> for WhileErr {
     fn from(value: DyckError) -> Self {
-        WhileTokenErr::DyckLanguageErr { target_value: value.target_value, ordering: value.ordering }
+        WhileErr::DyckLanguageErr { target_value: value.target_value, ordering: value.ordering }
     }
 }
 
-impl From<AssignableTokenErr> for WhileTokenErr {
-    fn from(value: AssignableTokenErr) -> Self {
-        WhileTokenErr::AssignableTokenErr(value)
+impl From<AssignableErr> for WhileErr {
+    fn from(value: AssignableErr) -> Self {
+        WhileErr::AssignableErr(value)
     }
 }
 
-impl Error for WhileTokenErr { }
+impl Error for WhileErr { }
 
-impl Display for WhileTokenErr {
+impl Display for WhileErr {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", match self {
-            WhileTokenErr::PatternNotMatched { target_value } =>
+            WhileErr::PatternNotMatched { target_value } =>
                 format!("Pattern not matched for: `{target_value}`\n\t while (condition) {{}}"),
-            WhileTokenErr::AssignableTokenErr(a) => a.to_string(),
-            WhileTokenErr::EmptyIterator(e) => e.to_string(),
-            WhileTokenErr::ScopeErrorErr(a) => a.to_string(),
-            WhileTokenErr::DyckLanguageErr { target_value, ordering } => {
+            WhileErr::AssignableErr(a) => a.to_string(),
+            WhileErr::EmptyIterator(e) => e.to_string(),
+            WhileErr::ScopeErrorErr(a) => a.to_string(),
+            WhileErr::DyckLanguageErr { target_value, ordering } => {
                 let error: String = match ordering {
                     Ordering::Less => String::from("Expected `)`"),
                     Ordering::Equal => String::from("Expected expression between `,`"),
@@ -89,14 +89,14 @@ impl Display for WhileTokenErr {
     }
 }
 
-impl StaticTypeCheck for WhileToken {
+impl StaticTypeCheck for While {
     fn static_type_check(&self, type_context: &mut StaticTypeContext) -> Result<(), StaticTypeCheckError> {
         let variables_len = type_context.context.len();
         let condition_type = self.condition.infer_type_with_context(type_context, &self.code_line)?;
 
-        if !matches!(condition_type, TypeToken::Bool(_)) {
+        if !matches!(condition_type, Type::Bool(_)) {
             return Err(StaticTypeCheckError::InferredError(InferTypeError::MismatchedTypes {
-                expected: TypeToken::Bool(Mutability::Immutable),
+                expected: Type::Bool(Mutability::Immutable),
                 actual: condition_type,
                 code_line: self.code_line.clone(),
             }));
@@ -114,14 +114,14 @@ impl StaticTypeCheck for WhileToken {
     }
 }
 
-impl TryParse for WhileToken {
-    type Output = WhileToken;
-    type Err = WhileTokenErr;
+impl TryParse for While {
+    type Output = While;
+    type Err = WhileErr;
 
     fn try_parse(code_lines_iterator: &mut Lines<'_>) -> anyhow::Result<Self::Output, Self::Err> {
         let while_header = *code_lines_iterator
             .peek()
-            .ok_or(WhileTokenErr::EmptyIterator(EmptyIteratorErr))?;
+            .ok_or(WhileErr::EmptyIterator(EmptyIteratorErr))?;
 
         let split_alloc = while_header.split(vec![' ']);
         let split_ref = split_alloc.iter().map(|a| a.as_str()).collect::<Vec<_>>();
@@ -129,35 +129,35 @@ impl TryParse for WhileToken {
 
         if let ["while", "(", condition @ .., ")", "{"] = &split_ref[..] {
             let condition = condition.join(" ");
-            let condition = AssignableToken::from_str(&condition)?;
+            let condition = Assignable::from_str(&condition)?;
 
             // consume the header
             let _ = code_lines_iterator.next();
 
             while code_lines_iterator.peek().is_some() {
-                let token = Scope::try_parse(code_lines_iterator).map_err(WhileTokenErr::ScopeErrorErr)?;
+                let node = Scope::try_parse(code_lines_iterator).map_err(WhileErr::ScopeErrorErr)?;
 
-                if let Token::ScopeClosing(_) = token {
+                if let AbstractSyntaxTreeNode::ScopeClosing(_) = node {
                     break;
                 }
 
-                stack.push(token);
+                stack.push(node);
             }
 
-            return Ok(WhileToken {
+            return Ok(While {
                 condition,
                 stack,
                 code_line: while_header.clone(),
             })
         }
 
-        Err(WhileTokenErr::PatternNotMatched {
+        Err(WhileErr::PatternNotMatched {
             target_value: while_header.line.to_string(),
         })
     }
 }
 
-impl ToASM for WhileToken {
+impl ToASM for While {
     fn to_asm<T: ASMOptions + 'static>(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
         let label1 = stack.create_label();
         let label2 = stack.create_label();
@@ -173,7 +173,7 @@ impl ToASM for WhileToken {
         let general_purpose_register = self.condition.to_asm(stack, meta, options.clone())?
             .apply_with(&mut target)
             .allow(ASMResultVariance::MultilineResulted)
-            .token("while")
+            .ast_node("while")
             .finish()?;
 
         if let Some(general_purpose_register) = general_purpose_register {
@@ -183,7 +183,7 @@ impl ToASM for WhileToken {
             return Err(ASMGenerateError::ASMResult(ASMResultError::UnexpectedVariance {
                 expected: vec![ASMResultVariance::MultilineResulted],
                 actual: ASMResultVariance::from(&self.condition.to_asm(stack, meta, options)?),
-                token: "while".to_string(),
+                ast_node: "while".to_string(),
             }));
         }
 
@@ -202,8 +202,8 @@ impl ToASM for WhileToken {
         let mut has_before_label_asm = false;
         let count_before = stack.label_count;
 
-        for token in &self.stack {
-            if token.data_section(stack, meta) {
+        for node in &self.stack {
+            if node.data_section(stack, meta) {
                 has_before_label_asm = true;
                 stack.label_count -= 1;
             }

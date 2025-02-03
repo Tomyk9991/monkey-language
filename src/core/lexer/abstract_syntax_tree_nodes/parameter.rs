@@ -5,32 +5,32 @@ use crate::core::code_generator::asm_options::ASMOptions;
 use crate::core::code_generator::asm_result::{ASMResult};
 use crate::core::code_generator::conventions::CallingRegister;
 use crate::core::io::code_line::CodeLine;
-use crate::core::lexer::tokens::name_token::NameToken;
-use crate::core::lexer::types::type_token::TypeToken;
+use crate::core::lexer::abstract_syntax_tree_nodes::identifier::Identifier;
+use crate::core::lexer::types::r#type::Type;
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct ParameterToken {
+pub struct Parameter {
     /// name of the variable
-    pub name_token: NameToken,
+    pub identifier: Identifier,
     /// Type of the parameter
-    pub ty: TypeToken,
+    pub ty: Type,
     /// Where is the data stored?
     pub register: CallingRegister,
     pub mutability: bool,
     pub code_line: CodeLine
 }
 
-impl Display for ParameterToken {
+impl Display for Parameter {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("ParameterToken")
-            .field("name_token", &self.name_token)
+        f.debug_struct("Parameter")
+            .field("identifier", &self.identifier)
             .field("type", &self.ty)
             .field("register", &self.register)
             .finish()
     }
 }
 
-impl ToASM for ParameterToken {
+impl ToASM for Parameter {
     fn to_asm<T: ASMOptions>(&self, _stack: &mut Stack, _meta: &mut MetaInfo, _options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
         Ok(ASMResult::Inline(self.register.to_string()))
     }

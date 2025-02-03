@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::fmt::{Display, Formatter};
-use crate::core::lexer::tokens::assignable_token::AssignableToken;
-use crate::core::lexer::tokens::variable_token::VariableToken;
+use crate::core::lexer::abstract_syntax_tree_nodes::assignable::Assignable;
+use crate::core::lexer::abstract_syntax_tree_nodes::variable::Variable;
 use crate::core::code_generator::conventions::calling_convention_from;
 
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
@@ -16,55 +16,55 @@ use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::errors::EmptyIteratorErr;
 use crate::core::lexer::scope::{PatternNotMatchedError, Scope, ScopeError};
 use crate::core::lexer::static_type_context::{CurrentMethodInfo, StaticTypeContext};
-use crate::core::lexer::token::Token;
-use crate::core::lexer::tokens::assignable_token::AssignableTokenErr;
-use crate::core::lexer::tokens::l_value::LValue;
-use crate::core::lexer::tokens::name_token::{NameToken, NameTokenErr};
+use crate::core::lexer::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
+use crate::core::lexer::abstract_syntax_tree_nodes::assignable::AssignableErr;
+use crate::core::lexer::abstract_syntax_tree_nodes::l_value::LValue;
+use crate::core::lexer::abstract_syntax_tree_nodes::identifier::{Identifier, IdentifierErr};
 use crate::core::lexer::{Lines, TryParse};
-use crate::core::lexer::types::type_token::{InferTypeError, MethodCallSignatureMismatchCause, Mutability, TypeToken};
+use crate::core::lexer::types::r#type::{InferTypeError, MethodCallSignatureMismatchCause, Mutability, Type};
 use crate::core::type_checker::static_type_checker::{static_type_check_rec, StaticTypeCheckError};
 use crate::core::type_checker::StaticTypeCheck;
 use crate::utils::math;
 
-/// Token for method definition. Pattern is `fn function_name(argument1, ..., argumentN): returnType { }`
+/// AST node for method definition. Pattern is `fn function_name(argument1, ..., argumentN): returnType { }`
 #[derive(Debug, PartialEq, Clone)]
 pub struct MethodDefinition {
-    pub name: NameToken,
-    pub return_type: TypeToken,
+    pub identifier: Identifier,
+    pub return_type: Type,
     pub arguments: Vec<MethodArgument>,
-    pub stack: Vec<Token>,
+    pub stack: Vec<AbstractSyntaxTreeNode>,
     pub is_extern: bool,
     pub code_line: CodeLine,
 }
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct MethodArgument {
-    pub name: NameToken,
-    pub type_token: TypeToken,
+    pub name: Identifier,
+    pub ty: Type,
 }
 
 #[derive(Debug)]
 pub enum MethodDefinitionErr {
     PatternNotMatched { target_value: String },
-    NameTokenErr(NameTokenErr),
-    ReturnTokenErr(InferTypeError),
-    AssignableTokenErr(AssignableTokenErr),
+    IdentifierErr(IdentifierErr),
+    ReturnErr(InferTypeError),
+    AssignableErr(AssignableErr),
     ScopeErrorErr(ScopeError),
     EmptyIterator(EmptyIteratorErr),
 }
 
-impl TypeToken {
+impl Type {
     pub fn mutable(&self) -> bool {
         match self {
-            TypeToken::Integer(_, a) |
-            TypeToken::Float(_, a) |
-            TypeToken::Bool(a) |
-            TypeToken::Array(_, _, a) |
-            TypeToken::Custom(_, a) => match a {
+            Type::Integer(_, a) |
+            Type::Float(_, a) |
+            Type::Bool(a) |
+            Type::Array(_, _, a) |
+            Type::Custom(_, a) => match a {
                 Mutability::Mutable => true,
                 Mutability::Immutable => false
             }
-            TypeToken::Void => false
+            Type::Void => false
         }
     }
 }
@@ -75,21 +75,21 @@ impl PatternNotMatchedError for MethodDefinitionErr {
     }
 }
 
-impl From<AssignableTokenErr> for MethodDefinitionErr {
-    fn from(value: AssignableTokenErr) -> Self {
-        MethodDefinitionErr::AssignableTokenErr(value)
+impl From<AssignableErr> for MethodDefinitionErr {
+    fn from(value: AssignableErr) -> Self {
+        MethodDefinitionErr::AssignableErr(value)
     }
 }
 
-impl From<NameTokenErr> for MethodDefinitionErr {
-    fn from(value: NameTokenErr) -> Self {
-        MethodDefinitionErr::NameTokenErr(value)
+impl From<IdentifierErr> for MethodDefinitionErr {
+    fn from(value: IdentifierErr) -> Self {
+        MethodDefinitionErr::IdentifierErr(value)
     }
 }
 
 impl From<InferTypeError> for MethodDefinitionErr {
     fn from(value: InferTypeError) -> Self {
-        MethodDefinitionErr::ReturnTokenErr(value)
+        MethodDefinitionErr::ReturnErr(value)
     }
 }
 
@@ -99,10 +99,10 @@ impl Display for MethodDefinition {
             f,
             "{}fn {}({}): {}{}",
             if self.is_extern { "extern " } else { "" },
-            self.name,
+            self.identifier,
             self.arguments
                 .iter()
-                .map(|argument| format!("{}: {}{}", argument.name, if argument.type_token.mutable() { "mut" } else { "" }, argument.type_token))
+                .map(|argument| format!("{}: {}{}", argument.name, if argument.ty.mutable() { "mut" } else { "" }, argument.ty))
                 .collect::<Vec<String>>()
                 .join(", "),
             self.return_type,
@@ -118,9 +118,9 @@ impl Display for MethodDefinitionErr {
         write!(f, "{}", match self {
             MethodDefinitionErr::PatternNotMatched { target_value }
             => format!("Pattern not matched for: `{target_value}`\n\t fn function_name(argument1, ..., argumentN): returnType {{ }}"),
-            MethodDefinitionErr::AssignableTokenErr(a) => a.to_string(),
-            MethodDefinitionErr::NameTokenErr(a) => a.to_string(),
-            MethodDefinitionErr::ReturnTokenErr(a) => a.to_string(),
+            MethodDefinitionErr::AssignableErr(a) => a.to_string(),
+            MethodDefinitionErr::IdentifierErr(a) => a.to_string(),
+            MethodDefinitionErr::ReturnErr(a) => a.to_string(),
             MethodDefinitionErr::EmptyIterator(e) => e.to_string(),
             MethodDefinitionErr::ScopeErrorErr(a) => a.to_string(),
         })
@@ -131,12 +131,12 @@ impl StaticTypeCheck for MethodDefinition {
     fn static_type_check(&self, type_context: &mut StaticTypeContext) -> Result<(), StaticTypeCheckError> {
         // add the parameters to the type information
         for argument in &self.arguments {
-            type_context.context.push(VariableToken {
-                l_value: LValue::Name(argument.name.clone()),
-                mutability: argument.type_token.mutable(),
-                ty: Some(argument.type_token.clone()),
+            type_context.context.push(Variable {
+                l_value: LValue::Identifier(argument.name.clone()),
+                mutability: argument.ty.mutable(),
+                ty: Some(argument.ty.clone()),
                 define: true,
-                assignable: AssignableToken::default(),
+                assignable: Assignable::default(),
                 code_line: Default::default(),
             });
         }
@@ -145,23 +145,23 @@ impl StaticTypeCheck for MethodDefinition {
         type_context.expected_return_type = Some(CurrentMethodInfo {
             return_type: self.return_type.clone(),
             method_header_line: self.code_line.actual_line_number.clone(),
-            method_name: self.name.name.to_string(),
+            method_name: self.identifier.name.to_string(),
         });
 
 
         static_type_check_rec(&self.stack, type_context)?;
 
-        if self.return_type != TypeToken::Void {
+        if self.return_type != Type::Void {
             if let [.., last] = &self.stack[..] {
                 let mut method_return_signature_mismatch = false;
                 let mut cause = MethodCallSignatureMismatchCause::ReturnMissing;
 
-                if let Token::If(if_definition) = &last {
+                if let AbstractSyntaxTreeNode::If(if_definition) = &last {
                     method_return_signature_mismatch = !if_definition.ends_with_return_in_each_branch();
                     if method_return_signature_mismatch {
                         cause = MethodCallSignatureMismatchCause::IfCondition;
                     }
-                } else if !matches!(last, Token::Return(_)) {
+                } else if !matches!(last, AbstractSyntaxTreeNode::Return(_)) {
                     method_return_signature_mismatch = true;
                 }
 
@@ -213,28 +213,28 @@ impl TryParse for MethodDefinition {
             _ => return Err(MethodDefinitionErr::PatternNotMatched { target_value: method_header.line.to_string() })
         };
 
-        let mut tokens = vec![];
+        let mut nodes = vec![];
         // consume the header
         let _ = code_lines_iterator.next();
 
         // consume the body
         if !is_extern {
             while code_lines_iterator.peek().is_some() {
-                let token = Scope::try_parse(code_lines_iterator).map_err(MethodDefinitionErr::ScopeErrorErr)?;
+                let node = Scope::try_parse(code_lines_iterator).map_err(MethodDefinitionErr::ScopeErrorErr)?;
 
-                if let Token::ScopeClosing(_) = token {
+                if let AbstractSyntaxTreeNode::ScopeClosing(_) = node {
                     break;
                 }
 
-                tokens.push(token);
+                nodes.push(node);
             }
         }
 
         Ok(MethodDefinition {
-            name: NameToken::from_str(fn_name, false)?,
-            return_type: TypeToken::from_str(return_type, Mutability::Immutable)?,
+            identifier: Identifier::from_str(fn_name, false)?,
+            return_type: Type::from_str(return_type, Mutability::Immutable)?,
             arguments: Self::type_arguments(method_header, arguments)?,
-            stack: tokens,
+            stack: nodes,
             is_extern,
             code_line: method_header.clone(),
         })
@@ -261,8 +261,8 @@ impl MethodDefinition {
             };
 
             type_arguments.push(MethodArgument {
-                name: NameToken::from_str(name.trim(), false)?,
-                type_token: TypeToken::from_str(ty.trim(), Mutability::from(mutability))?
+                name: Identifier::from_str(name.trim(), false)?,
+                ty: Type::from_str(ty.trim(), Mutability::from(mutability))?
             })
         }
 
@@ -270,27 +270,26 @@ impl MethodDefinition {
     }
 
     pub fn method_label_name(&self) -> String {
-        if self.name.name == "main" {
+        if self.identifier.name == "main" {
             return "main".to_string();
         }
 
         let parameters = if self.arguments.is_empty() {
             "void".to_string()
         } else {
-            self.arguments.iter().map(|a| a.type_token.to_string()).collect::<Vec<String>>().join("_")
+            self.arguments.iter().map(|a| a.ty.to_string()).collect::<Vec<String>>().join("_")
         }.replace('*', "ptr");
 
 
         let return_type = self.return_type.to_string().replace('*', "ptr");
 
-        format!(".{}_{}~{}", self.name, parameters, return_type)
+        format!(".{}_{}~{}", self.identifier, parameters, return_type)
     }
 }
 
 impl ToASM for MethodDefinition {
     fn to_asm<T: ASMOptions + 'static>(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
         let mut label_header: String = String::new();
-
 
         label_header += &ASMBuilder::line(&format!("{}:", self.method_label_name()));
         label_header += &ASMBuilder::ident_line("push rbp");
@@ -308,16 +307,16 @@ impl ToASM for MethodDefinition {
                 let destination = stack_location.name.clone().to_asm(stack, meta, options.clone())?;
                 let source = match &calling_convention[index][0] {
                     CallingRegister::Register(r) => {
-                        if matches!(argument.type_token, TypeToken::Float(_, _)) {
+                        if matches!(argument.ty, Type::Float(_, _)) {
                             r.to_string()
                         } else {
-                            r.to_size_register(&ByteSize::try_from(argument.type_token.byte_size())?).to_string()
+                            r.to_size_register(&ByteSize::try_from(argument.ty.byte_size())?).to_string()
                         }
                     }
                     CallingRegister::Stack => "popppp".to_string()
                 };
 
-                method_scope.push_str(&ASMBuilder::mov_x_ident_line(destination, source, if let TypeToken::Float(f, _) = &argument.type_token {
+                method_scope.push_str(&ASMBuilder::mov_x_ident_line(destination, source, if let Type::Float(f, _) = &argument.ty {
                     Some(f.byte_size())
                 } else {
                     None
@@ -330,31 +329,31 @@ impl ToASM for MethodDefinition {
         meta.static_type_information.expected_return_type = Some(CurrentMethodInfo {
             return_type: self.return_type.clone(),
             method_header_line: self.code_line.actual_line_number.clone(),
-            method_name: self.name.name.to_string(),
+            method_name: self.identifier.name.to_string(),
         });
 
-        for token in &self.stack {
-            meta.code_line = token.code_line();
-            stack_allocation += token.byte_size(meta);
+        for node in &self.stack {
+            meta.code_line = node.code_line();
+            stack_allocation += node.byte_size(meta);
 
 
             let variables_len = meta.static_type_information.len();
 
-            if let Some(scope_stacks) = token.scope() {
+            if let Some(scope_stacks) = node.scope() {
                 for scope_stack in scope_stacks {
                     meta.static_type_information.merge(StaticTypeContext::new(scope_stack));
                 }
             }
 
-            let _ = token.to_asm::<InterimResultOption>(stack, meta, None)?
+            let _ = node.to_asm::<InterimResultOption>(stack, meta, None)?
                 .apply_with(&mut method_scope)
                 .allow(ASMResultVariance::Inline)
                 .allow(ASMResultVariance::MultilineResulted)
                 .allow(ASMResultVariance::Multiline)
-                .token("method definition")
+                .ast_node("method definition")
                 .finish()?;
 
-            token.data_section(stack, meta);
+            node.data_section(stack, meta);
 
             let amount_pop = meta.static_type_information.len() - variables_len;
 
@@ -366,7 +365,7 @@ impl ToASM for MethodDefinition {
         meta.static_type_information.expected_return_type = None;
 
         let stack_allocation_asm = ASMBuilder::ident_line(&format!("sub rsp, {}", math::lowest_power_of_2_gt_n(stack_allocation)));
-        let leave_statement = if self.return_type == TypeToken::Void { "    leave\n    ret\n".to_string() } else { String::new() };
+        let leave_statement = if self.return_type == Type::Void { "    leave\n    ret\n".to_string() } else { String::new() };
 
         Ok(ASMResult::Multiline(format!("{}{}{}{}", label_header, stack_allocation_asm, method_scope, leave_statement)))
     }

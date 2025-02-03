@@ -17,23 +17,23 @@ use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::errors::EmptyIteratorErr;
 use crate::core::lexer::scope::PatternNotMatchedError;
 use crate::core::lexer::static_type_context::StaticTypeContext;
-use crate::core::lexer::tokens::assignable_token::{AssignableToken, AssignableTokenErr};
-use crate::core::lexer::tokens::name_token::{NameToken, NameTokenErr};
+use crate::core::lexer::abstract_syntax_tree_nodes::assignable::{Assignable, AssignableErr};
+use crate::core::lexer::abstract_syntax_tree_nodes::identifier::{Identifier, IdentifierErr};
 use crate::core::lexer::{Lines, TryParse};
-use crate::core::lexer::types::type_token::{InferTypeError, MethodCallArgumentTypeMismatch, TypeToken};
+use crate::core::lexer::types::r#type::{InferTypeError, MethodCallArgumentTypeMismatch, Type};
 use crate::core::type_checker::static_type_checker::StaticTypeCheckError;
 use crate::core::type_checker::StaticTypeCheck;
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct MethodCallToken {
-    pub name: NameToken,
-    pub arguments: Vec<AssignableToken>,
+pub struct MethodCall {
+    pub identifier: Identifier,
+    pub arguments: Vec<Assignable>,
     pub code_line: CodeLine,
 }
 
-impl Display for MethodCallToken {
+impl Display for MethodCall {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}({})", self.name, self.arguments
+        write!(f, "{}({})", self.identifier, self.arguments
             .iter()
             .map(|ass| format!("{}", ass))
             .collect::<Vec<String>>()
@@ -42,45 +42,45 @@ impl Display for MethodCallToken {
 }
 
 #[derive(Debug)]
-pub enum MethodCallTokenErr {
+pub enum MethodCallErr {
     PatternNotMatched { target_value: String },
-    NameTokenErr(NameTokenErr),
+    IdentifierErr(IdentifierErr),
     DyckLanguageErr { target_value: String, ordering: Ordering },
-    AssignableTokenErr(AssignableTokenErr),
+    AssignableErr(AssignableErr),
     EmptyIterator(EmptyIteratorErr),
 }
 
-impl PatternNotMatchedError for MethodCallTokenErr {
+impl PatternNotMatchedError for MethodCallErr {
     fn is_pattern_not_matched_error(&self) -> bool {
-        matches!(self, MethodCallTokenErr::PatternNotMatched {..}) || matches!(self, MethodCallTokenErr::NameTokenErr(_))
+        matches!(self, MethodCallErr::PatternNotMatched {..}) || matches!(self, MethodCallErr::IdentifierErr(_))
     }
 }
 
-impl std::error::Error for MethodCallTokenErr {}
+impl std::error::Error for MethodCallErr {}
 
-impl From<NameTokenErr> for MethodCallTokenErr {
-    fn from(value: NameTokenErr) -> Self {
-        MethodCallTokenErr::NameTokenErr(value)
+impl From<IdentifierErr> for MethodCallErr {
+    fn from(value: IdentifierErr) -> Self {
+        MethodCallErr::IdentifierErr(value)
     }
 }
 
-impl From<AssignableTokenErr> for MethodCallTokenErr {
-    fn from(value: AssignableTokenErr) -> Self { MethodCallTokenErr::AssignableTokenErr(value) }
+impl From<AssignableErr> for MethodCallErr {
+    fn from(value: AssignableErr) -> Self { MethodCallErr::AssignableErr(value) }
 }
 
-impl From<DyckError> for MethodCallTokenErr {
+impl From<DyckError> for MethodCallErr {
     fn from(s: DyckError) -> Self {
-        MethodCallTokenErr::DyckLanguageErr { target_value: s.target_value, ordering: s.ordering }
+        MethodCallErr::DyckLanguageErr { target_value: s.target_value, ordering: s.ordering }
     }
 }
 
-impl Display for MethodCallTokenErr {
+impl Display for MethodCallErr {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let message = match self {
-            MethodCallTokenErr::PatternNotMatched { target_value } => format!("\"{target_value}\" must match: methodName(assignable1, ..., assignableN)"),
-            MethodCallTokenErr::AssignableTokenErr(a) => a.to_string(),
-            MethodCallTokenErr::NameTokenErr(a) => a.to_string(),
-            MethodCallTokenErr::DyckLanguageErr { target_value, ordering } =>
+            MethodCallErr::PatternNotMatched { target_value } => format!("\"{target_value}\" must match: methodName(assignable1, ..., assignableN)"),
+            MethodCallErr::AssignableErr(a) => a.to_string(),
+            MethodCallErr::IdentifierErr(a) => a.to_string(),
+            MethodCallErr::DyckLanguageErr { target_value, ordering } =>
                 {
                     let error: String = match ordering {
                         Ordering::Less => String::from("Expected `)`"),
@@ -89,15 +89,15 @@ impl Display for MethodCallTokenErr {
                     };
                     format!("\"{target_value}\": {error}")
                 }
-            MethodCallTokenErr::EmptyIterator(e) => e.to_string()
+            MethodCallErr::EmptyIterator(e) => e.to_string()
         };
 
         write!(f, "{}", message)
     }
 }
 
-impl FromStr for MethodCallToken {
-    type Err = MethodCallTokenErr;
+impl FromStr for MethodCall {
+    type Err = MethodCallErr;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut code_line = CodeLine::imaginary(s);
@@ -106,23 +106,23 @@ impl FromStr for MethodCallToken {
             code_line.line += " ;";
         }
 
-        MethodCallToken::try_parse(&code_line)
+        MethodCall::try_parse(&code_line)
     }
 }
 
-impl TryParse for MethodCallToken {
-    type Output = MethodCallToken;
-    type Err = MethodCallTokenErr;
+impl TryParse for MethodCall {
+    type Output = MethodCall;
+    type Err = MethodCallErr;
 
     fn try_parse(code_lines_iterator: &mut Lines<'_>) -> anyhow::Result<Self::Output, Self::Err> {
-        let code_line = *code_lines_iterator.peek().ok_or(MethodCallTokenErr::EmptyIterator(EmptyIteratorErr))?;
-        MethodCallToken::try_parse(code_line)
+        let code_line = *code_lines_iterator.peek().ok_or(MethodCallErr::EmptyIterator(EmptyIteratorErr))?;
+        MethodCall::try_parse(code_line)
     }
 }
 
-impl StaticTypeCheck for MethodCallToken {
+impl StaticTypeCheck for MethodCall {
     fn static_type_check(&self, type_context: &mut StaticTypeContext) -> Result<(), StaticTypeCheckError> {
-        let method_defs = type_context.methods.iter().filter(|m| m.name == self.name).collect::<Vec<_>>();
+        let method_defs = type_context.methods.iter().filter(|m| m.identifier == self.identifier).collect::<Vec<_>>();
 
         'outer: for method_def in &method_defs {
             if method_def.arguments.len() != self.arguments.len() {
@@ -142,7 +142,7 @@ impl StaticTypeCheck for MethodCallToken {
                 .zip(&self.arguments);
 
             for (index, (argument_def, argument_call)) in zipped.enumerate() {
-                let def_type = argument_def.type_token.clone();
+                let def_type = argument_def.ty.clone();
                 let call_type = argument_call.infer_type_with_context(type_context, &self.code_line)?;
 
                 if def_type < call_type {
@@ -165,56 +165,70 @@ impl StaticTypeCheck for MethodCallToken {
         }
 
         if method_defs.is_empty() {
-            return Err(StaticTypeCheckError::InferredError(InferTypeError::UnresolvedReference(self.name.name.clone(), self.code_line.clone())));
+            return Err(StaticTypeCheckError::InferredError(InferTypeError::UnresolvedReference(self.identifier.name.clone(), self.code_line.clone())));
         }
 
         let signatures = method_defs
             .iter()
-            .map(|m| m.arguments.iter().map(|a| a.type_token.clone()).collect::<Vec<_>>())
+            .map(|m| m.arguments.iter().map(|a| a.ty.clone()).collect::<Vec<_>>())
             .collect::<Vec<_>>();
 
         Err(StaticTypeCheckError::InferredError(InferTypeError::MethodCallSignatureMismatch {
             signatures,
-            method_name: self.name.clone(),
+            method_name: self.identifier.clone(),
             code_line: self.code_line.clone(),
             provided: self.arguments.iter().filter_map(|a| a.infer_type_with_context(type_context, &self.code_line).ok()).collect::<Vec<_>>(),
         }))
     }
 }
 
-impl MethodCallToken {
-    pub fn try_parse(code_line: &CodeLine) -> anyhow::Result<Self, MethodCallTokenErr> {
+impl MethodCall {
+    pub fn method_label_name(&self, static_type_context: &StaticTypeContext) -> String {
+        let method_definition = static_type_context.methods.iter().filter(|m| m.identifier.name == self.identifier.name)
+            .map(|m| (m, m.arguments.iter().map(|a| a.ty.clone())))
+            .filter(|(_, a)| a.clone().collect::<Vec<_>>() == self.arguments.iter().filter_map(|a| a.infer_type(&self.code_line)).collect::<Vec<_>>())
+            .map(|(m, _)| m)
+            .collect::<Vec<_>>();
+
+        if let Some(method_definition) = method_definition.first() {
+            method_definition.method_label_name()
+        } else {
+            "EMPTY".to_string()
+        }
+    }
+
+    pub fn try_parse(code_line: &CodeLine) -> anyhow::Result<Self, MethodCallErr> {
         let split_alloc = code_line.split(vec![' ', ';']);
         let split = split_alloc.iter().map(|a| a.as_str()).collect::<Vec<_>>();
 
         if let [name, "(", ")", ";"] = &split[..] {
-            Ok(MethodCallToken {
-                name: NameToken::from_str(name, false)?,
+            Ok(MethodCall {
+                identifier: Identifier::from_str(name, false)?,
                 arguments: vec![],
                 code_line: code_line.clone(),
             })
         } else if let [name, "(", argument_segments @ .., ")", ";"] = &split[..] {
-            let name = NameToken::from_str(name, false)?;
+            let name = Identifier::from_str(name, false)?;
             let joined = &argument_segments.join(" ");
             let argument_strings = dyck_language(joined, [vec!['{', '('], vec![','], vec!['}', ')']])?;
 
             let arguments = argument_strings
                 .iter()
-                .map(|s| AssignableToken::from_str(s))
+                .map(|s| Assignable::from_str(s))
                 .collect::<Result<Vec<_>, _>>()?;
 
-            Ok(MethodCallToken {
-                name,
+            Ok(MethodCall {
+                identifier: name,
                 arguments,
                 code_line: code_line.clone(),
             })
         } else {
-            Err(MethodCallTokenErr::PatternNotMatched { target_value: code_line.line.to_string() })
+            Err(MethodCallErr::PatternNotMatched { target_value: code_line.line.to_string() })
         }
     }
 
-    pub fn infer_type_with_context(&self, context: &StaticTypeContext, code_line: &CodeLine) -> Result<TypeToken, InferTypeError> {
-        if let Some(method_def) = conventions::method_definitions(context, code_line, &self.arguments, &self.name.name)?.first() {
+    pub fn infer_type_with_context(&self, context: &StaticTypeContext, code_line: &CodeLine) -> Result<Type, InferTypeError> {
+        if let Some(method_def) = conventions::method_definitions(context, code_line, &self.arguments, &self.identifier.name)?.first() {
             let mut context = context.clone();
             if let Err(StaticTypeCheckError::InferredError(err)) = self.static_type_check(&mut context) {
                 return Err(err);
@@ -226,24 +240,24 @@ impl MethodCallToken {
     }
 }
 
-impl ToASM for MethodCallToken {
+impl ToASM for MethodCall {
     fn to_asm<T: ASMOptions + 'static>(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
-        let mut calling_convention = conventions::calling_convention(stack, meta, &self.arguments, &self.name.name)?;
+        let mut calling_convention = conventions::calling_convention(stack, meta, &self.arguments, &self.identifier.name)?;
         calling_convention.reverse();
 
-        let method_defs = conventions::method_definitions(&meta.static_type_information, &meta.code_line, &self.arguments, &self.name.name)?;
+        let method_defs = conventions::method_definitions(&meta.static_type_information, &meta.code_line, &self.arguments, &self.identifier.name)?;
 
         if method_defs.is_empty() {
-            return Err(ASMGenerateError::TypeNotInferrable(InferTypeError::UnresolvedReference(self.name.to_string(), meta.code_line.clone())))
+            return Err(ASMGenerateError::TypeNotInferrable(InferTypeError::UnresolvedReference(self.identifier.to_string(), meta.code_line.clone())))
         }
 
         if method_defs.len() > 1 {
             return Err(ASMGenerateError::TypeNotInferrable(InferTypeError::MethodCallSignatureMismatch {
                 signatures: meta.static_type_information.methods
-                    .iter().filter(|m| m.name.name == self.name.name)
-                    .map(|m| m.arguments.iter().map(|a| a.type_token.clone()).collect::<Vec<_>>())
+                    .iter().filter(|m| m.identifier.name == self.identifier.name)
+                    .map(|m| m.arguments.iter().map(|a| a.ty.clone()).collect::<Vec<_>>())
                     .collect::<Vec<_>>(),
-                method_name: self.name.clone(),
+                method_name: self.identifier.clone(),
                 code_line: meta.code_line.clone(),
                 provided: self.arguments.iter().filter_map(|a| a.infer_type_with_context(&meta.static_type_information, &meta.code_line).ok()).collect::<Vec<_>>(),
             }))
@@ -267,7 +281,7 @@ impl ToASM for MethodCallToken {
         };
 
 
-        if method_def.return_type != TypeToken::Void && register_to_move_result_64bit == resulting_register {
+        if method_def.return_type != Type::Void && register_to_move_result_64bit == resulting_register {
             registers_push_ignore.push(&resulting_register);
         }
 
@@ -304,7 +318,7 @@ impl ToASM for MethodCallToken {
                 ASMResult::MultilineResulted(source, r) => {
                     target += &source;
 
-                    if let AssignableToken::FloatToken(_) = argument {
+                    if let Assignable::Float(_) = argument {
                         inline = true;
                         assign = r.to_string();
                     } else {
@@ -333,7 +347,7 @@ impl ToASM for MethodCallToken {
                 ASMResult::Multiline(_) => return Err(ASMGenerateError::ASMResult(ASMResultError::UnexpectedVariance {
                     expected: vec![ASMResultVariance::Inline, ASMResultVariance::MultilineResulted],
                     actual: ASMResultVariance::Multiline,
-                    token: "Method call".to_string(),
+                    ast_node: "Method call".to_string(),
                 }))
             }
 
@@ -389,9 +403,9 @@ impl ToASM for MethodCallToken {
         }
 
         target += &ASMBuilder::ident(&ASMBuilder::comment_line(&self.to_string()));
-        target += &ASMBuilder::ident_line(&format!("call {}", if method_def.is_extern { method_def.name.name.to_string() } else { method_def.method_label_name() }));
+        target += &ASMBuilder::ident_line(&format!("call {}", if method_def.is_extern { method_def.identifier.name.to_string() } else { method_def.method_label_name() }));
 
-        if method_def.return_type != TypeToken::Void {
+        if method_def.return_type != Type::Void {
             target += &ASMBuilder::mov_x_ident_line(
                 &register_to_move_result,
                 GeneralPurposeRegister::Bit64(Bit64::Rax).to_size_register(&ByteSize::try_from(method_def.return_type.byte_size())?),
@@ -404,7 +418,7 @@ impl ToASM for MethodCallToken {
         }
 
 
-        if method_def.return_type != TypeToken::Void {
+        if method_def.return_type != Type::Void {
             Ok(ASMResult::MultilineResulted(target, register_to_move_result.to_size_register(&ByteSize::try_from(method_def.return_type.byte_size())?)))
         } else {
             Ok(ASMResult::Multiline(target))
@@ -417,7 +431,7 @@ impl ToASM for MethodCallToken {
     }
 
     fn byte_size(&self, meta: &mut MetaInfo) -> usize {
-        if let Some(method_def) = meta.static_type_information.methods.iter().find(|m| m.name == self.name) {
+        if let Some(method_def) = meta.static_type_information.methods.iter().find(|m| m.identifier == self.identifier) {
             method_def.return_type.byte_size()
         } else {
             0

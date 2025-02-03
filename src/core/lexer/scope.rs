@@ -3,37 +3,37 @@ use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 use crate::core::lexer::errors::EmptyIteratorErr;
 use crate::core::lexer::static_type_context::StaticTypeContext;
-use crate::core::lexer::token::Token;
-use crate::core::lexer::tokenizer::{Lexer};
-use crate::core::lexer::tokens::assignable_token::AssignableToken;
-use crate::core::lexer::tokens::assignable_tokens::equation_parser::expression::Expression;
-use crate::core::lexer::tokens::assignable_tokens::method_call_token::MethodCallToken;
-use crate::core::lexer::tokens::for_token::ForToken;
-use crate::core::lexer::tokens::if_token::IfToken;
-use crate::core::lexer::tokens::method_definition::MethodDefinition;
-use crate::core::lexer::tokens::scope_ending::ScopeEnding;
-use crate::core::lexer::tokens::variable_token::VariableToken;
+use crate::core::lexer::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
+use crate::core::lexer::parser::{Lexer};
+use crate::core::lexer::abstract_syntax_tree_nodes::assignable::Assignable;
+use crate::core::lexer::abstract_syntax_tree_nodes::assignables::equation_parser::expression::Expression;
+use crate::core::lexer::abstract_syntax_tree_nodes::assignables::method_call::MethodCall;
+use crate::core::lexer::abstract_syntax_tree_nodes::r#for::For;
+use crate::core::lexer::abstract_syntax_tree_nodes::r#if::If;
+use crate::core::lexer::abstract_syntax_tree_nodes::method_definition::MethodDefinition;
+use crate::core::lexer::abstract_syntax_tree_nodes::scope_ending::ScopeEnding;
+use crate::core::lexer::abstract_syntax_tree_nodes::variable::Variable;
 use crate::core::lexer::{Lines, TryParse};
-use crate::core::lexer::tokens::import_token::ImportToken;
-use crate::core::lexer::tokens::r#while::WhileToken;
-use crate::core::lexer::tokens::return_token::ReturnToken;
-use crate::core::lexer::types::type_token::InferTypeError;
+use crate::core::lexer::abstract_syntax_tree_nodes::import::Import;
+use crate::core::lexer::abstract_syntax_tree_nodes::r#while::While;
+use crate::core::lexer::abstract_syntax_tree_nodes::r#return::Return;
+use crate::core::lexer::types::r#type::InferTypeError;
 
-/// Tokens inside scope
+/// AST nodes inside scope
 pub struct Scope {
-    pub tokens: Vec<Token>
+    pub ast_nodes: Vec<AbstractSyntaxTreeNode>
 }
 
 impl Scope {
     ///Optimizing for level 1
-    pub fn o1(&mut self) {
-        self.optimize_methods();
+    pub fn o1(&mut self, static_type_context: &StaticTypeContext) {
+        self.optimize_methods(static_type_context);
         // self.remove_double_strings();
     }
 }
 
 impl Scope {
-    pub fn infer_type(stack: &mut Vec<Token>, type_context: &mut StaticTypeContext) -> Result<(), InferTypeError> {
+    pub fn infer_type(stack: &mut Vec<AbstractSyntaxTreeNode>, type_context: &mut StaticTypeContext) -> Result<(), InferTypeError> {
         let variables_len = type_context.len();
 
         let scoped_checker = StaticTypeContext::new(stack);
@@ -50,22 +50,23 @@ impl Scope {
         Ok(())
     }
 
-    fn method_call_in_assignable(assignable_token: &AssignableToken) -> Option<Vec<String>> {
-        match assignable_token {
-            AssignableToken::MethodCallToken(method_call) => {
-                Some(vec![method_call.name.name.clone()])
+    fn method_call_in_assignable(assignable: &Assignable, static_type_context: &StaticTypeContext) -> Option<Vec<String>> {
+        match assignable {
+            Assignable::MethodCall(method_call) => {
+                let name = method_call.method_label_name(static_type_context);
+                Some(vec![name])
             }
-            AssignableToken::ArithmeticEquation(a) => {
-                Self::method_calls_in_expression(a)
+            Assignable::ArithmeticEquation(a) => {
+                Self::method_calls_in_expression(a, static_type_context)
             }
-            AssignableToken::String(_) | AssignableToken::IntegerToken(_) |
-            AssignableToken::FloatToken(_) | AssignableToken::Parameter(_) |
-            AssignableToken::BooleanToken(_) | AssignableToken::NameToken(_) |
-            AssignableToken::Object(_) => None,
-            AssignableToken::ArrayToken(array_token) => {
+            Assignable::String(_) | Assignable::Integer(_) |
+            Assignable::Float(_) | Assignable::Parameter(_) |
+            Assignable::Boolean(_) | Assignable::Identifier(_) |
+            Assignable::Object(_) => None,
+            Assignable::Array(array) => {
                 let mut elements = vec![];
-                for value in &array_token.values {
-                    if let Some(mut more) = Self::method_call_in_assignable(value) {
+                for value in &array.values {
+                    if let Some(mut more) = Self::method_call_in_assignable(value, static_type_context) {
                         elements.append(&mut more);
                     }
                 }
@@ -79,20 +80,20 @@ impl Scope {
         }
     }
 
-    fn method_calls_in_expression(expression: &Expression) -> Option<Vec<String>> {
+    fn method_calls_in_expression(expression: &Expression, static_type_context: &StaticTypeContext) -> Option<Vec<String>> {
         if let Some(a) = &expression.value {
-            return Self::method_call_in_assignable(a.as_ref());
+            return Self::method_call_in_assignable(a.as_ref(), static_type_context);
         }
 
         let mut final_result = vec![];
         if let Some(lhs) = &expression.lhs {
-            if let Some(lhs_result) = Self::method_calls_in_expression(lhs.as_ref()) {
+            if let Some(lhs_result) = Self::method_calls_in_expression(lhs.as_ref(), static_type_context) {
                 lhs_result.iter().for_each(|a| final_result.push(a.clone()));
             }
         }
 
         if let Some(rhs) = &expression.rhs {
-            if let Some(rhs_result) = Self::method_calls_in_expression(rhs.as_ref()) {
+            if let Some(rhs_result) = Self::method_calls_in_expression(rhs.as_ref(), static_type_context) {
                 rhs_result.iter().for_each(|a| final_result.push(a.clone()));
             }
         }
@@ -104,38 +105,38 @@ impl Scope {
         }
     }
 
-    fn method_calls_in_stack(stack: &Vec<Token>) -> Vec<String> {
+    fn method_calls_in_stack(stack: &Vec<AbstractSyntaxTreeNode>, static_type_context: &StaticTypeContext) -> Vec<String> {
         let mut called_methods = HashSet::new();
 
-        for token in stack {
-            match token {
-                Token::Variable(variable_token) => {
-                    if let Some(calls) = Self::method_call_in_assignable(&variable_token.assignable) {
+        for node in stack {
+            match node {
+                AbstractSyntaxTreeNode::Variable(variable) => {
+                    if let Some(calls) = Self::method_call_in_assignable(&variable.assignable, static_type_context) {
                         calls.iter().for_each(|a| { called_methods.insert(a.clone()); });
                     }
                 }
-                Token::MethodCall(method_call) => {
+                AbstractSyntaxTreeNode::MethodCall(method_call) => {
                     for args in &method_call.arguments {
-                        if let Some(calls) = Self::method_call_in_assignable(args) {
+                        if let Some(calls) = Self::method_call_in_assignable(args, static_type_context) {
                             calls.iter().for_each(|a| { called_methods.insert(a.clone()); });
                         }
                     }
 
-                    called_methods.insert(method_call.name.to_string());
+                    called_methods.insert(method_call.method_label_name(static_type_context).to_string());
                 }
-                Token::If(if_definition) => {
-                    Self::method_calls_in_stack(&if_definition.if_stack).iter().for_each(|a| { called_methods.insert(a.clone()); });
+                AbstractSyntaxTreeNode::If(if_definition) => {
+                    Self::method_calls_in_stack(&if_definition.if_stack, static_type_context).iter().for_each(|a| { called_methods.insert(a.clone()); });
                     if let Some(else_stack) = &if_definition.else_stack {
-                        Self::method_calls_in_stack(else_stack).iter().for_each(|a| { called_methods.insert(a.clone()); })
+                        Self::method_calls_in_stack(else_stack, static_type_context).iter().for_each(|a| { called_methods.insert(a.clone()); })
                     }
                 }
-                Token::For(for_loop) => {
-                    Self::method_calls_in_stack(&for_loop.stack).iter().for_each(|a| { called_methods.insert(a.clone()); });
+                AbstractSyntaxTreeNode::For(for_loop) => {
+                    Self::method_calls_in_stack(&for_loop.stack, static_type_context).iter().for_each(|a| { called_methods.insert(a.clone()); });
                 }
-                Token::While(while_loop) => {
-                    Self::method_calls_in_stack(&while_loop.stack).iter().for_each(|a| { called_methods.insert(a.clone()); });
+                AbstractSyntaxTreeNode::While(while_loop) => {
+                    Self::method_calls_in_stack(&while_loop.stack, static_type_context).iter().for_each(|a| { called_methods.insert(a.clone()); });
                 }
-                Token::MethodDefinition(_) | Token::Import(_) | Token::Return(_) | Token::ScopeClosing(_) => {}
+                AbstractSyntaxTreeNode::MethodDefinition(_) | AbstractSyntaxTreeNode::Import(_) | AbstractSyntaxTreeNode::Return(_) | AbstractSyntaxTreeNode::ScopeClosing(_) => {}
             }
         }
 
@@ -143,29 +144,27 @@ impl Scope {
     }
 
     /// Optimize methods out, which are not traversed down from the main method
-    pub fn optimize_methods(&mut self) {
-        if let Some(Token::MethodDefinition(main_method)) = self.tokens.iter().find(|a| matches!(a, Token::MethodDefinition(main) if main.name.name == "main")) {
-            let called_methods = Self::method_calls_in_stack(&main_method.stack);
+    pub fn optimize_methods(&mut self, static_type_context: &StaticTypeContext) {
+        if let Some(AbstractSyntaxTreeNode::MethodDefinition(main_method)) = self.ast_nodes.iter().find(|a| matches!(a, AbstractSyntaxTreeNode::MethodDefinition(main) if main.identifier.name == "main")) {
+            let called_methods = Self::method_calls_in_stack(&main_method.stack, static_type_context);
             let mut uncalled_methods = vec![];
 
+            for node in &self.ast_nodes {
+                if let AbstractSyntaxTreeNode::MethodDefinition(method_definition) = node {
+                    if method_definition.identifier.name == "main" { continue; }
 
-
-            for token in &self.tokens {
-                if let Token::MethodDefinition(method_definition) = token {
-                    if method_definition.name.name == "main" { continue; }
-
-                    if !called_methods.contains(&method_definition.name.name) {
-                        uncalled_methods.push(method_definition.name.name.clone());
+                    if !called_methods.contains(&method_definition.method_label_name()) {
+                        uncalled_methods.push(method_definition.method_label_name());
                     }
                 }
             }
 
             let mut indices = uncalled_methods.iter().filter_map(|called_method| {
-                self.tokens.iter().position(|token| matches!(token, Token::MethodDefinition(method_def) if method_def.name.name == *called_method))
+                self.ast_nodes.iter().position(|node| matches!(node, AbstractSyntaxTreeNode::MethodDefinition(method_def) if method_def.identifier.name == *called_method))
             }).collect::<Vec<_>>();
             indices.sort();
 
-            indices.iter().rev().for_each(|index| { self.tokens.remove(*index); });
+            indices.iter().rev().for_each(|index| { self.ast_nodes.remove(*index); });
         }
     }
 }
@@ -201,15 +200,15 @@ impl Display for ScopeError {
 
 impl Error for ScopeError {}
 
-macro_rules! token_expand {
-    ($code_lines_iterator: ident, $(($token_implementation:ty, $token_type:ident, $iterates_over_same_scope:ident)),*) => {
+macro_rules! ast_node_expand {
+    ($code_lines_iterator: ident, $(($ast_node_implementation:ty, $ast_node_type:ident, $iterates_over_same_scope:ident)),*) => {
         $(
-            match <$token_implementation as TryParse>::try_parse($code_lines_iterator) {
+            match <$ast_node_implementation as TryParse>::try_parse($code_lines_iterator) {
                 Ok(t) => {
                     if $iterates_over_same_scope {
                         $code_lines_iterator.next();
                     }
-                    return Ok(Token::$token_type(t))
+                    return Ok(AbstractSyntaxTreeNode::$ast_node_type(t))
                 },
                 Err(err) => {
                     if !err.is_pattern_not_matched_error() {
@@ -226,33 +225,33 @@ macro_rules! token_expand {
 
 impl Debug for Scope {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let tokens_str = self.tokens
+        let ast_nodes_str = self.ast_nodes
             .iter()
-            .fold(String::new(), |mut acc, token| {
-                acc.push_str(&format!("\t{:?}\n", token));
+            .fold(String::new(), |mut acc, node| {
+                acc.push_str(&format!("\t{:?}\n", node));
                 acc
             });
         
-        write!(f, "Scope: [\n{}]", tokens_str)
+        write!(f, "Scope: [\n{}]", ast_nodes_str)
     }
 }
 
 impl Display for Scope {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Scope: [\n{}]", self.tokens
+        write!(f, "Scope: [\n{}]", self.ast_nodes
             .iter()
-            .map(|token| {
-                if let Token::MethodDefinition(md) = token {
+            .map(|node| {
+                if let AbstractSyntaxTreeNode::MethodDefinition(md) = node {
                     let postfix = if !md.is_extern {
                         let mut target = String::new();
-                        for inner_token in &md.stack { target += &format!("\n\t\t{inner_token}"); }
+                        for inner_node in &md.stack { target += &format!("\n\t\t{inner_node}"); }
                         target
                     } else {
                         String::new()
                     };
                     format!("\t{}{postfix}\n", md)
                 } else {
-                    format!("\t{}\n", token)
+                    format!("\t{}\n", node)
                 }
             })
             .collect::<String>())
@@ -271,32 +270,32 @@ pub trait PatternNotMatchedError {
 
 
 impl TryParse for Scope {
-    type Output = Token;
+    type Output = AbstractSyntaxTreeNode;
     type Err = ScopeError;
 
     /// Tries to parse the code lines into a scope using a peekable iterator and a greedy algorithm
     /// # Returns
-    /// * Ok(Token) if the code lines iterator can be parsed into a scope
+    /// * Ok(ASTNode) if the code lines iterator can be parsed into a scope
     /// * Err(ScopeError) if the code lines iterator cannot be parsed into a scope
     fn try_parse(code_lines_iterator: &mut Lines<'_>) -> anyhow::Result<Self::Output, ScopeError> {
         // let mut pattern_distances: Vec<(usize, Box<dyn Error>)> = vec![];
         let code_line = *code_lines_iterator.peek().ok_or(ScopeError::EmptyIterator(EmptyIteratorErr))?;
 
-        token_expand!(code_lines_iterator,
-            (ImportToken,               Import,             true),
-            (VariableToken<'=', ';'>,   Variable,           true),
-            (MethodCallToken,           MethodCall,         true),
-            (ScopeEnding,               ScopeClosing,       true),
-            (ReturnToken,               Return,             true),
-            (IfToken,                   If,                 false),
-            (MethodDefinition,          MethodDefinition,   false),
-            (ForToken,                  For,           false),
-            (WhileToken,                While,         false)
+        ast_node_expand!(code_lines_iterator,
+            (Import,               Import,              true),
+            (Variable<'=', ';'>,   Variable,            true),
+            (MethodCall,           MethodCall,          true),
+            (ScopeEnding,          ScopeClosing,        true),
+            (Return,               Return,              true),
+            (If,                   If,                  false),
+            (MethodDefinition,     MethodDefinition,    false),
+            (For,                  For,                 false),
+            (While,                While,               false)
         );
 
         let c = *code_lines_iterator.peek().ok_or(ScopeError::EmptyIterator(EmptyIteratorErr))?;
         Err(ScopeError::ParsingError {
-            message: format!("Unexpected token: {:?}: {}", c.actual_line_number, code_line.line)
+            message: format!("Unexpected node: {:?}: {}", c.actual_line_number, code_line.line)
         })
     }
 }

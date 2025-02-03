@@ -9,14 +9,14 @@ use crate::core::code_generator::asm_result::{ASMResult};
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::register_destination::word_from_byte_size;
 use crate::core::code_generator::registers::{Bit64, ByteSize, FloatRegister, GeneralPurposeRegister};
-use crate::core::lexer::tokens::assignable_tokens::equation_parser::operator::{AssemblerOperation, Operator, OperatorToASM};
-use crate::core::lexer::tokens::assignable_tokens::integer_token::IntegerToken;
-use crate::core::lexer::tokens::name_token::NameTokenErr;
+use crate::core::lexer::abstract_syntax_tree_nodes::assignables::equation_parser::operator::{AssemblerOperation, Operator, OperatorToASM};
+use crate::core::lexer::abstract_syntax_tree_nodes::identifier::IdentifierErr;
 use crate::core::lexer::types::cast_to::{Castable, CastTo};
 use crate::core::lexer::types::float::Float::{Float32, Float64};
-use crate::core::lexer::types::integer::Integer;
-use crate::core::lexer::types::type_token::{InferTypeError, Mutability, TypeToken};
+use crate::core::lexer::types::r#type::{InferTypeError, Mutability, Type};
 
+type Integer = crate::core::lexer::abstract_syntax_tree_nodes::assignables::integer::IntegerAST;
+type IntegerType = crate::core::lexer::types::integer::Integer;
 #[derive(Debug, Default, PartialEq, Eq, Hash, Clone)]
 pub enum Float {
     #[default]
@@ -25,18 +25,18 @@ pub enum Float {
 }
 
 
-impl Castable<Float, Integer> for Float {
-    fn add_casts(cast_matrix: &mut HashMap<(TypeToken, TypeToken), &'static str>) {
-        for ty in &[Integer::I8, Integer::I16, Integer::I32, Integer::I64, Integer::U8, Integer::U16, Integer::U32, Integer::U64] {
-            cast_matrix.insert((TypeToken::Float(Float32, Mutability::Immutable), TypeToken::Integer(ty.clone(), Mutability::Immutable)), "cvtss2si");
-            cast_matrix.insert((TypeToken::Float(Float64, Mutability::Immutable), TypeToken::Integer(ty.clone(), Mutability::Immutable)), "cvtsd2si");
+impl Castable<Float, IntegerType> for Float {
+    fn add_casts(cast_matrix: &mut HashMap<(Type, Type), &'static str>) {
+        for ty in &[IntegerType::I8, IntegerType::I16, IntegerType::I32, IntegerType::I64, IntegerType::U8, IntegerType::U16, IntegerType::U32, IntegerType::U64] {
+            cast_matrix.insert((Type::Float(Float32, Mutability::Immutable), Type::Integer(ty.clone(), Mutability::Immutable)), "cvtss2si");
+            cast_matrix.insert((Type::Float(Float64, Mutability::Immutable), Type::Integer(ty.clone(), Mutability::Immutable)), "cvtsd2si");
         }
     }
 
-    fn cast_from_to(t1: &Float, t2: &Integer, source: &str, stack: &mut Stack, meta: &mut MetaInfo) -> Result<ASMResult, ASMGenerateError> {
+    fn cast_from_to(t1: &Float, t2: &IntegerType, source: &str, stack: &mut Stack, meta: &mut MetaInfo) -> Result<ASMResult, ASMGenerateError> {
         let cast_to = CastTo {
-            from: TypeToken::Float(t1.clone(), Mutability::Immutable),
-            to: TypeToken::Integer(t2.clone(), Mutability::Immutable),
+            from: Type::Float(t1.clone(), Mutability::Immutable),
+            to: Type::Integer(t2.clone(), Mutability::Immutable),
         };
 
         let instruction = cast_to.to_asm::<InterimResultOption>(stack, meta, None)?.to_string();
@@ -62,7 +62,7 @@ impl Castable<Float, Integer> for Float {
 
 
 
-        if IntegerToken::from_str(source).is_ok() || is_stack_variable {
+        if Integer::from_str(source).is_ok() || is_stack_variable {
             target += &ASMBuilder::mov_ident_line(&cast_from_register, source);
         }
 
@@ -71,8 +71,8 @@ impl Castable<Float, Integer> for Float {
         target += &ASMBuilder::ident_line(&format!("{instruction} {}, {}", &cast_from_register, &xmm7));
 
         match t1.byte_size() {
-            8 if *t2 != Integer::I64 => {
-                match <Integer as Castable<Integer, Integer>>::cast_from_to(&Integer::I64, t2, &cast_from_register.to_string(), stack, meta)? {
+            8 if *t2 != IntegerType::I64 => {
+                match <IntegerType as Castable<IntegerType, IntegerType>>::cast_from_to(&IntegerType::I64, t2, &cast_from_register.to_string(), stack, meta)? {
                     ASMResult::Inline(r) => {
                         target += &r;
                         return Ok(ASMResult::Inline(target))
@@ -87,8 +87,8 @@ impl Castable<Float, Integer> for Float {
                     }
                 };
             }
-            4 if *t2 != Integer::I32 => {
-                match <Integer as Castable<Integer, Integer>>::cast_from_to(&Integer::I32, t2, &cast_from_register.to_string(), stack, meta)? {
+            4 if *t2 != IntegerType::I32 => {
+                match <IntegerType as Castable<IntegerType, IntegerType>>::cast_from_to(&IntegerType::I32, t2, &cast_from_register.to_string(), stack, meta)? {
                     ASMResult::Inline(r) => {
                         target += &r;
                         return Ok(ASMResult::Inline(target))
@@ -112,15 +112,15 @@ impl Castable<Float, Integer> for Float {
 }
 
 impl Castable<Float, Float> for Float {
-    fn add_casts(cast_matrix: &mut HashMap<(TypeToken, TypeToken), &'static str>) {
-        cast_matrix.insert((TypeToken::Float(Float32, Mutability::Immutable), TypeToken::Float(Float64, Mutability::Immutable)), "cvtss2sd");
-        cast_matrix.insert((TypeToken::Float(Float64, Mutability::Immutable), TypeToken::Float(Float32, Mutability::Immutable)), "cvtsd2ss");
+    fn add_casts(cast_matrix: &mut HashMap<(Type, Type), &'static str>) {
+        cast_matrix.insert((Type::Float(Float32, Mutability::Immutable), Type::Float(Float64, Mutability::Immutable)), "cvtss2sd");
+        cast_matrix.insert((Type::Float(Float64, Mutability::Immutable), Type::Float(Float32, Mutability::Immutable)), "cvtsd2ss");
     }
 
     fn cast_from_to(t1: &Float, t2: &Float, source: &str, stack: &mut Stack, meta: &mut MetaInfo) -> Result<ASMResult, ASMGenerateError> {
         let cast_to = CastTo {
-            from: TypeToken::Float(t1.clone(), Mutability::Immutable),
-            to: TypeToken::Float(t2.clone(), Mutability::Immutable),
+            from: Type::Float(t1.clone(), Mutability::Immutable),
+            to: Type::Float(t2.clone(), Mutability::Immutable),
         };
 
         let instruction = cast_to.to_asm::<InterimResultOption>(stack, meta, None)?.to_string();
@@ -155,22 +155,22 @@ impl Castable<Float, Float> for Float {
 }
 
 impl Float {
-    pub fn operation_matrix(base_type_matrix: &mut HashMap<(TypeToken, Operator, TypeToken), TypeToken>) {
+    pub fn operation_matrix(base_type_matrix: &mut HashMap<(Type, Operator, Type), Type>) {
         let types = [Float32, Float64];
 
         for ty in &types {
-            base_type_matrix.insert((TypeToken::Float(ty.clone(), Mutability::Immutable), Operator::Add, TypeToken::Float(ty.clone(), Mutability::Immutable)), TypeToken::Float(ty.clone(), Mutability::Immutable));
-            base_type_matrix.insert((TypeToken::Float(ty.clone(), Mutability::Immutable), Operator::Sub, TypeToken::Float(ty.clone(), Mutability::Immutable)), TypeToken::Float(ty.clone(), Mutability::Immutable));
-            base_type_matrix.insert((TypeToken::Float(ty.clone(), Mutability::Immutable), Operator::Mul, TypeToken::Float(ty.clone(), Mutability::Immutable)), TypeToken::Float(ty.clone(), Mutability::Immutable));
-            base_type_matrix.insert((TypeToken::Float(ty.clone(), Mutability::Immutable), Operator::Div, TypeToken::Float(ty.clone(), Mutability::Immutable)), TypeToken::Float(ty.clone(), Mutability::Immutable));
+            base_type_matrix.insert((Type::Float(ty.clone(), Mutability::Immutable), Operator::Add, Type::Float(ty.clone(), Mutability::Immutable)), Type::Float(ty.clone(), Mutability::Immutable));
+            base_type_matrix.insert((Type::Float(ty.clone(), Mutability::Immutable), Operator::Sub, Type::Float(ty.clone(), Mutability::Immutable)), Type::Float(ty.clone(), Mutability::Immutable));
+            base_type_matrix.insert((Type::Float(ty.clone(), Mutability::Immutable), Operator::Mul, Type::Float(ty.clone(), Mutability::Immutable)), Type::Float(ty.clone(), Mutability::Immutable));
+            base_type_matrix.insert((Type::Float(ty.clone(), Mutability::Immutable), Operator::Div, Type::Float(ty.clone(), Mutability::Immutable)), Type::Float(ty.clone(), Mutability::Immutable));
 
-            base_type_matrix.insert((TypeToken::Float(ty.clone(), Mutability::Immutable), Operator::LessThan, TypeToken::Float(ty.clone(), Mutability::Immutable)), TypeToken::Bool(Mutability::Immutable));
-            base_type_matrix.insert((TypeToken::Float(ty.clone(), Mutability::Immutable), Operator::GreaterThan, TypeToken::Float(ty.clone(), Mutability::Immutable)), TypeToken::Bool(Mutability::Immutable));
-            base_type_matrix.insert((TypeToken::Float(ty.clone(), Mutability::Immutable), Operator::LessThanEqual, TypeToken::Float(ty.clone(), Mutability::Immutable)), TypeToken::Bool(Mutability::Immutable));
-            base_type_matrix.insert((TypeToken::Float(ty.clone(), Mutability::Immutable), Operator::GreaterThanEqual, TypeToken::Float(ty.clone(), Mutability::Immutable)), TypeToken::Bool(Mutability::Immutable));
+            base_type_matrix.insert((Type::Float(ty.clone(), Mutability::Immutable), Operator::LessThan, Type::Float(ty.clone(), Mutability::Immutable)), Type::Bool(Mutability::Immutable));
+            base_type_matrix.insert((Type::Float(ty.clone(), Mutability::Immutable), Operator::GreaterThan, Type::Float(ty.clone(), Mutability::Immutable)), Type::Bool(Mutability::Immutable));
+            base_type_matrix.insert((Type::Float(ty.clone(), Mutability::Immutable), Operator::LessThanEqual, Type::Float(ty.clone(), Mutability::Immutable)), Type::Bool(Mutability::Immutable));
+            base_type_matrix.insert((Type::Float(ty.clone(), Mutability::Immutable), Operator::GreaterThanEqual, Type::Float(ty.clone(), Mutability::Immutable)), Type::Bool(Mutability::Immutable));
 
-            base_type_matrix.insert((TypeToken::Float(ty.clone(), Mutability::Immutable), Operator::Equal, TypeToken::Float(ty.clone(), Mutability::Immutable)), TypeToken::Bool(Mutability::Immutable));
-            base_type_matrix.insert((TypeToken::Float(ty.clone(), Mutability::Immutable), Operator::NotEqual, TypeToken::Float(ty.clone(), Mutability::Immutable)), TypeToken::Bool(Mutability::Immutable));
+            base_type_matrix.insert((Type::Float(ty.clone(), Mutability::Immutable), Operator::Equal, Type::Float(ty.clone(), Mutability::Immutable)), Type::Bool(Mutability::Immutable));
+            base_type_matrix.insert((Type::Float(ty.clone(), Mutability::Immutable), Operator::NotEqual, Type::Float(ty.clone(), Mutability::Immutable)), Type::Bool(Mutability::Immutable));
         }
     }
 
@@ -231,7 +231,7 @@ impl FromStr for Float {
         Ok(match s {
             "f32" => Float32,
             "f64" => Float64,
-            _ => return Err(InferTypeError::TypeNotAllowed(NameTokenErr::UnmatchedRegex { target_value: String::from(s) }))
+            _ => return Err(InferTypeError::TypeNotAllowed(IdentifierErr::UnmatchedRegex { target_value: String::from(s) }))
         })
     }
 }

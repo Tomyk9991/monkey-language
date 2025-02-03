@@ -12,39 +12,39 @@ use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::errors::EmptyIteratorErr;
 use crate::core::lexer::scope::{PatternNotMatchedError, Scope, ScopeError};
 use crate::core::lexer::static_type_context::StaticTypeContext;
-use crate::core::lexer::token::Token;
-use crate::core::lexer::tokens::assignable_token::{AssignableToken, AssignableTokenErr};
+use crate::core::lexer::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
+use crate::core::lexer::abstract_syntax_tree_nodes::assignable::{Assignable, AssignableErr};
 use crate::core::lexer::{Lines, TryParse};
-use crate::core::lexer::types::type_token::{InferTypeError, Mutability, TypeToken};
+use crate::core::lexer::types::r#type::{InferTypeError, Mutability, Type};
 use crate::core::type_checker::{InferType, StaticTypeCheck};
 use crate::core::type_checker::static_type_checker::{static_type_check_rec, StaticTypeCheckError};
 
-/// Token for if definition.
+/// AST node for if definition.
 /// # Pattern
 /// - `if (condition) {Body}`
 /// - `if (condition) {Body} else {Body}`
 #[derive(Debug, PartialEq, Clone)]
-pub struct IfToken {
-    pub condition: AssignableToken,
-    pub if_stack: Vec<Token>,
-    pub else_stack: Option<Vec<Token>>,
+pub struct If {
+    pub condition: Assignable,
+    pub if_stack: Vec<AbstractSyntaxTreeNode>,
+    pub else_stack: Option<Vec<AbstractSyntaxTreeNode>>,
     pub code_line: CodeLine,
 }
 
-impl IfToken {
+impl If {
     pub fn ends_with_return_in_each_branch(&self) -> bool {
         if self.else_stack.is_none() {
             return false;
         }
 
         if let [.., last_if] = &self.if_stack[..] {
-            if let Token::If(inner_if) = last_if {
+            if let AbstractSyntaxTreeNode::If(inner_if) = last_if {
                 return inner_if.ends_with_return_in_each_branch();
             }
 
             if let Some(else_stack) = &self.else_stack {
                 if let [.., last_else] = &else_stack[..] {
-                    return matches!(last_if, Token::Return(_)) && matches!(last_else, Token::Return(_));
+                    return matches!(last_if, AbstractSyntaxTreeNode::Return(_)) && matches!(last_else, AbstractSyntaxTreeNode::Return(_));
                 }
             }
         }
@@ -53,7 +53,7 @@ impl IfToken {
     }
 }
 
-impl InferType for IfToken {
+impl InferType for If {
     fn infer_type(&mut self, type_context: &mut StaticTypeContext) -> Result<(), InferTypeError> {
         Scope::infer_type(&mut self.if_stack, type_context)?;
 
@@ -66,26 +66,26 @@ impl InferType for IfToken {
 }
 
 #[derive(Debug)]
-pub enum IfDefinitionErr {
+pub enum IfErr {
     PatternNotMatched { target_value: String },
-    AssignableTokenErr(AssignableTokenErr),
+    AssignableErr(AssignableErr),
     ScopeErrorErr(ScopeError),
     EmptyIterator(EmptyIteratorErr),
 }
 
-impl PatternNotMatchedError for IfDefinitionErr {
+impl PatternNotMatchedError for IfErr {
     fn is_pattern_not_matched_error(&self) -> bool {
-        matches!(self, IfDefinitionErr::PatternNotMatched {..})
+        matches!(self, IfErr::PatternNotMatched {..})
     }
 }
 
-impl From<AssignableTokenErr> for IfDefinitionErr {
-    fn from(value: AssignableTokenErr) -> Self {
-        IfDefinitionErr::AssignableTokenErr(value)
+impl From<AssignableErr> for IfErr {
+    fn from(value: AssignableErr) -> Self {
+        IfErr::AssignableErr(value)
     }
 }
 
-impl Display for IfToken {
+impl Display for If {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
@@ -99,28 +99,28 @@ impl Display for IfToken {
     }
 }
 
-impl Error for IfDefinitionErr {}
+impl Error for IfErr {}
 
-impl Display for IfDefinitionErr {
+impl Display for IfErr {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", match self {
-            IfDefinitionErr::PatternNotMatched { target_value }
+            IfErr::PatternNotMatched { target_value }
             => format!("Pattern not matched for: `{target_value}`\n\t if(condition) {{ }}"),
-            IfDefinitionErr::AssignableTokenErr(a) => a.to_string(),
-            IfDefinitionErr::ScopeErrorErr(a) => a.to_string(),
-            IfDefinitionErr::EmptyIterator(e) => e.to_string(),
+            IfErr::AssignableErr(a) => a.to_string(),
+            IfErr::ScopeErrorErr(a) => a.to_string(),
+            IfErr::EmptyIterator(e) => e.to_string(),
         })
     }
 }
 
-impl StaticTypeCheck for IfToken {
+impl StaticTypeCheck for If {
     fn static_type_check(&self, type_context: &mut StaticTypeContext) -> Result<(), StaticTypeCheckError> {
         let variables_len = type_context.context.len();
         let condition_type = self.condition.infer_type_with_context(type_context, &self.code_line)?;
 
-        if !matches!(condition_type, TypeToken::Bool(_)) {
+        if !matches!(condition_type, Type::Bool(_)) {
             return Err(StaticTypeCheckError::InferredError(InferTypeError::MismatchedTypes {
-                expected: TypeToken::Bool(Mutability::Immutable),
+                expected: Type::Bool(Mutability::Immutable),
                 actual: condition_type,
                 code_line: self.code_line.clone(),
             }));
@@ -150,26 +150,26 @@ impl StaticTypeCheck for IfToken {
     }
 }
 
-impl TryParse for IfToken {
-    type Output = IfToken;
-    type Err = IfDefinitionErr;
+impl TryParse for If {
+    type Output = If;
+    type Err = IfErr;
 
     fn try_parse(code_lines_iterator: &mut Lines<'_>) -> anyhow::Result<Self::Output, Self::Err> {
         let if_header = *code_lines_iterator
             .peek()
-            .ok_or(IfDefinitionErr::EmptyIterator(EmptyIteratorErr))?;
+            .ok_or(IfErr::EmptyIterator(EmptyIteratorErr))?;
 
         let split_alloc = if_header.split(vec![' ']);
         let split_ref = split_alloc.iter().map(|a| a.as_str()).collect::<Vec<_>>();
 
         let mut if_stack = vec![];
-        let mut else_stack: Option<Vec<Token>> = None;
+        let mut else_stack: Option<Vec<AbstractSyntaxTreeNode>> = None;
 
         let mut requested_else_block = false;
 
         if let ["if", "(", condition @ .., ")", "{"] = &split_ref[..] {
             let condition = condition.join(" ");
-            let condition = AssignableToken::from_str(&condition)?;
+            let condition = Assignable::from_str(&condition)?;
 
             // consume the header
             let _ = code_lines_iterator.next();
@@ -189,16 +189,16 @@ impl TryParse for IfToken {
                         }
 
                         while code_lines_iterator.peek().is_some() {
-                            let token = Scope::try_parse(code_lines_iterator)
-                                .map_err(IfDefinitionErr::ScopeErrorErr)?;
+                            let node = Scope::try_parse(code_lines_iterator)
+                                .map_err(IfErr::ScopeErrorErr)?;
 
-                            if let Token::ScopeClosing(_) = token {
+                            if let AbstractSyntaxTreeNode::ScopeClosing(_) = node {
                                 break 'outer;
                             }
 
 
                             if let Some(else_stack) = &mut else_stack {
-                                else_stack.push(token);
+                                else_stack.push(node);
                             }
                         }
                     } else if requested_else_block {
@@ -206,19 +206,19 @@ impl TryParse for IfToken {
                     }
                 }
 
-                let token = Scope::try_parse(code_lines_iterator)
-                    .map_err(IfDefinitionErr::ScopeErrorErr)?;
+                let node = Scope::try_parse(code_lines_iterator)
+                    .map_err(IfErr::ScopeErrorErr)?;
 
-                if let Token::ScopeClosing(_) = token {
+                if let AbstractSyntaxTreeNode::ScopeClosing(_) = node {
                     // after breaking, because you've read "}". check if else block starts. if so, dont break.
                     requested_else_block = true;
                     continue;
                 }
 
-                if_stack.push(token);
+                if_stack.push(node);
             }
 
-            return Ok(IfToken {
+            return Ok(If {
                 condition,
                 if_stack,
                 else_stack,
@@ -227,14 +227,14 @@ impl TryParse for IfToken {
         }
 
 
-        Err(IfDefinitionErr::PatternNotMatched {
+        Err(IfErr::PatternNotMatched {
             target_value: if_header.line.to_string()
         })
     }
 }
 
 
-impl ToASM for IfToken {
+impl ToASM for If {
     fn to_asm<T: ASMOptions + 'static>(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
         let mut target = String::new();
 
@@ -258,7 +258,7 @@ impl ToASM for IfToken {
             ASMResult::Multiline(_) => return Err(ASMResultError::UnexpectedVariance {
                 expected: vec![ASMResultVariance::Inline, ASMResultVariance::MultilineResulted],
                 actual: ASMResultVariance::Multiline,
-                token: "if token".to_string(),
+                ast_node: "if node".to_string(),
             }.into())
         });
         target += &result;
@@ -301,16 +301,16 @@ impl ToASM for IfToken {
             stack.label_count -= 1;
         }
 
-        for token in &self.if_stack {
-            if token.data_section(stack, meta) {
+        for node in &self.if_stack {
+            if node.data_section(stack, meta) {
                 has_before_label_asm = true;
                 stack.label_count -= 1;
             }
         }
 
         if let Some(else_stack) = &self.else_stack {
-            for token in else_stack {
-                if token.data_section(stack, meta) {
+            for node in else_stack {
+                if node.data_section(stack, meta) {
                     has_before_label_asm = true;
                     stack.label_count -= 1;
                 }

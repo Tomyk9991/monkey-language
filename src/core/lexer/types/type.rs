@@ -7,22 +7,22 @@ use crate::core::code_generator::{ASMGenerateError, MetaInfo};
 use crate::core::code_generator::generator::Stack;
 
 use crate::core::io::code_line::CodeLine;
-use crate::core::lexer::tokens::assignable_token::AssignableToken;
-use crate::core::lexer::tokens::assignable_tokens::equation_parser::operator::{AssemblerOperation, Operator, OperatorToASM};
-use crate::core::lexer::tokens::l_value::LValue;
-use crate::core::lexer::tokens::name_token::{NameToken, NameTokenErr};
-use crate::core::lexer::tokens::variable_token::VariableToken;
+use crate::core::lexer::abstract_syntax_tree_nodes::assignable::Assignable;
+use crate::core::lexer::abstract_syntax_tree_nodes::assignables::equation_parser::operator::{AssemblerOperation, Operator, OperatorToASM};
+use crate::core::lexer::abstract_syntax_tree_nodes::l_value::LValue;
+use crate::core::lexer::abstract_syntax_tree_nodes::identifier::{Identifier, IdentifierErr};
+use crate::core::lexer::abstract_syntax_tree_nodes::variable::Variable;
 use crate::core::lexer::types::boolean::Boolean;
 use crate::core::lexer::types::cast_to::CastTo;
 use crate::core::lexer::types::float::Float;
 use crate::core::lexer::types::integer::Integer;
 
 pub mod common {
-    use crate::core::lexer::tokens::name_token::NameToken;
-    use crate::core::lexer::types::type_token::{Mutability, TypeToken};
+    use crate::core::lexer::abstract_syntax_tree_nodes::identifier::Identifier;
+    use crate::core::lexer::types::r#type::{Mutability, Type};
 
     #[allow(unused)]
-    pub fn string() -> TypeToken { TypeToken::Custom(NameToken { name: "*string".to_string() }, Mutability::Immutable)}
+    pub fn string() -> Type { Type::Custom(Identifier { name: "*string".to_string() }, Mutability::Immutable)}
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
@@ -32,36 +32,36 @@ pub enum Mutability {
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
-pub enum TypeToken {
+pub enum Type {
     Integer(Integer, Mutability),
     Float(Float, Mutability),
     Bool(Mutability),
     Void,
-    Array(Box<TypeToken>, usize, Mutability),
-    Custom(NameToken, Mutability),
+    Array(Box<Type>, usize, Mutability),
+    Custom(Identifier, Mutability),
 }
 
 
 #[derive(Debug)]
 pub enum InferTypeError {
-    TypesNotCalculable(TypeToken, Operator, TypeToken, CodeLine),
+    TypesNotCalculable(Type, Operator, Type, CodeLine),
     UnresolvedReference(String, CodeLine),
-    TypeNotAllowed(NameTokenErr),
-    MultipleTypesInArray{expected: TypeToken, unexpected_type: TypeToken, unexpected_type_index: usize, code_line: CodeLine},
-    IllegalDereference(AssignableToken, TypeToken, CodeLine),
-    IllegalArrayTypeLookup(TypeToken, CodeLine),
-    IllegalIndexOperation(TypeToken, CodeLine),
+    TypeNotAllowed(IdentifierErr),
+    MultipleTypesInArray{expected: Type, unexpected_type: Type, unexpected_type_index: usize, code_line: CodeLine},
+    IllegalDereference(Assignable, Type, CodeLine),
+    IllegalArrayTypeLookup(Type, CodeLine),
+    IllegalIndexOperation(Type, CodeLine),
     NoTypePresent(LValue, CodeLine),
-    DefineNotAllowed(VariableToken<'=', ';'>, CodeLine),
-    IntegerTooSmall { ty: TypeToken, literal: String ,code_line: CodeLine },
-    FloatTooSmall { ty: TypeToken, float: f64, code_line: CodeLine },
+    DefineNotAllowed(Variable<'=', ';'>, CodeLine),
+    IntegerTooSmall { ty: Type, literal: String ,code_line: CodeLine },
+    FloatTooSmall { ty: Type, float: f64, code_line: CodeLine },
     MethodCallArgumentAmountMismatch { expected: usize, actual: usize, code_line: CodeLine },
     MethodCallArgumentTypeMismatch { info: Box<MethodCallArgumentTypeMismatch> },
-    MethodReturnArgumentTypeMismatch { expected: TypeToken, actual: TypeToken, code_line: CodeLine },
-    MethodReturnSignatureMismatch { expected: TypeToken, method_name: String, method_head_line: Range<usize>, cause: MethodCallSignatureMismatchCause },
-    MethodCallSignatureMismatch { signatures: Vec<Vec<TypeToken>>, method_name: NameToken, code_line: CodeLine, provided: Vec<TypeToken> },
+    MethodReturnArgumentTypeMismatch { expected: Type, actual: Type, code_line: CodeLine },
+    MethodReturnSignatureMismatch { expected: Type, method_name: String, method_head_line: Range<usize>, cause: MethodCallSignatureMismatchCause },
+    MethodCallSignatureMismatch { signatures: Vec<Vec<Type>>, method_name: Identifier, code_line: CodeLine, provided: Vec<Type> },
     NameCollision(String, CodeLine),
-    MismatchedTypes { expected: TypeToken, actual: TypeToken, code_line: CodeLine },
+    MismatchedTypes { expected: Type, actual: Type, code_line: CodeLine },
 }
 
 #[derive(Debug)]
@@ -100,20 +100,20 @@ impl Display for MethodCallSignatureMismatchCause {
 
 #[derive(Debug)]
 pub struct MethodCallArgumentTypeMismatch {
-    pub expected: TypeToken,
-    pub actual: TypeToken,
+    pub expected: Type,
+    pub actual: Type,
     pub nth_parameter: usize,
     pub code_line: CodeLine,
 }
 
-impl PartialOrd for TypeToken {
+impl PartialOrd for Type {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         let (equal_types, m1, m2) = match (self, other) {
-            (TypeToken::Float(f1, m1), TypeToken::Float(f2, m2)) if f1 == f2 => (true, m1, m2),
-            (TypeToken::Integer(i1, m1), TypeToken::Integer(i2, m2)) if i1 == i2 => (true, m1, m2),
-            (TypeToken::Bool(m1), TypeToken::Bool(m2)) => (true, m1, m2),
-            (TypeToken::Array(t1, s1, m1), TypeToken::Array(t2, s2, m2)) if t1.partial_cmp(t2)?.is_le() && s1 == s2 => (true, m1, m2),
-            (TypeToken::Custom(n1, m1), TypeToken::Custom(n2, m2)) if n1 == n2 => (true, m1, m2),
+            (Type::Float(f1, m1), Type::Float(f2, m2)) if f1 == f2 => (true, m1, m2),
+            (Type::Integer(i1, m1), Type::Integer(i2, m2)) if i1 == i2 => (true, m1, m2),
+            (Type::Bool(m1), Type::Bool(m2)) => (true, m1, m2),
+            (Type::Array(t1, s1, m1), Type::Array(t2, s2, m2)) if t1.partial_cmp(t2)?.is_le() && s1 == s2 => (true, m1, m2),
+            (Type::Custom(n1, m1), Type::Custom(n2, m2)) if n1 == n2 => (true, m1, m2),
             _ => return Some(Ordering::Less)
         };
 
@@ -129,22 +129,22 @@ impl PartialOrd for TypeToken {
     }
 }
 
-impl OperatorToASM for TypeToken {
+impl OperatorToASM for Type {
     fn operation_to_asm<T: Display>(&self, operator: &Operator, registers: &[T], stack: &mut Stack, meta: &mut MetaInfo) -> Result<AssemblerOperation, ASMGenerateError> {
 
         match self {
-            TypeToken::Integer(t, _) => t.operation_to_asm(operator, registers, stack, meta),
-            TypeToken::Float(t, _) => t.operation_to_asm(operator, registers, stack, meta),
-            TypeToken::Bool(_) => Boolean::True.operation_to_asm(operator, registers, stack, meta),
-            TypeToken::Void => Err(ASMGenerateError::InternalError("Void cannot be operated on".to_string())),
-            TypeToken::Array(_, _, _) | TypeToken::Custom(_, _) => todo!(),
+            Type::Integer(t, _) => t.operation_to_asm(operator, registers, stack, meta),
+            Type::Float(t, _) => t.operation_to_asm(operator, registers, stack, meta),
+            Type::Bool(_) => Boolean::True.operation_to_asm(operator, registers, stack, meta),
+            Type::Void => Err(ASMGenerateError::InternalError("Void cannot be operated on".to_string())),
+            Type::Array(_, _, _) | Type::Custom(_, _) => todo!(),
         }
     }
 }
 
 
-impl From<NameTokenErr> for InferTypeError {
-    fn from(value: NameTokenErr) -> Self {
+impl From<IdentifierErr> for InferTypeError {
+    fn from(value: IdentifierErr) -> Self {
         InferTypeError::TypeNotAllowed(value)
     }
 }
@@ -184,67 +184,67 @@ impl Display for InferTypeError {
             InferTypeError::IntegerTooSmall { ty, literal: integer, code_line } => write!(f, "Line: {:?}\t`{integer}` doesn't fit into the type `{ty}`", code_line.actual_line_number),
             InferTypeError::FloatTooSmall { ty, float, code_line } =>
                 write!(f, "Line: {:?}\t`{float}` doesn't fit into the type `{ty}`", code_line.actual_line_number),
-            InferTypeError::DefineNotAllowed(variable_token, code_line) => {
-                write!(f, "Line: {:?}\t`{}` is not allowed to be defined here", code_line.actual_line_number, variable_token.l_value)
+            InferTypeError::DefineNotAllowed(variable, code_line) => {
+                write!(f, "Line: {:?}\t`{}` is not allowed to be defined here", code_line.actual_line_number, variable.l_value)
             }
         }
     }
 }
 
-impl Display for TypeToken {
+impl Display for Type {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", match self {
-            TypeToken::Integer(int, _) => format!("{}", int),
-            TypeToken::Float(float, _) => format!("{}", float),
-            TypeToken::Bool(_) => "bool".to_string(),
-            TypeToken::Void => "void".to_string(),
-            TypeToken::Array(array_type, size, _) => format!("[{}; {size}]", array_type),
-            TypeToken::Custom(name, _) => name.name.clone().to_string(),
+            Type::Integer(int, _) => format!("{}", int),
+            Type::Float(float, _) => format!("{}", float),
+            Type::Bool(_) => "bool".to_string(),
+            Type::Void => "void".to_string(),
+            Type::Array(array_type, size, _) => format!("[{}; {size}]", array_type),
+            Type::Custom(name, _) => name.name.clone().to_string(),
         })
     }
 }
 
-impl TypeToken {
+impl Type {
     pub fn from_str(s: &str, mutability: Mutability) -> Result<Self, InferTypeError> {
         if let ["[ ", type_str, ", ", type_size, "]"] = &s.split_inclusive(' ').collect::<Vec<_>>()[..] {
-            return Ok(TypeToken::Array(Box::new(TypeToken::from_str(type_str.trim(), mutability.clone())?), type_size.trim().parse::<usize>()
-                .map_err(|_| InferTypeError::TypeNotAllowed(NameTokenErr::UnmatchedRegex {
+            return Ok(Type::Array(Box::new(Type::from_str(type_str.trim(), mutability.clone())?), type_size.trim().parse::<usize>()
+                .map_err(|_| InferTypeError::TypeNotAllowed(IdentifierErr::UnmatchedRegex {
                     target_value: s.to_string(),
                 }))?, mutability));
         }
 
         Ok(match s {
-            "bool" => TypeToken::Bool(Mutability::Immutable),
-            "void" => TypeToken::Void,
+            "bool" => Type::Bool(Mutability::Immutable),
+            "void" => Type::Void,
             custom => {
                 if let Ok(int) = Integer::from_str(custom) {
-                    return Ok(TypeToken::Integer(int, mutability));
+                    return Ok(Type::Integer(int, mutability));
                 }
 
                 if let Ok(float) = Float::from_str(custom) {
-                    return Ok(TypeToken::Float(float, mutability));
+                    return Ok(Type::Float(float, mutability));
                 }
 
                 if !lazy_regex::regex_is_match!(r"^[\*&]*[a-zA-Z_$][a-zA-Z_$0-9]*[\*&]*$", s) {
-                    return Err(InferTypeError::TypeNotAllowed(NameTokenErr::UnmatchedRegex { target_value: String::from(custom) }));
+                    return Err(InferTypeError::TypeNotAllowed(IdentifierErr::UnmatchedRegex { target_value: String::from(custom) }));
                 }
 
-                TypeToken::Custom(NameToken { name: custom.to_string() }, mutability)
+                Type::Custom(Identifier { name: custom.to_string() }, mutability)
             }
         })
     }
     pub fn set_mutability(&mut self, m: Mutability) {
         match self {
-            TypeToken::Integer(_, mutability) => *mutability = m,
-            TypeToken::Float(_, mutability) => *mutability = m,
-            TypeToken::Bool(mutability) => *mutability = m,
-            TypeToken::Void => {},
-            TypeToken::Array(_, _, mutability) => *mutability = m,
-            TypeToken::Custom(_, mutability) => *mutability = m,
+            Type::Integer(_, mutability) => *mutability = m,
+            Type::Float(_, mutability) => *mutability = m,
+            Type::Bool(mutability) => *mutability = m,
+            Type::Void => {},
+            Type::Array(_, _, mutability) => *mutability = m,
+            Type::Custom(_, mutability) => *mutability = m,
         }
     }
 
-    pub fn cast_to(&self, to: &TypeToken) -> CastTo {
+    pub fn cast_to(&self, to: &Type) -> CastTo {
         CastTo {
             from: self.clone(),
             to: to.clone(),
@@ -252,25 +252,25 @@ impl TypeToken {
     }
 
     pub fn is_float(&self) -> bool {
-        matches!(self, TypeToken::Float(_, _))
+        matches!(self, Type::Float(_, _))
     }
 
     // takes the element array type and returns the type of the array
-    pub fn pop_array(&self) -> Option<TypeToken> {
-        if let TypeToken::Array(array_type, _, _) = self {
+    pub fn pop_array(&self) -> Option<Type> {
+        if let Type::Array(array_type, _, _) = self {
             return Some(*array_type.clone());
         }
 
         None
     }
     /// removes * from type
-    pub fn pop_pointer(&self) -> Option<TypeToken> {
-        if let TypeToken::Custom(name_token, _) = self {
-            if name_token.name.starts_with('*') {
-                let new_name_token = name_token.name.replacen('*', "", 1);
+    pub fn pop_pointer(&self) -> Option<Type> {
+        if let Type::Custom(identifier, _) = self {
+            if identifier.name.starts_with('*') {
+                let new_identifier_node = identifier.name.replacen('*', "", 1);
 
-                if let Ok(ty_token) = TypeToken::from_str(&new_name_token, Mutability::Immutable) {
-                    return Some(ty_token);
+                if let Ok(ty) = Type::from_str(&new_identifier_node, Mutability::Immutable) {
+                    return Some(ty);
                 }
             }
         }
@@ -280,7 +280,7 @@ impl TypeToken {
 
 
     pub fn is_pointer(&self) -> bool {
-        if let TypeToken::Custom(name, _) = self {
+        if let Type::Custom(name, _) = self {
             return name.name.starts_with('*');
         }
 
@@ -290,78 +290,78 @@ impl TypeToken {
     /// adds * from type
     pub fn push_pointer(&self) -> Self {
         match self {
-            TypeToken::Integer(int, mutability) => TypeToken::Custom(NameToken { name: format!("*{}", int) }, mutability.clone()),
-            TypeToken::Float(float, mutability) => TypeToken::Custom(NameToken { name: format!("*{}", float) }, mutability.clone()),
-            TypeToken::Bool(mutability) => TypeToken::Custom(NameToken { name: "*bool".to_string() }, mutability.clone()),
-            TypeToken::Void => TypeToken::Custom(NameToken { name: format!("*{}", TypeToken::Void) }, Mutability::Immutable),
-            TypeToken::Array(array_type, _, mutability) => TypeToken::Custom(NameToken { name: format!("*{}", array_type)}, mutability.clone()),
-            TypeToken::Custom(custom, mutability) => TypeToken::Custom(NameToken { name: format!("*{}", custom) }, mutability.clone()),
+            Type::Integer(int, mutability) => Type::Custom(Identifier { name: format!("*{}", int) }, mutability.clone()),
+            Type::Float(float, mutability) => Type::Custom(Identifier { name: format!("*{}", float) }, mutability.clone()),
+            Type::Bool(mutability) => Type::Custom(Identifier { name: "*bool".to_string() }, mutability.clone()),
+            Type::Void => Type::Custom(Identifier { name: format!("*{}", Type::Void) }, Mutability::Immutable),
+            Type::Array(array_type, _, mutability) => Type::Custom(Identifier { name: format!("*{}", array_type)}, mutability.clone()),
+            Type::Custom(custom, mutability) => Type::Custom(Identifier { name: format!("*{}", custom) }, mutability.clone()),
         }
     }
 
-    pub fn implicit_cast_to(&self, assignable_token: &mut AssignableToken, desired_type: &TypeToken, code_line: &CodeLine) -> Result<Option<TypeToken>, InferTypeError> {
+    pub fn implicit_cast_to(&self, assignable: &mut Assignable, desired_type: &Type, code_line: &CodeLine) -> Result<Option<Type>, InferTypeError> {
         match (self, desired_type) {
-            (TypeToken::Integer(_, _), TypeToken::Integer(desired, _)) => {
-                if let AssignableToken::IntegerToken(integer_token) = assignable_token {
+            (Type::Integer(_, _), Type::Integer(desired, _)) => {
+                if let Assignable::Integer(integer) = assignable {
                     match desired {
-                        Integer::I8 if Self::in_range(-127_i8, 127_i8, Integer::from_number_str(&integer_token.value)) => {
-                            integer_token.ty = desired.clone();
+                        Integer::I8 if Self::in_range(-127_i8, 127_i8, Integer::from_number_str(&integer.value)) => {
+                            integer.ty = desired.clone();
                             return Ok(Some(desired_type.clone()))
                         },
-                        Integer::U8 => if Self::in_range(0_u8, 255_u8, Integer::from_number_str(&integer_token.value)) {
-                            integer_token.ty = desired.clone();
+                        Integer::U8 => if Self::in_range(0_u8, 255_u8, Integer::from_number_str(&integer.value)) {
+                            integer.ty = desired.clone();
                             return Ok(Some(desired_type.clone()))
                         },
-                        Integer::I16 => if Self::in_range(-32768_i16, 32767_i16, Integer::from_number_str(&integer_token.value)) {
-                            integer_token.ty = desired.clone();
+                        Integer::I16 => if Self::in_range(-32768_i16, 32767_i16, Integer::from_number_str(&integer.value)) {
+                            integer.ty = desired.clone();
                             return Ok(Some(desired_type.clone()))
                         },
-                        Integer::U16 => if Self::in_range(0_u16, 65535_u16, Integer::from_number_str(&integer_token.value)) {
-                            integer_token.ty = desired.clone();
+                        Integer::U16 => if Self::in_range(0_u16, 65535_u16, Integer::from_number_str(&integer.value)) {
+                            integer.ty = desired.clone();
                             return Ok(Some(desired_type.clone()))
                         },
-                        Integer::I32 => if Self::in_range(-2_147_483_648_i32, 2_147_483_647_i32, Integer::from_number_str(&integer_token.value)) {
-                            integer_token.ty = desired.clone();
+                        Integer::I32 => if Self::in_range(-2_147_483_648_i32, 2_147_483_647_i32, Integer::from_number_str(&integer.value)) {
+                            integer.ty = desired.clone();
                             return Ok(Some(desired_type.clone()))
                         },
-                        Integer::U32 => if Self::in_range(0_u32, 4_294_967_295_u32, Integer::from_number_str(&integer_token.value)) {
-                            integer_token.ty = desired.clone();
+                        Integer::U32 => if Self::in_range(0_u32, 4_294_967_295_u32, Integer::from_number_str(&integer.value)) {
+                            integer.ty = desired.clone();
                             return Ok(Some(desired_type.clone()))
                         },
-                        Integer::I64 => if Self::in_range(-9_223_372_036_854_775_808_i64, 9_223_372_036_854_775_807_i64, Integer::from_number_str(&integer_token.value)) {
-                            integer_token.ty = desired.clone();
+                        Integer::I64 => if Self::in_range(-9_223_372_036_854_775_808_i64, 9_223_372_036_854_775_807_i64, Integer::from_number_str(&integer.value)) {
+                            integer.ty = desired.clone();
                             return Ok(Some(desired_type.clone()))
                         },
-                        Integer::U64 => if Self::in_range(0_u64, 18_446_744_073_709_551_615_u64, Integer::from_number_str(&integer_token.value)) {
-                            integer_token.ty = desired.clone();
+                        Integer::U64 => if Self::in_range(0_u64, 18_446_744_073_709_551_615_u64, Integer::from_number_str(&integer.value)) {
+                            integer.ty = desired.clone();
                             return Ok(Some(desired_type.clone()))
                         },
-                        _ => return Err(InferTypeError::IntegerTooSmall { ty: desired_type.clone() , literal: integer_token.value.to_string(), code_line: code_line.clone() })
+                        _ => return Err(InferTypeError::IntegerTooSmall { ty: desired_type.clone() , literal: integer.value.to_string(), code_line: code_line.clone() })
                     }
                 }
             }
-            (TypeToken::Float(_, _), TypeToken::Float(desired, _)) => {
-                if let AssignableToken::FloatToken(float_token) = assignable_token {
+            (Type::Float(_, _), Type::Float(desired, _)) => {
+                if let Assignable::Float(float) = assignable {
                     return match desired {
-                        Float::Float32 if Self::in_range(-3.40282347e+38, 3.40282347e+38, Ok(float_token.value)) => {
-                            float_token.ty = desired.clone();
+                        Float::Float32 if Self::in_range(-3.40282347e+38, 3.40282347e+38, Ok(float.value)) => {
+                            float.ty = desired.clone();
                             Ok(Some(desired_type.clone()))
                         },
-                        Float::Float64 if Self::in_range(-1.797_693_134_862_315_7e308, 1.797_693_134_862_315_7e308, Ok(float_token.value)) => {
-                            float_token.ty = desired.clone();
+                        Float::Float64 if Self::in_range(-1.797_693_134_862_315_7e308, 1.797_693_134_862_315_7e308, Ok(float.value)) => {
+                            float.ty = desired.clone();
                             Ok(Some(desired_type.clone()))
                         },
-                        _ => Err(InferTypeError::FloatTooSmall { ty: desired_type.clone(), float: float_token.value, code_line: code_line.clone() })
+                        _ => Err(InferTypeError::FloatTooSmall { ty: desired_type.clone(), float: float.value, code_line: code_line.clone() })
                     }
                 }
             },
-            (TypeToken::Array(array_type, size, mutability), TypeToken::Array(_desired_inner_type, desired_size, _)) => {
+            (Type::Array(array_type, size, mutability), Type::Array(_desired_inner_type, desired_size, _)) => {
                 //todo: check desired_inner_type with actual array_type
-                if let AssignableToken::ArrayToken(_) = assignable_token {
+                if let Assignable::Array(_) = assignable {
                     if size != desired_size {
                         return Err(InferTypeError::MismatchedTypes {
                             expected: desired_type.clone(),
-                            actual: TypeToken::Array(array_type.clone(), *size, mutability.clone()),
+                            actual: Type::Array(array_type.clone(), *size, mutability.clone()),
                             code_line: Default::default(),
                         });
                     }
@@ -385,12 +385,12 @@ impl TypeToken {
 
     pub fn byte_size(&self) -> usize {
         match self {
-            TypeToken::Integer(int, _) => int.byte_size(),
-            TypeToken::Float(float, _) => float.byte_size(),
-            TypeToken::Array(array_type, _, _) => array_type.byte_size(),
-            TypeToken::Bool(_) => 1,
-            TypeToken::Void => 0,
-            TypeToken::Custom(_, _) => 8, // todo: calculate custom data types recursively
+            Type::Integer(int, _) => int.byte_size(),
+            Type::Float(float, _) => float.byte_size(),
+            Type::Array(array_type, _, _) => array_type.byte_size(),
+            Type::Bool(_) => 1,
+            Type::Void => 0,
+            Type::Custom(_, _) => 8, // todo: calculate custom data types recursively
         }
     }
 }

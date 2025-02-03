@@ -1,7 +1,7 @@
 use monkey_language::core::code_generator::generator::ASMGenerator;
 use monkey_language::core::code_generator::target_os::TargetOS;
 use monkey_language::core::io::monkey_file::MonkeyFile;
-use monkey_language::core::lexer::tokenizer::Lexer;
+use monkey_language::core::lexer::parser::Lexer;
 use monkey_language::core::type_checker::static_type_checker::static_type_check;
 
 #[test]
@@ -12,7 +12,7 @@ let a: i32 = 5 + 1 * 100;
 
     let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
     let mut lexer = Lexer::from(monkey_file);
-    let top_level_scope = lexer.tokenize()?;
+    let top_level_scope = lexer.parse()?;
 
     static_type_check(&top_level_scope)?;
 
@@ -60,7 +60,7 @@ let a: i32 = 5 * 1 / 100;
 
     let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
     let mut lexer = Lexer::from(monkey_file);
-    let top_level_scope = lexer.tokenize()?;
+    let top_level_scope = lexer.parse()?;
 
     static_type_check(&top_level_scope)?;
 
@@ -113,7 +113,7 @@ let a: i32 = 5 * 1 - 100;
 
     let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
     let mut lexer = Lexer::from(monkey_file);
-    let top_level_scope = lexer.tokenize()?;
+    let top_level_scope = lexer.parse()?;
 
     static_type_check(&top_level_scope)?;
 
@@ -158,7 +158,7 @@ let d = ((6 - 2) * 3 / (7 + 4));
 
     let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
     let mut lexer = Lexer::from(monkey_file);
-    let top_level_scope = lexer.tokenize()?;
+    let top_level_scope = lexer.parse()?;
 
     static_type_check(&top_level_scope)?;
 
@@ -223,7 +223,7 @@ let a: i32 = ((3 + 1) * 4 - (9 / 2)) * ((7 + 3) / 2 - (8 * 3)) + ((6 - 2) * 3 / 
 
     let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
     let mut lexer = Lexer::from(monkey_file);
-    let top_level_scope = lexer.tokenize()?;
+    let top_level_scope = lexer.parse()?;
 
     static_type_check(&top_level_scope)?;
 
@@ -354,7 +354,7 @@ let a: f64 = ((3.5_f64 + 1.2_f64) * 4.8_f64 - (9.6_f64 / 2.4_f64)) * ((7.2_f64 +
 
     let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
     let mut lexer = Lexer::from(monkey_file);
-    let top_level_scope = lexer.tokenize()?;
+    let top_level_scope = lexer.parse()?;
 
     static_type_check(&top_level_scope)?;
 
@@ -509,7 +509,7 @@ let a: i32 = 5 * 1 / 0;
 
     let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
     let mut lexer = Lexer::from(monkey_file);
-    let top_level_scope = lexer.tokenize()?;
+    let top_level_scope = lexer.parse()?;
 
     static_type_check(&top_level_scope)?;
 
@@ -562,7 +562,7 @@ let a: i32 = ((i32)(5 << 4 < 7) * 8 - 9 % 3) + 3;
 
     let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
     let mut lexer = Lexer::from(monkey_file);
-    let top_level_scope = lexer.tokenize()?;
+    let top_level_scope = lexer.parse()?;
 
     static_type_check(&top_level_scope)?;
 

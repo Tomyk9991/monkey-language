@@ -8,14 +8,14 @@ use crate::core::code_generator::asm_options::ASMOptions;
 use crate::core::code_generator::asm_result::{ASMResult};
 use crate::core::lexer::types::boolean::Boolean;
 use crate::core::lexer::types::integer::Integer;
-use crate::core::lexer::types::type_token::TypeToken;
+use crate::core::lexer::types::r#type::Type;
 
 
 
 #[derive(Debug, Clone)]
 pub struct CastTo {
-    pub from: TypeToken,
-    pub to: TypeToken
+    pub from: Type,
+    pub to: Type
 }
 
 #[derive(Debug)]
@@ -26,7 +26,7 @@ pub enum CastToError {
 
 
 pub trait Castable<T, K> {
-    fn add_casts(cast_matrix: &mut HashMap<(TypeToken, TypeToken), &'static str>);
+    fn add_casts(cast_matrix: &mut HashMap<(Type, Type), &'static str>);
     fn cast_from_to(t1: &T, t2: &K, source: &str, stack: &mut Stack, meta: &mut MetaInfo) -> Result<ASMResult, ASMGenerateError>;
 }
 
@@ -34,7 +34,7 @@ pub trait Castable<T, K> {
 impl ToASM for CastTo {
     fn to_asm<T: ASMOptions>(&self, _stack: &mut Stack, meta: &mut MetaInfo, _options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
         // from, to, instruction
-        let mut cast_to_matrix: HashMap<(TypeToken, TypeToken), &'static str> = HashMap::new();
+        let mut cast_to_matrix: HashMap<(Type, Type), &'static str> = HashMap::new();
 
         <Integer as Castable<Integer, Integer>>::add_casts(&mut cast_to_matrix);
         <Integer as Castable<Integer, Float>>::add_casts(&mut cast_to_matrix);

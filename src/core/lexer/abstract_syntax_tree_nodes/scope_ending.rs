@@ -8,7 +8,7 @@ use crate::core::lexer::{Lines, TryParse};
 use crate::core::type_checker::static_type_checker::StaticTypeCheckError;
 use crate::core::type_checker::StaticTypeCheck;
 
-/// Token for scope ending. Basically it checks if the codeline is `}`.
+/// AST node for scope ending. Basically it checks if the codeline is `}`.
 #[derive(Debug, PartialEq, Clone)]
 pub struct ScopeEnding {
     pub code_line: CodeLine

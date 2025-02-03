@@ -1,22 +1,22 @@
 use monkey_language::core::io::code_line::CodeLine;
 use monkey_language::core::io::monkey_file::MonkeyFile;
-use monkey_language::core::lexer::token::Token;
-use monkey_language::core::lexer::tokenizer::Lexer;
-use monkey_language::core::lexer::tokens::assignable_token::AssignableToken;
-use monkey_language::core::lexer::tokens::assignable_tokens::equation_parser::expression::{Expression};
-use monkey_language::core::lexer::tokens::assignable_tokens::equation_parser::operator::Operator;
-use monkey_language::core::lexer::tokens::assignable_tokens::equation_parser::prefix_arithmetic::{PointerArithmetic, PrefixArithmetic};
-use monkey_language::core::lexer::tokens::assignable_tokens::integer_token::IntegerToken;
-use monkey_language::core::lexer::tokens::assignable_tokens::method_call_token::MethodCallToken;
-use monkey_language::core::lexer::tokens::assignable_tokens::object_token::ObjectToken;
-use monkey_language::core::lexer::tokens::assignable_tokens::string_token::StringToken;
-use monkey_language::core::lexer::tokens::l_value::LValue;
-use monkey_language::core::lexer::tokens::name_token::NameToken;
-use monkey_language::core::lexer::tokens::variable_token::VariableToken;
+use monkey_language::core::lexer::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
+use monkey_language::core::lexer::abstract_syntax_tree_nodes::assignable::Assignable;
+use monkey_language::core::lexer::parser::Lexer;
+use monkey_language::core::lexer::abstract_syntax_tree_nodes::assignables::equation_parser::expression::{Expression};
+use monkey_language::core::lexer::abstract_syntax_tree_nodes::assignables::equation_parser::operator::Operator;
+use monkey_language::core::lexer::abstract_syntax_tree_nodes::assignables::equation_parser::prefix_arithmetic::{PointerArithmetic, PrefixArithmetic};
+use monkey_language::core::lexer::abstract_syntax_tree_nodes::assignables::integer::IntegerAST;
+use monkey_language::core::lexer::abstract_syntax_tree_nodes::assignables::method_call::MethodCall;
+use monkey_language::core::lexer::abstract_syntax_tree_nodes::assignables::object::Object;
+use monkey_language::core::lexer::abstract_syntax_tree_nodes::assignables::string::StaticString;
+use monkey_language::core::lexer::abstract_syntax_tree_nodes::identifier::Identifier;
+use monkey_language::core::lexer::abstract_syntax_tree_nodes::l_value::LValue;
+use monkey_language::core::lexer::abstract_syntax_tree_nodes::variable::Variable;
 use monkey_language::core::lexer::types::float::Float;
 use monkey_language::core::lexer::types::integer::Integer;
-use monkey_language::core::lexer::types::type_token;
-use monkey_language::core::lexer::types::type_token::{Mutability, TypeToken};
+use monkey_language::core::lexer::types::r#type;
+use monkey_language::core::lexer::types::r#type::{Mutability, Type};
 
 #[test]
 fn variable_test() -> anyhow::Result<()> {
@@ -38,104 +38,104 @@ fn variable_test() -> anyhow::Result<()> {
 
     let monkey_file: MonkeyFile = MonkeyFile::read_from_str(variables);
     let mut lexer = Lexer::from(monkey_file);
-    let top_level_scope = lexer.tokenize()?;
+    let top_level_scope = lexer.parse()?;
 
     let expected = vec![
-        Token::Variable(
-            VariableToken {
-                l_value: LValue::Name(NameToken { name: "fisch".to_string() }),
+        AbstractSyntaxTreeNode::Variable(
+            Variable {
+                l_value: LValue::Identifier(Identifier { name: "fisch".to_string() }),
                 mutability: false,
-                ty: Some(TypeToken::Custom(NameToken { name: String::from("*string") }, Mutability::Immutable)),
+                ty: Some(Type::Custom(Identifier { name: String::from("*string") }, Mutability::Immutable)),
                 define: true,
-                assignable: AssignableToken::String(StringToken { value: "\"Fische sind wirklich wirklich toll\"".to_string() }),
+                assignable: Assignable::String(StaticString { value: "\"Fische sind wirklich wirklich toll\"".to_string() }),
                 code_line: CodeLine { line: "let fisch = \"Fische sind wirklich wirklich toll\" ;".to_string(), actual_line_number: 2..2, virtual_line_number: 1 },
             }
         ),
-        Token::Variable(
-            VariableToken {
-                l_value: LValue::Name(NameToken { name: "hallo".to_string() }),
+        AbstractSyntaxTreeNode::Variable(
+            Variable {
+                l_value: LValue::Identifier(Identifier { name: "hallo".to_string() }),
                 mutability: false,
-                ty: Some(TypeToken::Custom(NameToken { name: String::from("*string") }, Mutability::Immutable)),
+                ty: Some(Type::Custom(Identifier { name: String::from("*string") }, Mutability::Immutable)),
                 define: true,
-                assignable: AssignableToken::String(StringToken { value: "\"Thomas\"".to_string() }),
+                assignable: Assignable::String(StaticString { value: "\"Thomas\"".to_string() }),
                 code_line: CodeLine { line: "let hallo = \"Thomas\" ;".to_string(), actual_line_number: 3..3, virtual_line_number: 2 },
             }
         ),
-        Token::Variable(
-            VariableToken {
-                l_value: LValue::Name(NameToken { name: "tschuess".to_string() }),
+        AbstractSyntaxTreeNode::Variable(
+            Variable {
+                l_value: LValue::Identifier(Identifier { name: "tschuess".to_string() }),
                 mutability: false,
-                ty: Some(TypeToken::Integer(Integer::I32, Mutability::Immutable)),
+                ty: Some(Type::Integer(Integer::I32, Mutability::Immutable)),
                 define: true,
-                assignable: AssignableToken::IntegerToken(IntegerToken { value: "5".to_string(), ty: Integer::I32 }),
+                assignable: Assignable::Integer(IntegerAST { value: "5".to_string(), ty: Integer::I32 }),
                 code_line: CodeLine { line: "let tschuess = 5 ;".to_string(), actual_line_number: 3..3, virtual_line_number: 3 },
             }
         ),
-        Token::Variable(
-            VariableToken {
-                l_value: LValue::Name(NameToken { name: "mallo".to_string() }),
+        AbstractSyntaxTreeNode::Variable(
+            Variable {
+                l_value: LValue::Identifier(Identifier { name: "mallo".to_string() }),
                 mutability: false,
-                ty: Some(TypeToken::Custom(NameToken { name: String::from("*string") }, Mutability::Immutable)),
+                ty: Some(Type::Custom(Identifier { name: String::from("*string") }, Mutability::Immutable)),
                 define: true,
-                assignable: AssignableToken::String(StringToken { value: "\"\"".to_string() }),
+                assignable: Assignable::String(StaticString { value: "\"\"".to_string() }),
                 code_line: CodeLine { line: "let mallo = \"\" ;".to_string(), actual_line_number: 4..4, virtual_line_number: 4 },
             }
         ),
-        Token::Variable(
-            VariableToken {
-                l_value: LValue::Name(NameToken { name: "michi".to_string() }),
+        AbstractSyntaxTreeNode::Variable(
+            Variable {
+                l_value: LValue::Identifier(Identifier { name: "michi".to_string() }),
                 mutability: false,
-                ty: Some(TypeToken::Custom(NameToken { name: "Data".to_string() }, Mutability::Immutable)),
+                ty: Some(Type::Custom(Identifier { name: "Data".to_string() }, Mutability::Immutable)),
                 define: true,
-                assignable: AssignableToken::Object(ObjectToken {
+                assignable: Assignable::Object(Object {
                     variables: vec![
-                        VariableToken {
-                            l_value: LValue::Name(NameToken { name: "guten".to_string() }),
+                        Variable {
+                            l_value: LValue::Identifier(Identifier { name: "guten".to_string() }),
                             mutability: false,
-                            ty: Some(TypeToken::Custom(NameToken { name: String::from("*string") }, Mutability::Immutable)),
+                            ty: Some(Type::Custom(Identifier { name: String::from("*string") }, Mutability::Immutable)),
                             define: false,
-                            assignable: AssignableToken::String(StringToken { value: "\"Hallo\"".to_string() }),
+                            assignable: Assignable::String(StaticString { value: "\"Hallo\"".to_string() }),
                             code_line: CodeLine { line: "guten : \"Hallo\" ,".to_string(), actual_line_number: 0..0, virtual_line_number: 0 },
                         },
-                        VariableToken {
-                            l_value: LValue::Name(NameToken { name: "ciau".to_string() }),
+                        Variable {
+                            l_value: LValue::Identifier(Identifier { name: "ciau".to_string() }),
                             mutability: false,
-                            ty: Some(TypeToken::Integer(Integer::I32, Mutability::Immutable)),
+                            ty: Some(Type::Integer(Integer::I32, Mutability::Immutable)),
                             define: false,
-                            assignable: AssignableToken::IntegerToken(IntegerToken { value: "5".to_string(), ty: Integer::I32 }),
+                            assignable: Assignable::Integer(IntegerAST { value: "5".to_string(), ty: Integer::I32 }),
                             code_line: CodeLine { line: "ciau : 5 ,".to_string(), actual_line_number: 0..0, virtual_line_number: 0 },
                         },
-                        VariableToken {
-                            l_value: LValue::Name(NameToken { name: "rofl".to_string() }),
+                        Variable {
+                            l_value: LValue::Identifier(Identifier { name: "rofl".to_string() }),
                             mutability: false,
                             ty: None,
                             define: false,
-                            assignable: AssignableToken::MethodCallToken(
-                                MethodCallToken {
-                                    name: NameToken { name: "name".to_string() },
+                            assignable: Assignable::MethodCall(
+                                MethodCall {
+                                    identifier: Identifier { name: "name".to_string() },
                                     arguments: vec![],
                                     code_line: CodeLine { line: "name ( ) ;".to_string(), actual_line_number: 0..0, virtual_line_number: 0 },
                                 }
                             ),
                             code_line: CodeLine { line: "rofl : name ( ) ,".to_string(), actual_line_number: 0..0, virtual_line_number: 0 },
                         },
-                        VariableToken {
-                            l_value: LValue::Name(NameToken { name: "mofl".to_string() }),
+                        Variable {
+                            l_value: LValue::Identifier(Identifier { name: "mofl".to_string() }),
                             mutability: false,
                             ty: None,
                             define: false,
-                            assignable: AssignableToken::MethodCallToken(MethodCallToken {
-                                name: NameToken { name: "name".to_string() },
+                            assignable: Assignable::MethodCall(MethodCall {
+                                identifier: Identifier { name: "name".to_string() },
                                 arguments: vec![
-                                    AssignableToken::MethodCallToken(MethodCallToken {
-                                        name: NameToken { name: "nestedMethod".to_string() },
+                                    Assignable::MethodCall(MethodCall {
+                                        identifier: Identifier { name: "nestedMethod".to_string() },
                                         arguments: vec![
-                                            AssignableToken::String(StringToken { value: "\"Hallo\"".to_string() }),
-                                            AssignableToken::MethodCallToken(MethodCallToken {
-                                                name: NameToken { name: "moin".to_string() },
+                                            Assignable::String(StaticString { value: "\"Hallo\"".to_string() }),
+                                            Assignable::MethodCall(MethodCall {
+                                                identifier: Identifier { name: "moin".to_string() },
                                                 arguments: vec![
-                                                    AssignableToken::String(StringToken { value: "\"Ciao\"".to_string() }),
-                                                    AssignableToken::IntegerToken(IntegerToken { value: "5".to_string(), ty: Integer::I32 }),
+                                                    Assignable::String(StaticString { value: "\"Ciao\"".to_string() }),
+                                                    Assignable::Integer(IntegerAST { value: "5".to_string(), ty: Integer::I32 }),
                                                 ],
                                                 code_line: CodeLine { line: "moin ( \"Ciao\" , 5 ) ;".to_string(), actual_line_number: 0..0, virtual_line_number: 0 },
                                             }),
@@ -146,38 +146,38 @@ fn variable_test() -> anyhow::Result<()> {
                             }),
                             code_line: CodeLine { line: "mofl : name ( nestedMethod ( \"Hallo\" , moin ( \"Ciao\" , 5 ) ) ) ,".to_string(), actual_line_number: 0..0, virtual_line_number: 0 },
                         }],
-                    ty: TypeToken::Custom(NameToken { name: "Data".to_string() }, Mutability::Immutable),
+                    ty: Type::Custom(Identifier { name: "Data".to_string() }, Mutability::Immutable),
                 }),
                 code_line: CodeLine { line: "let michi = Data {  guten :  \"Hallo\" ,  ciau :  5 ,  rofl :  name (  )  ,  mofl :  name ( nestedMethod ( \"Hallo\" ,  moin ( \"Ciao\" ,  5 )  )  )  }  ;".to_string(), actual_line_number: 5..11, virtual_line_number: 5 },
             }
         ),
-        Token::Variable(
-            VariableToken {
-                l_value: LValue::Name(NameToken { name: "value".to_string() }),
+        AbstractSyntaxTreeNode::Variable(
+            Variable {
+                l_value: LValue::Identifier(Identifier { name: "value".to_string() }),
                 mutability: false,
-                ty: Some(TypeToken::Integer(Integer::I32, Mutability::Immutable)),
+                ty: Some(Type::Integer(Integer::I32, Mutability::Immutable)),
                 define: true,
-                assignable: AssignableToken::IntegerToken(IntegerToken { value: "9".to_string(), ty: Integer::I32 }),
+                assignable: Assignable::Integer(IntegerAST { value: "9".to_string(), ty: Integer::I32 }),
                 code_line: CodeLine { line: "let value = 9 ;".to_string(), actual_line_number: 12..12, virtual_line_number: 6 },
             }
         ),
-        Token::Variable(
-            VariableToken {
-                l_value: LValue::Name(NameToken { name: "ref_value".to_string() }),
+        AbstractSyntaxTreeNode::Variable(
+            Variable {
+                l_value: LValue::Identifier(Identifier { name: "ref_value".to_string() }),
                 mutability: false,
-                ty: Some(TypeToken::Custom(NameToken { name: "*i32".to_string() }, Mutability::Immutable)),
+                ty: Some(Type::Custom(Identifier { name: "*i32".to_string() }, Mutability::Immutable)),
                 define: true,
-                assignable: AssignableToken::ArithmeticEquation(Expression {
+                assignable: Assignable::ArithmeticEquation(Expression {
                     lhs: None,
                     rhs: None,
                     operator: Operator::Noop,
                     prefix_arithmetic: Some(PrefixArithmetic::PointerArithmetic(PointerArithmetic::Ampersand)),
-                    value: Some(Box::new(AssignableToken::ArithmeticEquation(Expression {
+                    value: Some(Box::new(Assignable::ArithmeticEquation(Expression {
                         lhs: None,
                         rhs: None,
                         operator: Operator::Noop,
                         prefix_arithmetic: None,
-                        value: Some(Box::new(AssignableToken::NameToken(NameToken { name: "value".to_string() }))),
+                        value: Some(Box::new(Assignable::Identifier(Identifier { name: "value".to_string() }))),
                         index_operator: None,
                         positive: true,
                     }))),
@@ -188,20 +188,20 @@ fn variable_test() -> anyhow::Result<()> {
             }
         ),
         // let pointer_arithmetic = *ref_value + 1;
-        Token::Variable(
-            VariableToken {
-                l_value: LValue::Name(NameToken { name: "pointer_arithmetic".to_string() }),
+        AbstractSyntaxTreeNode::Variable(
+            Variable {
+                l_value: LValue::Identifier(Identifier { name: "pointer_arithmetic".to_string() }),
                 mutability: false,
-                ty: Some(TypeToken::Integer(Integer::I32, Mutability::Immutable)),
+                ty: Some(Type::Integer(Integer::I32, Mutability::Immutable)),
                 define: true,
-                assignable: AssignableToken::ArithmeticEquation(Expression {
+                assignable: Assignable::ArithmeticEquation(Expression {
                     lhs: Some(Box::new(Expression {
-                        value: Some(Box::new(AssignableToken::ArithmeticEquation(Expression {
+                        value: Some(Box::new(Assignable::ArithmeticEquation(Expression {
                             lhs: None,
                             rhs: None,
                             operator: Operator::Noop,
                             prefix_arithmetic: None,
-                            value: Some(Box::new(AssignableToken::NameToken(NameToken { name: "ref_value".to_string() }))),
+                            value: Some(Box::new(Assignable::Identifier(Identifier { name: "ref_value".to_string() }))),
                             index_operator: None,
                             positive: true,
                         }))),
@@ -210,7 +210,7 @@ fn variable_test() -> anyhow::Result<()> {
                         ..Default::default()
                     })),
                     rhs: Some(Box::new(Expression {
-                        value: Some(Box::new(AssignableToken::IntegerToken(IntegerToken { value: "1".to_string(), ty: Integer::I32 }))),
+                        value: Some(Box::new(Assignable::Integer(IntegerAST { value: "1".to_string(), ty: Integer::I32 }))),
                         positive: true,
                         ..Default::default()
                     })),
@@ -225,7 +225,7 @@ fn variable_test() -> anyhow::Result<()> {
         ),
     ];
 
-    assert_eq!(expected, top_level_scope.tokens);
+    assert_eq!(expected, top_level_scope.ast_nodes);
 
     Ok(())
 }
@@ -250,29 +250,29 @@ fn variable_test_types() -> anyhow::Result<()> {
 
     let monkey_file: MonkeyFile = MonkeyFile::read_from_str(variables);
     let mut lexer = Lexer::from(monkey_file);
-    let top_level_scope = lexer.tokenize()?;
+    let top_level_scope = lexer.parse()?;
 
     let expected = vec![
-        type_token::common::string(),
-        type_token::common::string(),
-        TypeToken::Integer(Integer::I32, Mutability::Immutable),
-        type_token::common::string(),
-        TypeToken::Custom(NameToken { name: "Data".to_string() }, Mutability::Immutable),
-        TypeToken::Integer(Integer::I32, Mutability::Immutable),
-        TypeToken::Custom(NameToken { name: "*i32".to_string() }, Mutability::Immutable),
-        TypeToken::Integer(Integer::I32, Mutability::Immutable),
+        r#type::common::string(),
+        r#type::common::string(),
+        Type::Integer(Integer::I32, Mutability::Immutable),
+        r#type::common::string(),
+        Type::Custom(Identifier { name: "Data".to_string() }, Mutability::Immutable),
+        Type::Integer(Integer::I32, Mutability::Immutable),
+        Type::Custom(Identifier { name: "*i32".to_string() }, Mutability::Immutable),
+        Type::Integer(Integer::I32, Mutability::Immutable),
     ];
 
-    for (index, token) in top_level_scope.tokens.iter().enumerate() {
-        match token {
-            Token::Variable(v) if v.ty.is_some() => {
+    for (index, node) in top_level_scope.ast_nodes.iter().enumerate() {
+        match node {
+            AbstractSyntaxTreeNode::Variable(v) if v.ty.is_some() => {
                 if let Some(ty) = &v.ty {
                     assert_eq!(&expected[index], ty);
                 } else {
                     assert!(false, "Didnt expect not inferred type");
                 }
             },
-            _ => assert!(false, "Didnt expect this type of token")
+            _ => assert!(false, "Didnt expect this type of node")
         }
     }
 
@@ -292,28 +292,28 @@ fn variable_test_casting() -> anyhow::Result<()> {
 
     let monkey_file: MonkeyFile = MonkeyFile::read_from_str(variables);
     let mut lexer = Lexer::from(monkey_file);
-    let top_level_scope = lexer.tokenize()?;
+    let top_level_scope = lexer.parse()?;
     println!("{:?}", top_level_scope);
 
     let expected = vec![
-        TypeToken::Float(Float::Float32, Mutability::Immutable),
-        TypeToken::Float(Float::Float32, Mutability::Immutable),
-        TypeToken::Integer(Integer::I32, Mutability::Immutable),
-        TypeToken::Float(Float::Float32, Mutability::Immutable),
-        TypeToken::Float(Float::Float32, Mutability::Immutable),
-        TypeToken::Float(Float::Float32, Mutability::Immutable),
+        Type::Float(Float::Float32, Mutability::Immutable),
+        Type::Float(Float::Float32, Mutability::Immutable),
+        Type::Integer(Integer::I32, Mutability::Immutable),
+        Type::Float(Float::Float32, Mutability::Immutable),
+        Type::Float(Float::Float32, Mutability::Immutable),
+        Type::Float(Float::Float32, Mutability::Immutable),
     ];
 
-    for (index, token) in top_level_scope.tokens.iter().enumerate() {
-        match token {
-            Token::Variable(v) if v.ty.is_some() => {
+    for (index, node) in top_level_scope.ast_nodes.iter().enumerate() {
+        match node {
+            AbstractSyntaxTreeNode::Variable(v) if v.ty.is_some() => {
                 if let Some(ty) = &v.ty {
                     assert_eq!(&expected[index], ty, "Failed at: {}", v);
                 } else {
                     assert!(false, "Didnt expect not inferred type");
                 }
             },
-            _ => assert!(false, "Didnt expect this type of token")
+            _ => assert!(false, "Didnt expect this type of node")
         }
     }
 
@@ -326,20 +326,20 @@ fn variable_test_double_casting() -> anyhow::Result<()> {
 
     let monkey_file: MonkeyFile = MonkeyFile::read_from_str(variables);
     let mut lexer = Lexer::from(monkey_file);
-    let top_level_scope = lexer.tokenize()?;
+    let top_level_scope = lexer.parse()?;
 
     let expected = vec![
-        TypeToken::Float(Float::Float32, Mutability::Immutable),
+        Type::Float(Float::Float32, Mutability::Immutable),
     ];
 
     let s = None;
 
-    for token in &top_level_scope.tokens {
-        println!("{}", token);
-        match token {
-            Token::Variable(v) => {
+    for node in &top_level_scope.ast_nodes {
+        println!("{}", node);
+        match node {
+            AbstractSyntaxTreeNode::Variable(v) => {
                 println!("{:?}", match &v.assignable {
-                    AssignableToken::ArithmeticEquation(a) => {
+                    Assignable::ArithmeticEquation(a) => {
                         &a.prefix_arithmetic
                     },
                     _ => { &s }
@@ -349,16 +349,16 @@ fn variable_test_double_casting() -> anyhow::Result<()> {
         }
     }
 
-    for (index, token) in top_level_scope.tokens.iter().enumerate() {
-        match token {
-            Token::Variable(v) if v.ty.is_some() => {
+    for (index, node) in top_level_scope.ast_nodes.iter().enumerate() {
+        match node {
+            AbstractSyntaxTreeNode::Variable(v) if v.ty.is_some() => {
                 if let Some(ty) = &v.ty {
                     assert_eq!(&expected[index], ty, "Failed at: {}", v);
                 } else {
                     assert!(false, "Didnt expect not inferred type");
                 }
             },
-            _ => assert!(false, "Didnt expect this type of token")
+            _ => assert!(false, "Didnt expect this type of node")
         }
     }
 
@@ -383,30 +383,30 @@ fn variable_test_casting_complex_expression() -> anyhow::Result<()> {
 
     let monkey_file: MonkeyFile = MonkeyFile::read_from_str(variables);
     let mut lexer = Lexer::from(monkey_file);
-    let top_level_scope = lexer.tokenize()?;
+    let top_level_scope = lexer.parse()?;
 
     let expected = vec![
-        TypeToken::Integer(Integer::I32, Mutability::Immutable),
-        TypeToken::Custom(NameToken { name: "*i32".to_string() }, Mutability::Immutable),
-        TypeToken::Integer(Integer::I32, Mutability::Immutable),
-        TypeToken::Custom(NameToken { name: "*i32".to_string() }, Mutability::Immutable),
-        TypeToken::Float(Float::Float32, Mutability::Immutable),
-        TypeToken::Float(Float::Float32, Mutability::Immutable),
-        TypeToken::Float(Float::Float32, Mutability::Immutable),
-        TypeToken::Integer(Integer::I32, Mutability::Immutable),
-        TypeToken::Integer(Integer::I32, Mutability::Immutable),
+        Type::Integer(Integer::I32, Mutability::Immutable),
+        Type::Custom(Identifier { name: "*i32".to_string() }, Mutability::Immutable),
+        Type::Integer(Integer::I32, Mutability::Immutable),
+        Type::Custom(Identifier { name: "*i32".to_string() }, Mutability::Immutable),
+        Type::Float(Float::Float32, Mutability::Immutable),
+        Type::Float(Float::Float32, Mutability::Immutable),
+        Type::Float(Float::Float32, Mutability::Immutable),
+        Type::Integer(Integer::I32, Mutability::Immutable),
+        Type::Integer(Integer::I32, Mutability::Immutable),
     ];
 
-    for (index, token) in top_level_scope.tokens.iter().enumerate() {
-        match token {
-            Token::Variable(v) if v.ty.is_some() => {
+    for (index, node) in top_level_scope.ast_nodes.iter().enumerate() {
+        match node {
+            AbstractSyntaxTreeNode::Variable(v) if v.ty.is_some() => {
                 if let Some(ty) = &v.ty {
-                    assert_eq!(&expected[index], ty, "FAILED AT: {token}");
+                    assert_eq!(&expected[index], ty, "FAILED AT: {node}");
                 } else {
                     assert!(false, "Didnt expect not inferred type");
                 }
             },
-            _ => assert!(false, "Didnt expect this type of token")
+            _ => assert!(false, "Didnt expect this type of node")
         }
     }
 
@@ -424,33 +424,33 @@ fn variable_test_casting_complex() -> anyhow::Result<()> {
 
     let monkey_file: MonkeyFile = MonkeyFile::read_from_str(variables);
     let mut lexer = Lexer::from(monkey_file);
-    let top_level_scope = lexer.tokenize()?;
+    let top_level_scope = lexer.parse()?;
 
     println!("{:#?}", top_level_scope);
 
     let expected = vec![
-        TypeToken::Integer(Integer::I32, Mutability::Immutable),
-        TypeToken::Custom(NameToken { name: "*i32".to_string() }, Mutability::Immutable),
-        TypeToken::Integer(Integer::I32, Mutability::Immutable),
-        TypeToken::Integer(Integer::I32, Mutability::Immutable),
-        TypeToken::Integer(Integer::I32, Mutability::Immutable),
+        Type::Integer(Integer::I32, Mutability::Immutable),
+        Type::Custom(Identifier { name: "*i32".to_string() }, Mutability::Immutable),
+        Type::Integer(Integer::I32, Mutability::Immutable),
+        Type::Integer(Integer::I32, Mutability::Immutable),
+        Type::Integer(Integer::I32, Mutability::Immutable),
     ];
 
-    for token in &top_level_scope.tokens {
-        println!("{}", token);
+    for node in &top_level_scope.ast_nodes {
+        println!("{}", node);
     }
 
 
-    for (index, token) in top_level_scope.tokens.iter().enumerate() {
-        match token {
-            Token::Variable(v) if v.ty.is_some() => {
+    for (index, node) in top_level_scope.ast_nodes.iter().enumerate() {
+        match node {
+            AbstractSyntaxTreeNode::Variable(v) if v.ty.is_some() => {
                 if let Some(ty) = &v.ty {
-                    assert_eq!(&expected[index], ty, "FAILED AT: {token}");
+                    assert_eq!(&expected[index], ty, "FAILED AT: {node}");
                 } else {
                     assert!(false, "Didnt expect not inferred type");
                 }
             },
-            _ => assert!(false, "Didnt expect this type of token")
+            _ => assert!(false, "Didnt expect this type of node")
         }
     }
 
@@ -476,38 +476,38 @@ fn variable_test_integers() -> anyhow::Result<()> {
 
     let monkey_file: MonkeyFile = MonkeyFile::read_from_str(variables);
     let mut lexer = Lexer::from(monkey_file);
-    let top_level_scope = lexer.tokenize()?;
+    let top_level_scope = lexer.parse()?;
 
     println!("{:#?}", top_level_scope);
 
     let expected = vec![
-        TypeToken::Integer(Integer::I32, Mutability::Immutable),
-        TypeToken::Integer(Integer::I64, Mutability::Immutable),
-        TypeToken::Integer(Integer::I16, Mutability::Immutable),
-        TypeToken::Integer(Integer::I8, Mutability::Immutable),
-        TypeToken::Integer(Integer::I64, Mutability::Immutable),
-        TypeToken::Integer(Integer::U8, Mutability::Immutable),
-        TypeToken::Integer(Integer::U16, Mutability::Immutable),
-        TypeToken::Integer(Integer::U32, Mutability::Immutable),
-        TypeToken::Integer(Integer::U64, Mutability::Immutable),
-        TypeToken::Integer(Integer::U64, Mutability::Immutable),
+        Type::Integer(Integer::I32, Mutability::Immutable),
+        Type::Integer(Integer::I64, Mutability::Immutable),
+        Type::Integer(Integer::I16, Mutability::Immutable),
+        Type::Integer(Integer::I8, Mutability::Immutable),
+        Type::Integer(Integer::I64, Mutability::Immutable),
+        Type::Integer(Integer::U8, Mutability::Immutable),
+        Type::Integer(Integer::U16, Mutability::Immutable),
+        Type::Integer(Integer::U32, Mutability::Immutable),
+        Type::Integer(Integer::U64, Mutability::Immutable),
+        Type::Integer(Integer::U64, Mutability::Immutable),
     ];
 
-    for token in &top_level_scope.tokens {
-        println!("{}", token);
+    for node in &top_level_scope.ast_nodes {
+        println!("{}", node);
     }
 
 
-    for (index, token) in top_level_scope.tokens.iter().enumerate() {
-        match token {
-            Token::Variable(v) if v.ty.is_some() => {
+    for (index, node) in top_level_scope.ast_nodes.iter().enumerate() {
+        match node {
+            AbstractSyntaxTreeNode::Variable(v) if v.ty.is_some() => {
                 if let Some(ty) = &v.ty {
-                    assert_eq!(&expected[index], ty, "FAILED AT: {token}");
+                    assert_eq!(&expected[index], ty, "FAILED AT: {node}");
                 } else {
                     assert!(false, "Didnt expect not inferred type");
                 }
             },
-            _ => assert!(false, "Didnt expect this type of token")
+            _ => assert!(false, "Didnt expect this type of node")
         }
     }
 
@@ -529,36 +529,36 @@ fn variable_test_integers_assignable() -> anyhow::Result<()> {
 
     let monkey_file: MonkeyFile = MonkeyFile::read_from_str(variables);
     let mut lexer = Lexer::from(monkey_file);
-    let top_level_scope = lexer.tokenize()?;
+    let top_level_scope = lexer.parse()?;
 
     println!("{:#?}", top_level_scope);
 
     let expected = vec![
-        TypeToken::Integer(Integer::I32, Mutability::Immutable),
-        TypeToken::Integer(Integer::I64, Mutability::Immutable),
-        TypeToken::Integer(Integer::I16, Mutability::Immutable),
-        TypeToken::Integer(Integer::I8, Mutability::Immutable),
-        TypeToken::Integer(Integer::U8, Mutability::Immutable),
-        TypeToken::Integer(Integer::U16, Mutability::Immutable),
-        TypeToken::Integer(Integer::U32, Mutability::Immutable),
-        TypeToken::Integer(Integer::U64, Mutability::Immutable),
+        Type::Integer(Integer::I32, Mutability::Immutable),
+        Type::Integer(Integer::I64, Mutability::Immutable),
+        Type::Integer(Integer::I16, Mutability::Immutable),
+        Type::Integer(Integer::I8, Mutability::Immutable),
+        Type::Integer(Integer::U8, Mutability::Immutable),
+        Type::Integer(Integer::U16, Mutability::Immutable),
+        Type::Integer(Integer::U32, Mutability::Immutable),
+        Type::Integer(Integer::U64, Mutability::Immutable),
     ];
 
-    for token in &top_level_scope.tokens {
-        println!("{}", token);
+    for node in &top_level_scope.ast_nodes {
+        println!("{}", node);
     }
 
 
-    for (index, token) in top_level_scope.tokens.iter().enumerate() {
-        match token {
-            Token::Variable(v) if v.ty.is_some() => {
-                if let AssignableToken::IntegerToken(i) = &v.assignable {
-                    assert_eq!(&expected[index], &TypeToken::Integer(i.ty.clone(), Mutability::Immutable), "FAILED AT: {token}");
+    for (index, node) in top_level_scope.ast_nodes.iter().enumerate() {
+        match node {
+            AbstractSyntaxTreeNode::Variable(v) if v.ty.is_some() => {
+                if let Assignable::Integer(i) = &v.assignable {
+                    assert_eq!(&expected[index], &Type::Integer(i.ty.clone(), Mutability::Immutable), "FAILED AT: {node}");
                 } else {
                     assert!(false, "Didnt expect not inferred type {}", v);
                 }
             },
-            _ => assert!(false, "Didnt expect this type of token")
+            _ => assert!(false, "Didnt expect this type of node")
         }
     }
 

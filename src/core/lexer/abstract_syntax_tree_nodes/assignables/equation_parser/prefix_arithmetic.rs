@@ -8,13 +8,13 @@ use crate::core::code_generator::asm_options::ASMOptions;
 use crate::core::code_generator::asm_result::{ASMResult, ASMResultError, ASMResultVariance};
 use crate::core::code_generator::generator::{Stack, StackLocation};
 use crate::core::code_generator::registers::{ByteSize, GeneralPurposeRegister};
-use crate::core::lexer::tokens::assignable_token::AssignableToken;
-use crate::core::lexer::tokens::assignable_tokens::equation_parser::operator::Operator;
+use crate::core::lexer::abstract_syntax_tree_nodes::assignable::Assignable;
+use crate::core::lexer::abstract_syntax_tree_nodes::assignables::equation_parser::operator::Operator;
 use crate::core::lexer::types::boolean::Boolean;
 use crate::core::lexer::types::cast_to::{Castable, CastToError};
 use crate::core::lexer::types::float::Float;
 use crate::core::lexer::types::integer::Integer;
-use crate::core::lexer::types::type_token::TypeToken;
+use crate::core::lexer::types::r#type::Type;
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum PointerArithmetic {
@@ -26,7 +26,7 @@ pub enum PointerArithmetic {
 
 #[derive(Clone)]
 pub struct PrefixArithmeticOptions {
-    pub value: AssignableToken,
+    pub value: Assignable,
     pub register_or_stack_address: String,
     pub register_64: GeneralPurposeRegister,
     pub target_register: GeneralPurposeRegister,
@@ -94,11 +94,11 @@ impl ToASM for PrefixArithmetic {
 
 
                         let result = match (&cast_to.from, &cast_to.to) {
-                            (TypeToken::Float(f1, _), TypeToken::Float(f2, _)) => Float::cast_from_to(f1, f2, &options.register_or_stack_address, stack, meta)?,
-                            (TypeToken::Integer(i1, _), TypeToken::Float(f2, _)) => Integer::cast_from_to(i1, f2, &options.register_or_stack_address, stack, meta)?,
-                            (TypeToken::Bool(_), TypeToken::Integer(i2, _)) => Boolean::cast_from_to(&Boolean::True, i2, &options.register_or_stack_address, stack, meta)?,
-                            (TypeToken::Float(f1, _), TypeToken::Integer(i2, _)) => Float::cast_from_to(f1, i2, &options.register_or_stack_address, stack, meta)?,
-                            (TypeToken::Integer(i1, _), TypeToken::Integer(i2, _)) => Integer::cast_from_to(i1, i2, &options.register_or_stack_address, stack, meta)?,
+                            (Type::Float(f1, _), Type::Float(f2, _)) => Float::cast_from_to(f1, f2, &options.register_or_stack_address, stack, meta)?,
+                            (Type::Integer(i1, _), Type::Float(f2, _)) => Integer::cast_from_to(i1, f2, &options.register_or_stack_address, stack, meta)?,
+                            (Type::Bool(_), Type::Integer(i2, _)) => Boolean::cast_from_to(&Boolean::True, i2, &options.register_or_stack_address, stack, meta)?,
+                            (Type::Float(f1, _), Type::Integer(i2, _)) => Float::cast_from_to(f1, i2, &options.register_or_stack_address, stack, meta)?,
+                            (Type::Integer(i1, _), Type::Integer(i2, _)) => Integer::cast_from_to(i1, i2, &options.register_or_stack_address, stack, meta)?,
                             _ => return Err(ASMGenerateError::CastUnsupported(CastToError::CastUnsupported(cast_to.clone()), meta.code_line.clone()))
                         };
 
@@ -106,12 +106,12 @@ impl ToASM for PrefixArithmetic {
                             .allow(ASMResultVariance::Inline)
                             .allow(ASMResultVariance::MultilineResulted)
                             .allow(ASMResultVariance::Multiline)
-                            .token("Expression")
+                            .ast_node("Expression")
                             .finish()?;
 
 
 
-                        return if let TypeToken::Float(_, _) = &cast_to.to {
+                        return if let Type::Float(_, _) = &cast_to.to {
                             let d = options.register_64.to_float_register();
                             let r = options.register_64.to_size_register_ignore_float(&ByteSize::try_from(cast_to.to.byte_size())?);
                             options.target.push_str(&ASMBuilder::mov_x_ident_line(&d, r, Some(cast_to.to.byte_size())));
@@ -146,7 +146,7 @@ pub enum PrefixArithmetic {
     Operation(Operator),
     // For example the "-" like let a = -5;
     PointerArithmetic(PointerArithmetic),
-    Cast(TypeToken),
+    Cast(Type),
 }
 
 impl Display for PrefixArithmetic {
