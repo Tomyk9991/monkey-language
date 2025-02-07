@@ -1,10 +1,10 @@
 use crate::core::lexer::error::Error;
+use crate::core::lexer::semantic_token_merge::semantic_token_merge;
 use crate::core::lexer::token::Token;
 
 pub fn tokenize(string: &str) -> Result<Vec<Token>, Error> {
     let string = normalize(string);
-    let token = collect_greedy(&string)?;
-    // let token = semantic_token_merge(token)?;
+    let token = semantic_token_merge(&collect_greedy(&string)?)?;
     Ok(token)
 }
 
@@ -96,21 +96,84 @@ fn normalize(target: &str) -> String {
     let mut single_character_tokens = Token::iter()
         .filter_map(|token_information| token_information.token.literal())
         .filter(|literal| literal.len() == 1)
-        .map(|literal| (literal.to_string(), format!(" {} ", literal)))
-        .collect::<Vec<(String, String)>>();
+        .map(|literal| (literal.chars().nth(0), format!(" {} ", literal)))
+        .filter_map(|(literal, formatted)| literal.map(|literal| (literal, formatted)))
+        .collect::<Vec<(char, String)>>();
 
-    single_character_tokens.push(("\n".to_string(), "".to_string()));
-    single_character_tokens.push(("\r".to_string(), "".to_string()));
-    single_character_tokens.push(("\r\n".to_string(), "".to_string()));
+    single_character_tokens.push(('\n', "".to_string()));
+    single_character_tokens.push(('\r', "".to_string()));
 
 
     let mut target = target.to_string();
 
+
     for (from, to) in single_character_tokens.iter() {
-        target = target.replace(from, to);
+        target = target.replace_if_outside_quote(*from, to);
     }
 
+
     // remove multiple whitespaces
-    target = target.split_whitespace().collect::<Vec<_>>().join(" ");
-    target
+    target.split_whitespace().collect::<Vec<_>>().join(" ")
+}
+
+pub trait ReplaceIfOutsideQuote {
+    /// Replace a character if it is outside a quote
+    ///
+    /// # Arguments
+    ///
+    /// * `from`: The character to be replaced.
+    /// * `to`: The string to replace the character with.
+    ///
+    /// returns: String
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use monkey_language::core::lexer::tokenizer::ReplaceIfOutsideQuote;
+    ///
+    /// let target = "let%x = \"hello%world\";";
+    /// let result = target.replace_if_outside_quote('%', " % ");
+    ///
+    /// assert_eq!(result, "let % x = \"hello%world\";");
+    /// ```
+    fn replace_if_outside_quote(&self, from: char, to: &str) -> String;
+}
+
+impl ReplaceIfOutsideQuote for str {
+
+    fn replace_if_outside_quote(&self, from: char, to: &str) -> String {
+        let mut result = String::with_capacity(self.len());
+        let chars: Vec<char> = self.chars().collect();
+        let mut inside_quote = false;
+        let mut i = 0;
+
+        while i < chars.len() {
+            let c = chars[i];
+            if c == '"' {
+                // Bestimme, ob das Anführungszeichen escaped ist:
+                // Zähle die unmittelbar davor stehenden Backslashes.
+                let mut escape_count = 0;
+                let mut j = i;
+                while j > 0 {
+                    j -= 1;
+                    if chars[j] == '\\' {
+                        escape_count += 1;
+                    } else {
+                        break;
+                    }
+                }
+                // Wenn escape_count gerade ist, ist das Anführungszeichen nicht escaped.
+                if escape_count % 2 == 0 {
+                    inside_quote = !inside_quote;
+                }
+                result.push(c);
+            } else if !inside_quote && c == from {
+                result.push_str(to);
+            } else {
+                result.push(c);
+            }
+            i += 1;
+        }
+        result
+    }
 }

@@ -1,5 +1,6 @@
 module monkey-language-project/std.monkey;
 
+
 fn main(): i32 {
     let mut a: [i32, 5] = [1, 2, 3, 4, 5];
     a[0] = 10;

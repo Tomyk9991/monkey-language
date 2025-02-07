@@ -5,6 +5,7 @@ use monkey_language::core::lexer::token::Token;
 #[test]
 fn semantic_token_merge_module() -> Result<(), Error> {
     let tokens = vec![
+        Token::Module,
         Token::Literal("monkey".to_string()),
         Token::Minus,
         Token::Literal("language".to_string()),

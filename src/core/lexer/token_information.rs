@@ -3,7 +3,7 @@ use crate::core::constants::KEYWORDS;
 use crate::core::lexer::token::Token;
 use crate::core::scanner::abstract_syntax_tree_nodes::assignables::float::FloatAST;
 use crate::core::scanner::abstract_syntax_tree_nodes::assignables::integer::IntegerAST;
-use crate::core::scanner::abstract_syntax_tree_nodes::identifier::{Identifier, IdentifierErr};
+use crate::core::scanner::abstract_syntax_tree_nodes::identifier::{IdentifierErr};
 
 #[derive(Debug, PartialEq)]
 pub struct TokenInformation {
