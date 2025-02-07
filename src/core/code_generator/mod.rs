@@ -4,11 +4,11 @@ use crate::core::code_generator::asm_result::{ASMResult, ASMResultError};
 use crate::core::io::code_line::CodeLine;
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::target_os::TargetOS;
-use crate::core::lexer::static_type_context::StaticTypeContext;
-use crate::core::lexer::abstract_syntax_tree_nodes::assignable::Assignable;
-use crate::core::lexer::abstract_syntax_tree_nodes::l_value::LValue;
-use crate::core::lexer::types::cast_to::CastToError;
-use crate::core::lexer::types::r#type::InferTypeError;
+use crate::core::scanner::static_type_context::StaticTypeContext;
+use crate::core::scanner::abstract_syntax_tree_nodes::assignable::Assignable;
+use crate::core::scanner::abstract_syntax_tree_nodes::l_value::LValue;
+use crate::core::scanner::types::cast_to::CastToError;
+use crate::core::scanner::types::r#type::InferTypeError;
 
 pub mod generator;
 pub mod target_creator;

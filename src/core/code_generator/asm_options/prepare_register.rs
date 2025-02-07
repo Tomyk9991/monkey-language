@@ -5,7 +5,7 @@ use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::asm_options::ASMOptions;
 use crate::core::code_generator::asm_options::interim_result::InterimResultOption;
 use crate::core::code_generator::registers::{ByteSize, GeneralPurposeRegister};
-use crate::core::lexer::abstract_syntax_tree_nodes::assignable::Assignable;
+use crate::core::scanner::abstract_syntax_tree_nodes::assignable::Assignable;
 
 /// Builds the assembly instructions to load a float AST node into a general purpose register
 /// and finally to a register, where a float operation can be operated on

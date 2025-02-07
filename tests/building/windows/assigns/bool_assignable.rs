@@ -1,8 +1,8 @@
 use monkey_language::core::code_generator::generator::ASMGenerator;
 use monkey_language::core::code_generator::target_os::TargetOS;
 use monkey_language::core::io::monkey_file::MonkeyFile;
-use monkey_language::core::lexer::parser::Lexer;
-use monkey_language::core::type_checker::static_type_checker::static_type_check;
+use monkey_language::core::scanner::parser::ASTParser;
+use monkey_language::core::semantics::type_checker::static_type_checker::static_type_check;
 
 #[test]
 fn expression_assign() -> anyhow::Result<()> {
@@ -13,7 +13,7 @@ fn expression_assign() -> anyhow::Result<()> {
     "#;
 
     let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
-    let mut lexer = Lexer::from(monkey_file);
+    let mut lexer = ASTParser::from(monkey_file);
     let top_level_scope = lexer.parse()?;
 
     static_type_check(&top_level_scope)?;
@@ -56,7 +56,7 @@ main:
     "#;
 
     let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
-    let mut lexer = Lexer::from(monkey_file);
+    let mut lexer = ASTParser::from(monkey_file);
     let top_level_scope = lexer.parse()?;
 
     static_type_check(&top_level_scope)?;
@@ -95,7 +95,7 @@ main:
     "#;
 
     let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
-    let mut lexer = Lexer::from(monkey_file);
+    let mut lexer = ASTParser::from(monkey_file);
     let top_level_scope = lexer.parse()?;
 
     static_type_check(&top_level_scope)?;
@@ -136,7 +136,7 @@ main:
     "#;
 
     let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
-    let mut lexer = Lexer::from(monkey_file);
+    let mut lexer = ASTParser::from(monkey_file);
     let top_level_scope = lexer.parse()?;
 
     static_type_check(&top_level_scope)?;
@@ -178,7 +178,7 @@ main:
     "#;
 
     let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
-    let mut lexer = Lexer::from(monkey_file);
+    let mut lexer = ASTParser::from(monkey_file);
     let top_level_scope = lexer.parse()?;
 
     static_type_check(&top_level_scope)?;
@@ -225,7 +225,7 @@ main:
     "#;
 
     let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
-    let mut lexer = Lexer::from(monkey_file);
+    let mut lexer = ASTParser::from(monkey_file);
     let top_level_scope = lexer.parse()?;
 
     static_type_check(&top_level_scope)?;
@@ -261,7 +261,7 @@ main:
     "#;
 
     let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
-    let mut lexer = Lexer::from(monkey_file);
+    let mut lexer = ASTParser::from(monkey_file);
     let top_level_scope = lexer.parse()?;
 
     static_type_check(&top_level_scope)?;
@@ -303,7 +303,7 @@ fn pointer_assign_test() -> anyhow::Result<()> {
     "#;
 
     let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
-    let mut lexer = Lexer::from(monkey_file);
+    let mut lexer = ASTParser::from(monkey_file);
     let top_level_scope = lexer.parse()?;
 
     static_type_check(&top_level_scope)?;
@@ -353,7 +353,7 @@ let g: bool = **c;
     "#;
 
     let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
-    let mut lexer = Lexer::from(monkey_file);
+    let mut lexer = ASTParser::from(monkey_file);
     let top_level_scope = lexer.parse()?;
 
     static_type_check(&top_level_scope)?;
@@ -417,7 +417,7 @@ let and = *b & false;
     "#;
 
     let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
-    let mut lexer = Lexer::from(monkey_file);
+    let mut lexer = ASTParser::from(monkey_file);
     let top_level_scope = lexer.parse()?;
 
     static_type_check(&top_level_scope)?;
@@ -468,7 +468,7 @@ let addition = true | *b;
     "#;
 
     let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
-    let mut lexer = Lexer::from(monkey_file);
+    let mut lexer = ASTParser::from(monkey_file);
     let top_level_scope = lexer.parse()?;
 
     static_type_check(&top_level_scope)?;
@@ -522,7 +522,7 @@ let addition = *b | *b;
     "#;
 
     let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
-    let mut lexer = Lexer::from(monkey_file);
+    let mut lexer = ASTParser::from(monkey_file);
     let top_level_scope = lexer.parse()?;
 
     static_type_check(&top_level_scope)?;
@@ -576,7 +576,7 @@ let addition = *b | (false | true);
     "#;
 
     let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
-    let mut lexer = Lexer::from(monkey_file);
+    let mut lexer = ASTParser::from(monkey_file);
     let top_level_scope = lexer.parse()?;
 
     static_type_check(&top_level_scope)?;
@@ -630,7 +630,7 @@ let addition = (false | true) | *b;
     "#;
 
     let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
-    let mut lexer = Lexer::from(monkey_file);
+    let mut lexer = ASTParser::from(monkey_file);
     let top_level_scope = lexer.parse()?;
 
     static_type_check(&top_level_scope)?;
@@ -685,7 +685,7 @@ let addition = (*b | *b) & (*b | *b);
     "#;
 
     let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
-    let mut lexer = Lexer::from(monkey_file);
+    let mut lexer = ASTParser::from(monkey_file);
     let top_level_scope = lexer.parse()?;
 
     static_type_check(&top_level_scope)?;
@@ -753,7 +753,7 @@ let addition = (((*d | *b) | (*b | *d)) | (*b | *b)) | ((*b | (*b | *b)) | (*b |
     "#;
 
     let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
-    let mut lexer = Lexer::from(monkey_file);
+    let mut lexer = ASTParser::from(monkey_file);
     let top_level_scope = lexer.parse()?;
 
     static_type_check(&top_level_scope)?;
@@ -877,7 +877,7 @@ fn single_expression_test() -> anyhow::Result<()> {
     "#;
 
     let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
-    let mut lexer = Lexer::from(monkey_file);
+    let mut lexer = ASTParser::from(monkey_file);
     let top_level_scope = lexer.parse()?;
 
 
@@ -918,7 +918,7 @@ main:
     "#;
 
     let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
-    let mut lexer = Lexer::from(monkey_file);
+    let mut lexer = ASTParser::from(monkey_file);
     let top_level_scope = lexer.parse()?;
 
     static_type_check(&top_level_scope)?;
@@ -940,7 +940,7 @@ fn bool_assign() -> anyhow::Result<()> {
     "#;
 
     let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
-    let mut lexer = Lexer::from(monkey_file);
+    let mut lexer = ASTParser::from(monkey_file);
     let top_level_scope = lexer.parse()?;
 
     static_type_check(&top_level_scope)?;

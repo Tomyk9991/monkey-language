@@ -1,8 +1,8 @@
 use monkey_language::core::code_generator::generator::ASMGenerator;
 use monkey_language::core::code_generator::target_os::TargetOS;
 use monkey_language::core::io::monkey_file::MonkeyFile;
-use monkey_language::core::lexer::parser::Lexer;
-use monkey_language::core::type_checker::static_type_checker::static_type_check;
+use monkey_language::core::scanner::parser::ASTParser;
+use monkey_language::core::semantics::type_checker::static_type_checker::static_type_check;
 
 #[test]
 fn bool_to_i32() -> anyhow::Result<()> {
@@ -15,7 +15,7 @@ fn bool_to_i32() -> anyhow::Result<()> {
     "#;
 
     let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
-    let mut lexer = Lexer::from(monkey_file);
+    let mut lexer = ASTParser::from(monkey_file);
     let top_level_scope = lexer.parse()?;
 
     static_type_check(&top_level_scope)?;

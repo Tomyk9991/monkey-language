@@ -1,22 +1,22 @@
 use monkey_language::core::io::code_line::CodeLine;
 use monkey_language::core::io::monkey_file::MonkeyFile;
-use monkey_language::core::lexer::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
-use monkey_language::core::lexer::abstract_syntax_tree_nodes::assignable::Assignable;
-use monkey_language::core::lexer::abstract_syntax_tree_nodes::assignables::boolean::Boolean;
-use monkey_language::core::lexer::parser::Lexer;
-use monkey_language::core::lexer::abstract_syntax_tree_nodes::assignables::equation_parser::expression::Expression;
-use monkey_language::core::lexer::abstract_syntax_tree_nodes::assignables::equation_parser::operator::Operator;
-use monkey_language::core::lexer::abstract_syntax_tree_nodes::assignables::integer::IntegerAST;
-use monkey_language::core::lexer::abstract_syntax_tree_nodes::assignables::method_call::MethodCall;
-use monkey_language::core::lexer::abstract_syntax_tree_nodes::identifier::Identifier;
-use monkey_language::core::lexer::abstract_syntax_tree_nodes::r#if::If;
-use monkey_language::core::lexer::abstract_syntax_tree_nodes::l_value::LValue;
-use monkey_language::core::lexer::abstract_syntax_tree_nodes::method_definition::MethodDefinition;
-use monkey_language::core::lexer::abstract_syntax_tree_nodes::r#return::Return;
-use monkey_language::core::lexer::abstract_syntax_tree_nodes::variable::Variable;
-use monkey_language::core::lexer::types::integer::Integer;
-use monkey_language::core::lexer::types::r#type::{Mutability, Type};
-use monkey_language::core::type_checker::static_type_checker::static_type_check;
+use monkey_language::core::scanner::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
+use monkey_language::core::scanner::abstract_syntax_tree_nodes::assignable::Assignable;
+use monkey_language::core::scanner::abstract_syntax_tree_nodes::assignables::boolean::Boolean;
+use monkey_language::core::scanner::parser::ASTParser;
+use monkey_language::core::scanner::abstract_syntax_tree_nodes::assignables::equation_parser::expression::Expression;
+use monkey_language::core::scanner::abstract_syntax_tree_nodes::assignables::equation_parser::operator::Operator;
+use monkey_language::core::scanner::abstract_syntax_tree_nodes::assignables::integer::IntegerAST;
+use monkey_language::core::scanner::abstract_syntax_tree_nodes::assignables::method_call::MethodCall;
+use monkey_language::core::scanner::abstract_syntax_tree_nodes::identifier::Identifier;
+use monkey_language::core::scanner::abstract_syntax_tree_nodes::r#if::If;
+use monkey_language::core::scanner::abstract_syntax_tree_nodes::l_value::LValue;
+use monkey_language::core::scanner::abstract_syntax_tree_nodes::method_definition::MethodDefinition;
+use monkey_language::core::scanner::abstract_syntax_tree_nodes::r#return::Return;
+use monkey_language::core::scanner::abstract_syntax_tree_nodes::variable::Variable;
+use monkey_language::core::scanner::types::integer::Integer;
+use monkey_language::core::scanner::types::r#type::{Mutability, Type};
+use monkey_language::core::semantics::type_checker::static_type_checker::static_type_check;
 
 #[test]
 fn infer_type_assignment() -> anyhow::Result<()> {
@@ -27,7 +27,7 @@ fn infer_type_assignment() -> anyhow::Result<()> {
 
 
     let monkey_file: MonkeyFile = MonkeyFile::read_from_str(function);
-    let mut lexer = Lexer::from(monkey_file);
+    let mut lexer = ASTParser::from(monkey_file);
     let top_level_scope = lexer.parse()?;
 
     static_type_check(&top_level_scope)?;
@@ -74,7 +74,7 @@ fn infer_type_assignment_in_scope() -> anyhow::Result<()> {
 
 
     let monkey_file: MonkeyFile = MonkeyFile::read_from_str(function);
-    let mut lexer = Lexer::from(monkey_file);
+    let mut lexer = ASTParser::from(monkey_file);
     let top_level_scope = lexer.parse()?;
 
     static_type_check(&top_level_scope)?;
@@ -130,7 +130,7 @@ fn infer_type_assignment_in_scope_complex() -> anyhow::Result<()> {
 
 
     let monkey_file: MonkeyFile = MonkeyFile::read_from_str(function);
-    let mut lexer = Lexer::from(monkey_file);
+    let mut lexer = ASTParser::from(monkey_file);
     let top_level_scope = lexer.parse()?;
 
     static_type_check(&top_level_scope)?;
@@ -245,7 +245,7 @@ fn infer_type_assignment_in_scope_complex_in_method() -> anyhow::Result<()> {
 
 
     let monkey_file: MonkeyFile = MonkeyFile::read_from_str(function);
-    let mut lexer = Lexer::from(monkey_file);
+    let mut lexer = ASTParser::from(monkey_file);
     let top_level_scope = lexer.parse()?;
 
     println!("{:#?}", top_level_scope);

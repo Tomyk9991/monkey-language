@@ -1,7 +1,7 @@
 use monkey_language::core::io::monkey_file::MonkeyFile;
-use monkey_language::core::lexer::scope::ScopeError;
-use monkey_language::core::lexer::parser::Lexer;
-use monkey_language::core::lexer::types::r#type::InferTypeError;
+use monkey_language::core::scanner::scope::ScopeError;
+use monkey_language::core::scanner::parser::ASTParser;
+use monkey_language::core::scanner::types::r#type::InferTypeError;
 
 #[test]
 fn wrong_index_type() -> anyhow::Result<()> {
@@ -11,7 +11,7 @@ fn wrong_index_type() -> anyhow::Result<()> {
     "#;
 
     let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
-    let mut lexer = Lexer::from(monkey_file);
+    let mut lexer = ASTParser::from(monkey_file);
     let top_level_scope = lexer.parse();
 
     assert!(top_level_scope.is_err());

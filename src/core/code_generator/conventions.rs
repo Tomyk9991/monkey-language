@@ -4,11 +4,11 @@ use crate::core::code_generator::MetaInfo;
 use crate::core::code_generator::registers::{Bit64, FloatRegister, GeneralPurposeRegister};
 use crate::core::code_generator::target_os::TargetOS;
 use crate::core::io::code_line::CodeLine;
-use crate::core::lexer::static_type_context::StaticTypeContext;
-use crate::core::lexer::abstract_syntax_tree_nodes::assignable::Assignable;
-use crate::core::lexer::abstract_syntax_tree_nodes::method_definition::MethodDefinition;
-use crate::core::lexer::abstract_syntax_tree_nodes::identifier::Identifier;
-use crate::core::lexer::types::r#type::{InferTypeError, Type};
+use crate::core::scanner::static_type_context::StaticTypeContext;
+use crate::core::scanner::abstract_syntax_tree_nodes::assignable::Assignable;
+use crate::core::scanner::abstract_syntax_tree_nodes::method_definition::MethodDefinition;
+use crate::core::scanner::abstract_syntax_tree_nodes::identifier::Identifier;
+use crate::core::scanner::types::r#type::{InferTypeError, Type};
 
 /// An enum representing the destination register. If its a register it contains the register
 /// For floats its for example a "rcx" or "rdx" for windows calling convention

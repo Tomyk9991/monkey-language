@@ -1,0 +1,396 @@
+use std::cmp::Ordering;
+use std::error::Error;
+use std::fmt::{Display, Formatter};
+use std::ops::Range;
+use std::str::FromStr;
+use crate::core::code_generator::{ASMGenerateError, MetaInfo};
+use crate::core::code_generator::generator::Stack;
+
+use crate::core::io::code_line::CodeLine;
+use crate::core::scanner::abstract_syntax_tree_nodes::assignable::Assignable;
+use crate::core::scanner::abstract_syntax_tree_nodes::assignables::equation_parser::operator::{AssemblerOperation, Operator, OperatorToASM};
+use crate::core::scanner::abstract_syntax_tree_nodes::l_value::LValue;
+use crate::core::scanner::abstract_syntax_tree_nodes::identifier::{Identifier, IdentifierErr};
+use crate::core::scanner::abstract_syntax_tree_nodes::variable::Variable;
+use crate::core::scanner::types::boolean::Boolean;
+use crate::core::scanner::types::cast_to::CastTo;
+use crate::core::scanner::types::float::Float;
+use crate::core::scanner::types::integer::Integer;
+
+pub mod common {
+    use crate::core::scanner::abstract_syntax_tree_nodes::identifier::Identifier;
+    use crate::core::scanner::types::r#type::{Mutability, Type};
+
+    #[allow(unused)]
+    pub fn string() -> Type { Type::Custom(Identifier { name: "*string".to_string() }, Mutability::Immutable)}
+}
+
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+pub enum Mutability {
+    Mutable,
+    Immutable,
+}
+
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+pub enum Type {
+    Integer(Integer, Mutability),
+    Float(Float, Mutability),
+    Bool(Mutability),
+    Void,
+    Array(Box<Type>, usize, Mutability),
+    Custom(Identifier, Mutability),
+}
+
+
+#[derive(Debug)]
+pub enum InferTypeError {
+    TypesNotCalculable(Type, Operator, Type, CodeLine),
+    UnresolvedReference(String, CodeLine),
+    TypeNotAllowed(IdentifierErr),
+    MultipleTypesInArray{expected: Type, unexpected_type: Type, unexpected_type_index: usize, code_line: CodeLine},
+    IllegalDereference(Assignable, Type, CodeLine),
+    IllegalArrayTypeLookup(Type, CodeLine),
+    IllegalIndexOperation(Type, CodeLine),
+    NoTypePresent(LValue, CodeLine),
+    DefineNotAllowed(Variable<'=', ';'>, CodeLine),
+    IntegerTooSmall { ty: Type, literal: String ,code_line: CodeLine },
+    FloatTooSmall { ty: Type, float: f64, code_line: CodeLine },
+    MethodCallArgumentAmountMismatch { expected: usize, actual: usize, code_line: CodeLine },
+    MethodCallArgumentTypeMismatch { info: Box<MethodCallArgumentTypeMismatch> },
+    MethodReturnArgumentTypeMismatch { expected: Type, actual: Type, code_line: CodeLine },
+    MethodReturnSignatureMismatch { expected: Type, method_name: String, method_head_line: Range<usize>, cause: MethodCallSignatureMismatchCause },
+    MethodCallSignatureMismatch { signatures: Vec<Vec<Type>>, method_name: Identifier, code_line: CodeLine, provided: Vec<Type> },
+    NameCollision(String, CodeLine),
+    MismatchedTypes { expected: Type, actual: Type, code_line: CodeLine },
+}
+
+#[derive(Debug)]
+pub enum MethodCallSignatureMismatchCause {
+    ReturnMissing,
+    IfCondition
+}
+
+impl From<bool> for Mutability {
+    fn from(value: bool) -> Self {
+        if value {
+            Mutability::Mutable
+        } else {
+            Mutability::Immutable
+        }
+    }
+}
+
+impl Display for Mutability {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", match self {
+            Mutability::Mutable => "mut ",
+            Mutability::Immutable => ""
+        })
+    }
+}
+
+impl Display for MethodCallSignatureMismatchCause {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", match self {
+            MethodCallSignatureMismatchCause::ReturnMissing => "",
+            MethodCallSignatureMismatchCause::IfCondition => "Every branch of an if statement must end with a return statement"
+        })
+    }
+}
+
+#[derive(Debug)]
+pub struct MethodCallArgumentTypeMismatch {
+    pub expected: Type,
+    pub actual: Type,
+    pub nth_parameter: usize,
+    pub code_line: CodeLine,
+}
+
+impl PartialOrd for Type {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        let (equal_types, m1, m2) = match (self, other) {
+            (Type::Float(f1, m1), Type::Float(f2, m2)) if f1 == f2 => (true, m1, m2),
+            (Type::Integer(i1, m1), Type::Integer(i2, m2)) if i1 == i2 => (true, m1, m2),
+            (Type::Bool(m1), Type::Bool(m2)) => (true, m1, m2),
+            (Type::Array(t1, s1, m1), Type::Array(t2, s2, m2)) if t1.partial_cmp(t2)?.is_le() && s1 == s2 => (true, m1, m2),
+            (Type::Custom(n1, m1), Type::Custom(n2, m2)) if n1 == n2 => (true, m1, m2),
+            _ => return Some(Ordering::Less)
+        };
+
+        if equal_types {
+            match (m1, m2) {
+                (Mutability::Mutable, Mutability::Immutable) => Some(Ordering::Less),
+                (Mutability::Immutable, Mutability::Mutable) => Some(Ordering::Greater),
+                _ => Some(Ordering::Equal)
+            }
+        } else {
+            Some(Ordering::Less)
+        }
+    }
+}
+
+impl OperatorToASM for Type {
+    fn operation_to_asm<T: Display>(&self, operator: &Operator, registers: &[T], stack: &mut Stack, meta: &mut MetaInfo) -> Result<AssemblerOperation, ASMGenerateError> {
+
+        match self {
+            Type::Integer(t, _) => t.operation_to_asm(operator, registers, stack, meta),
+            Type::Float(t, _) => t.operation_to_asm(operator, registers, stack, meta),
+            Type::Bool(_) => Boolean::True.operation_to_asm(operator, registers, stack, meta),
+            Type::Void => Err(ASMGenerateError::InternalError("Void cannot be operated on".to_string())),
+            Type::Array(_, _, _) | Type::Custom(_, _) => todo!(),
+        }
+    }
+}
+
+
+impl From<IdentifierErr> for InferTypeError {
+    fn from(value: IdentifierErr) -> Self {
+        InferTypeError::TypeNotAllowed(value)
+    }
+}
+
+impl Error for InferTypeError {}
+
+impl Display for InferTypeError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            InferTypeError::TypesNotCalculable(a, o, b, code_line) => write!(f, "Line: {:?}: \tCannot {} between types {} and {}", code_line.actual_line_number, o, a, b),
+            InferTypeError::UnresolvedReference(s, code_line) => write!(f, "Line: {:?}: \tUnresolved reference: {s}", code_line.actual_line_number),
+            InferTypeError::MismatchedTypes { expected, actual, code_line } => write!(f, "Line: {:?}: \tMismatched types: Expected `{expected}` but found `{actual}`", code_line.actual_line_number),
+            InferTypeError::NameCollision(name, code_line) => write!(f, "Line: {:?}: \tTwo symbols share the same name: `{name}`", code_line.actual_line_number),
+            InferTypeError::TypeNotAllowed(ty) => write!(f, "This type is not allowed due to: {}", ty),
+            InferTypeError::MethodCallArgumentAmountMismatch { expected, actual, code_line } => write!(f, "Line: {:?}: \tThe method expects {} parameter, but {} are provided", code_line.actual_line_number, expected, actual),
+            InferTypeError::MethodCallArgumentTypeMismatch { info } => write!(f, "Line: {:?}: \t The {}. argument must be of type: `{}` but `{}` is provided", info.code_line.actual_line_number, info.nth_parameter, info.expected, info.actual),
+            InferTypeError::MethodReturnArgumentTypeMismatch { expected, actual, code_line } => write!(f, "Line: {:?}: \t The return type is: `{}` but `{}` is provided", code_line.actual_line_number, expected, actual),
+            InferTypeError::MethodReturnSignatureMismatch { expected, method_name, method_head_line, cause } => write!(f, "Line: {method_head_line:?}: \tA return statement with type: `{expected}` is expected for the method: {method_name}\n\t{cause}"),
+            InferTypeError::MethodCallSignatureMismatch { signatures, method_name, code_line, provided } => {
+                let provided_arguments = provided.iter().map(|a| a.to_string()).collect::<Vec<String>>().join(", ");
+                let mut signatures = signatures
+                    .iter()
+                    .map(|v| format!("\t - ({})", v.iter().map(|t| t.to_string()).collect::<Vec<String>>().join(", ")))
+                    .collect::<Vec<String>>();
+                signatures.sort();
+                let signatures = signatures.join(",\n");
+
+                write!(f, "Line: {:?}: Arguments `({})` to the function `{}` are incorrect: Possible signatures are:\n{}", code_line.actual_line_number, provided_arguments, method_name.name, signatures)
+            }
+            InferTypeError::MultipleTypesInArray { expected, unexpected_type, unexpected_type_index, code_line } => {
+                write!(f, "Line: {:?}: Expected `{expected}` in array but found `{unexpected_type}` at position: `{unexpected_type_index}`", code_line.actual_line_number)
+            }
+            InferTypeError::NoTypePresent(name, code_line) => write!(f, "Line: {:?}\tType not inferred: `{name}`", code_line.actual_line_number),
+            InferTypeError::IllegalDereference(assignable, ty, code_line) => write!(f, "Line: {:?}\tType `{ty}` cannot be dereferenced: {assignable}", code_line.actual_line_number),
+            InferTypeError::IllegalArrayTypeLookup(ty, code_line) => write!(f, "Line: {:?}\tType `{ty}` cannot be indexed", code_line.actual_line_number),
+            InferTypeError::IllegalIndexOperation(ty, code_line) => write!(f, "Line: {:?}\tType `{ty}` cannot be used as an index", code_line.actual_line_number),
+            InferTypeError::IntegerTooSmall { ty, literal: integer, code_line } => write!(f, "Line: {:?}\t`{integer}` doesn't fit into the type `{ty}`", code_line.actual_line_number),
+            InferTypeError::FloatTooSmall { ty, float, code_line } =>
+                write!(f, "Line: {:?}\t`{float}` doesn't fit into the type `{ty}`", code_line.actual_line_number),
+            InferTypeError::DefineNotAllowed(variable, code_line) => {
+                write!(f, "Line: {:?}\t`{}` is not allowed to be defined here", code_line.actual_line_number, variable.l_value)
+            }
+        }
+    }
+}
+
+impl Display for Type {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", match self {
+            Type::Integer(int, _) => format!("{}", int),
+            Type::Float(float, _) => format!("{}", float),
+            Type::Bool(_) => "bool".to_string(),
+            Type::Void => "void".to_string(),
+            Type::Array(array_type, size, _) => format!("[{}; {size}]", array_type),
+            Type::Custom(name, _) => name.name.clone().to_string(),
+        })
+    }
+}
+
+impl Type {
+    pub fn from_str(s: &str, mutability: Mutability) -> Result<Self, InferTypeError> {
+        if let ["[ ", type_str, ", ", type_size, "]"] = &s.split_inclusive(' ').collect::<Vec<_>>()[..] {
+            return Ok(Type::Array(Box::new(Type::from_str(type_str.trim(), mutability.clone())?), type_size.trim().parse::<usize>()
+                .map_err(|_| InferTypeError::TypeNotAllowed(IdentifierErr::UnmatchedRegex {
+                    target_value: s.to_string(),
+                }))?, mutability));
+        }
+
+        Ok(match s {
+            "bool" => Type::Bool(Mutability::Immutable),
+            "void" => Type::Void,
+            custom => {
+                if let Ok(int) = Integer::from_str(custom) {
+                    return Ok(Type::Integer(int, mutability));
+                }
+
+                if let Ok(float) = Float::from_str(custom) {
+                    return Ok(Type::Float(float, mutability));
+                }
+
+                if !lazy_regex::regex_is_match!(r"^[\*&]*[a-zA-Z_$][a-zA-Z_$0-9]*[\*&]*$", s) {
+                    return Err(InferTypeError::TypeNotAllowed(IdentifierErr::UnmatchedRegex { target_value: String::from(custom) }));
+                }
+
+                Type::Custom(Identifier { name: custom.to_string() }, mutability)
+            }
+        })
+    }
+    pub fn set_mutability(&mut self, m: Mutability) {
+        match self {
+            Type::Integer(_, mutability) => *mutability = m,
+            Type::Float(_, mutability) => *mutability = m,
+            Type::Bool(mutability) => *mutability = m,
+            Type::Void => {},
+            Type::Array(_, _, mutability) => *mutability = m,
+            Type::Custom(_, mutability) => *mutability = m,
+        }
+    }
+
+    pub fn cast_to(&self, to: &Type) -> CastTo {
+        CastTo {
+            from: self.clone(),
+            to: to.clone(),
+        }
+    }
+
+    pub fn is_float(&self) -> bool {
+        matches!(self, Type::Float(_, _))
+    }
+
+    // takes the element array type and returns the type of the array
+    pub fn pop_array(&self) -> Option<Type> {
+        if let Type::Array(array_type, _, _) = self {
+            return Some(*array_type.clone());
+        }
+
+        None
+    }
+    /// removes * from type
+    pub fn pop_pointer(&self) -> Option<Type> {
+        if let Type::Custom(identifier, _) = self {
+            if identifier.name.starts_with('*') {
+                let new_identifier_node = identifier.name.replacen('*', "", 1);
+
+                if let Ok(ty) = Type::from_str(&new_identifier_node, Mutability::Immutable) {
+                    return Some(ty);
+                }
+            }
+        }
+
+        None
+    }
+
+
+    pub fn is_pointer(&self) -> bool {
+        if let Type::Custom(name, _) = self {
+            return name.name.starts_with('*');
+        }
+
+        false
+    }
+
+    /// adds * from type
+    pub fn push_pointer(&self) -> Self {
+        match self {
+            Type::Integer(int, mutability) => Type::Custom(Identifier { name: format!("*{}", int) }, mutability.clone()),
+            Type::Float(float, mutability) => Type::Custom(Identifier { name: format!("*{}", float) }, mutability.clone()),
+            Type::Bool(mutability) => Type::Custom(Identifier { name: "*bool".to_string() }, mutability.clone()),
+            Type::Void => Type::Custom(Identifier { name: format!("*{}", Type::Void) }, Mutability::Immutable),
+            Type::Array(array_type, _, mutability) => Type::Custom(Identifier { name: format!("*{}", array_type)}, mutability.clone()),
+            Type::Custom(custom, mutability) => Type::Custom(Identifier { name: format!("*{}", custom) }, mutability.clone()),
+        }
+    }
+
+    pub fn implicit_cast_to(&self, assignable: &mut Assignable, desired_type: &Type, code_line: &CodeLine) -> Result<Option<Type>, InferTypeError> {
+        match (self, desired_type) {
+            (Type::Integer(_, _), Type::Integer(desired, _)) => {
+                if let Assignable::Integer(integer) = assignable {
+                    match desired {
+                        Integer::I8 if Self::in_range(-127_i8, 127_i8, Integer::from_number_str(&integer.value)) => {
+                            integer.ty = desired.clone();
+                            return Ok(Some(desired_type.clone()))
+                        },
+                        Integer::U8 => if Self::in_range(0_u8, 255_u8, Integer::from_number_str(&integer.value)) {
+                            integer.ty = desired.clone();
+                            return Ok(Some(desired_type.clone()))
+                        },
+                        Integer::I16 => if Self::in_range(-32768_i16, 32767_i16, Integer::from_number_str(&integer.value)) {
+                            integer.ty = desired.clone();
+                            return Ok(Some(desired_type.clone()))
+                        },
+                        Integer::U16 => if Self::in_range(0_u16, 65535_u16, Integer::from_number_str(&integer.value)) {
+                            integer.ty = desired.clone();
+                            return Ok(Some(desired_type.clone()))
+                        },
+                        Integer::I32 => if Self::in_range(-2_147_483_648_i32, 2_147_483_647_i32, Integer::from_number_str(&integer.value)) {
+                            integer.ty = desired.clone();
+                            return Ok(Some(desired_type.clone()))
+                        },
+                        Integer::U32 => if Self::in_range(0_u32, 4_294_967_295_u32, Integer::from_number_str(&integer.value)) {
+                            integer.ty = desired.clone();
+                            return Ok(Some(desired_type.clone()))
+                        },
+                        Integer::I64 => if Self::in_range(-9_223_372_036_854_775_808_i64, 9_223_372_036_854_775_807_i64, Integer::from_number_str(&integer.value)) {
+                            integer.ty = desired.clone();
+                            return Ok(Some(desired_type.clone()))
+                        },
+                        Integer::U64 => if Self::in_range(0_u64, 18_446_744_073_709_551_615_u64, Integer::from_number_str(&integer.value)) {
+                            integer.ty = desired.clone();
+                            return Ok(Some(desired_type.clone()))
+                        },
+                        _ => return Err(InferTypeError::IntegerTooSmall { ty: desired_type.clone() , literal: integer.value.to_string(), code_line: code_line.clone() })
+                    }
+                }
+            }
+            (Type::Float(_, _), Type::Float(desired, _)) => {
+                if let Assignable::Float(float) = assignable {
+                    return match desired {
+                        Float::Float32 if Self::in_range(-3.40282347e+38, 3.40282347e+38, Ok(float.value)) => {
+                            float.ty = desired.clone();
+                            Ok(Some(desired_type.clone()))
+                        },
+                        Float::Float64 if Self::in_range(-1.797_693_134_862_315_7e308, 1.797_693_134_862_315_7e308, Ok(float.value)) => {
+                            float.ty = desired.clone();
+                            Ok(Some(desired_type.clone()))
+                        },
+                        _ => Err(InferTypeError::FloatTooSmall { ty: desired_type.clone(), float: float.value, code_line: code_line.clone() })
+                    }
+                }
+            },
+            (Type::Array(array_type, size, mutability), Type::Array(_desired_inner_type, desired_size, _)) => {
+                //todo: check desired_inner_type with actual array_type
+                if let Assignable::Array(_) = assignable {
+                    if size != desired_size {
+                        return Err(InferTypeError::MismatchedTypes {
+                            expected: desired_type.clone(),
+                            actual: Type::Array(array_type.clone(), *size, mutability.clone()),
+                            code_line: Default::default(),
+                        });
+                    }
+
+                    return Ok(Some(desired_type.clone()));
+                }
+            },
+            _ => { }
+        }
+
+        Ok(None)
+    }
+
+    fn in_range<T: PartialEq<P>, P: PartialOrd<T>>(min: T, max: T, value: Result<P, InferTypeError>) -> bool {
+        if let Ok(value) = value {
+            value >= min && value <= max
+        } else {
+            false
+        }
+    }
+
+    pub fn byte_size(&self) -> usize {
+        match self {
+            Type::Integer(int, _) => int.byte_size(),
+            Type::Float(float, _) => float.byte_size(),
+            Type::Array(array_type, _, _) => array_type.byte_size(),
+            Type::Bool(_) => 1,
+            Type::Void => 0,
+            Type::Custom(_, _) => 8, // todo: calculate custom data types recursively
+        }
+    }
+}

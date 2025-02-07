@@ -4,7 +4,7 @@ use std::ops::Range;
 use std::path::{Path, PathBuf};
 
 use anyhow::Context;
-
+use crate::core::lexer::tokenizer::tokenize;
 use crate::core::constants::{CLOSING_SCOPE, OPENING_SCOPE};
 use crate::core::io::code_line::{CodeLine, Normalizable};
 use crate::core::model::scope_type::{ScopeType, ScopeTypeIterator};
@@ -26,6 +26,10 @@ impl MonkeyFile {
         let mut buffer = String::new();
 
         let size = file.read_to_string(&mut buffer)?;
+
+        let tokens = tokenize(&buffer)?;
+        println!("{:?}", tokens);
+
 
         let monkey_file = Self::read_from_str(&buffer);
 
