@@ -1,4 +1,3 @@
-use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
 use crate::core::code_generator::asm_options::ASMOptions;
@@ -8,6 +7,9 @@ use crate::core::code_generator::asm_options::interim_result::InterimResultOptio
 use crate::core::code_generator::asm_result::ASMResult;
 use crate::core::code_generator::register_destination::word_from_byte_size;
 use crate::core::code_generator::registers::{GeneralPurposeRegister};
+use crate::core::lexer::error::Error;
+use crate::core::lexer::parse::{Parse, ParseResult};
+use crate::core::lexer::token_with_span::TokenWithSpan;
 use crate::core::scanner::abstract_syntax_tree_nodes::assignables::equation_parser::Equation;
 use crate::core::scanner::abstract_syntax_tree_nodes::assignables::equation_parser::expression::Expression;
 use crate::core::scanner::abstract_syntax_tree_nodes::identifier::Identifier;
@@ -16,6 +18,26 @@ use crate::core::scanner::abstract_syntax_tree_nodes::identifier::Identifier;
 pub enum LValue {
     Identifier(Identifier),
     Expression(Expression),
+}
+
+impl Default for LValue {
+    fn default() -> Self {
+        LValue::Identifier(Identifier::default())
+    }
+}
+
+
+impl Parse for LValue {
+    fn parse(tokens: &[TokenWithSpan]) -> Result<ParseResult<Self>, Error> where Self: Sized, Self: Default {
+        if let Ok(identifier) = Identifier::from_str(&format!("{}", tokens[0].token), false) {
+            Ok(ParseResult {
+                consumed: 1,
+                result: LValue::Identifier(identifier)
+            })
+        } else {
+            Err(Error::UnexpectedToken(tokens[0].clone()))
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -34,7 +56,7 @@ impl Display for LValueErr {
     }
 }
 
-impl Error for LValueErr { }
+impl std::error::Error for LValueErr { }
 
 impl Display for LValue {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {

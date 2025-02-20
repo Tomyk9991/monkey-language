@@ -1,11 +1,13 @@
+#![allow(warnings)]
 use clap::Parser;
 use colored::Colorize;
+use monkey_language::core::lexer::parse::Parse;
 use crate::cli::program_args::OptimizationLevel;
 use crate::cli::program_args::{PrintOption, ProgramArgs};
 use crate::core::code_generator::generator::ASMGenerator;
 use crate::core::code_generator::target_creator::TargetCreator;
 use crate::core::code_generator::target_os::TargetOS;
-use crate::core::io::monkey_file::MonkeyFile;
+use crate::core::io::monkey_file::{MonkeyFile, MonkeyFileNew};
 use crate::core::scanner::parser::ASTParser;
 use crate::core::semantics::type_checker::static_type_checker::static_type_check;
 
@@ -20,17 +22,18 @@ fn run_compiler() -> anyhow::Result<()> {
     let args = ProgramArgs::parse();
     let entry_point_file = args.input.clone();
 
-    let monkey_file: MonkeyFile = MonkeyFile::read(entry_point_file)?;
+    let monkey_file: MonkeyFileNew = MonkeyFileNew::read(&entry_point_file)?;
 
-// // 1) Build AST
-//     let mut top_level_scope = ASTParser::from(monkey_file).parse()?;
-//
-//     if let Some(print_scope) = &args.print_scope {
-//         match print_scope {
-//             PrintOption::Production => println!("{}", top_level_scope),
-//             PrintOption::Debug => println!("{:?}", top_level_scope)
-//         };
-//     }
+// 1) Build AST
+    let mut top_level_scope = ASTParser::parse(&monkey_file.tokens)?;
+    println!("{:#?}", top_level_scope);
+
+    // if let Some(print_scope) = &args.print_scope {
+    //     match print_scope {
+    //         PrintOption::Production => println!("{}", top_level_scope),
+    //         PrintOption::Debug => println!("{:?}", top_level_scope)
+    //     };
+    // }
 //
 // // 2) Static Type Checking
 //     let static_type_context = static_type_check(&top_level_scope)?;

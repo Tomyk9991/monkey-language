@@ -31,11 +31,12 @@ pub enum Mutability {
     Immutable,
 }
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Default)]
 pub enum Type {
     Integer(Integer, Mutability),
     Float(Float, Mutability),
     Bool(Mutability),
+    #[default]
     Void,
     Array(Box<Type>, usize, Mutability),
     Custom(Identifier, Mutability),

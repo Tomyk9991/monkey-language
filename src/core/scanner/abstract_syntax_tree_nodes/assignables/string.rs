@@ -1,5 +1,4 @@
 use std::any::Any;
-use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
@@ -11,10 +10,34 @@ use crate::core::code_generator::asm_options::interim_result::InterimResultOptio
 use crate::core::code_generator::asm_result::{ASMResult};
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::registers::GeneralPurposeRegister;
+use crate::core::lexer::error::Error;
+use crate::core::lexer::parse::{Parse, ParseResult};
+use crate::core::lexer::token::Token;
+use crate::core::lexer::token_with_span::TokenWithSpan;
 
-#[derive(Debug, Eq, PartialEq, Clone)]
+#[derive(Debug, Eq, PartialEq, Clone, Default)]
 pub struct StaticString {
     pub value: String,
+}
+
+
+impl Parse for StaticString {
+    fn parse(tokens: &[TokenWithSpan]) -> Result<ParseResult<Self>, Error> where Self: Sized, Self: Default {
+        if let [string_literal, ..] = tokens {
+            if let Token::Literal(s) = &string_literal.token {
+                if lazy_regex::regex_is_match!("^\".*\"$", s) {
+                    return Ok(ParseResult {
+                        result: StaticString {
+                            value: s.to_string()
+                        },
+                        consumed: 1,
+                    })
+                }
+            }
+        }
+
+        Err(Error::UnexpectedToken(tokens[0].clone()))
+    }
 }
 
 impl Display for StaticString {
@@ -28,7 +51,7 @@ pub enum StaticStringErr {
     UnmatchedRegex,
 }
 
-impl Error for StaticStringErr {}
+impl std::error::Error for StaticStringErr {}
 
 impl Display for StaticStringErr {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {

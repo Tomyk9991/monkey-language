@@ -1,0 +1,75 @@
+use crate::core::lexer::error::Error;
+use crate::core::lexer::parse::{Parse, ParseResult};
+use crate::core::lexer::token_with_span::TokenWithSpan;
+use crate::core::scanner::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
+use crate::core::scanner::abstract_syntax_tree_nodes::assignables::method_call::MethodCall;
+use crate::core::scanner::abstract_syntax_tree_nodes::import::Import;
+use crate::core::scanner::abstract_syntax_tree_nodes::method_definition::MethodDefinition;
+use crate::core::scanner::abstract_syntax_tree_nodes::r#for::For;
+use crate::core::scanner::abstract_syntax_tree_nodes::r#if::If;
+use crate::core::scanner::abstract_syntax_tree_nodes::r#return::Return;
+use crate::core::scanner::abstract_syntax_tree_nodes::r#while::While;
+use crate::core::scanner::abstract_syntax_tree_nodes::scope_ending::ScopeEnding;
+use crate::core::scanner::abstract_syntax_tree_nodes::variable::Variable;
+
+/// An iterator over every possible AST node that can be parsed.
+#[derive(Default)]
+pub struct ScopeIterator {
+    started: bool,
+    index: AbstractSyntaxTreeNode,
+}
+
+pub trait ScopeIteratorItem: Into<AbstractSyntaxTreeNode> { }
+
+impl ScopeIterator {
+    pub fn new() -> Self {
+        Self {
+            started: false,
+            index: AbstractSyntaxTreeNode::default(),
+        }
+    }
+}
+
+
+impl Iterator for ScopeIterator {
+    type Item = Box<dyn Fn(&[TokenWithSpan]) -> Result<ParseResult<AbstractSyntaxTreeNode>, Error>>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if !self.started {
+            self.started = true;
+            self.index = AbstractSyntaxTreeNode::If(If::default());
+            let value = If::parse;
+            return Some(Box::new(move |tokens| value(tokens)?.into()));
+        }
+
+        let next_token = match self.index {
+            AbstractSyntaxTreeNode::If(_) => AbstractSyntaxTreeNode::Variable(Variable::default()),
+            AbstractSyntaxTreeNode::Variable(_) => AbstractSyntaxTreeNode::MethodCall(MethodCall::default()),
+            AbstractSyntaxTreeNode::MethodCall(_) => AbstractSyntaxTreeNode::MethodDefinition(MethodDefinition::default()),
+            AbstractSyntaxTreeNode::MethodDefinition(_) => AbstractSyntaxTreeNode::Import(Import::default()),
+            AbstractSyntaxTreeNode::Import(_) => AbstractSyntaxTreeNode::Return(Return::default()),
+            AbstractSyntaxTreeNode::Return(_) => AbstractSyntaxTreeNode::ScopeEnding(ScopeEnding::default()),
+            AbstractSyntaxTreeNode::ScopeEnding(_) => AbstractSyntaxTreeNode::For(For::default()),
+            AbstractSyntaxTreeNode::For(_) => AbstractSyntaxTreeNode::While(While::default()),
+            AbstractSyntaxTreeNode::While(_) => AbstractSyntaxTreeNode::If(If::default()),
+        };
+
+        self.index = next_token.clone();
+        if matches!(next_token, AbstractSyntaxTreeNode::If(_)) {
+            return None;
+        }
+
+        Some(match next_token {
+            AbstractSyntaxTreeNode::If(_) => Box::new(move |tokens| If::parse(tokens)?.into()),
+            AbstractSyntaxTreeNode::Variable(_) => Box::new(move |tokens| Variable::<'=', ';'>::parse(tokens)?.into()),
+            _ => todo!()
+            // AbstractSyntaxTreeNode::MethodCall(_) => Box::new(move |tokens| MethodCall::parse(tokens)?.into()),
+            // AbstractSyntaxTreeNode::MethodDefinition(_) => Box::new(move |tokens| MethodDefinition::parse(tokens)?.into()),
+            // AbstractSyntaxTreeNode::Import(_) => Box::new(move |tokens| Import::parse(tokens)?.into()),
+            // AbstractSyntaxTreeNode::Return(_) => Box::new(move |tokens| Return::parse(tokens)?.into()),
+            // AbstractSyntaxTreeNode::ScopeEnding(_) => Box::new(move |tokens| ScopeClosing::parse(tokens)?.into()),
+            // AbstractSyntaxTreeNode::For(_) => Box::new(move |tokens| For::parse(tokens)?.into()),
+            // AbstractSyntaxTreeNode::While(_) => Box::new(move |tokens| While::parse(tokens)?.into()),
+        })
+    }
+}

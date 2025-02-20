@@ -3,3 +3,8 @@ pub mod token;
 pub mod error;
 mod token_information;
 pub mod semantic_token_merge;
+pub mod token_with_span;
+pub mod parse;
+pub mod macros;
+pub mod token_match;
+pub mod collect_tokens_until_scope_close;

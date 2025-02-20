@@ -33,6 +33,7 @@ impl StaticTypeContext {
 
     /// checks, if the provided methods have any name collisions
     pub fn colliding_symbols(&self) -> Result<(), InferTypeError> {
+        let default = CodeLine::default();
         for method in &self.methods {
             let context = StaticTypeContext::new(&method.stack);
             let mut hash_map: HashMap<&str, (usize, &CodeLine)> = HashMap::new();
@@ -54,7 +55,8 @@ impl StaticTypeContext {
                 if let Some((counter, _)) = hash_map.get_mut(value) {
                     *counter += 1;
                 } else {
-                    hash_map.insert(value, (1, &variable.code_line));
+                    // hash_map.insert(value, (1, &variable.code_line));
+                    hash_map.insert(value, (1, &default));
                 }
             }
 
@@ -104,7 +106,7 @@ impl StaticTypeContext {
                         context.push(for_loop.initialization.clone());
                     }
                 },
-                AbstractSyntaxTreeNode::While(_) | AbstractSyntaxTreeNode::ScopeClosing(_) | AbstractSyntaxTreeNode::MethodCall(_) | AbstractSyntaxTreeNode::If(_) | AbstractSyntaxTreeNode::Import(_) | AbstractSyntaxTreeNode::Return(_) => {}
+                AbstractSyntaxTreeNode::While(_) | AbstractSyntaxTreeNode::ScopeEnding(_) | AbstractSyntaxTreeNode::MethodCall(_) | AbstractSyntaxTreeNode::If(_) | AbstractSyntaxTreeNode::Import(_) | AbstractSyntaxTreeNode::Return(_) => {}
             }
         }
 

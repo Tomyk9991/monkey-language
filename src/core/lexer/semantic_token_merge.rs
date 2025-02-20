@@ -1,10 +1,17 @@
 use crate::core::lexer::error::Error;
 use crate::core::lexer::token::Token;
+use crate::core::lexer::token_with_span::{FilePosition, TokenWithSpan};
 
-
-pub fn semantic_token_merge(tokens: &[Token]) -> Result<Vec<Token>, Error> {
-    let pattern = vec![
-        (Token::Module, collect_until(&Token::SemiColon)),
+/// Merge tokens that are semantically related.
+///
+/// # Arguments
+///
+/// * `tokens`: &[TokenWithSpan] - The tokens to merge.
+///
+/// returns: Result<Vec<TokenWithSpan>, Error>
+pub fn semantic_token_merge(tokens: &[TokenWithSpan]) -> Result<Vec<TokenWithSpan>, Error> {
+    let mut pattern: Vec<(_, Box<dyn for<'a> FnMut(&'a Token) -> bool>, _)> = vec![
+        (Token::Module, until(&Token::SemiColon), collect()),
     ];
 
     let mut result = vec![];
@@ -15,20 +22,38 @@ pub fn semantic_token_merge(tokens: &[Token]) -> Result<Vec<Token>, Error> {
         if let Some(current_token) = current_token {
             result.push(current_token.clone());
 
-            for (target, predicate) in pattern.iter() {
-                if target == current_token {
+            for (target, predicate, _) in pattern.iter_mut() {
+                if *target == current_token.token {
                     let mut collected = vec![];
 
+
                     while let Some(current_collecting_token) = token_iter.next() {
-                        if predicate(current_collecting_token) {
-                            result.push(Token::Literal(collected.iter().map(|token: &Token| token.to_string()).collect::<String>()));
+                        if predicate(&current_collecting_token.token) {
+                            let min_column = *collected.iter()
+                                .map(|t: &TokenWithSpan| &t.span)
+                                .map(|span: &FilePosition| span.column.start())
+                                .min()
+                                .unwrap_or(&0);
+                            let max_column = *collected.iter()
+                                .map(|t: &TokenWithSpan| &t.span)
+                                .map(|span: &FilePosition| span.column.end())
+                                .max()
+                                .unwrap_or(&0);
+                            let line = current_collecting_token.span.line.clone();
+
+                            result.push(TokenWithSpan {
+                                token: Token::Literal(collected.iter().map(|token: &TokenWithSpan| token.token.to_string()).collect::<String>()),
+                                span: FilePosition {
+                                    line,
+                                    column: min_column..=max_column,
+                                },
+                            });
                             result.push(current_collecting_token.clone());
                             break;
                         } else {
                             collected.push(current_collecting_token.clone());
                         }
                     }
-
                 }
             }
         } else {
@@ -39,6 +64,22 @@ pub fn semantic_token_merge(tokens: &[Token]) -> Result<Vec<Token>, Error> {
     Ok(result)
 }
 
-fn collect_until<'a>(expected: &'a Token) -> impl Fn(&'a Token) -> bool {
-    |token: &Token| *token == *expected
+fn collect() -> fn(&[TokenWithSpan]) -> Token {
+    |collected: &[TokenWithSpan]| Token::Literal(collected.iter().map(|token: &TokenWithSpan| token.token.to_string()).collect::<String>())
+}
+
+fn until(expected: &Token) -> Box<dyn for<'a> FnMut(&'a Token) -> bool + '_> {
+    Box::new(|token: &Token| *token == *expected)
+}
+
+fn take(n: usize) -> Box<dyn for<'a> FnMut(&'a Token) -> bool> {
+    let mut count = 0;
+    Box::new(move |_token: &Token| {
+        if count < n {
+            count += 1;
+            true
+        } else {
+            false
+        }
+    })
 }

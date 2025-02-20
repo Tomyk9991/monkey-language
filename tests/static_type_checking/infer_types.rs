@@ -159,7 +159,7 @@ fn infer_type_in_scope() -> anyhow::Result<()> {
                 }),
             ],
             else_stack: None,
-            code_line: CodeLine { line: "if  ( true )  {".to_string(), actual_line_number: 2..2, virtual_line_number: 1 },
+            file_position: CodeLine { line: "if  ( true )  {".to_string(), actual_line_number: 2..2, virtual_line_number: 1 },
         })
     ];
 

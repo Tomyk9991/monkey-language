@@ -22,7 +22,7 @@ use crate::core::semantics::type_checker::StaticTypeCheck;
 type Integer = crate::core::scanner::abstract_syntax_tree_nodes::assignables::integer::IntegerAST;
 type IntegerType = crate::core::scanner::types::integer::Integer;
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Default)]
 pub struct Return {
     pub assignable: Option<Assignable>,
     pub code_line: CodeLine

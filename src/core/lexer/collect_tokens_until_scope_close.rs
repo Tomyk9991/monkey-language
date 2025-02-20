@@ -1,0 +1,49 @@
+use crate::core::lexer::error::Error;
+use crate::core::lexer::parse::{Parse, ParseResult};
+use crate::core::lexer::token::Token;
+use crate::core::lexer::token_with_span::TokenWithSpan;
+
+#[derive(Debug, Default, Clone)]
+pub struct CollectTokensUntilScopeClose {
+    pub tokens: Vec<TokenWithSpan>
+}
+
+impl TryFrom<Result<ParseResult<Self>, Error>> for CollectTokensUntilScopeClose {
+    type Error = Error;
+
+    fn try_from(value: Result<ParseResult<Self>, Error>) -> Result<Self, Self::Error> {
+        match value {
+            Ok(value) => Ok(value.result),
+            Err(err) => Err(err)
+        }
+    }
+}
+
+impl Parse for CollectTokensUntilScopeClose {
+    fn parse(tokens: &[TokenWithSpan]) -> Result<ParseResult<Self>, Error> where Self: Sized, Self: Default {
+        let mut tokens = tokens.to_vec();
+        let mut scope_count = 1;
+        let mut index = 0;
+
+        while scope_count > 0 {
+            index += 1;
+            if index >= tokens.len() {
+                return Err(Error::UnexpectedEOF);
+            }
+
+            match tokens[index].token {
+                Token::CurlyBraceOpen => scope_count += 1,
+                Token::CurlyBraceClose => scope_count -= 1,
+                _ => {}
+            }
+        }
+
+        let tokens: Vec<TokenWithSpan> = tokens.drain(0..index).collect();
+        let token_len = tokens.len();
+
+        Ok(ParseResult {
+            result: CollectTokensUntilScopeClose { tokens },
+            consumed: token_len,
+        })
+    }
+}

@@ -7,6 +7,10 @@ use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::code_generator::asm_options::ASMOptions;
 use crate::core::code_generator::asm_result::{ASMResult};
 use crate::core::io::code_line::CodeLine;
+use crate::core::lexer::parse::{Parse, ParseResult};
+use crate::core::lexer::token_match::Match;
+use crate::core::lexer::token_with_span::TokenWithSpan;
+use crate::core::scanner::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
 use crate::core::scanner::static_type_context::StaticTypeContext;
 use crate::core::scanner::abstract_syntax_tree_nodes::assignables::array::Array;
 use crate::core::scanner::abstract_syntax_tree_nodes::assignables::boolean::Boolean;
@@ -38,6 +42,92 @@ pub enum Assignable {
     ArithmeticEquation(Expression),
 }
 
+
+impl TryFrom<Result<ParseResult<Self>, crate::core::lexer::error::Error>> for Assignable {
+    type Error = crate::core::lexer::error::Error;
+
+    fn try_from(value: Result<ParseResult<Self>, crate::core::lexer::error::Error>) -> Result<Self, Self::Error> {
+        match value {
+            Ok(value) => Ok(value.result),
+            Err(err) => Err(err)
+        }
+    }
+}
+
+
+impl Parse for Assignable {
+    fn parse(tokens: &[TokenWithSpan]) -> Result<ParseResult<Self>, crate::core::lexer::error::Error> where Self: Sized, Self: Default {
+        return if let Ok(string) = StaticString::parse(tokens) {
+            Ok(ParseResult {
+                result: Assignable::String(string.result),
+                consumed: string.consumed
+            })
+        } else if let Ok(float) = FloatAST::parse(tokens) {
+            Ok(ParseResult {
+                result: Assignable::Float(float.result),
+                consumed: float.consumed
+            })
+        } else if let Ok(integer) = IntegerAST::parse(tokens) {
+            Ok(ParseResult {
+                result: Assignable::Integer(integer.result),
+                consumed: integer.consumed
+            })
+        }
+        else if let Ok(boolean) = Boolean::parse(tokens) {
+            Ok(ParseResult {
+                result: Assignable::Boolean(boolean.result),
+                consumed: boolean.consumed
+            })
+        }
+        else if let Ok(array) = Array::parse(tokens) {
+            Ok(ParseResult {
+                result: Assignable::Array(array.result),
+                consumed: array.consumed
+            })
+        }
+        else {
+            Ok(ParseResult {
+                result: Assignable::Identifier(Identifier { name: "test".to_string() }),
+                consumed: 1
+            })
+        };
+        // else if let Ok(array) = Array::from_str(line) {
+        //     return Ok(Assignable::Array(array))
+        // }
+        //
+        //
+        // match MethodCall::from_str(line) {
+        //     Ok(method_call) => return Ok(Assignable::MethodCall(method_call)),
+        //     Err(err) => {
+        //         // this counts as a not recoverable error and should return immediately
+        //         if let MethodCallErr::AssignableErr(_) = err {
+        //             return Err(AssignableErr::PatternNotMatched { target_value: line.to_string() });
+        //         }
+        //     }
+        // }
+        // if let Ok(variable_name) = Identifier::from_str(line, false) {
+        //     return Ok(Assignable::Identifier(variable_name));
+        // }
+        //
+        // if let Ok(object) = Object::from_str(line) {
+        //     return Ok(Assignable::Object(object));
+        // }
+        //
+        // if !ignore_expression {
+        //     if let Ok(arithmetic_equation) = Equation::from_str(line) {
+        //         return Ok(Assignable::ArithmeticEquation(arithmetic_equation));
+        //     }
+        // }
+        //
+        //
+        // Err(AssignableErr::PatternNotMatched { target_value: line.to_string() })
+        //
+        return Ok(ParseResult {
+            result: Assignable::Identifier(Identifier { name: "test".to_string() }),
+            consumed: 1
+        });
+    }
+}
 
 #[derive(Debug)]
 pub enum AssignableErr {

@@ -24,7 +24,7 @@ use crate::core::scanner::types::r#type::{InferTypeError, MethodCallArgumentType
 use crate::core::semantics::type_checker::static_type_checker::StaticTypeCheckError;
 use crate::core::semantics::type_checker::StaticTypeCheck;
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Default)]
 pub struct MethodCall {
     pub identifier: Identifier,
     pub arguments: Vec<Assignable>,
@@ -475,6 +475,64 @@ impl ArrayOrObject<char> for Vec<char> {
         self.clone()
     }
 }
+
+/// # Formal definition
+/// Let Σ = {( ) [a-z A-Z]}
+///
+/// {u ∈ Σ* | all prefixes of u contain no more )'s than ('s and the number of ('s in equals the number of )'s }
+pub fn dyck_language_generic<T: ArrayOrObject<char>, K>(parameter_string: &[K], values: [T; 3]) -> Result<Vec<K>, DyckError> {
+    todo!()
+    // let mut individual_parameters: Vec<String> = Vec::new();
+    // let mut counter = 0;
+    // let mut current_start_index = 0;
+    //
+    // for (index, c) in parameter_string.chars().enumerate() {
+    //     if values[0].list().contains(&c) { // opening
+    //         counter += 1;
+    //     } else if values[2].list().contains(&c) { // closing
+    //         counter -= 1;
+    //     } else if values[1].list().contains(&c) && counter == 0 { // seperator
+    //         let value = &parameter_string[current_start_index..index].trim();
+    //
+    //         if value.is_empty() {
+    //             return Err(DyckError {
+    //                 target_value: parameter_string.to_string(),
+    //                 ordering: Ordering::Equal,
+    //             });
+    //         }
+    //
+    //         individual_parameters.push(value.to_string());
+    //         current_start_index = index + 1;
+    //     }
+    //
+    //     if counter < 0 {
+    //         return Err(DyckError {
+    //             target_value: parameter_string.to_string(),
+    //             ordering: Ordering::Less,
+    //         });
+    //     }
+    // }
+    //
+    // match counter {
+    //     number if number > 0 => Err(DyckError {
+    //         target_value: parameter_string.to_string(),
+    //         ordering: Ordering::Less,
+    //     }),
+    //     number if number < 0 => Err(DyckError {
+    //         target_value: parameter_string.to_string(),
+    //         ordering: Ordering::Greater,
+    //     }),
+    //     _ => {
+    //         let s = parameter_string[current_start_index..parameter_string.len()].trim().to_string();
+    //         if !s.is_empty() {
+    //             individual_parameters.push(parameter_string[current_start_index..parameter_string.len()].trim().to_string());
+    //         }
+    //
+    //         Ok(individual_parameters)
+    //     }
+    // }
+}
+
 
 
 /// # Formal definition

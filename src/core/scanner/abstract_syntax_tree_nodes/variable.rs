@@ -13,22 +13,28 @@ use crate::core::code_generator::asm_result::{ASMResult, ASMResultError, ASMResu
 use crate::core::code_generator::generator::{Stack, StackLocation};
 use crate::core::code_generator::registers::{Bit64, ByteSize, GeneralPurposeRegister};
 use crate::core::io::code_line::CodeLine;
+use crate::core::lexer::parse::{Parse, ParseResult};
+use crate::core::lexer::token_match::{Match, MatchResult};
+use crate::core::lexer::token_with_span::{FilePosition, TokenWithSpan};
 use crate::core::scanner::errors::EmptyIteratorErr;
 use crate::core::scanner::scope::PatternNotMatchedError;
 use crate::core::scanner::static_type_context::StaticTypeContext;
 use crate::core::scanner::abstract_syntax_tree_nodes::assignable::{Assignable, AssignableErr};
 use crate::core::scanner::abstract_syntax_tree_nodes::l_value::{LValue, LValueErr};
-use crate::core::scanner::abstract_syntax_tree_nodes::identifier::{IdentifierErr};
+use crate::core::scanner::abstract_syntax_tree_nodes::identifier::{Identifier, IdentifierErr};
 use crate::core::scanner::{Lines, TryParse};
+use crate::core::scanner::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
+use crate::core::scanner::abstract_syntax_tree_nodes::r#if::If;
 use crate::core::scanner::types::r#type::{InferTypeError, Mutability, Type};
 use crate::core::semantics::type_checker::{InferType, StaticTypeCheck};
 use crate::core::semantics::type_checker::static_type_checker::StaticTypeCheckError;
+use crate::pattern;
 
 /// AST node for a variable. Pattern is defined as: name <Assignment> assignment <Separator>
 /// # Examples
 /// - `name = assignment;`
 /// - `name: assignment,`
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Default)]
 pub struct Variable<const ASSIGNMENT: char, const SEPARATOR: char> {
     pub l_value: LValue,
     // flag defining if the variable is mutable or not
@@ -38,7 +44,51 @@ pub struct Variable<const ASSIGNMENT: char, const SEPARATOR: char> {
     /// flag defining if the variable is a new definition or a re-assignment
     pub define: bool,
     pub assignable: Assignable,
-    pub code_line: CodeLine,
+    pub code_line: FilePosition,
+}
+
+impl From<ParseResult<Variable<'=', ';'>>> for Result<ParseResult<AbstractSyntaxTreeNode>, crate::core::lexer::error::Error> {
+    fn from(value: ParseResult<Variable<'=', ';'>>) -> Self {
+        Ok(ParseResult {
+            result: AbstractSyntaxTreeNode::Variable(value.result),
+            consumed: value.consumed,
+        })
+    }
+}
+
+
+impl<const ASSIGNMENT: char, const SEPARATOR: char> TryFrom<Result<ParseResult<Self>, crate::core::lexer::error::Error>> for Variable<ASSIGNMENT, SEPARATOR> {
+    type Error = crate::core::lexer::error::Error;
+
+    fn try_from(value: Result<ParseResult<Self>, crate::core::lexer::error::Error>) -> Result<Self, Self::Error> {
+        match value {
+            Ok(value) => Ok(value.result),
+            Err(e) => Err(e),
+        }
+    }
+}
+
+impl<const ASSIGNMENT: char, const SEPARATOR: char> Parse for Variable<ASSIGNMENT, SEPARATOR> {
+    fn parse(tokens: &[TokenWithSpan]) -> Result<ParseResult<Self>, crate::core::lexer::error::Error> where Self: Sized, Self: Default {
+        if let Some(MatchResult::Parse(l_value)) = pattern!(tokens, Let, @parse LValue, Equals) {
+            if let Some(MatchResult::Parse(assign)) = pattern!(&tokens[l_value.consumed + 2..], @parse Assignable, SemiColon) {
+                return Ok(ParseResult {
+                    result: Variable {
+                        l_value: l_value.result,
+                        mutability: false,
+                        ty: None,
+                        define: true,
+                        assignable: assign.result,
+                        code_line: FilePosition::from_min_max(&tokens[0], &tokens[l_value.consumed + assign.consumed + 2]),
+                    },
+                    consumed: l_value.consumed + assign.consumed + 3,
+                });
+            }
+        }
+
+
+        Err(crate::core::lexer::error::Error::UnexpectedToken(tokens[0].clone()))
+    }
 }
 
 
@@ -46,7 +96,7 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> InferType for Variable<ASSIG
     fn infer_type(&mut self, type_context: &mut StaticTypeContext) -> Result<(), InferTypeError> {
         if let LValue::Identifier(l_value) = &self.l_value {
             if type_context.methods.iter().filter(|a| a.identifier == *l_value).count() > 0 {
-                return Err(InferTypeError::NameCollision(l_value.name.clone(), self.code_line.clone()));
+                return Err(InferTypeError::NameCollision(l_value.name.clone(), CodeLine::default()));
             }
         }
 
@@ -54,6 +104,7 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> InferType for Variable<ASSIG
             return Ok(());
         }
 
+        let line = CodeLine::default();
         match &self.ty {
             // validity check. is the assignment really the type the programmer used
             // example: let a: i32 = "Hallo"; is not valid since you're assigning a string to an integer
@@ -61,21 +112,21 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> InferType for Variable<ASSIG
             // if type is present. check, if the type matches the assignment
             // else infer the type with a context
             Some(ty) => {
-                let inferred_type = self.assignable.infer_type_with_context(type_context, &self.code_line)?;
+                let inferred_type = self.assignable.infer_type_with_context(type_context, &line/*&self.code_line*/)?;
 
                 if ty < &inferred_type {
                     // let a: i64 = 5; instead of let a: i32 = 5;
-                    if let Some(implicit_cast) = inferred_type.implicit_cast_to(&mut self.assignable, ty, &self.code_line)? {
+                    if let Some(implicit_cast) = inferred_type.implicit_cast_to(&mut self.assignable, ty, &line)? {
                         self.ty = Some(implicit_cast);
                     } else {
-                        return Err(InferTypeError::MismatchedTypes { expected: ty.clone(), actual: inferred_type.clone(), code_line: self.code_line.clone() });
+                        return Err(InferTypeError::MismatchedTypes { expected: ty.clone(), actual: inferred_type.clone(), code_line: line });
                     }
                 }
 
                 Ok(())
             }
             None => {
-                let ty = self.infer_with_context(type_context, &self.code_line)?;
+                let ty = self.infer_with_context(type_context, &line)?;
                 self.ty = Some(ty.clone());
                 type_context.push(Variable {
                     l_value: self.l_value.clone(),
@@ -94,12 +145,13 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> InferType for Variable<ASSIG
 
 impl StaticTypeCheck for Variable<'=', ';'> {
     fn static_type_check(&self, type_context: &mut StaticTypeContext) -> Result<(), StaticTypeCheckError> {
+        let line = CodeLine::default();
         if self.define {
             if let Assignable::Array(array) = &self.assignable {
                 // check if all types are equal, where the first type is the expected type
                 let all_types = array.values
                     .iter()
-                    .map(|a| a.infer_type_with_context(type_context, &self.code_line.clone()))
+                    .map(|a| a.infer_type_with_context(type_context, &line/*&self.code_line.clone()*/))
                     .collect::<Vec<Result<Type, InferTypeError>>>();
 
                 if !all_types.is_empty() {
@@ -121,9 +173,9 @@ impl StaticTypeCheck for Variable<'=', ';'> {
                 }
             }
 
-            let ty = self.assignable.infer_type_with_context(type_context, &self.code_line)?;
+            let ty = self.assignable.infer_type_with_context(type_context, &line/*&self.code_line*/)?;
             if matches!(ty, Type::Void) {
-                return Err(StaticTypeCheckError::VoidType { assignable: self.assignable.clone(), code_line: self.code_line.clone() });
+                return Err(StaticTypeCheckError::VoidType { assignable: self.assignable.clone(), code_line: line/*self.code_line.clone()*/ });
             }
 
 
@@ -135,24 +187,24 @@ impl StaticTypeCheck for Variable<'=', ';'> {
 
         if !self.define {
             if let Some(found_variable) = type_context.iter().rfind(|v| v.l_value.identifier() == self.l_value.identifier()) {
-                let inferred_type = self.assignable.infer_type_with_context(type_context, &self.code_line)?;
+                let inferred_type = self.assignable.infer_type_with_context(type_context, &line/*&self.code_line*/)?;
                 if let Some(ty) = &found_variable.ty {
 
                     if ty > &inferred_type {
-                        return Err(InferTypeError::MismatchedTypes { expected: ty.clone(), actual: inferred_type.clone(), code_line: self.code_line.clone() }.into());
+                        return Err(InferTypeError::MismatchedTypes { expected: ty.clone(), actual: inferred_type.clone(), code_line: line/*self.code_line.clone()*/ }.into());
                     }
 
                     if !found_variable.mutability {
                         return Err(StaticTypeCheckError::ImmutabilityViolated {
                             name: self.l_value.clone(),
-                            code_line: self.code_line.clone(),
+                            code_line: line/*self.code_line.clone()*/,
                         });
                     }
                 } else {
-                    return Err(StaticTypeCheckError::NoTypePresent { name: self.l_value.clone(), code_line: self.code_line.clone() });
+                    return Err(StaticTypeCheckError::NoTypePresent { name: self.l_value.clone(), code_line: line/*self.code_line.clone()*/ });
                 }
             } else {
-                return Err(StaticTypeCheckError::UnresolvedReference { name: self.l_value.clone(), code_line: self.code_line.clone() });
+                return Err(StaticTypeCheckError::UnresolvedReference { name: self.l_value.clone(), code_line: line/*self.code_line.clone()*/ });
             }
         }
 
@@ -250,7 +302,7 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for Variable<ASSIGNMEN
                 let i = IdentifierPresent {
                     identifier: match &self.l_value {
                         LValue::Identifier(n) => n.clone(),
-                        a => return Err(ASMGenerateError::LValueAssignment(a.clone(), self.code_line.clone())),
+                        a => return Err(ASMGenerateError::LValueAssignment(a.clone(), CodeLine::default()/*self.code_line.clone()*/)),
                     },
                 };
                 self.assignable.to_asm(stack, meta, (!self.define).then_some(i))?
@@ -273,7 +325,7 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for Variable<ASSIGNMEN
 
             match &self.l_value {
                 LValue::Identifier(name) => stack.variables.push(StackLocation { position: stack.stack_position, size: byte_size, name: name.clone(), elements }),
-                a => return Err(ASMGenerateError::LValueAssignment(a.clone(), self.code_line.clone()))
+                a => return Err(ASMGenerateError::LValueAssignment(a.clone(), CodeLine::default()/*self.code_line.clone()*/))
             }
 
             stack.stack_position += byte_size;
@@ -459,7 +511,7 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> Variable<ASSIGNMENT, SEPARAT
             ty,
             define: let_used,
             assignable,
-            code_line: code_line.clone(),
+            code_line: FilePosition::default()/*code_line.clone()*/,
         })
     }
 
@@ -479,7 +531,7 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> Variable<ASSIGNMENT, SEPARAT
                     return if let Some(ty) = &v.ty {
                         Ok(ty.clone())
                     } else {
-                        Err(InferTypeError::NoTypePresent(v.l_value.clone(), self.code_line.clone()))
+                        Err(InferTypeError::NoTypePresent(v.l_value.clone(), CodeLine::default()/*self.code_line.clone()*/))
                     };
                 }
             }
@@ -489,7 +541,7 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> Variable<ASSIGNMENT, SEPARAT
             a => unreachable!("{}", format!("The type {a} should have been inferred or directly parsed. Something went wrong"))
         }
 
-        Err(InferTypeError::UnresolvedReference(self.assignable.to_string(), self.code_line.clone()))
+        Err(InferTypeError::UnresolvedReference(self.assignable.to_string(), CodeLine::default()/*self.code_line.clone()*/))
     }
 }
 
