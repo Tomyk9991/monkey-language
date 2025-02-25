@@ -10,7 +10,7 @@ use crate::core::code_generator::asm_options::identifier_present::IdentifierPres
 use crate::core::code_generator::asm_options::interim_result::InterimResultOption;
 use crate::core::code_generator::registers::{Bit64, ByteSize, GeneralPurposeRegister};
 use crate::core::io::code_line::CodeLine;
-use crate::core::lexer::collect_tokens_until_scope_close::CollectTokensUntilScopeClose;
+use crate::core::lexer::collect_tokens_until_scope_close::CollectTokensFromUntil;
 use crate::core::lexer::error::Error;
 use crate::core::lexer::parse::{Parse, ParseResult};
 use crate::core::lexer::token::Token;
@@ -34,6 +34,10 @@ pub enum ArrayErr {
     UnmatchedRegex,
 }
 
+fn contains(a: &[TokenWithSpan], b: &TokenWithSpan) -> bool {
+    a.iter().any(|x| x.token == b.token)
+}
+
 impl Parse for Array {
     fn parse(tokens: &[TokenWithSpan]) -> Result<ParseResult<Self>, Error> where Self: Sized, Self: Default {
         let slice = tokens.iter().map(|x| x.token.clone()).collect::<Vec<Token>>();
@@ -47,51 +51,32 @@ impl Parse for Array {
             })
         }
 
-        // if let Some(MatchResult::Collect(array_content)) = pattern!(tokens, SquareBracketOpen, @ parse CollectTokensUntil::<'[', ']'>, SquareBracketClose) {
-        //
-        // }
-        if let [Token::SquareBracketOpen, array_content @ .., Token::SquareBracketClose] = &slice[..] {
+        if let Some(MatchResult::Collect(array_content)) = pattern!(tokens, SquareBracketOpen, @ parse CollectTokensFromUntil<'[', ']'>, SquareBracketClose) {
+            let array_elements = dyck_language_generic(&array_content, [vec!['{', '('], vec![','], vec!['}', ')']], contains)
+                .map_err(|_| Error::UnexpectedToken(tokens[0].clone()))?;
 
+            if array_elements.is_empty() {
+                return Err(Error::UnexpectedToken(tokens[0].clone()));
+            }
+
+            let mut values = vec![];
+
+            for array_element in &array_elements {
+                values.push(Assignable::parse(array_element)?);
+            }
+
+
+            let tokens_consumed_square_brackets = 2;
+            let tokens_consumed_assign = array_elements.iter().fold(0, |acc, x| acc + x.len());
+            let tokens_consumed_separator = array_elements.len() - 1;
+
+            return Ok(ParseResult {
+                result: Array {
+                    values: values.iter().map(|x| x.result.clone()).collect::<Vec<Assignable>>(),
+                },
+                consumed: tokens_consumed_square_brackets + tokens_consumed_assign + tokens_consumed_separator,
+            })
         }
-        //     let array_elements_str = dyck_language_generic(&array_content.join(" "), [vec!['{', '('], vec![','], vec!['}', ')']])
-        //         .map_err(|_| ArrayErr::UnmatchedRegex)?;
-        //
-        //     if array_elements_str.is_empty() {
-        //         return Err(ArrayErr::UnmatchedRegex);
-        //     }
-        //
-        //     let mut values = vec![];
-        //
-        //     for array_element in &array_elements_str {
-        //         values.push(Assignable::parse(array_element)?);
-        //     }
-        //
-        //     return Ok(ParseResult {
-        //         result: Array {
-        //             values,
-        //         },
-        //         consumed: tokens.len(),
-        //     })
-        // }
-        //
-        // if let ["[ ", array_content @ .., "]"] = &s.split_inclusive(' ').collect::<Vec<_>>()[..] {
-        //     let array_elements_str = dyck_language(&array_content.join(" "), [vec!['{', '('], vec![','], vec!['}', ')']])
-        //         .map_err(|_| ArrayErr::UnmatchedRegex)?;
-        //
-        //     if array_elements_str.is_empty() {
-        //         return Err(ArrayErr::UnmatchedRegex);
-        //     }
-        //
-        //     let mut values = vec![];
-        //
-        //     for array_element in &array_elements_str {
-        //         values.push(Assignable::from_str(array_element).map_err(|_| ArrayErr::UnmatchedRegex)?);
-        //     }
-        //
-        //     return Ok(Array {
-        //         values,
-        //     })
-        // }
 
         Err(Error::UnexpectedToken(tokens[0].clone()))
     }

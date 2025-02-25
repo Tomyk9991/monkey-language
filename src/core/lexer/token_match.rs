@@ -1,4 +1,4 @@
-use crate::core::lexer::collect_tokens_until_scope_close::CollectTokensUntilScopeClose;
+use crate::core::lexer::collect_tokens_until_scope_close::CollectTokensFromUntil;
 use crate::core::lexer::parse::{Parse, ParseResult};
 use crate::core::lexer::token::Token;
 use crate::core::lexer::token_with_span::TokenWithSpan;
@@ -94,8 +94,8 @@ impl From<ParseResult<LValue>> for Match<LValue> {
     }
 }
 
-impl From<ParseResult<CollectTokensUntilScopeClose>> for Match<CollectTokensUntilScopeClose> {
-    fn from(value: ParseResult<CollectTokensUntilScopeClose>) -> Self {
+impl<const OPEN: char, const CLOSE: char> From<ParseResult<CollectTokensFromUntil<OPEN, CLOSE>>> for Match<CollectTokensFromUntil<OPEN, CLOSE>> {
+    fn from(value: ParseResult<CollectTokensFromUntil<OPEN, CLOSE>>) -> Self {
         Match::Collect(value.consumed)
     }
 }

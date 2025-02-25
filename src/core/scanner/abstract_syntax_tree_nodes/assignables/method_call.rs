@@ -1,6 +1,6 @@
 use std::any::Any;
 use std::cmp::Ordering;
-use std::fmt::{Display, Formatter};
+use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
 use crate::core::code_generator::{ASMGenerateError, conventions, MetaInfo};
 use crate::core::code_generator::asm_builder::ASMBuilder;
@@ -14,6 +14,8 @@ use crate::core::code_generator::register_destination::byte_size_from_word;
 use crate::core::code_generator::registers::{Bit64, ByteSize, GeneralPurposeRegister};
 use crate::core::code_generator::ToASM;
 use crate::core::io::code_line::CodeLine;
+use crate::core::lexer::token::Token;
+use crate::core::lexer::token_with_span::{FilePosition, TokenWithSpan};
 use crate::core::scanner::errors::EmptyIteratorErr;
 use crate::core::scanner::scope::PatternNotMatchedError;
 use crate::core::scanner::static_type_context::StaticTypeContext;
@@ -248,7 +250,7 @@ impl ToASM for MethodCall {
         let method_defs = conventions::method_definitions(&meta.static_type_information, &meta.code_line, &self.arguments, &self.identifier.name)?;
 
         if method_defs.is_empty() {
-            return Err(ASMGenerateError::TypeNotInferrable(InferTypeError::UnresolvedReference(self.identifier.to_string(), meta.code_line.clone())))
+            return Err(ASMGenerateError::TypeNotInferrable(InferTypeError::UnresolvedReference(self.identifier.to_string(), meta.code_line.clone())));
         }
 
         if method_defs.len() > 1 {
@@ -260,7 +262,7 @@ impl ToASM for MethodCall {
                 method_name: self.identifier.clone(),
                 code_line: meta.code_line.clone(),
                 provided: self.arguments.iter().filter_map(|a| a.infer_type_with_context(&meta.static_type_information, &meta.code_line).ok()).collect::<Vec<_>>(),
-            }))
+            }));
         }
 
         let method_def = &method_defs[0];
@@ -296,7 +298,7 @@ impl ToASM for MethodCall {
         #[derive(Debug)]
         enum RegisterResult {
             Assign(String),
-            Stack
+            Stack,
         }
 
         let zipped = calling_convention.iter().zip(self.arguments.iter().rev().collect::<Vec<_>>());
@@ -342,7 +344,6 @@ impl ToASM for MethodCall {
                             target += &ASMBuilder::ident_line(&format!("push {}", r.to_64_bit_register()));
                         }
                     }
-
                 }
                 ASMResult::Multiline(_) => return Err(ASMGenerateError::ASMResult(ASMResultError::UnexpectedVariance {
                     expected: vec![ASMResultVariance::Inline, ASMResultVariance::MultilineResulted],
@@ -409,7 +410,7 @@ impl ToASM for MethodCall {
             target += &ASMBuilder::mov_x_ident_line(
                 &register_to_move_result,
                 GeneralPurposeRegister::Bit64(Bit64::Rax).to_size_register(&ByteSize::try_from(method_def.return_type.byte_size())?),
-                Some(method_def.return_type.byte_size())
+                Some(method_def.return_type.byte_size()),
             );
         }
 
@@ -476,63 +477,77 @@ impl ArrayOrObject<char> for Vec<char> {
     }
 }
 
+impl ArrayOrObject<TokenWithSpan> for Vec<char> {
+    fn list(&self) -> Vec<TokenWithSpan> {
+        self.iter().map(|c| TokenWithSpan {
+            token: Token::from(*c),
+            span: FilePosition::default(),
+        }).collect::<Vec<_>>()
+    }
+}
+
 /// # Formal definition
 /// Let Σ = {( ) [a-z A-Z]}
 ///
 /// {u ∈ Σ* | all prefixes of u contain no more )'s than ('s and the number of ('s in equals the number of )'s }
-pub fn dyck_language_generic<T: ArrayOrObject<char>, K>(parameter_string: &[K], values: [T; 3]) -> Result<Vec<K>, DyckError> {
-    todo!()
-    // let mut individual_parameters: Vec<String> = Vec::new();
-    // let mut counter = 0;
-    // let mut current_start_index = 0;
-    //
-    // for (index, c) in parameter_string.chars().enumerate() {
-    //     if values[0].list().contains(&c) { // opening
-    //         counter += 1;
-    //     } else if values[2].list().contains(&c) { // closing
-    //         counter -= 1;
-    //     } else if values[1].list().contains(&c) && counter == 0 { // seperator
-    //         let value = &parameter_string[current_start_index..index].trim();
-    //
-    //         if value.is_empty() {
-    //             return Err(DyckError {
-    //                 target_value: parameter_string.to_string(),
-    //                 ordering: Ordering::Equal,
-    //             });
-    //         }
-    //
-    //         individual_parameters.push(value.to_string());
-    //         current_start_index = index + 1;
-    //     }
-    //
-    //     if counter < 0 {
-    //         return Err(DyckError {
-    //             target_value: parameter_string.to_string(),
-    //             ordering: Ordering::Less,
-    //         });
-    //     }
-    // }
-    //
-    // match counter {
-    //     number if number > 0 => Err(DyckError {
-    //         target_value: parameter_string.to_string(),
-    //         ordering: Ordering::Less,
-    //     }),
-    //     number if number < 0 => Err(DyckError {
-    //         target_value: parameter_string.to_string(),
-    //         ordering: Ordering::Greater,
-    //     }),
-    //     _ => {
-    //         let s = parameter_string[current_start_index..parameter_string.len()].trim().to_string();
-    //         if !s.is_empty() {
-    //             individual_parameters.push(parameter_string[current_start_index..parameter_string.len()].trim().to_string());
-    //         }
-    //
-    //         Ok(individual_parameters)
-    //     }
-    // }
-}
+pub fn dyck_language_generic<T: ArrayOrObject<K>, K, F>(sequence: &[K], values: [T; 3], contains: F) -> Result<Vec<Vec<K>>, DyckError>
+where
+    K: Clone + Debug,
+    F: Fn(&[K], &K) -> bool {
+    let mut individual_parameters: Vec<Vec<K>> = Vec::new();
+    let mut counter = 0;
+    let mut current_start_index = 0;
 
+    let openings = values[0].list();
+    let separators = values[1].list();
+    let closings = values[2].list();
+
+    for (index, c) in sequence.iter().enumerate() {
+        if contains(&openings, &c) { // opening
+            counter += 1;
+        } else if contains(&closings, &c) { // closing
+            counter -= 1;
+        } else if contains(&separators, &c) && counter == 0 { // seperator
+            let value = &sequence[current_start_index..index];
+
+            if value.is_empty() {
+                return Err(DyckError {
+                    target_value: format!("{:?}", sequence),
+                    ordering: Ordering::Equal,
+                });
+            }
+
+            individual_parameters.push(value.to_vec());
+            current_start_index = index + 1;
+        }
+
+        if counter < 0 {
+            return Err(DyckError {
+                target_value: format!("{:?}", sequence),
+                ordering: Ordering::Less,
+            });
+        }
+    }
+
+    match counter {
+        number if number > 0 => Err(DyckError {
+            target_value: format!("{:?}", sequence),
+            ordering: Ordering::Less,
+        }),
+        number if number < 0 => Err(DyckError {
+            target_value: format!("{:?}", sequence),
+            ordering: Ordering::Greater,
+        }),
+        _ => {
+            let s = &sequence[current_start_index..sequence.len()];
+            if !s.is_empty() {
+                individual_parameters.push(sequence[current_start_index..sequence.len()].to_vec());
+            }
+
+            Ok(individual_parameters)
+        }
+    }
+}
 
 
 /// # Formal definition

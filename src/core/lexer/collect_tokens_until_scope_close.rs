@@ -4,11 +4,11 @@ use crate::core::lexer::token::Token;
 use crate::core::lexer::token_with_span::TokenWithSpan;
 
 #[derive(Debug, Default, Clone)]
-pub struct CollectTokensUntilScopeClose {
+pub struct CollectTokensFromUntil<const OPEN: char, const CLOSE: char> {
     pub tokens: Vec<TokenWithSpan>
 }
 
-impl TryFrom<Result<ParseResult<Self>, Error>> for CollectTokensUntilScopeClose {
+impl<const OPEN: char, const CLOSE: char> TryFrom<Result<ParseResult<Self>, Error>> for CollectTokensFromUntil<OPEN, CLOSE> {
     type Error = Error;
 
     fn try_from(value: Result<ParseResult<Self>, Error>) -> Result<Self, Self::Error> {
@@ -19,11 +19,14 @@ impl TryFrom<Result<ParseResult<Self>, Error>> for CollectTokensUntilScopeClose 
     }
 }
 
-impl Parse for CollectTokensUntilScopeClose {
+impl<const OPEN: char, const CLOSE: char> Parse for CollectTokensFromUntil<OPEN, CLOSE> {
     fn parse(tokens: &[TokenWithSpan]) -> Result<ParseResult<Self>, Error> where Self: Sized, Self: Default {
         let mut tokens = tokens.to_vec();
         let mut scope_count = 1;
         let mut index = 0;
+
+        let opening = Token::from(OPEN);
+        let closing = Token::from(CLOSE);
 
         while scope_count > 0 {
             index += 1;
@@ -31,9 +34,9 @@ impl Parse for CollectTokensUntilScopeClose {
                 return Err(Error::UnexpectedEOF);
             }
 
-            match tokens[index].token {
-                Token::CurlyBraceOpen => scope_count += 1,
-                Token::CurlyBraceClose => scope_count -= 1,
+            match &tokens[index].token {
+                token if *token == opening => scope_count += 1,
+                token if *token == closing => scope_count -= 1,
                 _ => {}
             }
         }
@@ -42,7 +45,7 @@ impl Parse for CollectTokensUntilScopeClose {
         let token_len = tokens.len();
 
         Ok(ParseResult {
-            result: CollectTokensUntilScopeClose { tokens },
+            result: CollectTokensFromUntil { tokens },
             consumed: token_len,
         })
     }

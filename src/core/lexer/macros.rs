@@ -21,11 +21,11 @@ macro_rules! pattern {
     };
 
     // Fall: @parse gefolgt von einem Identifier (z. B. `@parse RValue`).
-    (@internal $vec:ident, $parser_index:ident, $tokens:expr, @parse $parser:ident $($rest:tt)*) => {{
+    (@internal $vec:ident, $parser_index:ident, $tokens:expr, @parse $parser:ty, $($rest:tt)*) => {{
         if $parser_index >= $tokens.len() {
             return Err($crate::core::lexer::error::Error::UnexpectedEOF);
         }
-        let parse_result = $parser::parse(&$tokens[$parser_index..])?;
+        let parse_result = <$parser>::parse(&$tokens[$parser_index..])?;
         $parser_index += parse_result.consumed;
         $vec.push(parse_result.into());
         pattern!(@internal $vec, $parser_index, $tokens, $($rest)*);

@@ -1,6 +1,6 @@
 use std::collections::{HashSet};
 use std::fmt::{Debug, Display, Formatter};
-use crate::core::lexer::collect_tokens_until_scope_close::CollectTokensUntilScopeClose;
+use crate::core::lexer::collect_tokens_until_scope_close::CollectTokensFromUntil;
 use crate::core::lexer::error::Error;
 use crate::core::lexer::parse::{Parse, ParseResult};
 use crate::core::lexer::token_match::MatchResult;
@@ -33,7 +33,7 @@ pub struct Scope {
 
 impl Parse for Scope {
     fn parse(tokens: &[TokenWithSpan]) -> Result<ParseResult<Self>, Error> where Self: Sized, Self: Default {
-        if let Some(MatchResult::Collect(scope_tokens)) = pattern!(tokens, CurlyBraceOpen, @parse CollectTokensUntilScopeClose, CurlyBraceClose) {
+        if let Some(MatchResult::Collect(scope_tokens)) = pattern!(tokens, CurlyBraceOpen, @parse CollectTokensFromUntil<'{', '}'>, CurlyBraceClose) {
             let mut index = 0;
             let mut ast_nodes = vec![];
             let mut total_consumed = 0;

@@ -38,12 +38,15 @@ impl ASTParser {
 
         let scope = Scope::parse(&tokens)?;
 
+        assert_eq!(scope.consumed - 2, tokens.len() - 2);
+
         Ok(ParseResult {
             result: ASTParser {
                 program: scope.result.ast_nodes,
             },
             consumed: scope.consumed - 2, // reduce the open and close scope. those virtual tokens are not part of the program
         })
+
 
         // while iterator.peek().is_some() {
         //     let ast_node = Scope::try_parse(&mut iterator)?;
