@@ -14,6 +14,12 @@ pub struct ScopeEnding {
     pub code_line: CodeLine
 }
 
+impl Default for ScopeEnding {
+    fn default() -> Self {
+        Self { code_line: CodeLine::default() }
+    }
+}
+
 #[derive(Debug)]
 pub enum ScopeEndingErr {
     PatternNotMatched { target_value: String },

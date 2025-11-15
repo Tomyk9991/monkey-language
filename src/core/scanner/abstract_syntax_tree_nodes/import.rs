@@ -4,7 +4,7 @@ use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::code_generator::asm_options::ASMOptions;
 use crate::core::code_generator::asm_result::{ASMResult};
-use crate::core::io::monkey_file::MonkeyFile;
+use crate::core::io::monkey_file::{MonkeyFile, MonkeyFileNew};
 use crate::core::io::code_line::CodeLine;
 use crate::core::scanner::errors::EmptyIteratorErr;
 use crate::core::scanner::scope::PatternNotMatchedError;
@@ -15,9 +15,23 @@ use crate::core::semantics::type_checker::StaticTypeCheck;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Import {
-    pub monkey_file: MonkeyFile,
+    pub monkey_file: MonkeyFileNew,
     pub code_line: CodeLine
 }
+
+impl Default for Import {
+    fn default() -> Self {
+        Import {
+            monkey_file: MonkeyFileNew {
+                path: Default::default(),
+                tokens: vec![],
+                size: 0,
+            },
+            code_line: Default::default(),
+        }
+    }
+}
+
 
 #[derive(Debug)]
 pub enum ImportError {
@@ -76,17 +90,18 @@ impl TryParse for Import {
 
 impl Import {
     pub fn try_parse(code_line: &CodeLine) -> anyhow::Result<Self, ImportError> {
-        let split_alloc = code_line.split(vec![' ', ';']);
-        let split = split_alloc.iter().map(|a| a.as_str()).collect::<Vec<_>>();
-
-        if let ["module", monkey_file, ";"] = &split[..] {
-            return Ok(Import {
-                monkey_file: MonkeyFile::read(monkey_file)?,
-                code_line: code_line.clone(),
-            });
-        }
-
-        Err(ImportError::PatternNotMatched {target_value: code_line.line.to_string() })
+        todo!()
+        // let split_alloc = code_line.split(vec![' ', ';']);
+        // let split = split_alloc.iter().map(|a| a.as_str()).collect::<Vec<_>>();
+        //
+        // if let ["module", monkey_file, ";"] = &split[..] {
+        //     return Ok(Import {
+        //         monkey_file: MonkeyFile::read(monkey_file)?,
+        //         code_line: code_line.clone(),
+        //     });
+        // }
+        //
+        // Err(ImportError::PatternNotMatched {target_value: code_line.line.to_string() })
     }
 }
 

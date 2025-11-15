@@ -1,6 +1,10 @@
 use std::collections::{HashSet};
-use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
+use crate::core::lexer::collect_tokens_until_scope_close::CollectTokensFromUntil;
+use crate::core::lexer::error::Error;
+use crate::core::lexer::parse::{Parse, ParseResult};
+use crate::core::lexer::token_match::MatchResult;
+use crate::core::lexer::token_with_span::TokenWithSpan;
 use crate::core::scanner::errors::EmptyIteratorErr;
 use crate::core::scanner::static_type_context::StaticTypeContext;
 use crate::core::scanner::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
@@ -17,11 +21,57 @@ use crate::core::scanner::{Lines, TryParse};
 use crate::core::scanner::abstract_syntax_tree_nodes::import::Import;
 use crate::core::scanner::abstract_syntax_tree_nodes::r#while::While;
 use crate::core::scanner::abstract_syntax_tree_nodes::r#return::Return;
+use crate::core::scanner::scope_iterator::ScopeIterator;
 use crate::core::scanner::types::r#type::InferTypeError;
+use crate::pattern;
 
 /// AST nodes inside scope
+#[derive(Clone, Default)]
 pub struct Scope {
     pub ast_nodes: Vec<AbstractSyntaxTreeNode>
+}
+
+impl Parse for Scope {
+    fn parse(tokens: &[TokenWithSpan]) -> Result<ParseResult<Self>, Error> where Self: Sized, Self: Default {
+        if let Some(MatchResult::Collect(scope_tokens)) = pattern!(tokens, CurlyBraceOpen, @parse CollectTokensFromUntil<'{', '}'>, CurlyBraceClose) {
+            let mut index = 0;
+            let mut ast_nodes = vec![];
+            let mut total_consumed = 0;
+
+            'outer: while index < scope_tokens.len() {
+                let mut scope_iterator = Scope::iter();
+                let mut consumed = 0;
+
+                for parsing_function in scope_iterator {
+                    consumed += if let Ok(ast) = parsing_function(&scope_tokens[index..]) {
+                        ast_nodes.push(ast.result.clone());
+                        ast.consumed
+                    } else {
+                        0
+                    };
+
+                    index += consumed;
+                    total_consumed += consumed;
+                    if index >= scope_tokens.len() {
+                        break 'outer;
+                    }
+                }
+
+                if consumed == 0 {
+                    return Err(Error::UnexpectedToken(scope_tokens[index].clone()));
+                }
+            }
+
+            return Ok(ParseResult {
+                result: Scope {
+                    ast_nodes,
+                },
+                consumed: total_consumed + 2
+            })
+        }
+
+        Err(Error::UnexpectedToken(tokens[0].clone()))
+    }
 }
 
 impl Scope {
@@ -33,6 +83,10 @@ impl Scope {
 }
 
 impl Scope {
+    pub fn iter() -> ScopeIterator {
+        ScopeIterator::new()
+    }
+
     pub fn infer_type(stack: &mut Vec<AbstractSyntaxTreeNode>, type_context: &mut StaticTypeContext) -> Result<(), InferTypeError> {
         let variables_len = type_context.len();
 
@@ -136,7 +190,7 @@ impl Scope {
                 AbstractSyntaxTreeNode::While(while_loop) => {
                     Self::method_calls_in_stack(&while_loop.stack, static_type_context).iter().for_each(|a| { called_methods.insert(a.clone()); });
                 }
-                AbstractSyntaxTreeNode::MethodDefinition(_) | AbstractSyntaxTreeNode::Import(_) | AbstractSyntaxTreeNode::Return(_) | AbstractSyntaxTreeNode::ScopeClosing(_) => {}
+                AbstractSyntaxTreeNode::MethodDefinition(_) | AbstractSyntaxTreeNode::Import(_) | AbstractSyntaxTreeNode::Return(_) | AbstractSyntaxTreeNode::ScopeEnding(_) => {}
             }
         }
 
@@ -198,7 +252,7 @@ impl Display for ScopeError {
 }
 
 
-impl Error for ScopeError {}
+impl std::error::Error for ScopeError {}
 
 macro_rules! ast_node_expand {
     ($code_lines_iterator: ident, $(($ast_node_implementation:ty, $ast_node_type:ident, $iterates_over_same_scope:ident)),*) => {
@@ -285,7 +339,7 @@ impl TryParse for Scope {
             (Import,               Import,              true),
             (Variable<'=', ';'>,   Variable,            true),
             (MethodCall,           MethodCall,          true),
-            (ScopeEnding,          ScopeClosing,        true),
+            (ScopeEnding,          ScopeEnding,         true),
             (Return,               Return,              true),
             (If,                   If,                  false),
             (MethodDefinition,     MethodDefinition,    false),

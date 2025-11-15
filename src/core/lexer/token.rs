@@ -1,15 +1,18 @@
 use std::fmt::{Display, Formatter};
+use crate::core::lexer;
+use crate::core::lexer::parse::ParseResult;
 use crate::core::lexer::token_information::TokenInformationIterator;
+use crate::core::scanner::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Eq, Hash, Default)]
 pub enum Token {
+    #[default]
     If,
     Else,
     Let,
     Mut,
     Module,
     Numbers(String),
-    Float(String),
     Literal(String),
     While,
     For,
@@ -46,6 +49,42 @@ pub enum Token {
     Dot,                    // .
 }
 
+impl From<char> for Token {
+    fn from(value: char) -> Self {
+        match value {
+            '(' => Token::ParenthesisOpen,
+            ')' => Token::ParenthesisClose,
+            '{' => Token::CurlyBraceOpen,
+            '}' => Token::CurlyBraceClose,
+            '[' => Token::SquareBracketOpen,
+            ']' => Token::SquareBracketClose,
+            '=' => Token::Equals,
+            '+' => Token::Plus,
+            '-' => Token::Minus,
+            '*' => Token::Multiply,
+            '/' => Token::Divide,
+            '%' => Token::Modulo,
+            '|' => Token::Pipe,
+            '^' => Token::Xor,
+            '<' => Token::LessThan,
+            '>' => Token::GreaterThan,
+            '&' => Token::Ampersand,
+            '!' => Token::LogicalNot,
+            ';' => Token::SemiColon,
+            ',' => Token::Comma,
+            ':' => Token::Colon,
+            '.' => Token::Dot,
+            _ => unreachable!("Token not implemented for char")
+        }
+    }
+}
+
+impl From<Result<ParseResult<AbstractSyntaxTreeNode>, lexer::error::Error>> for Token {
+    fn from(value: Result<ParseResult<AbstractSyntaxTreeNode>, lexer::error::Error>) -> Self {
+        todo!()
+    }
+}
+
 impl Display for Token {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         if let Some(literal) = self.literal() {
@@ -53,7 +92,6 @@ impl Display for Token {
         } else {
             match self {
                 Token::Numbers(value) => write!(f, "{}", value),
-                Token::Float(value) => write!(f, "{}", value),
                 Token::Literal(value) => write!(f, "{}", value),
                 _ => unreachable!("Token not implemented for Display")
             }
@@ -106,7 +144,7 @@ impl Token {
             Token::Colon => Some(":"),
             Token::Function => Some("fn"),
             Token::Dot => Some("."),
-            Token::Numbers(_) | Token::Literal(_) | Token::Float(_) => None,
+            Token::Numbers(_) | Token::Literal(_) => None,
         }
     }
 }

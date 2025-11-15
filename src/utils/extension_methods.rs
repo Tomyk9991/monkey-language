@@ -3,7 +3,7 @@ pub trait RemoveWhiteSpacesBetween {
 }
 
 impl<T: ToString> RemoveWhiteSpacesBetween for T {
-    /// Replaces all whitespaces between words with a single whitespace.s
+    /// Replaces all whitespaces between words with a single whitespaces
     fn remove_whitespaces_between(&self) -> String {
         self.to_string().split_whitespace().collect::<Vec<&str>>().join(" ")
     }

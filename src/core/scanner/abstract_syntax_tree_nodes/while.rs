@@ -19,7 +19,7 @@ use crate::core::scanner::types::r#type::{InferTypeError, Mutability, Type};
 use crate::core::semantics::type_checker::{InferType, StaticTypeCheck};
 use crate::core::semantics::type_checker::static_type_checker::{static_type_check_rec, StaticTypeCheckError};
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Default)]
 pub struct While {
     pub condition: Assignable,
     pub stack: Vec<AbstractSyntaxTreeNode>,
@@ -137,7 +137,7 @@ impl TryParse for While {
             while code_lines_iterator.peek().is_some() {
                 let node = Scope::try_parse(code_lines_iterator).map_err(WhileErr::ScopeErrorErr)?;
 
-                if let AbstractSyntaxTreeNode::ScopeClosing(_) = node {
+                if let AbstractSyntaxTreeNode::ScopeEnding(_) = node {
                     break;
                 }
 

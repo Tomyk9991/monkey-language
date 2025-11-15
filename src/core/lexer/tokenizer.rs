@@ -1,116 +1,138 @@
 use crate::core::lexer::error::Error;
 use crate::core::lexer::token::Token;
+use crate::core::lexer::token_with_span::{FilePosition, TokenWithSpan};
 
-pub fn tokenize(string: &str) -> Result<Vec<Token>, Error> {
-    let string = normalize(string);
-    let token = collect_greedy(&string)?;
-    // let token = semantic_token_merge(token)?;
-    Ok(token)
+pub fn tokenize(string: &str) -> Result<Vec<TokenWithSpan>, Error> {
+    // let string = normalize(string);
+    // let token = semantic_token_merge_into_literal(&collect_greedy(&string)?)?;
+    Ok(collect_greedy(&string)?)
+    // Ok(token)
 }
 
-pub fn collect_greedy(string: &str) -> Result<Vec<Token>, Error> {
+/// Collects tokens from a string greedily.
+///
+/// # Arguments
+///
+/// * `string`: &str - The string to collect tokens from.
+///
+/// returns: Result<Vec<Token>, Error>
+///
+/// # Examples
+///
+/// ```
+/// use monkey_language::core::lexer::error::Error;
+/// use monkey_language::core::lexer::tokenizer::collect_greedy;
+/// use monkey_language::core::lexer::token::Token;
+/// use monkey_language::core::lexer::token_with_span::FilePosition;
+///
+/// let tokens = collect_greedy("let a = 10;")?.iter().map(|token| token.token.clone()).collect::<Vec<_>>();
+/// assert_eq!(tokens, vec![Token::Let, Token::Literal("a".to_string()), Token::Equals, Token::Numbers("10".to_string()), Token::SemiColon]);
+/// let span = collect_greedy("let a = 10;")?.iter().map(|token| token.span.clone()).collect::<Vec<_>>();
+/// assert_eq!(span[0], FilePosition { line: 1..=1, column: 1..=3 });
+/// # Ok::<(), Error>(())
+/// ```
+pub fn collect_greedy(string: &str) -> Result<Vec<TokenWithSpan>, Error> {
     let mut tokens = vec![];
     let mut index = 0;
+    let mut line = 1;
+    let mut column = 1;
     let chars = string.chars().collect::<Vec<_>>();
 
+    let mut single_character_tokens = Token::iter()
+        .filter_map(|token_information| token_information.token.literal())
+        .filter(|literal| literal.len() == 1)
+        .map(|x| x.to_string())
+        .collect::<Vec<String>>();
+
     while index < chars.len() {
-        if chars[index].is_whitespace() {
+        if chars[index] == '\n' {
+            line += 1;
+            column = 1;
             index += 1;
             continue;
         }
 
+        if chars[index].is_whitespace() {
+            index += 1;
+            column += 1;
+            continue;
+        }
+
+        let mut start_token = column;
         let mut token_target = Token::iter();
         let mut found = false;
 
         while let Some(token_information) = token_target.next() {
             let mut collected = String::new();
             let before_collect_index = index;
+            let before_collect_column = column;
 
             // token length is not always known. for expected tokens like if, let, mut, etc. we know the length
             if let Some(token_length) = token_information.token_length {
                 while collected.len() < token_length && index < chars.len() {
                     if chars[index].is_whitespace() {
-                        if collected.len() == 0 {
-                            return Err(Error::InvalidCharacter(chars[index - 1]));
+                        if collected.is_empty() {
+                            return Err(Error::InvalidCharacter(chars[index]));
                         }
+
                         index += 1;
                         continue;
                     }
 
                     collected.push(chars[index]);
                     index += 1;
+                    column += 1;
                 }
-            } else { // but for literals we don't know the length; so we need to collect until we find a whitespace
-                'outer: while !chars[index].is_whitespace() && index < chars.len() {
+            } else { // but for literals we don't know the length; so we need to collect until we find a single character token or whitespace
+                'outer: while !chars[index].is_whitespace() && !single_character_tokens.contains(&chars[index].to_string()) && index < chars.len() {
                     collected.push(chars[index]);
                     index += 1;
+                    column += 1;
 
                     if collected.starts_with("\"") {
                         while index < chars.len() {
                             collected.push(chars[index]);
                             if collected.ends_with("\"") {
                                 index += 1;
+                                column += 1;
                                 break 'outer;
                             }
                             index += 1;
+                            column += 1;
                         }
                     }
                 }
             }
 
+            let end_column = column - 1;
+
             if token_information.matches(&collected) {
-                match token_information.token {
-                    Token::Literal(_) => {
-                        tokens.push(Token::Literal(collected));
+                let token = match token_information.token {
+                    Token::Literal(_) => Token::Literal(collected),
+                    Token::Numbers(_) => Token::Numbers(collected),
+                    _ => token_information.token,
+                };
+
+                tokens.push(TokenWithSpan {
+                    token,
+                    span: FilePosition {
+                        line: line..=line,
+                        column: start_token..=end_column,
                     },
-                    Token::Numbers(_) => {
-                        tokens.push(Token::Numbers(collected));
-                    },
-                    Token::Float(_) => {
-                        tokens.push(Token::Float(collected));
-                    },
-                    _ => {
-                        tokens.push(token_information.token)
-                    },
-                }
+                });
+
                 found = true;
                 break;
             } else {
                 index = before_collect_index;
+                column = before_collect_column;
             }
         }
 
         if !found {
             return Err(Error::InvalidCharacter(chars[index]));
         }
-
-
-
     }
 
     Ok(tokens)
-}
-
-
-fn normalize(target: &str) -> String {
-    let mut single_character_tokens = Token::iter()
-        .filter_map(|token_information| token_information.token.literal())
-        .filter(|literal| literal.len() == 1)
-        .map(|literal| (literal.to_string(), format!(" {} ", literal)))
-        .collect::<Vec<(String, String)>>();
-
-    single_character_tokens.push(("\n".to_string(), "".to_string()));
-    single_character_tokens.push(("\r".to_string(), "".to_string()));
-    single_character_tokens.push(("\r\n".to_string(), "".to_string()));
-
-
-    let mut target = target.to_string();
-
-    for (from, to) in single_character_tokens.iter() {
-        target = target.replace(from, to);
-    }
-
-    // remove multiple whitespaces
-    target = target.split_whitespace().collect::<Vec<_>>().join(" ");
-    target
 }

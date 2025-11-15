@@ -21,7 +21,7 @@ use crate::core::scanner::types::r#type::{InferTypeError, Mutability, Type};
 use crate::core::semantics::type_checker::{InferType, StaticTypeCheck};
 use crate::core::semantics::type_checker::static_type_checker::{static_type_check, static_type_check_rec, StaticTypeCheckError};
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Default)]
 pub struct For {
     pub initialization: Variable<'=', ';'>,
     pub condition: Assignable,
@@ -186,7 +186,7 @@ impl TryParse for For {
             while code_lines_iterator.peek().is_some() {
                 let node = Scope::try_parse(code_lines_iterator).map_err(ForErr::ScopeErrorErr)?;
 
-                if let AbstractSyntaxTreeNode::ScopeClosing(_) = node {
+                if let AbstractSyntaxTreeNode::ScopeEnding(_) = node {
                     break;
                 }
 

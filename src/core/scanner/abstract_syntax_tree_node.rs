@@ -5,6 +5,10 @@ use crate::core::code_generator::asm_options::ASMOptions;
 use crate::core::code_generator::asm_result::{ASMResult};
 use crate::core::code_generator::generator::Stack;
 use crate::core::io::code_line::CodeLine;
+use crate::core::lexer;
+use crate::core::lexer::error::Error;
+use crate::core::lexer::parse::{Parse, ParseResult};
+use crate::core::lexer::token_with_span::TokenWithSpan;
 use crate::core::scanner::static_type_context::StaticTypeContext;
 use crate::core::scanner::abstract_syntax_tree_nodes::assignables::method_call::MethodCall;
 use crate::core::scanner::abstract_syntax_tree_nodes::r#for::For;
@@ -15,6 +19,7 @@ use crate::core::scanner::abstract_syntax_tree_nodes::r#while::While;
 use crate::core::scanner::abstract_syntax_tree_nodes::r#return::Return;
 use crate::core::scanner::abstract_syntax_tree_nodes::scope_ending::ScopeEnding;
 use crate::core::scanner::abstract_syntax_tree_nodes::variable::Variable;
+use crate::core::scanner::scope_iterator::ScopeIterator;
 use crate::core::scanner::types::r#type::InferTypeError;
 use crate::core::semantics::type_checker::{InferType, StaticTypeCheck};
 use crate::core::semantics::type_checker::static_type_checker::StaticTypeCheckError;
@@ -27,20 +32,26 @@ pub enum AbstractSyntaxTreeNode {
     MethodDefinition(MethodDefinition),
     Import(Import),
     Return(Return),
-    ScopeClosing(ScopeEnding),
+    ScopeEnding(ScopeEnding),
     If(If),
     For(For),
-    While(While)
+    While(While),
+}
+
+impl Default for AbstractSyntaxTreeNode {
+    fn default() -> Self {
+        AbstractSyntaxTreeNode::ScopeEnding(ScopeEnding::default())
+    }
 }
 
 impl AbstractSyntaxTreeNode {
     pub(crate) fn code_line(&self) -> CodeLine {
         match self {
-            AbstractSyntaxTreeNode::Variable(a) => a.code_line.clone(),
+            AbstractSyntaxTreeNode::Variable(a) => CodeLine::default(),
             AbstractSyntaxTreeNode::MethodCall(a) => a.code_line.clone(),
             AbstractSyntaxTreeNode::MethodDefinition(a) => a.code_line.clone(),
-            AbstractSyntaxTreeNode::ScopeClosing(a) => a.code_line.clone(),
-            AbstractSyntaxTreeNode::If(a) => a.code_line.clone(),
+            AbstractSyntaxTreeNode::ScopeEnding(a) => a.code_line.clone(),
+            AbstractSyntaxTreeNode::If(a) => CodeLine::default(),//todo a.file_position.clone(),
             AbstractSyntaxTreeNode::Import(a) => a.code_line.clone(),
             AbstractSyntaxTreeNode::Return(a) => a.code_line.clone(),
             AbstractSyntaxTreeNode::For(a) => a.code_line.clone(),
@@ -50,7 +61,7 @@ impl AbstractSyntaxTreeNode {
 
     pub fn scope(&self) -> Option<Vec<&Vec<AbstractSyntaxTreeNode>>> {
         match self {
-            AbstractSyntaxTreeNode::Variable(_) | AbstractSyntaxTreeNode::MethodCall(_) | AbstractSyntaxTreeNode::Import(_) | AbstractSyntaxTreeNode::Return(_) | AbstractSyntaxTreeNode::ScopeClosing(_) => None,
+            AbstractSyntaxTreeNode::Variable(_) | AbstractSyntaxTreeNode::MethodCall(_) | AbstractSyntaxTreeNode::Import(_) | AbstractSyntaxTreeNode::Return(_) | AbstractSyntaxTreeNode::ScopeEnding(_) => None,
             AbstractSyntaxTreeNode::MethodDefinition(t) => Some(vec![&t.stack]),
             AbstractSyntaxTreeNode::If(t) => {
                 let mut res = vec![&t.if_stack];
@@ -61,7 +72,7 @@ impl AbstractSyntaxTreeNode {
                 Some(res)
             }
             AbstractSyntaxTreeNode::For(t) => Some(vec![&t.stack]),
-            AbstractSyntaxTreeNode::While(t) => Some(vec![&t.stack])
+            AbstractSyntaxTreeNode::While(t) => Some(vec![&t.stack]),
         }
     }
 }
@@ -69,19 +80,15 @@ impl AbstractSyntaxTreeNode {
 impl AbstractSyntaxTreeNode {
     pub fn infer_type(&mut self, type_context: &mut StaticTypeContext) -> Result<(), InferTypeError> {
         match self {
-            AbstractSyntaxTreeNode::Variable(variable) => {
-                variable.infer_type(type_context)?;
-            }
-            AbstractSyntaxTreeNode::If(if_definition) => {
-                if_definition.infer_type(type_context)?;
-            },
-            AbstractSyntaxTreeNode::For(for_loop) => {
-                for_loop.infer_type(type_context)?;
-            }
-            AbstractSyntaxTreeNode::While(while_loop) => {
-                while_loop.infer_type(type_context)?;
-            }
-            AbstractSyntaxTreeNode::MethodDefinition(_) | AbstractSyntaxTreeNode::MethodCall(_) | AbstractSyntaxTreeNode::ScopeClosing(_) | AbstractSyntaxTreeNode::Import(_) | AbstractSyntaxTreeNode::Return(_) => {}
+            AbstractSyntaxTreeNode::Variable(variable) => variable.infer_type(type_context)?,
+            AbstractSyntaxTreeNode::If(if_definition) => if_definition.infer_type(type_context)?,
+            AbstractSyntaxTreeNode::For(for_loop) => for_loop.infer_type(type_context)?,
+            AbstractSyntaxTreeNode::While(while_loop) => while_loop.infer_type(type_context)?,
+            AbstractSyntaxTreeNode::MethodDefinition(_) |
+            AbstractSyntaxTreeNode::MethodCall(_) |
+            AbstractSyntaxTreeNode::ScopeEnding(_) |
+            AbstractSyntaxTreeNode::Import(_) |
+            AbstractSyntaxTreeNode::Return(_) => {}
         }
 
         Ok(())
@@ -96,10 +103,10 @@ impl StaticTypeCheck for AbstractSyntaxTreeNode {
             AbstractSyntaxTreeNode::MethodDefinition(method_definition) => method_definition.static_type_check(type_context),
             AbstractSyntaxTreeNode::Import(import) => import.static_type_check(type_context),
             AbstractSyntaxTreeNode::Return(return_node) => return_node.static_type_check(type_context),
-            AbstractSyntaxTreeNode::ScopeClosing(scope_closing) => scope_closing.static_type_check(type_context),
+            AbstractSyntaxTreeNode::ScopeEnding(scope_closing) => scope_closing.static_type_check(type_context),
             AbstractSyntaxTreeNode::If(if_node) => if_node.static_type_check(type_context),
             AbstractSyntaxTreeNode::For(for_node) => for_node.static_type_check(type_context),
-            AbstractSyntaxTreeNode::While(while_node) => while_node.static_type_check(type_context)
+            AbstractSyntaxTreeNode::While(while_node) => while_node.static_type_check(type_context),
         }
     }
 }
@@ -128,7 +135,7 @@ impl ToASM for AbstractSyntaxTreeNode {
             }
             AbstractSyntaxTreeNode::Variable(_) | AbstractSyntaxTreeNode::MethodCall(_) |
             AbstractSyntaxTreeNode::Import(_) | AbstractSyntaxTreeNode::Return(_) |
-            AbstractSyntaxTreeNode::ScopeClosing(_) => vec![]
+            AbstractSyntaxTreeNode::ScopeEnding(_) => vec![]
         };
 
         for scope in scopes {
@@ -151,7 +158,7 @@ impl ToASM for AbstractSyntaxTreeNode {
             AbstractSyntaxTreeNode::If(if_node) => if_node.to_asm(stack, meta, options),
             AbstractSyntaxTreeNode::For(for_node) => for_node.to_asm(stack, meta, options),
             AbstractSyntaxTreeNode::While(while_node) => while_node.to_asm(stack, meta, options),
-            AbstractSyntaxTreeNode::ScopeClosing(_) => Ok(ASMResult::Inline(String::new())),
+            AbstractSyntaxTreeNode::ScopeEnding(_) => Ok(ASMResult::Inline(String::new())),
         }
     }
 
@@ -166,7 +173,7 @@ impl ToASM for AbstractSyntaxTreeNode {
             AbstractSyntaxTreeNode::While(a) => a.is_stack_look_up(stack, meta),
             AbstractSyntaxTreeNode::MethodDefinition(a) => a.is_stack_look_up(stack, meta),
             AbstractSyntaxTreeNode::Return(return_type) => return_type.is_stack_look_up(stack, meta),
-            AbstractSyntaxTreeNode::ScopeClosing(_) => false,
+            AbstractSyntaxTreeNode::ScopeEnding(_) => false,
         }
     }
 
@@ -180,7 +187,7 @@ impl ToASM for AbstractSyntaxTreeNode {
             AbstractSyntaxTreeNode::While(a) => a.byte_size(meta),
             AbstractSyntaxTreeNode::If(a) => a.byte_size(meta),
             AbstractSyntaxTreeNode::Return(r) => r.byte_size(meta),
-            AbstractSyntaxTreeNode::ScopeClosing(_) => 0,
+            AbstractSyntaxTreeNode::ScopeEnding(_) => 0,
         }
     }
 
@@ -195,7 +202,7 @@ impl ToASM for AbstractSyntaxTreeNode {
             AbstractSyntaxTreeNode::While(v) => v.data_section(stack, meta),
             AbstractSyntaxTreeNode::If(v) => v.data_section(stack, meta),
             AbstractSyntaxTreeNode::Return(ret) => ret.data_section(stack, meta),
-            AbstractSyntaxTreeNode::ScopeClosing(_) => false,
+            AbstractSyntaxTreeNode::ScopeEnding(_) => false,
         }
     }
 }
@@ -206,7 +213,7 @@ impl Display for AbstractSyntaxTreeNode {
             AbstractSyntaxTreeNode::Variable(v) => format!("{}", v),
             AbstractSyntaxTreeNode::MethodCall(m) => format!("{}", m),
             AbstractSyntaxTreeNode::MethodDefinition(m) => format!("{}", m),
-            AbstractSyntaxTreeNode::ScopeClosing(m) => format!("{}", m),
+            AbstractSyntaxTreeNode::ScopeEnding(m) => format!("{}", m),
             AbstractSyntaxTreeNode::If(m) => format!("{}", m),
             AbstractSyntaxTreeNode::Import(m) => format!("{}", m),
             AbstractSyntaxTreeNode::Return(m) => format!("{}", m),

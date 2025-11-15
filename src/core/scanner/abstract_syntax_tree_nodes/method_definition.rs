@@ -27,7 +27,7 @@ use crate::core::semantics::type_checker::StaticTypeCheck;
 use crate::utils::math;
 
 /// AST node for method definition. Pattern is `fn function_name(argument1, ..., argumentN): returnType { }`
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Default)]
 pub struct MethodDefinition {
     pub identifier: Identifier,
     pub return_type: Type,
@@ -222,7 +222,7 @@ impl TryParse for MethodDefinition {
             while code_lines_iterator.peek().is_some() {
                 let node = Scope::try_parse(code_lines_iterator).map_err(MethodDefinitionErr::ScopeErrorErr)?;
 
-                if let AbstractSyntaxTreeNode::ScopeClosing(_) = node {
+                if let AbstractSyntaxTreeNode::ScopeEnding(_) = node {
                     break;
                 }
 

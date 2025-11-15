@@ -6,6 +6,8 @@ use crate::core::code_generator::ASMGenerateError;
 use crate::core::code_generator::conventions::calling_convention_from;
 use crate::core::code_generator::registers::{GeneralPurposeRegister};
 use crate::core::code_generator::target_os::TargetOS;
+use crate::core::io::code_line::CodeLine;
+use crate::core::lexer::token_with_span::FilePosition;
 use crate::core::scanner::scope::Scope;
 use crate::core::scanner::static_type_context::StaticTypeContext;
 use crate::core::scanner::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
@@ -277,7 +279,7 @@ impl ASMGenerator {
                             ty: Some(argument.ty.clone()),
                             define: true,
                             assignable: Assignable::Parameter(parameter),
-                            code_line: method_definition.code_line.clone(),
+                            code_line: FilePosition::default(),//method_definition.code_line.clone(),
                         });
                     }
 

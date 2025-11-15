@@ -1,4 +1,3 @@
-use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::num::{ParseFloatError, ParseIntError};
 use std::str::FromStr;
@@ -6,6 +5,12 @@ use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::code_generator::asm_options::ASMOptions;
 use crate::core::code_generator::asm_result::{ASMResult};
+use crate::core::lexer::error::Error;
+use crate::core::lexer::parse::{Parse, ParseResult};
+use crate::core::lexer::token::Token;
+use crate::core::lexer::token_with_span::TokenWithSpan;
+use crate::core::scanner::abstract_syntax_tree_nodes::assignables::string::StaticString;
+
 type IntegerType = crate::core::scanner::types::integer::Integer;
 
 
@@ -15,6 +20,34 @@ pub struct IntegerAST {
     // you can have a bigger value than a i64. consider every number that's between i64::MAX and u64::MAX
     pub value: String,
     pub ty: IntegerType
+}
+
+impl Parse for IntegerAST {
+    fn parse(tokens: &[TokenWithSpan]) -> Result<ParseResult<Self>, Error> where Self: Sized, Self: Default {
+        if let [number_literal, ..] = tokens {
+            if let Token::Numbers(s) = &number_literal.token {
+                if lazy_regex::regex_is_match!("^[+-]?\\d+$", s) {
+                    let value: i128 = s.parse::<i128>().map_err(|e| Error::UnexpectedToken(tokens[0].clone()))?;
+
+                    let final_type = match value {
+                        -2_147_483_648..=2_147_483_647 => IntegerType::I32,
+                        -9_223_372_036_854_775_808..=9_223_372_036_854_775_808 => IntegerType::I64,
+                        _ => return Err(Error::UnexpectedToken(tokens[0].clone()))
+                    };
+
+                    return Ok(ParseResult {
+                        result: IntegerAST {
+                            value: value.to_string(),
+                            ty: final_type,
+                        },
+                        consumed: 1,
+                    })
+                }
+            }
+        }
+
+        Err(Error::UnexpectedToken(tokens[0].clone()))
+    }
 }
 
 
@@ -42,7 +75,7 @@ impl From<ParseFloatError> for NumberErr {
     fn from(value: ParseFloatError) -> Self { NumberErr::ParseFloatError(value) }
 }
 
-impl Error for NumberErr { }
+impl std::error::Error for NumberErr { }
 
 impl Display for NumberErr {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {

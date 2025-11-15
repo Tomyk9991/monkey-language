@@ -84,7 +84,7 @@ impl Identifier {
             return if let Some(ty) = &v.ty {
                 Ok(ty.clone())
             } else {
-                Err(InferTypeError::NoTypePresent(v.l_value.clone(), v.code_line.clone()))
+                Err(InferTypeError::NoTypePresent(v.l_value.clone(), CodeLine::default()/*v.code_line.clone()*/))
             };
         }
 

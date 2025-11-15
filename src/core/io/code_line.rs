@@ -6,6 +6,7 @@ use regex_split::RegexSplit;
 use std::ops::Range;
 use crate::core::constants::OPENING_SCOPE;
 use crate::core::constants::CLOSING_SCOPE;
+use crate::core::lexer::token::Token;
 use crate::core::model::scope_type::{ScopeSplitterIterator, ScopeType, ScopeTypeIterator};
 
 /// Represents a line of code
@@ -17,7 +18,6 @@ pub struct CodeLine {
     /// The virtual line number in increments of 1
     pub virtual_line_number: usize,
 }
-
 
 impl CodeLine {
     pub fn imaginary(l: &str) -> CodeLine {

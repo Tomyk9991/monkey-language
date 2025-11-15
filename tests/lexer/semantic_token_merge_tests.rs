@@ -1,10 +1,12 @@
 use monkey_language::core::lexer::error::Error;
 use monkey_language::core::lexer::semantic_token_merge::semantic_token_merge;
 use monkey_language::core::lexer::token::Token;
+use monkey_language::core::lexer::token_with_span::{FilePosition, TokenWithSpan};
 
 #[test]
 fn semantic_token_merge_module() -> Result<(), Error> {
     let tokens = vec![
+        Token::Module,
         Token::Literal("monkey".to_string()),
         Token::Minus,
         Token::Literal("language".to_string()),
@@ -17,8 +19,11 @@ fn semantic_token_merge_module() -> Result<(), Error> {
         Token::SemiColon
     ];
 
-    let result = semantic_token_merge(&tokens)?;
-    assert_eq!(result, vec![
+    let result = semantic_token_merge(&tokens.iter().map(|token| TokenWithSpan {
+        token: token.clone(),
+        span: FilePosition::default(),
+    }).collect::<Vec<_>>())?;
+    assert_eq!(result.iter().map(|t| t.token.clone()).collect::<Vec<_>>(), vec![
         Token::Module,
         Token::Literal("monkey-language-project/std.monkey".to_string()),
         Token::SemiColon,

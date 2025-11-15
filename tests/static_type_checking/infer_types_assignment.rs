@@ -109,7 +109,7 @@ fn infer_type_assignment_in_scope() -> anyhow::Result<()> {
                 }),
             ],
             else_stack: None,
-            code_line: CodeLine { line: "if  ( true )  {".to_string(), actual_line_number: 2..2, virtual_line_number: 1 },
+            file_position: CodeLine { line: "if  ( true )  {".to_string(), actual_line_number: 2..2, virtual_line_number: 1 },
         })
     ];
 
@@ -219,7 +219,7 @@ fn infer_type_assignment_in_scope_complex() -> anyhow::Result<()> {
                 }),
             ],
             else_stack: None,
-            code_line: CodeLine { line: "if  ( true )  {".to_string(), actual_line_number: 4..4, virtual_line_number: 5 },
+            file_position: CodeLine { line: "if  ( true )  {".to_string(), actual_line_number: 4..4, virtual_line_number: 5 },
         })
     ];
 
@@ -330,7 +330,7 @@ fn infer_type_assignment_in_scope_complex_in_method() -> anyhow::Result<()> {
                         }),
                     ],
                     else_stack: None,
-                    code_line: CodeLine { line: "if  ( true )  {".to_string(), actual_line_number: 4..4, virtual_line_number: 5 },
+                    file_position: CodeLine { line: "if  ( true )  {".to_string(), actual_line_number: 4..4, virtual_line_number: 5 },
                 }),
                 AbstractSyntaxTreeNode::Return(Return {
                     assignable: Some(Assignable::Integer(IntegerAST { value: "0".to_string(), ty: Integer::I32 })),
