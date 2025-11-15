@@ -22,67 +22,67 @@ fn run_compiler() -> anyhow::Result<()> {
 
     let monkey_file: MonkeyFile = MonkeyFile::read(entry_point_file)?;
 
-// // 1) Build AST
-//     let mut top_level_scope = ASTParser::from(monkey_file).parse()?;
-//
-//     if let Some(print_scope) = &args.print_scope {
-//         match print_scope {
-//             PrintOption::Production => println!("{}", top_level_scope),
-//             PrintOption::Debug => println!("{:?}", top_level_scope)
-//         };
-//     }
-//
-// // 2) Static Type Checking
-//     let static_type_context = static_type_check(&top_level_scope)?;
-//
-// // 3) o1 Optimization
-//     if args.optimization_level == OptimizationLevel::O1 {
-//         top_level_scope.o1(&static_type_context);
-//     }
-//
-// // 3) Building
-//     let mut code_generator = ASMGenerator::from((top_level_scope, args.target_os.clone(), true));
-//     let target_creator = TargetCreator::try_from((args.input.as_str(), &args.target_os))?;
-//     let asm_result = code_generator.generate()?;
-//
-//     target_creator.write_to("main.asm", &asm_result)?;
-//
-//     if only_write {
-//         return Ok(())
-//     }
-//
-//     with_path(target_creator.path_to_target_directory.as_str(), || {
-//         let build_status = target_creator.compile(args.target_os.clone());
-//         println!("Completing build. Status: {build_status} {}", match build_status {
-//             0 => "Successful".green(),
-//             _ => "Failed".red(),
-//         });
-//
-//         // 4) Running
-//         if !args.build {
-//             let status = target_creator.execute(&args.target_os);
-//             println!("Process finished with exit code {}", status);
-//
-//             if args.target_os == TargetOS::Windows {
-//                 #[cfg(target_os = "windows")]
-//                 {
-//                     let status_code = windows_core::HRESULT(status);
-//
-//                     // https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-erref/596a1078-e883-4972-9bbc-49e60bebca55
-//                     if status_code.is_err() {
-//                         let error = windows_core::Error::from(status_code);
-//                         if let Some(hard_coded_message) = more_windows_errors(status) {
-//                             println!("{}", hard_coded_message);
-//                         } else {
-//                             let message = error.message();
-//                             println!("Error: {message}");
-//                         }
-//                     }
-//                 }
-//             }
-//         }
-//         Ok(())
-//     })?;
+// 1) Build AST
+    let mut top_level_scope = ASTParser::from(monkey_file).parse()?;
+
+    if let Some(print_scope) = &args.print_scope {
+        match print_scope {
+            PrintOption::Production => println!("{}", top_level_scope),
+            PrintOption::Debug => println!("{:?}", top_level_scope)
+        };
+    }
+
+// 2) Static Type Checking
+    let static_type_context = static_type_check(&top_level_scope)?;
+
+// 3) o1 Optimization
+    if args.optimization_level == OptimizationLevel::O1 {
+        top_level_scope.o1(&static_type_context);
+    }
+
+// 3) Building
+    let mut code_generator = ASMGenerator::from((top_level_scope, args.target_os.clone(), true));
+    let target_creator = TargetCreator::try_from((args.input.as_str(), &args.target_os))?;
+    let asm_result = code_generator.generate()?;
+
+    target_creator.write_to("main.asm", &asm_result)?;
+
+    if only_write {
+        return Ok(())
+    }
+
+    with_path(target_creator.path_to_target_directory.as_str(), || {
+        let build_status = target_creator.compile(args.target_os.clone());
+        println!("Completing build. Status: {build_status} {}", match build_status {
+            0 => "Successful".green(),
+            _ => "Failed".red(),
+        });
+
+        // 4) Running
+        if !args.build {
+            let status = target_creator.execute(&args.target_os);
+            println!("Process finished with exit code {}", status);
+
+            if args.target_os == TargetOS::Windows {
+                #[cfg(target_os = "windows")]
+                {
+                    let status_code = windows_core::HRESULT(status);
+
+                    // https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-erref/596a1078-e883-4972-9bbc-49e60bebca55
+                    if status_code.is_err() {
+                        let error = windows_core::Error::from(status_code);
+                        if let Some(hard_coded_message) = more_windows_errors(status) {
+                            println!("{}", hard_coded_message);
+                        } else {
+                            let message = error.message();
+                            println!("Error: {message}");
+                        }
+                    }
+                }
+            }
+        }
+        Ok(())
+    })?;
 
     Ok(())
 }

@@ -28,7 +28,6 @@ impl MonkeyFile {
         let size = file.read_to_string(&mut buffer)?;
 
         let tokens = tokenize(&buffer)?;
-        println!("{:?}", tokens);
 
 
         let monkey_file = Self::read_from_str(&buffer);
