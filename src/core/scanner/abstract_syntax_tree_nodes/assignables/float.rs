@@ -12,70 +12,9 @@ use crate::core::code_generator::registers::{ByteSize};
 use crate::core::lexer::error::Error;
 use crate::core::lexer::parse::{Parse, ParseResult};
 use crate::core::lexer::token::Token;
-use crate::core::lexer::token_match::MatchResult;
 use crate::core::lexer::token_with_span::TokenWithSpan;
-use crate::core::scanner::abstract_syntax_tree_nodes::assignables::integer::{IntegerAST, NumberErr};
-
-type FloatType = crate::core::scanner::types::float::Float;
-
-
-#[derive(Debug, PartialEq, Clone, Default)]
-pub struct FloatAST {
-    // https://pastebin.com/DWcHQbT5
-    // there is no need to use a string literal instead of a f64 like in the integerASTNode, because
-    // you cant have a float that's bigger than the biggest value of f64. but you can have a bigger value than a i64. consider every number that's between i64::MAX and u64::MAX
-    pub value: f64,
-    pub ty: FloatType,
-}
-
-impl Display for FloatAST {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.value)
-    }
-}
-
-impl ToASM for FloatAST {
-    fn to_asm<T: ASMOptions + 'static>(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
-        if let Some(options) = options {
-            let any_t = &options as &dyn Any;
-            if let Some(concrete_type) = any_t.downcast_ref::<InterimResultOption>() {
-                let value_str = if !self.value.to_string().contains('.') {
-                    format!("{}.0", self.value)
-                } else {
-                    self.value.to_string()
-                };
-
-                return match self.ty {
-                    FloatType::Float32 => Ok(ASMResult::MultilineResulted(
-                        ASMBuilder::mov_ident_line(concrete_type.general_purpose_register.to_size_register(&ByteSize::_4), format!("__?float32?__({})", value_str)), concrete_type.general_purpose_register.clone())
-                    ),
-                    FloatType::Float64 => Ok(ASMResult::MultilineResulted(
-                        ASMBuilder::mov_ident_line(concrete_type.general_purpose_register.to_size_register(&ByteSize::_8), format!("__?float64?__({})", value_str)), concrete_type.general_purpose_register.clone())
-                    )
-                };
-            }
-
-            if let Some(s) = any_t.downcast_ref::<PrepareRegisterOption>() {
-                return s.transform(stack, meta);
-            }
-        }
-
-        Err(ASMGenerateError::ASMResult(ASMResultError::NoOptionProvided("float".to_string())))
-    }
-
-
-    fn is_stack_look_up(&self, _stack: &mut Stack, _meta: &MetaInfo) -> bool {
-        false
-    }
-
-    fn byte_size(&self, _meta: &mut MetaInfo) -> usize {
-        match self.ty {
-            FloatType::Float32 => 4,
-            FloatType::Float64 => 8,
-        }
-    }
-}
-
+use crate::core::model::types::float::{FloatAST, FloatType};
+use crate::core::scanner::abstract_syntax_tree_nodes::assignables::integer::{NumberErr};
 
 impl Parse for FloatAST {
     fn parse(tokens: &[TokenWithSpan]) -> Result<ParseResult<Self>, Error> where Self: Sized, Self: Default {

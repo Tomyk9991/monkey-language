@@ -2,17 +2,20 @@ use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
 
 use crate::core::io::code_line::{CodeLine, Normalizable};
-use crate::core::scanner::abstract_syntax_tree_nodes::assignable::{Assignable, AssignableErr};
-use crate::core::scanner::abstract_syntax_tree_nodes::assignables::equation_parser::expression::{Expression};
-use crate::core::scanner::abstract_syntax_tree_nodes::assignables::equation_parser::operator::Operator;
-use crate::core::scanner::abstract_syntax_tree_nodes::assignables::equation_parser::prefix_arithmetic::{PointerArithmetic, PrefixArithmetic};
+use crate::core::model::abstract_syntax_tree_nodes::assignable::{Assignable, AssignableError};
+use crate::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::expression::Expression;
+use crate::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::operator::Operator;
+use crate::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::prefix_arithmetic::{PointerArithmetic, PrefixArithmetic};
+use crate::core::model::abstract_syntax_tree_nodes::identifier::IdentifierError;
+use crate::core::model::types::mutability::Mutability;
+use crate::core::model::types::ty::Type;
 use crate::core::scanner::abstract_syntax_tree_nodes::assignables::method_call::dyck_language;
-use crate::core::scanner::abstract_syntax_tree_nodes::identifier::IdentifierErr;
-use crate::core::scanner::types::r#type::{InferTypeError, Mutability, Type};
+use crate::core::scanner::types::r#type::{InferTypeError};
 
 pub mod expression;
 pub mod operator;
 pub mod prefix_arithmetic;
+pub mod equation_new;
 
 const OPENING: char = '(';
 const CLOSING: char = ')';
@@ -55,16 +58,16 @@ impl From<InferTypeError> for Error {
 }
 
 
-impl From<AssignableErr> for Error {
-    fn from(value: AssignableErr) -> Self {
+impl From<AssignableError> for Error {
+    fn from(value: AssignableError) -> Self {
         Error::TermNotParsable(match value {
-            AssignableErr::PatternNotMatched { target_value } => target_value
+            AssignableError::PatternNotMatched { target_value } => target_value
         })
     }
 }
 
-impl From<IdentifierErr> for Error {
-    fn from(value: IdentifierErr) -> Self { Error::UndefinedSequence(value.to_string()) }
+impl From<IdentifierError> for Error {
+    fn from(value: IdentifierError) -> Self { Error::UndefinedSequence(value.to_string()) }
 }
 
 impl Display for Error {

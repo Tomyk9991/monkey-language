@@ -6,6 +6,7 @@ use crate::core::code_generator::asm_options::ASMOptions;
 use crate::core::code_generator::asm_result::{ASMResult};
 use crate::core::io::monkey_file::{MonkeyFile, MonkeyFileNew};
 use crate::core::io::code_line::CodeLine;
+use crate::core::model::abstract_syntax_tree_nodes::import::Import;
 use crate::core::scanner::errors::EmptyIteratorErr;
 use crate::core::scanner::scope::PatternNotMatchedError;
 use crate::core::scanner::static_type_context::StaticTypeContext;
@@ -13,24 +14,6 @@ use crate::core::scanner::{Lines, TryParse};
 use crate::core::semantics::type_checker::static_type_checker::StaticTypeCheckError;
 use crate::core::semantics::type_checker::StaticTypeCheck;
 
-#[derive(Debug, PartialEq, Clone)]
-pub struct Import {
-    pub monkey_file: MonkeyFileNew,
-    pub code_line: CodeLine
-}
-
-impl Default for Import {
-    fn default() -> Self {
-        Import {
-            monkey_file: MonkeyFileNew {
-                path: Default::default(),
-                tokens: vec![],
-                size: 0,
-            },
-            code_line: Default::default(),
-        }
-    }
-}
 
 
 #[derive(Debug)]
@@ -46,11 +29,6 @@ impl PatternNotMatchedError for ImportError {
     }
 }
 
-impl Display for Import {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "import {}", self.monkey_file.path.display())
-    }
-}
 
 impl Display for ImportError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -103,19 +81,4 @@ impl Import {
         //
         // Err(ImportError::PatternNotMatched {target_value: code_line.line.to_string() })
     }
-}
-
-impl ToASM for Import {
-    fn to_asm<T: ASMOptions>(&self, _stack: &mut Stack, _meta: &mut MetaInfo, _options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
-        Ok(ASMResult::Inline(String::new()))
-    }
-
-    fn is_stack_look_up(&self, _stack: &mut Stack, _meta: &MetaInfo) -> bool {
-        false
-    }
-
-    fn byte_size(&self, _meta: &mut MetaInfo) -> usize {
-        0
-    }
-
 }

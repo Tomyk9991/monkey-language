@@ -4,15 +4,17 @@ use std::str::FromStr;
 use crate::core::code_generator::registers::{Bit8, ByteSize, NibbleRegister};
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
+use crate::core::code_generator::abstract_syntax_tree_nodes::assignables::equation_parser::operator::{AssemblerOperation, OperatorToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::asm_options::interim_result::InterimResultOption;
 use crate::core::code_generator::asm_result::{ASMResult};
 use crate::core::code_generator::register_destination::word_from_byte_size;
 use crate::core::code_generator::registers::{Bit32, GeneralPurposeRegister};
-use crate::core::scanner::abstract_syntax_tree_nodes::assignables::equation_parser::operator::{AssemblerOperation, Operator, OperatorToASM};
+use crate::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::operator::Operator;
+use crate::core::model::types::integer::IntegerType;
+use crate::core::model::types::mutability::Mutability;
+use crate::core::model::types::ty::Type;
 use crate::core::scanner::types::cast_to::{Castable, CastTo};
-use crate::core::scanner::types::integer::Integer;
-use crate::core::scanner::types::r#type::{Mutability, Type};
 
 #[allow(dead_code)]
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
@@ -133,12 +135,12 @@ impl OperatorToASM for Boolean {
     }
 }
 
-impl Castable<Boolean, Integer> for Boolean {
+impl Castable<Boolean, IntegerType> for Boolean {
     fn add_casts(cast_matrix: &mut HashMap<(Type, Type), &'static str>) {
-        cast_matrix.insert((Type::Bool(Mutability::Immutable), Type::Integer(Integer::I32, Mutability::Immutable)), "movzx");
+        cast_matrix.insert((Type::Bool(Mutability::Immutable), Type::Integer(IntegerType::I32, Mutability::Immutable)), "movzx");
     }
 
-    fn cast_from_to(_: &Boolean, t2: &Integer, source: &str, stack: &mut Stack, meta: &mut MetaInfo) -> Result<ASMResult, ASMGenerateError> {
+    fn cast_from_to(_: &Boolean, t2: &IntegerType, source: &str, stack: &mut Stack, meta: &mut MetaInfo) -> Result<ASMResult, ASMGenerateError> {
         let cast_to = CastTo {
             from: Type::Bool(Mutability::Immutable),
             to: Type::Integer(t2.clone(), Mutability::Immutable),
@@ -154,7 +156,7 @@ impl Castable<Boolean, Integer> for Boolean {
                 source.to_string()
             };
 
-            match Integer::cast_from_to(&Integer::U8, t2, &source, stack, meta)? {
+            match IntegerType::cast_from_to(&IntegerType::U8, t2, &source, stack, meta)? {
                 ASMResult::Inline(r) => {
                     target += &r;
                     Ok(ASMResult::Inline(target))
@@ -170,7 +172,7 @@ impl Castable<Boolean, Integer> for Boolean {
             }
         } else {
             target += source;
-            match Integer::cast_from_to(&Integer::U8, t2, "al", stack, meta)? {
+            match IntegerType::cast_from_to(&IntegerType::U8, t2, "al", stack, meta)? {
                 ASMResult::Inline(r) => {
                     target += &r;
                     Ok(ASMResult::Inline(target))

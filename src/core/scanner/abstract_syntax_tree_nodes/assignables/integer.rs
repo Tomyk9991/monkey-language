@@ -9,18 +9,8 @@ use crate::core::lexer::error::Error;
 use crate::core::lexer::parse::{Parse, ParseResult};
 use crate::core::lexer::token::Token;
 use crate::core::lexer::token_with_span::TokenWithSpan;
-use crate::core::scanner::abstract_syntax_tree_nodes::assignables::string::StaticString;
+use crate::core::model::types::integer::{IntegerType, IntegerAST};
 
-type IntegerType = crate::core::scanner::types::integer::Integer;
-
-
-#[derive(Default, Debug, Eq, PartialEq, Clone)]
-pub struct IntegerAST {
-    // Must be stored as a string literal, because
-    // you can have a bigger value than a i64. consider every number that's between i64::MAX and u64::MAX
-    pub value: String,
-    pub ty: IntegerType
-}
 
 impl Parse for IntegerAST {
     fn parse(tokens: &[TokenWithSpan]) -> Result<ParseResult<Self>, Error> where Self: Sized, Self: Default {
@@ -50,12 +40,6 @@ impl Parse for IntegerAST {
     }
 }
 
-
-impl Display for IntegerAST {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.value)
-    }
-}
 
 
 #[derive(Debug)]
@@ -107,25 +91,5 @@ impl FromStr for IntegerAST {
             value: value.to_string(),
             ty: final_type,
         })
-    }
-}
-
-impl ToASM for IntegerAST {
-    fn to_asm<T: ASMOptions>(&self, _stack: &mut Stack, _meta: &mut MetaInfo, _options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
-        Ok(ASMResult::Inline(self.value.to_string()))
-    }
-
-
-    fn is_stack_look_up(&self, _stack: &mut Stack, _meta: &MetaInfo) -> bool {
-        false
-    }
-
-    fn byte_size(&self, _meta: &mut MetaInfo) -> usize {
-        match self.ty {
-            IntegerType::I8 | IntegerType::U8 => 1,
-            IntegerType::I16 | IntegerType::U16 => 2,
-            IntegerType::I32 | IntegerType::U32 => 4,
-            IntegerType::I64 | IntegerType::U64 => 8,
-        }
     }
 }

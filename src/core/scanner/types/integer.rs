@@ -3,44 +3,34 @@ use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
+use crate::core::code_generator::abstract_syntax_tree_nodes::assignables::equation_parser::operator::{AssemblerOperation, OperatorToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::asm_options::interim_result::InterimResultOption;
 use crate::core::code_generator::asm_result::{ASMResult};
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::register_destination::word_from_byte_size;
 use crate::core::code_generator::registers::{Bit64, ByteSize, FloatRegister, GeneralPurposeRegister};
-use crate::core::scanner::abstract_syntax_tree_nodes::assignables::equation_parser::operator::{AssemblerOperation, OperatorToASM};
-use crate::core::scanner::abstract_syntax_tree_nodes::assignables::equation_parser::operator::Operator;
-use crate::core::scanner::abstract_syntax_tree_nodes::identifier::IdentifierErr;
+use crate::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::operator::Operator;
+use crate::core::model::abstract_syntax_tree_nodes::identifier::IdentifierError;
+use crate::core::model::types::float::FloatType;
+use crate::core::model::types::integer::{IntegerAST, IntegerType};
+use crate::core::model::types::mutability::Mutability;
+use crate::core::model::types::ty::Type;
 use crate::core::scanner::types::cast_to::{Castable, CastTo};
-use crate::core::scanner::types::float::Float;
-use crate::core::scanner::types::r#type::{InferTypeError, Mutability, Type};
+use crate::core::scanner::types::r#type::{InferTypeError};
 
-type IntegerImplementation = crate::core::scanner::abstract_syntax_tree_nodes::assignables::integer::IntegerAST;
-#[derive(Debug, Default, PartialEq, Eq, Hash, Clone)]
-pub enum Integer {
-    I8,
-    U8,
-    I16,
-    U16,
-    #[default]
-    I32,
-    U32,
-    I64,
-    U64,
-}
 
-impl Castable<Integer, Float> for Integer {
+impl Castable<IntegerType, FloatType> for IntegerType {
     fn add_casts(cast_matrix: &mut HashMap<(Type, Type), &'static str>) {
-        let types = [Integer::U8, Integer::I8, Integer::U16, Integer::I16, Integer::U32, Integer::I32, Integer::U64, Integer::I64];
+        let types = [IntegerType::U8, IntegerType::I8, IntegerType::U16, IntegerType::I16, IntegerType::U32, IntegerType::I32, IntegerType::U64, IntegerType::I64];
 
         for t1 in &types {
-            cast_matrix.insert((Type::Integer(t1.clone(), Mutability::Immutable), Type::Float(Float::Float32, Mutability::Immutable)), "cvtsi2ss");
-            cast_matrix.insert((Type::Integer(t1.clone(), Mutability::Immutable), Type::Float(Float::Float64, Mutability::Immutable)), "cvtsi2sd");
+            cast_matrix.insert((Type::Integer(t1.clone(), Mutability::Immutable), Type::Float(FloatType::Float32, Mutability::Immutable)), "cvtsi2ss");
+            cast_matrix.insert((Type::Integer(t1.clone(), Mutability::Immutable), Type::Float(FloatType::Float64, Mutability::Immutable)), "cvtsi2sd");
         }
     }
 
-    fn cast_from_to(t1: &Integer, t2: &Float, source: &str, stack: &mut Stack, meta: &mut MetaInfo) -> Result<ASMResult, ASMGenerateError> {
+    fn cast_from_to(t1: &IntegerType, t2: &FloatType, source: &str, stack: &mut Stack, meta: &mut MetaInfo) -> Result<ASMResult, ASMGenerateError> {
         let cast_to = CastTo {
             from: Type::Integer(t1.clone(), Mutability::Immutable),
             to: Type::Float(t2.clone(), Mutability::Immutable),
@@ -66,15 +56,15 @@ impl Castable<Integer, Float> for Integer {
             }
         }
 
-        if *t1 != Integer::U32 { // Convert to unsigned U32
-            match &<Integer as Castable<Integer, Integer>>::cast_from_to(t1, &Integer::U32, source, stack, meta)? {
+        if *t1 != IntegerType::U32 { // Convert to unsigned U32
+            match &<IntegerType as Castable<IntegerType, IntegerType>>::cast_from_to(t1, &IntegerType::U32, source, stack, meta)? {
                 ASMResult::Inline(t) => target += t,
                 ASMResult::MultilineResulted(r, _) => target += r,
                 ASMResult::Multiline(r) => target += r,
             }
 
             cast_from_register = last_register.to_size_register(&ByteSize::_4);
-        } else if IntegerImplementation::from_str(source).is_ok() || is_stack_variable {
+        } else if IntegerAST::from_str(source).is_ok() || is_stack_variable {
             target += &ASMBuilder::mov_ident_line(&cast_from_register, source);
         }
 
@@ -87,9 +77,9 @@ impl Castable<Integer, Float> for Integer {
 }
 
 
-impl Castable<Integer, Integer> for Integer {
+impl Castable<IntegerType, IntegerType> for IntegerType {
     fn add_casts(cast_matrix: &mut HashMap<(Type, Type), &'static str>) {
-        let types = [Integer::U8, Integer::I8, Integer::U16, Integer::I16, Integer::U32, Integer::I32, Integer::U64, Integer::I64];
+        let types = [IntegerType::U8, IntegerType::I8, IntegerType::U16, IntegerType::I16, IntegerType::U32, IntegerType::I32, IntegerType::U64, IntegerType::I64];
 
         for t1 in &types {
             for t2 in &types {
@@ -108,7 +98,7 @@ impl Castable<Integer, Integer> for Integer {
     }
 
 
-    fn cast_from_to(i1: &Integer, i2: &Integer, source: &str, stack: &mut Stack, meta: &mut MetaInfo) -> Result<ASMResult, ASMGenerateError> {
+    fn cast_from_to(i1: &IntegerType, i2: &IntegerType, source: &str, stack: &mut Stack, meta: &mut MetaInfo) -> Result<ASMResult, ASMGenerateError> {
         let mut source = source.to_string();
 
         let cast_to = CastTo {
@@ -141,7 +131,7 @@ impl Castable<Integer, Integer> for Integer {
         // Special case: i32 -> u64
         // movzx cant handle DWORD on rhs
         // *i1 == Integer::I32 && *i2 == Integer::I64
-        if (*i2 == Integer::U64 || *i2 == Integer::I64) && *i1 == Integer::U32 || *i1 == Integer::I32 && *i2 == Integer::U64 {
+        if (*i2 == IntegerType::U64 || *i2 == IntegerType::I64) && *i1 == IntegerType::U32 || *i1 == IntegerType::I32 && *i2 == IntegerType::U64 {
             let r14 = GeneralPurposeRegister::Bit64(Bit64::R14).to_size_register(&cast_from_register.size());
             target += &ASMBuilder::ident_line(&format!("mov {}, {}", &r14, &source));
             target += &ASMBuilder::ident_line(&format!("xor {}, {}", cast_to_register, cast_to_register));
@@ -152,7 +142,7 @@ impl Castable<Integer, Integer> for Integer {
             return Ok(ASMResult::MultilineResulted(target, cast_from_register));
         }
 
-        if IntegerImplementation::from_str(&source).is_ok() {
+        if IntegerAST::from_str(&source).is_ok() {
             target += &ASMBuilder::mov_ident_line(&cast_from_register, &source);
             Ok(ASMResult::MultilineResulted(target, cast_from_register))
         } else {
@@ -174,17 +164,17 @@ impl Castable<Integer, Integer> for Integer {
     }
 }
 
-impl Integer {
+impl IntegerType {
     pub fn from_number_str<T: FromStr>(value: &str) -> Result<T, InferTypeError> {
-        value.parse().map_err(|_| InferTypeError::TypeNotAllowed(IdentifierErr::UnmatchedRegex { target_value: String::from(value) }))
+        value.parse().map_err(|_| InferTypeError::TypeNotAllowed(IdentifierError::UnmatchedRegex { target_value: String::from(value) }))
     }
 
     pub fn signed(&self) -> bool {
-        matches!(self, Integer::I8 | Integer::I16 | Integer::I32 | Integer::I64)
+        matches!(self, IntegerType::I8 | IntegerType::I16 | IntegerType::I32 | IntegerType::I64)
     }
 
     pub fn operation_matrix(base_type_matrix: &mut HashMap<(Type, Operator, Type), Type>) {
-        let types = [Integer::I8, Integer::U8, Integer::I16, Integer::U16, Integer::I32, Integer::U32, Integer::I64, Integer::U64];
+        let types = [IntegerType::I8, IntegerType::U8, IntegerType::I16, IntegerType::U16, IntegerType::I32, IntegerType::U32, IntegerType::I64, IntegerType::U64];
 
         for ty in &types {
             base_type_matrix.insert((Type::Integer(ty.clone(), Mutability::Immutable), Operator::Add, Type::Integer(ty.clone(), Mutability::Immutable)), Type::Integer(ty.clone(), Mutability::Immutable));
@@ -212,19 +202,19 @@ impl Integer {
 
     pub fn byte_size(&self) -> usize {
         match self {
-            Integer::I8 => 1,
-            Integer::U8 => 1,
-            Integer::I16 => 2,
-            Integer::U16 => 2,
-            Integer::I32 => 4,
-            Integer::U32 => 4,
-            Integer::I64 => 8,
-            Integer::U64 => 8,
+            IntegerType::I8 => 1,
+            IntegerType::U8 => 1,
+            IntegerType::I16 => 2,
+            IntegerType::U16 => 2,
+            IntegerType::I32 => 4,
+            IntegerType::U32 => 4,
+            IntegerType::I64 => 8,
+            IntegerType::U64 => 8,
         }
     }
 }
 
-impl OperatorToASM for Integer {
+impl OperatorToASM for IntegerType {
     fn operation_to_asm<T: Display>(&self, operator: &Operator, registers: &[T], stack: &mut Stack, meta: &mut MetaInfo) -> Result<AssemblerOperation, ASMGenerateError> {
         let prefix = if self.signed() { "i" } else { "" };
 
@@ -296,35 +286,35 @@ impl OperatorToASM for Integer {
     }
 }
 
-impl FromStr for Integer {
+impl FromStr for IntegerType {
     type Err = InferTypeError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(match s {
-            "i8" => Integer::I8,
-            "u8" => Integer::U8,
-            "i16" => Integer::I16,
-            "u16" => Integer::U16,
-            "i32" => Integer::I32,
-            "u32" => Integer::U32,
-            "i64" => Integer::I64,
-            "u64" => Integer::U64,
-            _ => return Err(InferTypeError::TypeNotAllowed(IdentifierErr::UnmatchedRegex { target_value: String::from(s) }))
+            "i8" => IntegerType::I8,
+            "u8" => IntegerType::U8,
+            "i16" => IntegerType::I16,
+            "u16" => IntegerType::U16,
+            "i32" => IntegerType::I32,
+            "u32" => IntegerType::U32,
+            "i64" => IntegerType::I64,
+            "u64" => IntegerType::U64,
+            _ => return Err(InferTypeError::TypeNotAllowed(IdentifierError::UnmatchedRegex { target_value: String::from(s) }))
         })
     }
 }
 
-impl Display for Integer {
+impl Display for IntegerType {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Integer::I8 => write!(f, "i8"),
-            Integer::U8 => write!(f, "u8"),
-            Integer::I16 => write!(f, "i16"),
-            Integer::U16 => write!(f, "u16"),
-            Integer::I32 => write!(f, "i32"),
-            Integer::U32 => write!(f, "u32"),
-            Integer::I64 => write!(f, "i64"),
-            Integer::U64 => write!(f, "u64"),
+            IntegerType::I8 => write!(f, "i8"),
+            IntegerType::U8 => write!(f, "u8"),
+            IntegerType::I16 => write!(f, "i16"),
+            IntegerType::U16 => write!(f, "u16"),
+            IntegerType::I32 => write!(f, "i32"),
+            IntegerType::U32 => write!(f, "u32"),
+            IntegerType::I64 => write!(f, "i64"),
+            IntegerType::U64 => write!(f, "u64"),
         }
     }
 }

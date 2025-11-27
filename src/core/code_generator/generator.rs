@@ -6,21 +6,21 @@ use crate::core::code_generator::ASMGenerateError;
 use crate::core::code_generator::conventions::calling_convention_from;
 use crate::core::code_generator::registers::{GeneralPurposeRegister};
 use crate::core::code_generator::target_os::TargetOS;
-use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::token_with_span::FilePosition;
-use crate::core::scanner::scope::Scope;
+use crate::core::model::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
+use crate::core::model::abstract_syntax_tree_nodes::assignable::Assignable;
+use crate::core::model::abstract_syntax_tree_nodes::identifier::Identifier;
+use crate::core::model::abstract_syntax_tree_nodes::l_value::LValue;
+use crate::core::model::abstract_syntax_tree_nodes::method_definition::MethodDefinition;
+use crate::core::model::abstract_syntax_tree_nodes::parameter::Parameter;
+use crate::core::model::abstract_syntax_tree_nodes::ret::Return;
+use crate::core::model::abstract_syntax_tree_nodes::variable::Variable;
 use crate::core::scanner::static_type_context::StaticTypeContext;
-use crate::core::scanner::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
-use crate::core::scanner::abstract_syntax_tree_nodes::assignable::Assignable;
-use crate::core::scanner::abstract_syntax_tree_nodes::l_value::LValue;
-use crate::core::scanner::abstract_syntax_tree_nodes::method_definition::MethodDefinition;
-use crate::core::scanner::abstract_syntax_tree_nodes::identifier::Identifier;
-use crate::core::scanner::abstract_syntax_tree_nodes::parameter::Parameter;
-use crate::core::scanner::abstract_syntax_tree_nodes::r#return::Return;
-use crate::core::scanner::abstract_syntax_tree_nodes::variable::Variable;
-use crate::core::scanner::types::integer::Integer;
-use crate::core::scanner::types::r#type::{Mutability, Type};
 use crate::core::model::data_section::DataSection;
+use crate::core::model::scope::Scope;
+use crate::core::model::types::integer::IntegerType;
+use crate::core::model::types::mutability::Mutability;
+use crate::core::model::types::ty::Type;
 
 #[derive(Debug)]
 pub struct StackLocation {
@@ -220,7 +220,7 @@ impl ASMGenerator {
             }
             let main_function = AbstractSyntaxTreeNode::MethodDefinition(MethodDefinition {
                 identifier: Identifier { name: "main".to_string() },
-                return_type: Type::Integer(Integer::I32, Mutability::Immutable),
+                return_type: Type::Integer(IntegerType::I32, Mutability::Immutable),
                 arguments: vec![],
                 stack: main_stack,
                 is_extern: false,

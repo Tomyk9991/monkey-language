@@ -2,7 +2,7 @@ use std::fmt::{Display, Formatter};
 use crate::core::lexer;
 use crate::core::lexer::parse::ParseResult;
 use crate::core::lexer::token_information::TokenInformationIterator;
-use crate::core::scanner::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
+use crate::core::model::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
 
 #[derive(Debug, PartialEq, Clone, Eq, Hash, Default)]
 pub enum Token {

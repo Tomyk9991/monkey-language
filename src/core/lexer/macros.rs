@@ -25,10 +25,12 @@ macro_rules! pattern {
         if $parser_index >= $tokens.len() {
             return Err($crate::core::lexer::error::Error::UnexpectedEOF);
         }
-        let parse_result = <$parser>::parse(&$tokens[$parser_index..])?;
-        $parser_index += parse_result.consumed;
-        $vec.push(parse_result.into());
-        pattern!(@internal $vec, $parser_index, $tokens, $($rest)*);
+        
+        if let Ok(parse_result) = <$parser>::parse(&$tokens[$parser_index..]) {
+            $parser_index += parse_result.consumed;
+            $vec.push(parse_result.into());
+            pattern!(@internal $vec, $parser_index, $tokens, $($rest)*);
+        }
     }};
 
     // Standardfall: Ein Identifier wird als Token interpretiert.

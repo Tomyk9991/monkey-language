@@ -1,12 +1,13 @@
 use std::fmt::{Debug, Display, Formatter};
 
 use crate::core::io::code_line::CodeLine;
-use crate::core::scanner::scope::Scope;
+use crate::core::model::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
+use crate::core::model::abstract_syntax_tree_nodes::assignable::Assignable;
+use crate::core::model::abstract_syntax_tree_nodes::l_value::LValue;
+use crate::core::model::scope::Scope;
+use crate::core::model::types::ty::Type;
 use crate::core::scanner::static_type_context::{StaticTypeContext};
-use crate::core::scanner::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
-use crate::core::scanner::abstract_syntax_tree_nodes::assignable::Assignable;
-use crate::core::scanner::abstract_syntax_tree_nodes::l_value::LValue;
-use crate::core::scanner::types::r#type::{InferTypeError, MethodCallSignatureMismatchCause, Type};
+use crate::core::scanner::types::r#type::{InferTypeError, MethodCallSignatureMismatchCause};
 use crate::core::semantics::type_checker::StaticTypeCheck;
 
 #[derive(Debug)]

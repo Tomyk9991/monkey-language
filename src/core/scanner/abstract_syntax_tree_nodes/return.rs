@@ -10,29 +10,22 @@ use crate::core::code_generator::asm_result::{ASMResult, ASMResultError, ASMResu
 use crate::core::code_generator::conventions::return_calling_convention;
 use crate::core::code_generator::registers::{ByteSize, GeneralPurposeRegister};
 use crate::core::io::code_line::CodeLine;
+use crate::core::model::abstract_syntax_tree_nodes::assignable::{Assignable, AssignableError};
+use crate::core::model::abstract_syntax_tree_nodes::ret::Return;
+use crate::core::model::types::integer::{IntegerAST, IntegerType};
 use crate::core::scanner::errors::EmptyIteratorErr;
 use crate::core::scanner::scope::PatternNotMatchedError;
 use crate::core::scanner::static_type_context::StaticTypeContext;
-use crate::core::scanner::abstract_syntax_tree_nodes::assignable::{Assignable, AssignableErr};
 use crate::core::scanner::{Lines, TryParse};
 use crate::core::scanner::types::r#type::{InferTypeError};
 use crate::core::semantics::type_checker::static_type_checker::StaticTypeCheckError;
 use crate::core::semantics::type_checker::StaticTypeCheck;
 
-type Integer = crate::core::scanner::abstract_syntax_tree_nodes::assignables::integer::IntegerAST;
-type IntegerType = crate::core::scanner::types::integer::Integer;
-
-#[derive(Debug, PartialEq, Clone, Default)]
-pub struct Return {
-    pub assignable: Option<Assignable>,
-    pub code_line: CodeLine
-}
-
 impl Return {
     /// returns a `Return` with an assignable, the assignable is an integer containing 0
     pub fn num_0() -> Return {
         Return {
-            assignable: Some(Assignable::Integer(Integer { value: "0".to_string(), ty: IntegerType::I32 })),
+            assignable: Some(Assignable::Integer(IntegerAST { value: "0".to_string(), ty: IntegerType::I32 })),
             code_line: CodeLine::imaginary("return 0;")
         }
     }
@@ -41,7 +34,7 @@ impl Return {
 #[derive(Debug)]
 pub enum ReturnError {
     PatternNotMatched { target_value: String },
-    AssignableError(AssignableErr),
+    AssignableError(AssignableError),
     EmptyIterator(EmptyIteratorErr)
 }
 
@@ -51,15 +44,6 @@ impl PatternNotMatchedError for ReturnError {
     }
 }
 
-impl Display for Return {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "return{}", if let Some(assignable) = &self.assignable {
-            format!(" {}", assignable)
-        } else {
-            "".to_string()
-        })
-    }
-}
 
 impl Display for ReturnError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -75,8 +59,8 @@ impl Display for ReturnError {
 
 impl Error for ReturnError { }
 
-impl From<AssignableErr> for ReturnError {
-    fn from(value: AssignableErr) -> Self {
+impl From<AssignableError> for ReturnError {
+    fn from(value: AssignableError) -> Self {
         ReturnError::AssignableError(value)
     }
 }
@@ -114,70 +98,6 @@ impl TryParse for Return {
     fn try_parse(code_lines_iterator: &mut Lines<'_>) -> anyhow::Result<Self::Output, Self::Err> {
         let code_line = *code_lines_iterator.peek().ok_or(ReturnError::EmptyIterator(EmptyIteratorErr))?;
         Return::try_parse(code_line)
-    }
-}
-
-impl ToASM for Return {
-    fn to_asm<T: ASMOptions>(&self, stack: &mut Stack, meta: &mut MetaInfo, _options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
-        let mut target = String::new();
-        target += &ASMBuilder::ident(&ASMBuilder::comment_line(&format!("{}", self)));
-
-        if let Some(assignable) = &self.assignable {
-            let destination_register = return_calling_convention(stack, meta)?.to_size_register_ignore_float(
-                &ByteSize::try_from(meta.static_type_information.expected_return_type.as_ref().map_or(8, |t| t.return_type.byte_size()))?
-            );
-            let options = InterimResultOption {
-                general_purpose_register: destination_register.clone(),
-            };
-
-            let source = assignable.to_asm(stack, meta, Some(options))?;
-
-            match source {
-                ASMResult::Inline(source) => target += &ASMBuilder::mov_ident_line(destination_register, source),
-                ASMResult::MultilineResulted(source, r) => {
-                    target += &source;
-
-                    if let GeneralPurposeRegister::Float(f) = r {
-                        target += &ASMBuilder::mov_x_ident_line(destination_register, f, Some(assignable.byte_size(meta)));
-                    }
-                }
-                ASMResult::Multiline(_) => return Err(ASMGenerateError::ASMResult(ASMResultError::UnexpectedVariance {
-                    expected: vec![ASMResultVariance::Inline, ASMResultVariance::MultilineResulted],
-                    actual: ASMResultVariance::Multiline,
-                    ast_node: "Return".to_string(),
-                }))
-
-            }
-        }
-
-        target += &ASMBuilder::ident_line("leave");
-        target += &ASMBuilder::ident_line("ret");
-
-        Ok(ASMResult::Multiline(target))
-    }
-
-    fn is_stack_look_up(&self, stack: &mut Stack, meta: &MetaInfo) -> bool {
-        if let Some(assignable) = &self.assignable {
-            return assignable.is_stack_look_up(stack, meta);
-        }
-
-        false
-    }
-
-    fn byte_size(&self, meta: &mut MetaInfo) -> usize {
-        if let Some(assignable) = &self.assignable {
-            return assignable.byte_size(meta)
-        }
-
-        0
-    }
-
-    fn data_section(&self, stack: &mut Stack, meta: &mut MetaInfo) -> bool {
-        if let Some(assignable) = &self.assignable {
-            assignable.data_section(stack, meta)
-        } else {
-            false
-        }
     }
 }
 

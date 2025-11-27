@@ -3,37 +3,33 @@ use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
+use crate::core::code_generator::abstract_syntax_tree_nodes::assignables::equation_parser::operator::{AssemblerOperation, OperatorToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::asm_options::interim_result::InterimResultOption;
 use crate::core::code_generator::asm_result::{ASMResult};
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::register_destination::word_from_byte_size;
 use crate::core::code_generator::registers::{Bit64, ByteSize, FloatRegister, GeneralPurposeRegister};
-use crate::core::scanner::abstract_syntax_tree_nodes::assignables::equation_parser::operator::{AssemblerOperation, Operator, OperatorToASM};
-use crate::core::scanner::abstract_syntax_tree_nodes::identifier::IdentifierErr;
+use crate::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::operator::Operator;
+use crate::core::model::abstract_syntax_tree_nodes::identifier::IdentifierError;
+use crate::core::model::types::float::FloatType;
+use crate::core::model::types::integer::{IntegerAST, IntegerType};
+use crate::core::model::types::mutability::Mutability;
+use crate::core::model::types::ty::Type;
 use crate::core::scanner::types::cast_to::{Castable, CastTo};
-use crate::core::scanner::types::float::Float::{Float32, Float64};
-use crate::core::scanner::types::r#type::{InferTypeError, Mutability, Type};
-
-type Integer = crate::core::scanner::abstract_syntax_tree_nodes::assignables::integer::IntegerAST;
-type IntegerType = crate::core::scanner::types::integer::Integer;
-#[derive(Debug, Default, PartialEq, Eq, Hash, Clone)]
-pub enum Float {
-    #[default]
-    Float32,
-    Float64,
-}
+use crate::core::scanner::types::r#type::{InferTypeError};
 
 
-impl Castable<Float, IntegerType> for Float {
+
+impl Castable<FloatType, IntegerType> for FloatType {
     fn add_casts(cast_matrix: &mut HashMap<(Type, Type), &'static str>) {
         for ty in &[IntegerType::I8, IntegerType::I16, IntegerType::I32, IntegerType::I64, IntegerType::U8, IntegerType::U16, IntegerType::U32, IntegerType::U64] {
-            cast_matrix.insert((Type::Float(Float32, Mutability::Immutable), Type::Integer(ty.clone(), Mutability::Immutable)), "cvtss2si");
-            cast_matrix.insert((Type::Float(Float64, Mutability::Immutable), Type::Integer(ty.clone(), Mutability::Immutable)), "cvtsd2si");
+            cast_matrix.insert((Type::Float(FloatType::Float32, Mutability::Immutable), Type::Integer(ty.clone(), Mutability::Immutable)), "cvtss2si");
+            cast_matrix.insert((Type::Float(FloatType::Float64, Mutability::Immutable), Type::Integer(ty.clone(), Mutability::Immutable)), "cvtsd2si");
         }
     }
 
-    fn cast_from_to(t1: &Float, t2: &IntegerType, source: &str, stack: &mut Stack, meta: &mut MetaInfo) -> Result<ASMResult, ASMGenerateError> {
+    fn cast_from_to(t1: &FloatType, t2: &IntegerType, source: &str, stack: &mut Stack, meta: &mut MetaInfo) -> Result<ASMResult, ASMGenerateError> {
         let cast_to = CastTo {
             from: Type::Float(t1.clone(), Mutability::Immutable),
             to: Type::Integer(t2.clone(), Mutability::Immutable),
@@ -62,7 +58,7 @@ impl Castable<Float, IntegerType> for Float {
 
 
 
-        if Integer::from_str(source).is_ok() || is_stack_variable {
+        if IntegerAST::from_str(source).is_ok() || is_stack_variable {
             target += &ASMBuilder::mov_ident_line(&cast_from_register, source);
         }
 
@@ -111,13 +107,13 @@ impl Castable<Float, IntegerType> for Float {
     }
 }
 
-impl Castable<Float, Float> for Float {
+impl Castable<FloatType, FloatType> for FloatType {
     fn add_casts(cast_matrix: &mut HashMap<(Type, Type), &'static str>) {
-        cast_matrix.insert((Type::Float(Float32, Mutability::Immutable), Type::Float(Float64, Mutability::Immutable)), "cvtss2sd");
-        cast_matrix.insert((Type::Float(Float64, Mutability::Immutable), Type::Float(Float32, Mutability::Immutable)), "cvtsd2ss");
+        cast_matrix.insert((Type::Float(FloatType::Float32, Mutability::Immutable), Type::Float(FloatType::Float64, Mutability::Immutable)), "cvtss2sd");
+        cast_matrix.insert((Type::Float(FloatType::Float64, Mutability::Immutable), Type::Float(FloatType::Float32, Mutability::Immutable)), "cvtsd2ss");
     }
 
-    fn cast_from_to(t1: &Float, t2: &Float, source: &str, stack: &mut Stack, meta: &mut MetaInfo) -> Result<ASMResult, ASMGenerateError> {
+    fn cast_from_to(t1: &FloatType, t2: &FloatType, source: &str, stack: &mut Stack, meta: &mut MetaInfo) -> Result<ASMResult, ASMGenerateError> {
         let cast_to = CastTo {
             from: Type::Float(t1.clone(), Mutability::Immutable),
             to: Type::Float(t2.clone(), Mutability::Immutable),
@@ -154,9 +150,9 @@ impl Castable<Float, Float> for Float {
     }
 }
 
-impl Float {
+impl FloatType {
     pub fn operation_matrix(base_type_matrix: &mut HashMap<(Type, Operator, Type), Type>) {
-        let types = [Float32, Float64];
+        let types = [FloatType::Float32, FloatType::Float64];
 
         for ty in &types {
             base_type_matrix.insert((Type::Float(ty.clone(), Mutability::Immutable), Operator::Add, Type::Float(ty.clone(), Mutability::Immutable)), Type::Float(ty.clone(), Mutability::Immutable));
@@ -176,17 +172,17 @@ impl Float {
 
     pub fn byte_size(&self) -> usize {
         match self {
-            Float32 => 4,
-            Float64 => 8,
+            FloatType::Float32 => 4,
+            FloatType::Float64 => 8,
         }
     }
 }
 
-impl OperatorToASM for Float {
+impl OperatorToASM for FloatType {
     fn operation_to_asm<T: Display>(&self, operator: &Operator, registers: &[T], stack: &mut Stack, meta: &mut MetaInfo) -> Result<AssemblerOperation, ASMGenerateError> {
         let suffix = match self {
-            Float32 => "ss",
-            Float64 => "sd"
+            FloatType::Float32 => "ss",
+            FloatType::Float64 => "sd"
         };
 
         match operator {
@@ -224,23 +220,23 @@ impl OperatorToASM for Float {
     }
 }
 
-impl FromStr for Float {
+impl FromStr for FloatType {
     type Err = InferTypeError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(match s {
-            "f32" => Float32,
-            "f64" => Float64,
-            _ => return Err(InferTypeError::TypeNotAllowed(IdentifierErr::UnmatchedRegex { target_value: String::from(s) }))
+            "f32" => FloatType::Float32,
+            "f64" => FloatType::Float64,
+            _ => return Err(InferTypeError::TypeNotAllowed(IdentifierError::UnmatchedRegex { target_value: String::from(s) }))
         })
     }
 }
 
-impl Display for Float {
+impl Display for FloatType {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Float32 => write!(f, "f32"),
-            Float64 => write!(f, "f64"),
+            FloatType::Float32 => write!(f, "f32"),
+            FloatType::Float64 => write!(f, "f64"),
         }
     }
 }

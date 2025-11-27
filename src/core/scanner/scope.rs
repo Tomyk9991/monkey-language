@@ -5,31 +5,26 @@ use crate::core::lexer::error::Error;
 use crate::core::lexer::parse::{Parse, ParseResult};
 use crate::core::lexer::token_match::MatchResult;
 use crate::core::lexer::token_with_span::TokenWithSpan;
+use crate::core::model::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
+use crate::core::model::abstract_syntax_tree_nodes::assignable::Assignable;
+use crate::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::expression::Expression;
+use crate::core::model::abstract_syntax_tree_nodes::assignables::method_call::MethodCall;
+use crate::core::model::abstract_syntax_tree_nodes::for_::For;
+use crate::core::model::abstract_syntax_tree_nodes::if_::If;
+use crate::core::model::abstract_syntax_tree_nodes::import::Import;
+use crate::core::model::abstract_syntax_tree_nodes::method_definition::MethodDefinition;
+use crate::core::model::abstract_syntax_tree_nodes::ret::Return;
+use crate::core::model::abstract_syntax_tree_nodes::scope_ending::ScopeEnding;
+use crate::core::model::abstract_syntax_tree_nodes::variable::Variable;
+use crate::core::model::abstract_syntax_tree_nodes::while_::While;
+use crate::core::model::scope::Scope;
 use crate::core::scanner::errors::EmptyIteratorErr;
 use crate::core::scanner::static_type_context::StaticTypeContext;
-use crate::core::scanner::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
 use crate::core::scanner::parser::{ASTParser};
-use crate::core::scanner::abstract_syntax_tree_nodes::assignable::Assignable;
-use crate::core::scanner::abstract_syntax_tree_nodes::assignables::equation_parser::expression::Expression;
-use crate::core::scanner::abstract_syntax_tree_nodes::assignables::method_call::MethodCall;
-use crate::core::scanner::abstract_syntax_tree_nodes::r#for::For;
-use crate::core::scanner::abstract_syntax_tree_nodes::r#if::If;
-use crate::core::scanner::abstract_syntax_tree_nodes::method_definition::MethodDefinition;
-use crate::core::scanner::abstract_syntax_tree_nodes::scope_ending::ScopeEnding;
-use crate::core::scanner::abstract_syntax_tree_nodes::variable::Variable;
 use crate::core::scanner::{Lines, TryParse};
-use crate::core::scanner::abstract_syntax_tree_nodes::import::Import;
-use crate::core::scanner::abstract_syntax_tree_nodes::r#while::While;
-use crate::core::scanner::abstract_syntax_tree_nodes::r#return::Return;
 use crate::core::scanner::scope_iterator::ScopeIterator;
 use crate::core::scanner::types::r#type::InferTypeError;
 use crate::pattern;
-
-/// AST nodes inside scope
-#[derive(Clone, Default)]
-pub struct Scope {
-    pub ast_nodes: Vec<AbstractSyntaxTreeNode>
-}
 
 impl Parse for Scope {
     fn parse(tokens: &[TokenWithSpan]) -> Result<ParseResult<Self>, Error> where Self: Sized, Self: Default {
@@ -52,6 +47,12 @@ impl Parse for Scope {
 
                     index += consumed;
                     total_consumed += consumed;
+
+
+                    if consumed > 0 {
+                        break;
+                    }
+
                     if index >= scope_tokens.len() {
                         break 'outer;
                     }

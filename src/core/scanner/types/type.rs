@@ -4,50 +4,38 @@ use std::fmt::{Display, Formatter};
 use std::ops::Range;
 use std::str::FromStr;
 use crate::core::code_generator::{ASMGenerateError, MetaInfo};
+use crate::core::code_generator::abstract_syntax_tree_nodes::assignables::equation_parser::operator::{AssemblerOperation, OperatorToASM};
 use crate::core::code_generator::generator::Stack;
 
 use crate::core::io::code_line::CodeLine;
-use crate::core::scanner::abstract_syntax_tree_nodes::assignable::Assignable;
-use crate::core::scanner::abstract_syntax_tree_nodes::assignables::equation_parser::operator::{AssemblerOperation, Operator, OperatorToASM};
-use crate::core::scanner::abstract_syntax_tree_nodes::l_value::LValue;
-use crate::core::scanner::abstract_syntax_tree_nodes::identifier::{Identifier, IdentifierErr};
-use crate::core::scanner::abstract_syntax_tree_nodes::variable::Variable;
+use crate::core::lexer::parse::{Parse, ParseResult};
+use crate::core::lexer::token_with_span::TokenWithSpan;
+use crate::core::model::abstract_syntax_tree_nodes::assignable::Assignable;
+use crate::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::operator::Operator;
+use crate::core::model::abstract_syntax_tree_nodes::identifier::{Identifier, IdentifierError};
+use crate::core::model::abstract_syntax_tree_nodes::l_value::LValue;
+use crate::core::model::abstract_syntax_tree_nodes::variable::Variable;
+use crate::core::model::types::float::FloatType;
+use crate::core::model::types::integer::IntegerType;
+use crate::core::model::types::mutability::Mutability;
+use crate::core::model::types::ty::Type;
 use crate::core::scanner::types::boolean::Boolean;
 use crate::core::scanner::types::cast_to::CastTo;
-use crate::core::scanner::types::float::Float;
-use crate::core::scanner::types::integer::Integer;
 
 pub mod common {
-    use crate::core::scanner::abstract_syntax_tree_nodes::identifier::Identifier;
-    use crate::core::scanner::types::r#type::{Mutability, Type};
+    use crate::core::model::abstract_syntax_tree_nodes::identifier::Identifier;
+    use crate::core::model::types::mutability::Mutability;
+    use crate::core::scanner::types::r#type::{Type};
 
     #[allow(unused)]
     pub fn string() -> Type { Type::Custom(Identifier { name: "*string".to_string() }, Mutability::Immutable)}
 }
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone)]
-pub enum Mutability {
-    Mutable,
-    Immutable,
-}
-
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Default)]
-pub enum Type {
-    Integer(Integer, Mutability),
-    Float(Float, Mutability),
-    Bool(Mutability),
-    #[default]
-    Void,
-    Array(Box<Type>, usize, Mutability),
-    Custom(Identifier, Mutability),
-}
-
-
 #[derive(Debug)]
 pub enum InferTypeError {
     TypesNotCalculable(Type, Operator, Type, CodeLine),
     UnresolvedReference(String, CodeLine),
-    TypeNotAllowed(IdentifierErr),
+    TypeNotAllowed(IdentifierError),
     MultipleTypesInArray{expected: Type, unexpected_type: Type, unexpected_type_index: usize, code_line: CodeLine},
     IllegalDereference(Assignable, Type, CodeLine),
     IllegalArrayTypeLookup(Type, CodeLine),
@@ -71,12 +59,22 @@ pub enum MethodCallSignatureMismatchCause {
     IfCondition
 }
 
+
 impl From<bool> for Mutability {
     fn from(value: bool) -> Self {
         if value {
             Mutability::Mutable
         } else {
             Mutability::Immutable
+        }
+    }
+}
+
+impl From<&str> for Mutability {
+    fn from(s: &str) -> Self {
+        match s {
+            "mut" => Mutability::Mutable,
+            _ => Mutability::Immutable
         }
     }
 }
@@ -144,8 +142,8 @@ impl OperatorToASM for Type {
 }
 
 
-impl From<IdentifierErr> for InferTypeError {
-    fn from(value: IdentifierErr) -> Self {
+impl From<IdentifierError> for InferTypeError {
+    fn from(value: IdentifierError) -> Self {
         InferTypeError::TypeNotAllowed(value)
     }
 }
@@ -205,11 +203,42 @@ impl Display for Type {
     }
 }
 
+impl Parse for Type {
+    fn parse(tokens: &[TokenWithSpan]) -> Result<ParseResult<Self>, crate::core::lexer::error::Error> where Self: Sized, Self: Default {
+        let mutable = Mutability::from(format!("{}", tokens[0].token).as_str());
+        let is_mutable = matches!(mutable, Mutability::Mutable);
+
+        if let Ok(ty) = Type::from_str(&format!("{}", tokens[if is_mutable { 1 } else { 0 }].token), mutable) {
+            Ok(ParseResult {
+                result: ty,
+                consumed: if is_mutable { 2 } else { 1 },
+            })
+        }
+        else {
+            Err(crate::core::lexer::error::Error::UnexpectedToken(tokens[0].clone()))
+        }
+    }
+}
+
 impl Type {
+    pub fn mutable(&self) -> bool {
+        match self {
+            Type::Integer(_, a) |
+            Type::Float(_, a) |
+            Type::Bool(a) |
+            Type::Array(_, _, a) |
+            Type::Custom(_, a) => match a {
+                Mutability::Mutable => true,
+                Mutability::Immutable => false
+            }
+            Type::Void => false
+        }
+    }
+
     pub fn from_str(s: &str, mutability: Mutability) -> Result<Self, InferTypeError> {
         if let ["[ ", type_str, ", ", type_size, "]"] = &s.split_inclusive(' ').collect::<Vec<_>>()[..] {
             return Ok(Type::Array(Box::new(Type::from_str(type_str.trim(), mutability.clone())?), type_size.trim().parse::<usize>()
-                .map_err(|_| InferTypeError::TypeNotAllowed(IdentifierErr::UnmatchedRegex {
+                .map_err(|_| InferTypeError::TypeNotAllowed(IdentifierError::UnmatchedRegex {
                     target_value: s.to_string(),
                 }))?, mutability));
         }
@@ -218,22 +247,53 @@ impl Type {
             "bool" => Type::Bool(Mutability::Immutable),
             "void" => Type::Void,
             custom => {
-                if let Ok(int) = Integer::from_str(custom) {
+                if let Ok(int) = IntegerType::from_str(custom) {
                     return Ok(Type::Integer(int, mutability));
                 }
 
-                if let Ok(float) = Float::from_str(custom) {
+                if let Ok(float) = FloatType::from_str(custom) {
                     return Ok(Type::Float(float, mutability));
                 }
 
                 if !lazy_regex::regex_is_match!(r"^[\*&]*[a-zA-Z_$][a-zA-Z_$0-9]*[\*&]*$", s) {
-                    return Err(InferTypeError::TypeNotAllowed(IdentifierErr::UnmatchedRegex { target_value: String::from(custom) }));
+                    return Err(InferTypeError::TypeNotAllowed(IdentifierError::UnmatchedRegex { target_value: String::from(custom) }));
                 }
 
                 Type::Custom(Identifier { name: custom.to_string() }, mutability)
             }
         })
     }
+
+    pub fn from_str_with_token_consumed(s: &str, mutability: Mutability) -> Result<(Self, i32), InferTypeError> {
+        if let ["[ ", type_str, ", ", type_size, "]"] = &s.split_inclusive(' ').collect::<Vec<_>>()[..] {
+            let (inner_type, inner_consumed) = Type::from_str_with_token_consumed(type_str.trim(), mutability.clone())?;
+            return Ok((Type::Array(Box::new(inner_type), type_size.trim().parse::<usize>()
+                .map_err(|_| InferTypeError::TypeNotAllowed(IdentifierError::UnmatchedRegex {
+                    target_value: s.to_string(),
+                }))?, mutability), inner_consumed + 4));
+        }
+
+        Ok(match s {
+            "bool" => (Type::Bool(Mutability::Immutable), 1),
+            "void" => (Type::Void, 1),
+            custom => {
+                if let Ok(int) = IntegerType::from_str(custom) {
+                    return Ok((Type::Integer(int, mutability), 1));
+                }
+
+                if let Ok(float) = FloatType::from_str(custom) {
+                    return Ok((Type::Float(float, mutability), 1));
+                }
+
+                if !lazy_regex::regex_is_match!(r"^[\*&]*[a-zA-Z_$][a-zA-Z_$0-9]*[\*&]*$", s) {
+                    return Err(InferTypeError::TypeNotAllowed(IdentifierError::UnmatchedRegex { target_value: String::from(custom) }));
+                }
+
+                (Type::Custom(Identifier { name: custom.to_string() }, mutability), 1)
+            }
+        })
+    }
+
     pub fn set_mutability(&mut self, m: Mutability) {
         match self {
             Type::Integer(_, mutability) => *mutability = m,
@@ -305,35 +365,35 @@ impl Type {
             (Type::Integer(_, _), Type::Integer(desired, _)) => {
                 if let Assignable::Integer(integer) = assignable {
                     match desired {
-                        Integer::I8 if Self::in_range(-127_i8, 127_i8, Integer::from_number_str(&integer.value)) => {
+                        IntegerType::I8 if Self::in_range(-127_i8, 127_i8, IntegerType::from_number_str(&integer.value)) => {
                             integer.ty = desired.clone();
                             return Ok(Some(desired_type.clone()))
                         },
-                        Integer::U8 => if Self::in_range(0_u8, 255_u8, Integer::from_number_str(&integer.value)) {
+                        IntegerType::U8 => if Self::in_range(0_u8, 255_u8, IntegerType::from_number_str(&integer.value)) {
                             integer.ty = desired.clone();
                             return Ok(Some(desired_type.clone()))
                         },
-                        Integer::I16 => if Self::in_range(-32768_i16, 32767_i16, Integer::from_number_str(&integer.value)) {
+                        IntegerType::I16 => if Self::in_range(-32768_i16, 32767_i16, IntegerType::from_number_str(&integer.value)) {
                             integer.ty = desired.clone();
                             return Ok(Some(desired_type.clone()))
                         },
-                        Integer::U16 => if Self::in_range(0_u16, 65535_u16, Integer::from_number_str(&integer.value)) {
+                        IntegerType::U16 => if Self::in_range(0_u16, 65535_u16, IntegerType::from_number_str(&integer.value)) {
                             integer.ty = desired.clone();
                             return Ok(Some(desired_type.clone()))
                         },
-                        Integer::I32 => if Self::in_range(-2_147_483_648_i32, 2_147_483_647_i32, Integer::from_number_str(&integer.value)) {
+                        IntegerType::I32 => if Self::in_range(-2_147_483_648_i32, 2_147_483_647_i32, IntegerType::from_number_str(&integer.value)) {
                             integer.ty = desired.clone();
                             return Ok(Some(desired_type.clone()))
                         },
-                        Integer::U32 => if Self::in_range(0_u32, 4_294_967_295_u32, Integer::from_number_str(&integer.value)) {
+                        IntegerType::U32 => if Self::in_range(0_u32, 4_294_967_295_u32, IntegerType::from_number_str(&integer.value)) {
                             integer.ty = desired.clone();
                             return Ok(Some(desired_type.clone()))
                         },
-                        Integer::I64 => if Self::in_range(-9_223_372_036_854_775_808_i64, 9_223_372_036_854_775_807_i64, Integer::from_number_str(&integer.value)) {
+                        IntegerType::I64 => if Self::in_range(-9_223_372_036_854_775_808_i64, 9_223_372_036_854_775_807_i64, IntegerType::from_number_str(&integer.value)) {
                             integer.ty = desired.clone();
                             return Ok(Some(desired_type.clone()))
                         },
-                        Integer::U64 => if Self::in_range(0_u64, 18_446_744_073_709_551_615_u64, Integer::from_number_str(&integer.value)) {
+                        IntegerType::U64 => if Self::in_range(0_u64, 18_446_744_073_709_551_615_u64, IntegerType::from_number_str(&integer.value)) {
                             integer.ty = desired.clone();
                             return Ok(Some(desired_type.clone()))
                         },
@@ -344,11 +404,11 @@ impl Type {
             (Type::Float(_, _), Type::Float(desired, _)) => {
                 if let Assignable::Float(float) = assignable {
                     return match desired {
-                        Float::Float32 if Self::in_range(-3.40282347e+38, 3.40282347e+38, Ok(float.value)) => {
+                        FloatType::Float32 if Self::in_range(-3.40282347e+38, 3.40282347e+38, Ok(float.value)) => {
                             float.ty = desired.clone();
                             Ok(Some(desired_type.clone()))
                         },
-                        Float::Float64 if Self::in_range(-1.797_693_134_862_315_7e308, 1.797_693_134_862_315_7e308, Ok(float.value)) => {
+                        FloatType::Float64 if Self::in_range(-1.797_693_134_862_315_7e308, 1.797_693_134_862_315_7e308, Ok(float.value)) => {
                             float.ty = desired.clone();
                             Ok(Some(desired_type.clone()))
                         },

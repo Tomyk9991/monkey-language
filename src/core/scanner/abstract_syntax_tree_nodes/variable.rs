@@ -16,57 +16,22 @@ use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::parse::{Parse, ParseResult};
 use crate::core::lexer::token_match::{Match, MatchResult};
 use crate::core::lexer::token_with_span::{FilePosition, TokenWithSpan};
+use crate::core::model::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
+use crate::core::model::abstract_syntax_tree_nodes::assignable::{Assignable, AssignableError};
+use crate::core::model::abstract_syntax_tree_nodes::identifier::IdentifierError;
+use crate::core::model::abstract_syntax_tree_nodes::l_value::LValue;
+use crate::core::model::abstract_syntax_tree_nodes::variable::Variable;
+use crate::core::model::types::mutability::Mutability;
+use crate::core::model::types::ty::Type;
 use crate::core::scanner::errors::EmptyIteratorErr;
 use crate::core::scanner::scope::PatternNotMatchedError;
 use crate::core::scanner::static_type_context::StaticTypeContext;
-use crate::core::scanner::abstract_syntax_tree_nodes::assignable::{Assignable, AssignableErr};
-use crate::core::scanner::abstract_syntax_tree_nodes::l_value::{LValue, LValueErr};
-use crate::core::scanner::abstract_syntax_tree_nodes::identifier::{Identifier, IdentifierErr};
 use crate::core::scanner::{Lines, TryParse};
-use crate::core::scanner::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
-use crate::core::scanner::abstract_syntax_tree_nodes::r#if::If;
-use crate::core::scanner::types::r#type::{InferTypeError, Mutability, Type};
+use crate::core::scanner::abstract_syntax_tree_nodes::l_value::LValueErr;
+use crate::core::scanner::types::r#type::{InferTypeError};
 use crate::core::semantics::type_checker::{InferType, StaticTypeCheck};
 use crate::core::semantics::type_checker::static_type_checker::StaticTypeCheckError;
 use crate::pattern;
-
-/// AST node for a variable. Pattern is defined as: name <Assignment> assignment <Separator>
-/// # Examples
-/// - `name = assignment;`
-/// - `name: assignment,`
-#[derive(Debug, PartialEq, Clone, Default)]
-pub struct Variable<const ASSIGNMENT: char, const SEPARATOR: char> {
-    pub l_value: LValue,
-    // flag defining if the variable is mutable or not
-    pub mutability: bool,
-    /// type of the variable. It's None, when the type is unknown
-    pub ty: Option<Type>,
-    /// flag defining if the variable is a new definition or a re-assignment
-    pub define: bool,
-    pub assignable: Assignable,
-    pub code_line: FilePosition,
-}
-
-impl From<ParseResult<Variable<'=', ';'>>> for Result<ParseResult<AbstractSyntaxTreeNode>, crate::core::lexer::error::Error> {
-    fn from(value: ParseResult<Variable<'=', ';'>>) -> Self {
-        Ok(ParseResult {
-            result: AbstractSyntaxTreeNode::Variable(value.result),
-            consumed: value.consumed,
-        })
-    }
-}
-
-
-impl<const ASSIGNMENT: char, const SEPARATOR: char> TryFrom<Result<ParseResult<Self>, crate::core::lexer::error::Error>> for Variable<ASSIGNMENT, SEPARATOR> {
-    type Error = crate::core::lexer::error::Error;
-
-    fn try_from(value: Result<ParseResult<Self>, crate::core::lexer::error::Error>) -> Result<Self, Self::Error> {
-        match value {
-            Ok(value) => Ok(value.result),
-            Err(e) => Err(e),
-        }
-    }
-}
 
 impl<const ASSIGNMENT: char, const SEPARATOR: char> Parse for Variable<ASSIGNMENT, SEPARATOR> {
     fn parse(tokens: &[TokenWithSpan]) -> Result<ParseResult<Self>, crate::core::lexer::error::Error> where Self: Sized, Self: Default {
@@ -86,8 +51,71 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> Parse for Variable<ASSIGNMEN
             }
         }
 
+        if let Some(MatchResult::Parse(l_value)) = pattern!(tokens, Let, Mut, @parse LValue, Equals) {
+            if let Some(MatchResult::Parse(assign)) = pattern!(&tokens[l_value.consumed + 3..], @parse Assignable, SemiColon) {
+                return Ok(ParseResult {
+                    result: Variable {
+                        l_value: l_value.result,
+                        mutability: true,
+                        ty: None,
+                        define: true,
+                        assignable: assign.result,
+                        code_line: FilePosition::from_min_max(&tokens[0], &tokens[l_value.consumed + assign.consumed + 3]),
+                    },
+                    consumed: l_value.consumed + assign.consumed + 4,
+                });
+            }
+        }
+
+        if let Some(MatchResult::Parse(l_value)) = pattern!(tokens, Let, @parse LValue, Colon) {
+            if let Some(MatchResult::Parse(ty)) = pattern!(&tokens[l_value.consumed + 2..], @parse Type, Equals) {
+                if let Some(MatchResult::Parse(assign)) = pattern!(&tokens[l_value.consumed + ty.consumed + 3..], @parse Assignable, SemiColon) {
+                    return Ok(ParseResult {
+                        result: Variable {
+                            l_value: l_value.result,
+                            mutability: false,
+                            ty: Some(ty.result),
+                            define: true,
+                            assignable: assign.result,
+                            code_line: FilePosition::from_min_max(&tokens[0], &tokens[l_value.consumed + ty.consumed + assign.consumed + 3]),
+                        },
+                        consumed: l_value.consumed + ty.consumed + assign.consumed + 4,
+                    });
+                }
+            }
+        }
+
+        if let Some(MatchResult::Parse(l_value)) = pattern!(tokens, Let, Mut, @parse LValue, Colon) {
+            if let Some(MatchResult::Parse(ty)) = pattern!(&tokens[l_value.consumed + 3..], @parse Type, Equals) {
+                if let Some(MatchResult::Parse(assign)) = pattern!(&tokens[l_value.consumed + ty.consumed + 4..], @parse Assignable, SemiColon) {
+                    return Ok(ParseResult {
+                        result: Variable {
+                            l_value: l_value.result,
+                            mutability: true,
+                            ty: Some(ty.result),
+                            define: true,
+                            assignable: assign.result,
+                            code_line: FilePosition::from_min_max(&tokens[0], &tokens[l_value.consumed + ty.consumed + assign.consumed + 4]),
+                        },
+                        consumed: l_value.consumed + ty.consumed + assign.consumed + 5,
+                    });
+                }
+            }
+        }
+
 
         Err(crate::core::lexer::error::Error::UnexpectedToken(tokens[0].clone()))
+    }
+}
+
+impl<const ASSIGNMENT: char, const SEPARATOR: char> TryFrom<Result<ParseResult<Self>, crate::core::lexer::error::Error>> for Variable<ASSIGNMENT, SEPARATOR> {
+    type Error = crate::core::lexer::error::Error;
+
+    fn try_from(value: Result<ParseResult<Self>, crate::core::lexer::error::Error>) -> Result<Self, Self::Error> {
+        match value {
+            Ok(value) => Ok(value.result),
+            Err(e) => Err(e),
+        }
     }
 }
 
@@ -212,27 +240,11 @@ impl StaticTypeCheck for Variable<'=', ';'> {
     }
 }
 
-impl<const ASSIGNMENT: char, const SEPARATOR: char> Display for Variable<ASSIGNMENT, SEPARATOR> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let t = self.ty.as_ref().map_or(String::new(), |ty| format!(": {ty}"));
-
-        write!(
-            f,
-            "{}{}{} {} {}",
-            if self.define { "let " } else { "" },      // definition
-            self.l_value,                               // name
-            &t,                                         // type
-            ASSIGNMENT,                                 // assignment literal
-            self.assignable                             // assignment
-        )
-    }
-}
-
 #[derive(Debug)]
 pub enum ParseVariableErr {
     PatternNotMatched { target_value: String },
-    IdentifierErr(IdentifierErr),
-    AssignableErr(AssignableErr),
+    IdentifierErr(IdentifierError),
+    AssignableErr(AssignableError),
     LValue(LValueErr),
     InferType(InferTypeError),
     EmptyIterator(EmptyIteratorErr),
@@ -258,8 +270,8 @@ impl From<LValueErr> for ParseVariableErr {
     }
 }
 
-impl From<IdentifierErr> for ParseVariableErr {
-    fn from(a: IdentifierErr) -> Self { ParseVariableErr::IdentifierErr(a) }
+impl From<IdentifierError> for ParseVariableErr {
+    fn from(a: IdentifierError) -> Self { ParseVariableErr::IdentifierErr(a) }
 }
 
 impl From<anyhow::Error> for ParseVariableErr {
@@ -268,15 +280,15 @@ impl From<anyhow::Error> for ParseVariableErr {
         buffer += &value.to_string();
         buffer += "\n";
 
-        if let Some(e) = value.downcast_ref::<AssignableErr>() {
+        if let Some(e) = value.downcast_ref::<AssignableError>() {
             buffer += &e.to_string();
         }
         ParseVariableErr::PatternNotMatched { target_value: buffer }
     }
 }
 
-impl From<AssignableErr> for ParseVariableErr {
-    fn from(a: AssignableErr) -> Self { ParseVariableErr::AssignableErr(a) }
+impl From<AssignableError> for ParseVariableErr {
+    fn from(a: AssignableError) -> Self { ParseVariableErr::AssignableErr(a) }
 }
 
 impl Display for ParseVariableErr {
@@ -289,125 +301,6 @@ impl Display for ParseVariableErr {
             ParseVariableErr::InferType(err) => err.to_string(),
             ParseVariableErr::LValue(err) => err.to_string(),
         })
-    }
-}
-
-impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for Variable<ASSIGNMENT, SEPARATOR> {
-    fn to_asm<T: ASMOptions + 'static>(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
-        let mut target = String::new();
-        target += &ASMBuilder::ident(&ASMBuilder::comment_line(&format!("{}", self)));
-
-        let result = match &self.assignable {
-            Assignable::Array(_) => {
-                let i = IdentifierPresent {
-                    identifier: match &self.l_value {
-                        LValue::Identifier(n) => n.clone(),
-                        a => return Err(ASMGenerateError::LValueAssignment(a.clone(), CodeLine::default()/*self.code_line.clone()*/)),
-                    },
-                };
-                self.assignable.to_asm(stack, meta, (!self.define).then_some(i))?
-            },
-            _ => {
-                let interim_options = Some(InterimResultOption {
-                    general_purpose_register: GeneralPurposeRegister::iter_from_byte_size(self.assignable.byte_size(meta))?.current().clone(),
-                });
-                self.assignable.to_asm(stack, meta, interim_options)?
-            },
-        };
-
-        let destination = if self.define {
-            let byte_size = self.assignable.byte_size(meta);
-
-            let elements = match &self.assignable {
-                Assignable::Array(array) if array.values.len() > 1 => array.values.len(),
-                _ => 1
-            };
-
-            match &self.l_value {
-                LValue::Identifier(name) => stack.variables.push(StackLocation { position: stack.stack_position, size: byte_size, name: name.clone(), elements }),
-                a => return Err(ASMGenerateError::LValueAssignment(a.clone(), CodeLine::default()/*self.code_line.clone()*/))
-            }
-
-            stack.stack_position += byte_size;
-
-            let offset = stack.stack_position;
-            if !matches!(result, ASMResult::Multiline(_)) {
-                format!("{} [rbp - {}]", register_destination::word_from_byte_size(byte_size), offset)
-            } else {
-                String::new()
-            }
-        } else {
-            stack.register_to_use.push(GeneralPurposeRegister::Bit64(Bit64::Rdx));
-            let result = match self.l_value.to_asm(stack, meta, options)? {
-                ASMResult::Inline(r) => r,
-                ASMResult::MultilineResulted(t, r) => {
-                    target += &t;
-                    r.to_string()
-                }
-                ASMResult::Multiline(_) => {
-                    return Err(ASMGenerateError::ASMResult(ASMResultError::UnexpectedVariance {
-                        expected: vec![ASMResultVariance::MultilineResulted, ASMResultVariance::Inline],
-                        actual: ASMResultVariance::Multiline,
-                        ast_node: "variable node".to_string(),
-                    }))
-                }
-            };
-
-            stack.register_to_use.pop();
-
-            result
-        };
-
-        match result {
-            ASMResult::Inline(source) => {
-                if self.assignable.is_stack_look_up(stack, meta) {
-                    let destination_register = GeneralPurposeRegister::iter_from_byte_size(self.assignable.byte_size(meta))?.current();
-                    target += &ASMBuilder::mov_x_ident_line(&destination_register, source, Some(destination_register.size() as usize));
-                    target += &ASMBuilder::mov_ident_line(destination, &destination_register);
-                } else {
-                    target += &ASMBuilder::mov_ident_line(destination, source);
-                }
-            },
-            ASMResult::MultilineResulted(source, mut register) => {
-                target += &source;
-
-                if let Assignable::ArithmeticEquation(expr) = &self.assignable {
-                    let final_type = expr.traverse_type(meta).ok_or(ASMGenerateError::InternalError("Cannot infer type".to_string()))?;
-                    let r = GeneralPurposeRegister::Bit64(Bit64::Rax).to_size_register(&ByteSize::try_from(final_type.byte_size())?);
-
-                    if let GeneralPurposeRegister::Memory(memory) = &register {
-                        target += &ASMBuilder::mov_x_ident_line(&r, memory, None);
-                        register = r.clone();
-                    }
-
-
-                    if let Type::Float(s, _) = final_type {
-                        target += &ASMBuilder::mov_x_ident_line(&r, register, Some(s.byte_size()));
-                        register = r;
-                    }
-                }
-
-                target += &ASMBuilder::mov_ident_line(destination, register);
-            },
-            ASMResult::Multiline(source) => {
-                target += &source;
-            }
-        }
-
-        Ok(ASMResult::Multiline(target))
-    }
-
-
-    fn is_stack_look_up(&self, stack: &mut Stack, meta: &MetaInfo) -> bool {
-        self.assignable.is_stack_look_up(stack, meta)
-    }
-
-    fn byte_size(&self, _meta: &mut MetaInfo) -> usize {
-        self.ty.as_ref().map_or(0, |ty| ty.byte_size())
-    }
-
-    fn data_section(&self, stack: &mut Stack, meta: &mut MetaInfo) -> bool {
-        self.assignable.data_section(stack, meta)
     }
 }
 

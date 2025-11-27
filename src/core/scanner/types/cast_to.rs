@@ -1,14 +1,14 @@
 use std::collections::HashMap;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
-use crate::core::scanner::types::float::Float;
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::code_generator::asm_options::ASMOptions;
 use crate::core::code_generator::asm_result::{ASMResult};
+use crate::core::model::types::float::FloatType;
+use crate::core::model::types::integer::IntegerType;
+use crate::core::model::types::ty::Type;
 use crate::core::scanner::types::boolean::Boolean;
-use crate::core::scanner::types::integer::Integer;
-use crate::core::scanner::types::r#type::Type;
 
 
 
@@ -36,13 +36,13 @@ impl ToASM for CastTo {
         // from, to, instruction
         let mut cast_to_matrix: HashMap<(Type, Type), &'static str> = HashMap::new();
 
-        <Integer as Castable<Integer, Integer>>::add_casts(&mut cast_to_matrix);
-        <Integer as Castable<Integer, Float>>::add_casts(&mut cast_to_matrix);
+        <IntegerType as Castable<IntegerType, IntegerType>>::add_casts(&mut cast_to_matrix);
+        <IntegerType as Castable<IntegerType, FloatType>>::add_casts(&mut cast_to_matrix);
 
-        <Boolean as Castable<Boolean, Integer>>::add_casts(&mut cast_to_matrix);
+        <Boolean as Castable<Boolean, IntegerType>>::add_casts(&mut cast_to_matrix);
 
-        <Float as Castable<Float, Float>>::add_casts(&mut cast_to_matrix);
-        <Float as Castable<Float, Integer>>::add_casts(&mut cast_to_matrix);
+        <FloatType as Castable<FloatType, FloatType>>::add_casts(&mut cast_to_matrix);
+        <FloatType as Castable<FloatType, IntegerType>>::add_casts(&mut cast_to_matrix);
 
         if self.from == self.to {
             return Err(ASMGenerateError::CastUnsupported(CastToError::CastTypesIdentical(self.clone()), meta.code_line.clone()))

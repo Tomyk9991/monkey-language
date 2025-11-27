@@ -11,28 +11,19 @@ use crate::core::lexer::parse::{Parse, ParseResult};
 use crate::core::lexer::token::Token;
 use crate::core::lexer::token_match::{MatchResult};
 use crate::core::lexer::token_with_span::{FilePosition, TokenWithSpan};
+use crate::core::model::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
+use crate::core::model::abstract_syntax_tree_nodes::assignable::{Assignable, AssignableError};
+use crate::core::model::abstract_syntax_tree_nodes::if_::{If, IfError};
+use crate::core::model::scope::Scope;
 use crate::core::scanner::errors::EmptyIteratorErr;
-use crate::core::scanner::scope::{PatternNotMatchedError, Scope, ScopeError};
+use crate::core::scanner::scope::{PatternNotMatchedError, ScopeError};
 use crate::core::scanner::static_type_context::StaticTypeContext;
-use crate::core::scanner::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
-use crate::core::scanner::abstract_syntax_tree_nodes::assignable::{Assignable, AssignableErr};
 use crate::core::scanner::{Lines, TryParse};
-use crate::core::scanner::types::r#type::{InferTypeError, Mutability, Type};
+use crate::core::scanner::types::r#type::{InferTypeError};
 use crate::core::semantics::type_checker::{InferType, StaticTypeCheck};
 use crate::core::semantics::type_checker::static_type_checker::{static_type_check_rec, StaticTypeCheckError};
 use crate::pattern;
 
-/// AST node for if definition.
-/// # Pattern
-/// - `if (condition) {Body}`
-/// - `if (condition) {Body} else {Body}`
-#[derive(Debug, PartialEq, Clone, Default)]
-pub struct If {
-    pub condition: Assignable,
-    pub if_stack: Vec<AbstractSyntaxTreeNode>,
-    pub else_stack: Option<Vec<AbstractSyntaxTreeNode>>,
-    pub file_position: FilePosition,
-}
 
 impl TryFrom<Result<ParseResult<Self>, Error>> for If {
     type Error = Error;
@@ -45,35 +36,43 @@ impl TryFrom<Result<ParseResult<Self>, Error>> for If {
     }
 }
 
-impl From<ParseResult<If>> for Result<ParseResult<AbstractSyntaxTreeNode>, Error> {
-    fn from(value: ParseResult<If>) -> Self {
-        Ok(ParseResult {
-            result: AbstractSyntaxTreeNode::If(value.result),
-            consumed: value.consumed,
-        })
-    }
-}
 
 impl Parse for If {
     fn parse(tokens: &[TokenWithSpan]) -> Result<ParseResult<Self>, Error> where Self: Sized, Self: Default {
+        let mut parse_result = ParseResult::<If>::default();
+        let mut parsing_fulfilled = false;
         let mut assign_token_count = 0;
+
         if let Some((MatchResult::Parse(assign))) = pattern!(tokens, If, ParenthesisOpen, @parse Assignable, ParenthesisClose) {
             assign_token_count = assign.consumed;
             let scope = Scope::parse(&tokens[assign.consumed + 3..])?;
 
-            return Ok(ParseResult{
-                result: If {
-                    condition: assign.result,
-                    if_stack: scope.result.ast_nodes,
-                    else_stack: None,
-                    file_position: FilePosition::from_min_max(&tokens[0], &tokens[assign.consumed + scope.consumed + 2])
-                },
-                consumed: assign.consumed + scope.consumed + 3,
-            })
+            parse_result.result = If {
+                condition: assign.result,
+                if_stack: scope.result.ast_nodes,
+                else_stack: None,
+                file_position: FilePosition::from_min_max(&tokens[0], &tokens[assign.consumed + scope.consumed + 2])
+            };
+
+            parse_result.consumed = assign.consumed + scope.consumed + 3;
+            parsing_fulfilled = true;
+        } else {
+            return Err(Error::first_unexpected_token(tokens, &vec![Token::If.into(), Token::ParenthesisOpen.into(), ErrorMatch::Collect(assign_token_count), Token::ParenthesisClose.into()]));
         }
 
+        if let [TokenWithSpan { token: Token::Else, .. }, ..] = &tokens[parse_result.consumed..]  {
+            assign_token_count += 1;
+            let else_scope = Scope::parse(&tokens[parse_result.consumed + 1..])?;
 
-        Err(Error::first_unexpected_token(tokens, &vec![Token::If.into(), Token::ParenthesisOpen.into(), ErrorMatch::Collect(assign_token_count), Token::ParenthesisClose.into()]))
+            parse_result.result.else_stack = Some(else_scope.result.ast_nodes);
+            parse_result.result.file_position = FilePosition::from_min_max(&tokens[0], &tokens[parse_result.consumed + else_scope.consumed]);
+            parse_result.consumed += else_scope.consumed + 1;
+        }
+
+        match parsing_fulfilled {
+            true => Ok(parse_result),
+            false => Err(Error::first_unexpected_token(tokens, &vec![Token::If.into(), Token::ParenthesisOpen.into(), ErrorMatch::Collect(assign_token_count), Token::ParenthesisClose.into()]))
+        }
     }
 }
 
@@ -111,51 +110,16 @@ impl InferType for If {
     }
 }
 
-#[derive(Debug)]
-pub enum IfErr {
-    PatternNotMatched { target_value: String },
-    AssignableErr(AssignableErr),
-    ScopeErrorErr(ScopeError),
-    EmptyIterator(EmptyIteratorErr),
-}
 
-impl PatternNotMatchedError for IfErr {
+impl PatternNotMatchedError for IfError {
     fn is_pattern_not_matched_error(&self) -> bool {
-        matches!(self, IfErr::PatternNotMatched {..})
+        matches!(self, IfError::PatternNotMatched {..})
     }
 }
 
-impl From<AssignableErr> for IfErr {
-    fn from(value: AssignableErr) -> Self {
-        IfErr::AssignableErr(value)
-    }
-}
-
-impl Display for If {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            if self.else_stack.is_some() {
-                format!("if ({}) {{Body}} else {{Body}}", self.condition)
-            } else {
-                format!("if ({}) {{Body}}", self.condition)
-            }
-        )
-    }
-}
-
-impl std::error::Error for IfErr {}
-
-impl Display for IfErr {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", match self {
-            IfErr::PatternNotMatched { target_value }
-            => format!("Pattern not matched for: `{target_value}`\n\t if(condition) {{ }}"),
-            IfErr::AssignableErr(a) => a.to_string(),
-            IfErr::ScopeErrorErr(a) => a.to_string(),
-            IfErr::EmptyIterator(e) => e.to_string(),
-        })
+impl From<AssignableError> for IfError {
+    fn from(value: AssignableError) -> Self {
+        IfError::AssignableErr(value)
     }
 }
 
@@ -198,7 +162,7 @@ impl StaticTypeCheck for If {
 
 impl TryParse for If {
     type Output = If;
-    type Err = IfErr;
+    type Err = IfError;
 
     fn try_parse(code_lines_iterator: &mut Lines<'_>) -> anyhow::Result<Self::Output, Self::Err> {
         // let if_header = *code_lines_iterator
@@ -273,100 +237,11 @@ impl TryParse for If {
         // }
 
 
-        Err(IfErr::PatternNotMatched {
+        Err(IfError::PatternNotMatched {
             target_value: "if".to_string()
         })
         // Err(IfErr::PatternNotMatched {
         //     target_value: if_header.line.to_string()
         // })
-    }
-}
-
-
-impl ToASM for If {
-    fn to_asm<T: ASMOptions + 'static>(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
-        let mut target = String::new();
-
-        target.push_str(&format!("    ; if condition ({})\n", self.condition));
-
-        let continue_label = stack.create_label();
-        let else_label = stack.create_label();
-
-        let jump_label: &str = if self.else_stack.is_some() {
-            &else_label
-        } else {
-            &continue_label
-        };
-
-        let result = format!("    cmp {}, 0\n", match &self.condition.to_asm(stack, meta, options.clone())? {
-            ASMResult::Inline(t) => t.to_owned(),
-            ASMResult::MultilineResulted(t, r) => {
-                target += t;
-                r.to_string()
-            }
-            ASMResult::Multiline(_) => return Err(ASMResultError::UnexpectedVariance {
-                expected: vec![ASMResultVariance::Inline, ASMResultVariance::MultilineResulted],
-                actual: ASMResultVariance::Multiline,
-                ast_node: "if node".to_string(),
-            }.into())
-        });
-        target += &result;
-
-
-        target.push_str(&format!("    jne {}\n", jump_label));
-
-
-        target.push_str(&ASMBuilder::ident_comment_line("if branch"));
-        target.push_str(&stack.generate_scope(&self.if_stack, meta, options)?);
-        target.push_str(&format!("    jmp {}\n", continue_label));
-
-
-        if let Some(else_stack) = &self.else_stack {
-            target.push_str(&format!("{}:\n", else_label));
-            target.push_str(&ASMBuilder::ident_comment_line("else branch"));
-            target.push_str(&stack.generate_scope::<InterimResultOption>(else_stack, meta, None)?);
-        }
-
-        target.push_str(&format!("{}:\n", continue_label));
-        target.push_str(&format!("    ; Continue after \"{}\"\n", self));
-        Ok(ASMResult::Multiline(target))
-    }
-
-    fn is_stack_look_up(&self, _stack: &mut Stack, _meta: &MetaInfo) -> bool {
-        true
-    }
-
-    fn byte_size(&self, _meta: &mut MetaInfo) -> usize {
-        0
-    }
-
-    fn data_section(&self, stack: &mut Stack, meta: &mut MetaInfo) -> bool {
-        let mut has_before_label_asm = false;
-        let count_before = stack.label_count;
-
-
-        if self.condition.data_section(stack, meta) {
-            has_before_label_asm = true;
-            stack.label_count -= 1;
-        }
-
-        for node in &self.if_stack {
-            if node.data_section(stack, meta) {
-                has_before_label_asm = true;
-                stack.label_count -= 1;
-            }
-        }
-
-        if let Some(else_stack) = &self.else_stack {
-            for node in else_stack {
-                if node.data_section(stack, meta) {
-                    has_before_label_asm = true;
-                    stack.label_count -= 1;
-                }
-            }
-        }
-
-        stack.label_count = count_before;
-        has_before_label_asm
     }
 }

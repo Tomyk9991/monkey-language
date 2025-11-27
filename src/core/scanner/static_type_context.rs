@@ -1,11 +1,12 @@
 use std::collections::HashMap;
 use std::ops::{Deref, DerefMut, Range};
 use crate::core::io::code_line::CodeLine;
-use crate::core::scanner::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
-use crate::core::scanner::abstract_syntax_tree_nodes::l_value::LValue;
-use crate::core::scanner::abstract_syntax_tree_nodes::method_definition::{MethodDefinition};
-use crate::core::scanner::abstract_syntax_tree_nodes::variable::Variable;
-use crate::core::scanner::types::r#type::{InferTypeError, Type};
+use crate::core::model::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
+use crate::core::model::abstract_syntax_tree_nodes::l_value::LValue;
+use crate::core::model::abstract_syntax_tree_nodes::method_definition::MethodDefinition;
+use crate::core::model::abstract_syntax_tree_nodes::variable::Variable;
+use crate::core::model::types::ty::Type;
+use crate::core::scanner::types::r#type::{InferTypeError};
 
 #[derive(Debug, Clone)]
 pub struct CurrentMethodInfo {

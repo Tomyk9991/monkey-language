@@ -1,16 +1,16 @@
 use crate::core::lexer::error::Error;
 use crate::core::lexer::parse::{Parse, ParseResult};
 use crate::core::lexer::token_with_span::TokenWithSpan;
-use crate::core::scanner::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
-use crate::core::scanner::abstract_syntax_tree_nodes::assignables::method_call::MethodCall;
-use crate::core::scanner::abstract_syntax_tree_nodes::import::Import;
-use crate::core::scanner::abstract_syntax_tree_nodes::method_definition::MethodDefinition;
-use crate::core::scanner::abstract_syntax_tree_nodes::r#for::For;
-use crate::core::scanner::abstract_syntax_tree_nodes::r#if::If;
-use crate::core::scanner::abstract_syntax_tree_nodes::r#return::Return;
-use crate::core::scanner::abstract_syntax_tree_nodes::r#while::While;
-use crate::core::scanner::abstract_syntax_tree_nodes::scope_ending::ScopeEnding;
-use crate::core::scanner::abstract_syntax_tree_nodes::variable::Variable;
+use crate::core::model::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
+use crate::core::model::abstract_syntax_tree_nodes::assignables::method_call::MethodCall;
+use crate::core::model::abstract_syntax_tree_nodes::for_::For;
+use crate::core::model::abstract_syntax_tree_nodes::if_::If;
+use crate::core::model::abstract_syntax_tree_nodes::import::Import;
+use crate::core::model::abstract_syntax_tree_nodes::method_definition::MethodDefinition;
+use crate::core::model::abstract_syntax_tree_nodes::ret::Return;
+use crate::core::model::abstract_syntax_tree_nodes::scope_ending::ScopeEnding;
+use crate::core::model::abstract_syntax_tree_nodes::variable::Variable;
+use crate::core::model::abstract_syntax_tree_nodes::while_::While;
 
 /// An iterator over every possible AST node that can be parsed.
 #[derive(Default)]
@@ -62,7 +62,14 @@ impl Iterator for ScopeIterator {
         Some(match next_token {
             AbstractSyntaxTreeNode::If(_) => Box::new(move |tokens| If::parse(tokens)?.into()),
             AbstractSyntaxTreeNode::Variable(_) => Box::new(move |tokens| Variable::<'=', ';'>::parse(tokens)?.into()),
-            _ => todo!()
+            AbstractSyntaxTreeNode::For(_) => Box::new(move |tokens| For::parse(tokens)?.into()),
+            _ => {
+                // create a new box with an error
+                Box::new(move |_| {
+                    Err(Error::UnexpectedEOF)
+                })
+            }
+
             // AbstractSyntaxTreeNode::MethodCall(_) => Box::new(move |tokens| MethodCall::parse(tokens)?.into()),
             // AbstractSyntaxTreeNode::MethodDefinition(_) => Box::new(move |tokens| MethodDefinition::parse(tokens)?.into()),
             // AbstractSyntaxTreeNode::Import(_) => Box::new(move |tokens| Import::parse(tokens)?.into()),

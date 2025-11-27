@@ -4,9 +4,9 @@ use crate::core::code_generator::asm_result::{ASMResult, ASMResultError};
 use crate::core::io::code_line::CodeLine;
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::target_os::TargetOS;
+use crate::core::model::abstract_syntax_tree_nodes::assignable::Assignable;
+use crate::core::model::abstract_syntax_tree_nodes::l_value::LValue;
 use crate::core::scanner::static_type_context::StaticTypeContext;
-use crate::core::scanner::abstract_syntax_tree_nodes::assignable::Assignable;
-use crate::core::scanner::abstract_syntax_tree_nodes::l_value::LValue;
 use crate::core::scanner::types::cast_to::CastToError;
 use crate::core::scanner::types::r#type::InferTypeError;
 
@@ -19,6 +19,7 @@ pub mod register_destination;
 pub mod registers;
 pub mod asm_result;
 pub mod asm_options;
+pub mod abstract_syntax_tree_nodes;
 
 #[derive(Debug)]
 pub enum ASMGenerateError {

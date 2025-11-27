@@ -1,6 +1,7 @@
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 use crate::core::io::code_line::CodeLine;
+use crate::core::model::abstract_syntax_tree_nodes::scope_ending::ScopeEnding;
 use crate::core::scanner::errors::EmptyIteratorErr;
 use crate::core::scanner::scope::PatternNotMatchedError;
 use crate::core::scanner::static_type_context::StaticTypeContext;
@@ -8,17 +9,7 @@ use crate::core::scanner::{Lines, TryParse};
 use crate::core::semantics::type_checker::static_type_checker::StaticTypeCheckError;
 use crate::core::semantics::type_checker::StaticTypeCheck;
 
-/// AST node for scope ending. Basically it checks if the codeline is `}`.
-#[derive(Debug, PartialEq, Clone)]
-pub struct ScopeEnding {
-    pub code_line: CodeLine
-}
 
-impl Default for ScopeEnding {
-    fn default() -> Self {
-        Self { code_line: CodeLine::default() }
-    }
-}
 
 #[derive(Debug)]
 pub enum ScopeEndingErr {
@@ -33,12 +24,6 @@ impl PatternNotMatchedError for ScopeEndingErr {
 }
 
 impl Error for ScopeEndingErr { }
-
-impl Display for ScopeEnding {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "")
-    }
-}
 
 impl StaticTypeCheck for ScopeEnding {
     fn static_type_check(&self, _type_context: &mut StaticTypeContext) -> Result<(), StaticTypeCheckError> {

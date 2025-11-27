@@ -1,3 +1,4 @@
+use std::fmt::{Display, Formatter};
 use crate::core::code_generator::conventions::calling_convention_from;
 use crate::core::code_generator::target_os::TargetOS;
 use crate::core::io::monkey_file::{MonkeyFile, MonkeyFileNew};
@@ -5,20 +6,25 @@ use crate::core::lexer::error::Error;
 use crate::core::lexer::parse::{Parse, ParseResult};
 use crate::core::lexer::token::Token;
 use crate::core::lexer::token_with_span::{FilePosition, TokenWithSpan};
-use crate::core::scanner::scope::{Scope, ScopeError};
+use crate::core::model::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
+use crate::core::model::scope::Scope;
 use crate::core::scanner::static_type_context::StaticTypeContext;
-use crate::core::scanner::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
-use crate::core::scanner::abstract_syntax_tree_nodes::assignable::Assignable;
-use crate::core::scanner::abstract_syntax_tree_nodes::l_value::LValue;
-use crate::core::scanner::abstract_syntax_tree_nodes::method_definition::MethodDefinition;
-use crate::core::scanner::abstract_syntax_tree_nodes::parameter::Parameter;
-use crate::core::scanner::abstract_syntax_tree_nodes::variable::Variable;
-use crate::core::scanner::TryParse;
 use crate::core::scanner::types::r#type::InferTypeError;
 
 #[derive(Clone, Debug)]
 pub struct ASTParser {
     program: Vec<AbstractSyntaxTreeNode>
+}
+
+impl Display for ASTParser {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let mut buffer = String::new();
+        for astn in &self.program {
+            buffer.push_str(&astn.to_string());
+        }
+
+        write!(f, "{}", buffer)
+    }
 }
 
 impl Default for ASTParser {

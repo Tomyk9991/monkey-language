@@ -50,7 +50,7 @@ impl Display for TokenWithSpan {
         };
 
 
-        write!(f, "{} at line {}:{}", self.token, self.span.line.start(), column)
+        write!(f, "`{}` at line {}:{}", self.token, self.span.line.start(), column)
     }
 }
 

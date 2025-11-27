@@ -7,41 +7,22 @@ use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::code_generator::asm_options::ASMOptions;
 use crate::core::code_generator::asm_result::{ASMResult};
 use crate::core::io::code_line::CodeLine;
-use crate::core::scanner::abstract_syntax_tree_nodes::assignable::AssignableErr;
+use crate::core::model::abstract_syntax_tree_nodes::assignable::AssignableError;
+use crate::core::model::abstract_syntax_tree_nodes::assignables::object::{Object, ObjectErr};
+use crate::core::model::abstract_syntax_tree_nodes::identifier::{Identifier, IdentifierError};
+use crate::core::model::abstract_syntax_tree_nodes::variable::Variable;
+use crate::core::model::types::mutability::Mutability;
+use crate::core::model::types::ty::Type;
 use crate::core::scanner::abstract_syntax_tree_nodes::assignables::method_call::{dyck_language, DyckError};
-use crate::core::scanner::abstract_syntax_tree_nodes::identifier::{Identifier, IdentifierErr};
-use crate::core::scanner::abstract_syntax_tree_nodes::variable::{ParseVariableErr, Variable};
-use crate::core::scanner::types::r#type::{Mutability, Type};
+use crate::core::scanner::abstract_syntax_tree_nodes::variable::{ParseVariableErr};
 
-#[derive(Debug, PartialEq, Clone)]
-pub struct Object {
-    pub variables: Vec<Variable<':', ','>>,
-    pub ty: Type
+
+impl From<IdentifierError> for ObjectErr {
+    fn from(err: IdentifierError) -> Self { ObjectErr::IdentifierErr(err) }
 }
 
-impl Display for Object {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{{{}}}", self.variables.iter().map(|var| format!("{}", var)).collect::<Vec<String>>().join(", "))
-    }
-}
-
-#[derive(Debug)]
-pub enum ObjectErr {
-    PatternNotMatched { target_value: String },
-    IdentifierErr(IdentifierErr),
-    DyckLanguageErr { target_value: String, ordering : Ordering },
-    AssignableErr(AssignableErr),
-    ParseVariableErr(ParseVariableErr)
-}
-
-impl Error for ObjectErr { }
-
-impl From<IdentifierErr> for ObjectErr {
-    fn from(err: IdentifierErr) -> Self { ObjectErr::IdentifierErr(err) }
-}
-
-impl From<AssignableErr> for ObjectErr {
-    fn from(value: AssignableErr) -> Self { ObjectErr::AssignableErr(value) }
+impl From<AssignableError> for ObjectErr {
+    fn from(value: AssignableError) -> Self { ObjectErr::AssignableErr(value) }
 }
 
 impl From<ParseVariableErr> for ObjectErr {
@@ -56,27 +37,6 @@ impl From<DyckError> for ObjectErr {
     }
 }
 
-impl Display for ObjectErr {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let message = match self {
-            ObjectErr::PatternNotMatched { target_value } => format!("\"{target_value}\" must match: methodName(assignable1, ..., assignableN)"),
-            ObjectErr::AssignableErr(a) => a.to_string(),
-            ObjectErr::IdentifierErr(a) => a.to_string(),
-            ObjectErr::DyckLanguageErr { target_value, ordering } =>
-                {
-                    let error: String = match ordering {
-                        Ordering::Less => String::from("Expected `)`"),
-                        Ordering::Equal => String::from("Expected expression between `,`"),
-                        Ordering::Greater => String::from("Expected `(`")
-                    };
-                    format!("\"{target_value}\": {error}")
-                }
-            ObjectErr::ParseVariableErr(err) => err.to_string()
-        };
-
-        write!(f, "{}", message)
-    }
-}
 
 impl FromStr for Object {
     type Err = ObjectErr;
@@ -89,20 +49,6 @@ impl FromStr for Object {
         }
         
         Object::try_parse(&code_line)
-    }
-}
-
-impl ToASM for Object {
-    fn to_asm<T: ASMOptions>(&self, _stack: &mut Stack, _meta: &mut MetaInfo, _options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
-        todo!()
-    }
-
-    fn is_stack_look_up(&self, _stack: &mut Stack, _meta: &MetaInfo) -> bool {
-        false
-    }
-
-    fn byte_size(&self, _meta: &mut MetaInfo) -> usize {
-        8
     }
 }
 
