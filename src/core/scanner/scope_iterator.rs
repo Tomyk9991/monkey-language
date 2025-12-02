@@ -1,5 +1,5 @@
 use crate::core::lexer::error::Error;
-use crate::core::lexer::parse::{Parse, ParseResult};
+use crate::core::lexer::parse::{Parse, ParseOptions, ParseResult};
 use crate::core::lexer::token_with_span::TokenWithSpan;
 use crate::core::model::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
 use crate::core::model::abstract_syntax_tree_nodes::assignables::method_call::MethodCall;
@@ -39,7 +39,7 @@ impl Iterator for ScopeIterator {
             self.started = true;
             self.index = AbstractSyntaxTreeNode::If(If::default());
             let value = If::parse;
-            return Some(Box::new(move |tokens| value(tokens)?.into()));
+            return Some(Box::new(move |tokens| value(tokens, ParseOptions::default())?.into()));
         }
 
         let next_token = match self.index {
@@ -60,9 +60,9 @@ impl Iterator for ScopeIterator {
         }
 
         Some(match next_token {
-            AbstractSyntaxTreeNode::If(_) => Box::new(move |tokens| If::parse(tokens)?.into()),
-            AbstractSyntaxTreeNode::Variable(_) => Box::new(move |tokens| Variable::<'=', ';'>::parse(tokens)?.into()),
-            AbstractSyntaxTreeNode::For(_) => Box::new(move |tokens| For::parse(tokens)?.into()),
+            AbstractSyntaxTreeNode::If(_) => Box::new(move |tokens| If::parse(tokens, ParseOptions::default())?.into()),
+            AbstractSyntaxTreeNode::Variable(_) => Box::new(move |tokens| Variable::<'=', ';'>::parse(tokens, ParseOptions::default())?.into()),
+            AbstractSyntaxTreeNode::For(_) => Box::new(move |tokens| For::parse(tokens, ParseOptions::default())?.into()),
             _ => {
                 // create a new box with an error
                 Box::new(move |_| {

@@ -6,14 +6,14 @@ use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::code_generator::asm_options::ASMOptions;
 use crate::core::code_generator::asm_result::{ASMResult};
 use crate::core::lexer::error::Error;
-use crate::core::lexer::parse::{Parse, ParseResult};
+use crate::core::lexer::parse::{Parse, ParseOptions, ParseResult};
 use crate::core::lexer::token::Token;
 use crate::core::lexer::token_with_span::TokenWithSpan;
 use crate::core::model::types::integer::{IntegerType, IntegerAST};
 
 
 impl Parse for IntegerAST {
-    fn parse(tokens: &[TokenWithSpan]) -> Result<ParseResult<Self>, Error> where Self: Sized, Self: Default {
+    fn parse(tokens: &[TokenWithSpan], _: ParseOptions) -> Result<ParseResult<Self>, Error> where Self: Sized, Self: Default {
         if let [number_literal, ..] = tokens {
             if let Token::Numbers(s) = &number_literal.token {
                 if lazy_regex::regex_is_match!("^[+-]?\\d+$", s) {

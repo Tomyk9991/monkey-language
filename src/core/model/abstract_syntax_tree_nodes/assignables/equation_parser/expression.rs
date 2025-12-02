@@ -1,4 +1,5 @@
 use std::fmt::{Debug, Display, Formatter};
+use crate::core::lexer::error::Error;
 use crate::core::model::abstract_syntax_tree_nodes::assignable::Assignable;
 use crate::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::operator::Operator;
 use crate::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::prefix_arithmetic::PrefixArithmetic;
@@ -20,6 +21,17 @@ impl From<Option<Box<Assignable>>> for Expression {
         Expression {
             value,
             ..Default::default()
+        }
+    }
+}
+
+impl From<crate::core::lexer::error::Error> for crate::core::scanner::abstract_syntax_tree_nodes::assignables::equation_parser::Error {
+    fn from(value: Error) -> Self {
+        match value {
+            Error::InvalidCharacter(f) => crate::core::scanner::abstract_syntax_tree_nodes::assignables::equation_parser::Error::UndefinedSequence(f.to_string()),
+            Error::UnexpectedToken(d) => crate::core::scanner::abstract_syntax_tree_nodes::assignables::equation_parser::Error::UndefinedSequence(d.token.to_string()),
+            Error::UnexpectedEOF => crate::core::scanner::abstract_syntax_tree_nodes::assignables::equation_parser::Error::SourceEmpty,
+            Error::ExpectedToken(f) => crate::core::scanner::abstract_syntax_tree_nodes::assignables::equation_parser::Error::TermNotParsable(f.to_string()),
         }
     }
 }
@@ -56,7 +68,6 @@ impl Debug for Expression {
 
 impl Display for Expression {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let sign = if self.positive { "".to_string() } else { "-".to_string() };
         let prefix_arithmetic = self.prefix_arithmetic.iter().rev().map(|a| a.to_string()).collect::<String>();
 
         let index_operator = if let Some(index_operator) = &self.index_operator {
@@ -66,11 +77,11 @@ impl Display for Expression {
         };
         match (&self.lhs, &self.rhs) {
             (Some(lhs), Some(rhs)) => {
-                write!(f, "{prefix_arithmetic}{sign}({lhs} {operator} {rhs}){index_operator}", operator = &self.operator)
+                write!(f, "{prefix_arithmetic}({lhs} {operator} {rhs}){index_operator}", operator = &self.operator)
             }
             _ => {
                 if let Some(ass) = &self.value {
-                    write!(f, "{}{}{}{}", prefix_arithmetic, sign, ass, index_operator)
+                    write!(f, "{}{}{}", prefix_arithmetic, ass, index_operator)
                 } else {
                     write!(f, "Some error. No lhs and rhs and no value found")
                 }

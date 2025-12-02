@@ -1,5 +1,5 @@
 use crate::core::lexer::error::Error;
-use crate::core::lexer::parse::{Parse, ParseResult};
+use crate::core::lexer::parse::{Parse, ParseOptions, ParseResult};
 use crate::core::lexer::token::Token;
 use crate::core::lexer::token_with_span::TokenWithSpan;
 
@@ -20,7 +20,7 @@ impl<const OPEN: char, const CLOSE: char> TryFrom<Result<ParseResult<Self>, Erro
 }
 
 impl<const OPEN: char, const CLOSE: char> Parse for CollectTokensFromUntil<OPEN, CLOSE> {
-    fn parse(tokens: &[TokenWithSpan]) -> Result<ParseResult<Self>, Error> where Self: Sized, Self: Default {
+    fn parse(tokens: &[TokenWithSpan], _: ParseOptions) -> Result<ParseResult<Self>, Error> where Self: Sized, Self: Default {
         let mut tokens = tokens.to_vec();
         let mut scope_count = 1;
         let mut index = 0;

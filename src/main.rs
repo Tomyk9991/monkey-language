@@ -28,7 +28,7 @@ fn run_compiler() -> anyhow::Result<()> {
     if let Some(print_scope) = &args.print_scope {
         match print_scope {
             PrintOption::Production => println!("{}", top_level_scope.result),
-            PrintOption::Debug => println!("{:?}", top_level_scope)
+            PrintOption::Debug => println!("{:#?}", top_level_scope)
         };
     }
 

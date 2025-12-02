@@ -6,6 +6,7 @@ use crate::core::lexer::token_with_span::TokenWithSpan;
 pub enum Error {
     InvalidCharacter(char),
     UnexpectedToken(TokenWithSpan),
+    ExpectedToken(Token),
     UnexpectedEOF,
 }
 
@@ -51,6 +52,7 @@ impl Display for Error {
         write!(f, "{}", match self {
             Error::InvalidCharacter(character) => format!("Invalid character: `{}`", character),
             Error::UnexpectedToken(token) => format!("Unexpected token: {}", token),
+            Error::ExpectedToken(f) => format!("Expected token: `{}`", f), 
             Error::UnexpectedEOF => "Unexpected EOF".to_string(),
         })
     }

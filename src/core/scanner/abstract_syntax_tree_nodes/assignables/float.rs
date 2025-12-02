@@ -10,14 +10,14 @@ use crate::core::code_generator::asm_options::prepare_register::PrepareRegisterO
 use crate::core::code_generator::asm_result::{ASMResult, ASMResultError};
 use crate::core::code_generator::registers::{ByteSize};
 use crate::core::lexer::error::Error;
-use crate::core::lexer::parse::{Parse, ParseResult};
+use crate::core::lexer::parse::{Parse, ParseOptions, ParseResult};
 use crate::core::lexer::token::Token;
 use crate::core::lexer::token_with_span::TokenWithSpan;
 use crate::core::model::types::float::{FloatAST, FloatType};
 use crate::core::scanner::abstract_syntax_tree_nodes::assignables::integer::{NumberErr};
 
 impl Parse for FloatAST {
-    fn parse(tokens: &[TokenWithSpan]) -> Result<ParseResult<Self>, Error> where Self: Sized, Self: Default {
+    fn parse(tokens: &[TokenWithSpan], _: ParseOptions) -> Result<ParseResult<Self>, Error> where Self: Sized, Self: Default {
         let (float_literal, expected_type, consumed) = match tokens.iter().map(|x| x.token.clone()).collect::<Vec<Token>>().as_slice() {
             [Token::Numbers(number), Token::Literal(postfix), ..] if postfix == "_f32" => (number.to_string(), FloatType::Float32, 2),
             [Token::Numbers(number), Token::Literal(postfix), ..] if postfix == "_f64" => (number.to_string(), FloatType::Float64, 2),

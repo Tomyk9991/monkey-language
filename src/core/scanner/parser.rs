@@ -3,7 +3,7 @@ use crate::core::code_generator::conventions::calling_convention_from;
 use crate::core::code_generator::target_os::TargetOS;
 use crate::core::io::monkey_file::{MonkeyFile, MonkeyFileNew};
 use crate::core::lexer::error::Error;
-use crate::core::lexer::parse::{Parse, ParseResult};
+use crate::core::lexer::parse::{Parse, ParseOptions, ParseResult};
 use crate::core::lexer::token::Token;
 use crate::core::lexer::token_with_span::{FilePosition, TokenWithSpan};
 use crate::core::model::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
@@ -42,7 +42,7 @@ impl ASTParser {
         tokens.insert(0, TokenWithSpan {token: Token::CurlyBraceOpen, span: FilePosition::default() });
         tokens.push(TokenWithSpan {token: Token::CurlyBraceClose, span: FilePosition::default() });
 
-        let scope = Scope::parse(&tokens)?;
+        let scope = Scope::parse(&tokens, ParseOptions::default())?;
 
         assert_eq!(scope.consumed - 2, tokens.len() - 2);
 

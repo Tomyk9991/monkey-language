@@ -1,3 +1,5 @@
+use crate::core::lexer::parse::ParseOptions;
+
 #[macro_export]
 macro_rules! pattern {
     // Einstiegspunkt: Alle weiteren Token werden als Stream (tt-Muncher) übergeben.
@@ -26,7 +28,7 @@ macro_rules! pattern {
             return Err($crate::core::lexer::error::Error::UnexpectedEOF);
         }
         
-        if let Ok(parse_result) = <$parser>::parse(&$tokens[$parser_index..]) {
+        if let Ok(parse_result) = <$parser>::parse(&$tokens[$parser_index..], ParseOptions::default()) {
             $parser_index += parse_result.consumed;
             $vec.push(parse_result.into());
             pattern!(@internal $vec, $parser_index, $tokens, $($rest)*);

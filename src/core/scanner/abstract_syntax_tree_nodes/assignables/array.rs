@@ -12,7 +12,7 @@ use crate::core::code_generator::registers::{Bit64, ByteSize, GeneralPurposeRegi
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::collect_tokens_until_scope_close::CollectTokensFromUntil;
 use crate::core::lexer::error::Error;
-use crate::core::lexer::parse::{Parse, ParseResult};
+use crate::core::lexer::parse::{Parse, ParseOptions, ParseResult};
 use crate::core::lexer::token::Token;
 use crate::core::lexer::token_match::MatchResult;
 use crate::core::lexer::token_with_span::TokenWithSpan;
@@ -37,7 +37,7 @@ fn contains(a: &[TokenWithSpan], b: &TokenWithSpan) -> bool {
 }
 
 impl Parse for Array {
-    fn parse(tokens: &[TokenWithSpan]) -> Result<ParseResult<Self>, Error> where Self: Sized, Self: Default {
+    fn parse(tokens: &[TokenWithSpan], _: ParseOptions) -> Result<ParseResult<Self>, Error> where Self: Sized, Self: Default {
         let slice = tokens.iter().map(|x| x.token.clone()).collect::<Vec<Token>>();
 
         if let [Token::SquareBracketOpen, Token::SquareBracketClose] = &slice[..] {
@@ -60,7 +60,7 @@ impl Parse for Array {
             let mut values = vec![];
 
             for array_element in &array_elements {
-                values.push(Assignable::parse(array_element)?);
+                values.push(Assignable::parse(array_element, ParseOptions::default())?);
             }
 
 

@@ -2,7 +2,7 @@ use std::collections::{HashSet};
 use std::fmt::{Debug, Display, Formatter};
 use crate::core::lexer::collect_tokens_until_scope_close::CollectTokensFromUntil;
 use crate::core::lexer::error::Error;
-use crate::core::lexer::parse::{Parse, ParseResult};
+use crate::core::lexer::parse::{Parse, ParseOptions, ParseResult};
 use crate::core::lexer::token_match::MatchResult;
 use crate::core::lexer::token_with_span::TokenWithSpan;
 use crate::core::model::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
@@ -27,7 +27,7 @@ use crate::core::scanner::types::r#type::InferTypeError;
 use crate::pattern;
 
 impl Parse for Scope {
-    fn parse(tokens: &[TokenWithSpan]) -> Result<ParseResult<Self>, Error> where Self: Sized, Self: Default {
+    fn parse(tokens: &[TokenWithSpan], _: ParseOptions) -> Result<ParseResult<Self>, Error> where Self: Sized, Self: Default {
         if let Some(MatchResult::Collect(scope_tokens)) = pattern!(tokens, CurlyBraceOpen, @parse CollectTokensFromUntil<'{', '}'>, CurlyBraceClose) {
             let mut index = 0;
             let mut ast_nodes = vec![];

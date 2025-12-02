@@ -7,7 +7,7 @@ use crate::core::code_generator::asm_options::interim_result::InterimResultOptio
 use crate::core::code_generator::asm_result::{ASMResult, ASMResultError, ASMResultVariance};
 use crate::core::code_generator::generator::Stack;
 use crate::core::lexer::error::{Error, ErrorMatch};
-use crate::core::lexer::parse::{Parse, ParseResult};
+use crate::core::lexer::parse::{Parse, ParseOptions, ParseResult};
 use crate::core::lexer::token::Token;
 use crate::core::lexer::token_match::{MatchResult};
 use crate::core::lexer::token_with_span::{FilePosition, TokenWithSpan};
@@ -38,14 +38,14 @@ impl TryFrom<Result<ParseResult<Self>, Error>> for If {
 
 
 impl Parse for If {
-    fn parse(tokens: &[TokenWithSpan]) -> Result<ParseResult<Self>, Error> where Self: Sized, Self: Default {
+    fn parse(tokens: &[TokenWithSpan], _: ParseOptions) -> Result<ParseResult<Self>, Error> where Self: Sized, Self: Default {
         let mut parse_result = ParseResult::<If>::default();
         let mut parsing_fulfilled = false;
         let mut assign_token_count = 0;
 
         if let Some((MatchResult::Parse(assign))) = pattern!(tokens, If, ParenthesisOpen, @parse Assignable, ParenthesisClose) {
             assign_token_count = assign.consumed;
-            let scope = Scope::parse(&tokens[assign.consumed + 3..])?;
+            let scope = Scope::parse(&tokens[assign.consumed + 3..], ParseOptions::default())?;
 
             parse_result.result = If {
                 condition: assign.result,
@@ -62,7 +62,7 @@ impl Parse for If {
 
         if let [TokenWithSpan { token: Token::Else, .. }, ..] = &tokens[parse_result.consumed..]  {
             assign_token_count += 1;
-            let else_scope = Scope::parse(&tokens[parse_result.consumed + 1..])?;
+            let else_scope = Scope::parse(&tokens[parse_result.consumed + 1..], ParseOptions::default())?;
 
             parse_result.result.else_stack = Some(else_scope.result.ast_nodes);
             parse_result.result.file_position = FilePosition::from_min_max(&tokens[0], &tokens[parse_result.consumed + else_scope.consumed]);

@@ -5,7 +5,7 @@ use std::str::FromStr;
 use crate::core::code_generator::{MetaInfo};
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::error::Error;
-use crate::core::lexer::parse::{Parse, ParseResult};
+use crate::core::lexer::parse::{Parse, ParseOptions, ParseResult};
 use crate::core::lexer::token_with_span::TokenWithSpan;
 use crate::core::model::abstract_syntax_tree_nodes::assignable::Assignable;
 use crate::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::expression::Expression;
@@ -17,9 +17,7 @@ use crate::core::model::types::integer::IntegerType;
 use crate::core::model::types::mutability::Mutability;
 use crate::core::model::types::ty::Type;
 use crate::core::scanner::abstract_syntax_tree_nodes::assignables::equation_parser::Equation;
-use crate::core::scanner::abstract_syntax_tree_nodes::assignables::equation_parser::equation_new::EquationNew;
 use crate::core::scanner::static_type_context::StaticTypeContext;
-use crate::core::scanner::abstract_syntax_tree_nodes::assignables::equation_parser::prefix_arithmetic::{PrefixArithmeticOptions};
 use crate::core::scanner::types::boolean::Boolean;
 use crate::core::scanner::types::r#type::{InferTypeError};
 
@@ -35,11 +33,14 @@ impl Expression {
 }
 
 impl Parse for Expression {
-    fn parse(tokens: &[TokenWithSpan]) -> Result<ParseResult<Self>, Error> where Self: Sized, Self: Default {
-        let mut s: Equation = Equation::new(tokens);
-        let f = s.parse().clone();
-        println!("{f:?}");
-        todo!()
+    fn parse(tokens: &[TokenWithSpan], _: ParseOptions) -> Result<ParseResult<Self>, Error> where Self: Sized {
+        let mut s: Equation<'_> = Equation::new(tokens);
+        let f = s.parse()?;
+
+        Ok(ParseResult {
+            result: *f.result,
+            consumed: f.consumed,
+        })
     }
 }
 
@@ -153,6 +154,7 @@ impl Expression {
         self.lhs = lhs;
         self.rhs = rhs;
         self.operator = operation;
+        self.positive = true;
         self.value = value;
         self.prefix_arithmetic = None;
     }

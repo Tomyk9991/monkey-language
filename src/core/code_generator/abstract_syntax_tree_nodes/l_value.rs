@@ -20,49 +20,18 @@ impl ToASM for LValue {
     fn to_asm<T: ASMOptions + 'static>(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
         match self {
             LValue::Identifier(name) => name.to_asm(stack, meta, options),
-            LValue::Expression(l_value_equation) => {
-                let resulting_type = l_value_equation.traverse_type(meta).ok_or(ASMGenerateError::LValueAssignment(self.clone(), meta.code_line.clone()))?;
-
-                if let (Some(prefix_arithmetic), Some(inner_value)) = (&l_value_equation.prefix_arithmetic, &l_value_equation.value) {
-                    let last_register = stack.register_to_use.last().ok_or(ASMGenerateError::LValueAssignment(self.clone(), meta.code_line.clone()))?;
-                    let result = Expression::prefix_arithmetic_to_asm(
-                        prefix_arithmetic,
-                        inner_value,
-                        &GeneralPurposeRegister::Memory(format!("{} [{}]", word_from_byte_size(resulting_type.byte_size()), last_register.to_64_bit_register())),
-                        stack, meta);
-
-                    if let Ok(mut result) = result {
-                        result.remove_latest_line();
-                        Ok(result)
-                    } else {
-                        result
-                    }
-                } else if let (Some(index_operation), Some(inner_value)) = (&l_value_equation.index_operator, &l_value_equation.value) {
-                    let i = index_operation.to_asm::<InterimResultOption>(stack, meta, None)?;
-                    stack.indexing = Some(i);
-                    let result = inner_value.to_asm::<InterimResultOption>(stack, meta, None);
-                    stack.indexing = None;
-
-                    result
-                }
-                else {
-                    Err(ASMGenerateError::LValueAssignment(self.clone(), meta.code_line.clone()))
-                }
-            }
         }
     }
 
     fn is_stack_look_up(&self, stack: &mut Stack, meta: &MetaInfo) -> bool {
         match self {
-            LValue::Identifier(a) => a.is_stack_look_up(stack, meta),
-            LValue::Expression(e) => e.is_stack_look_up(stack, meta)
+            LValue::Identifier(a) => a.is_stack_look_up(stack, meta)
         }
     }
 
     fn byte_size(&self, meta: &mut MetaInfo) -> usize {
         match self {
-            LValue::Identifier(a) => a.byte_size(meta),
-            LValue::Expression(e) => e.byte_size(meta)
+            LValue::Identifier(a) => a.byte_size(meta)
         }
     }
 }

@@ -6,14 +6,14 @@ use crate::core::code_generator::asm_options::ASMOptions;
 use crate::core::code_generator::asm_result::{ASMResult};
 use crate::core::code_generator::generator::Stack;
 use crate::core::lexer::error::Error;
-use crate::core::lexer::parse::{Parse, ParseResult};
+use crate::core::lexer::parse::{Parse, ParseOptions, ParseResult};
 use crate::core::lexer::token::Token;
 use crate::core::lexer::token_with_span::TokenWithSpan;
 use crate::core::model::types::boolean::{Boolean, BooleanErr};
 
 
 impl Parse for Boolean {
-    fn parse(tokens: &[TokenWithSpan]) -> Result<ParseResult<Self>, Error> where Self: Sized, Self: Default {
+    fn parse(tokens: &[TokenWithSpan], _: ParseOptions) -> Result<ParseResult<Self>, Error> where Self: Sized, Self: Default {
         if let [Token::Literal(value), ..] = tokens.iter().map(|x| x.token.clone()).collect::<Vec<Token>>().as_slice() {
             let value = value.parse::<bool>().map_err(|e| Error::UnexpectedToken(tokens[0].clone()))?;
             return Ok(ParseResult {

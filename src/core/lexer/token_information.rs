@@ -1,5 +1,4 @@
 use std::str::FromStr;
-use crate::core::constants::KEYWORDS;
 use crate::core::lexer::token::Token;
 use crate::core::model::types::integer::IntegerAST;
 
@@ -81,7 +80,8 @@ impl Iterator for TokenInformationIterator {
             Token::LeftShift => Token::RightShift,
             Token::RightShift => Token::LessThan,
             Token::LessThan => Token::GreaterThan,
-            Token::GreaterThan => Token::Ampersand,
+            Token::GreaterThan => Token::Underscore,
+            Token::Underscore => Token::Ampersand,
             Token::Ampersand => Token::Equals,
             Token::Equals => Token::EqualsEquals,
             Token::EqualsEquals => Token::NotEquals,

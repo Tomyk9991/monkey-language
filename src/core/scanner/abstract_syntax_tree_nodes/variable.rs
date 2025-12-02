@@ -13,7 +13,7 @@ use crate::core::code_generator::asm_result::{ASMResult, ASMResultError, ASMResu
 use crate::core::code_generator::generator::{Stack, StackLocation};
 use crate::core::code_generator::registers::{Bit64, ByteSize, GeneralPurposeRegister};
 use crate::core::io::code_line::CodeLine;
-use crate::core::lexer::parse::{Parse, ParseResult};
+use crate::core::lexer::parse::{Parse, ParseOptions, ParseResult};
 use crate::core::lexer::token_match::{Match, MatchResult};
 use crate::core::lexer::token_with_span::{FilePosition, TokenWithSpan};
 use crate::core::model::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
@@ -34,7 +34,7 @@ use crate::core::semantics::type_checker::static_type_checker::StaticTypeCheckEr
 use crate::pattern;
 
 impl<const ASSIGNMENT: char, const SEPARATOR: char> Parse for Variable<ASSIGNMENT, SEPARATOR> {
-    fn parse(tokens: &[TokenWithSpan]) -> Result<ParseResult<Self>, crate::core::lexer::error::Error> where Self: Sized, Self: Default {
+    fn parse(tokens: &[TokenWithSpan], _: ParseOptions) -> Result<ParseResult<Self>, crate::core::lexer::error::Error> where Self: Sized, Self: Default {
         if let Some(MatchResult::Parse(l_value)) = pattern!(tokens, Let, @parse LValue, Equals) {
             if let Some(MatchResult::Parse(assign)) = pattern!(&tokens[l_value.consumed + 2..], @parse Assignable, SemiColon) {
                 return Ok(ParseResult {

@@ -47,6 +47,7 @@ pub enum Token {
     Colon,                  // :
     Function,               // fn
     Dot,                    // .
+    Underscore,             // _
 }
 
 impl From<char> for Token {
@@ -74,6 +75,7 @@ impl From<char> for Token {
             ',' => Token::Comma,
             ':' => Token::Colon,
             '.' => Token::Dot,
+            '_' => Token::Underscore,
             _ => unreachable!("Token not implemented for char")
         }
     }
@@ -144,6 +146,7 @@ impl Token {
             Token::Colon => Some(":"),
             Token::Function => Some("fn"),
             Token::Dot => Some("."),
+            Token::Underscore => Some("_"),
             Token::Numbers(_) | Token::Literal(_) => None,
         }
     }

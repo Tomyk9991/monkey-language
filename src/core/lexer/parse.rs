@@ -14,9 +14,21 @@ pub struct ParseResult<T: Default + Clone> {
     pub consumed: usize,
 }
 
+pub struct ParseOptions {
+    pub ignore_expression: bool,
+}
+
+impl Default for ParseOptions {
+    fn default() -> Self {
+        ParseOptions {
+            ignore_expression: false,
+        }
+    }
+}
+
 
 pub trait Parse: Default + Clone {
-    fn parse(tokens: &[TokenWithSpan]) -> Result<ParseResult<Self>, Error> where Self: Sized, Self: Default;
+    fn parse(tokens: &[TokenWithSpan], options: ParseOptions) -> Result<ParseResult<Self>, Error> where Self: Sized, Self: Default;
 }
 
 

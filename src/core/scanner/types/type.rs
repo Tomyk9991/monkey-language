@@ -8,7 +8,7 @@ use crate::core::code_generator::abstract_syntax_tree_nodes::assignables::equati
 use crate::core::code_generator::generator::Stack;
 
 use crate::core::io::code_line::CodeLine;
-use crate::core::lexer::parse::{Parse, ParseResult};
+use crate::core::lexer::parse::{Parse, ParseOptions, ParseResult};
 use crate::core::lexer::token_with_span::TokenWithSpan;
 use crate::core::model::abstract_syntax_tree_nodes::assignable::Assignable;
 use crate::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::operator::Operator;
@@ -204,7 +204,7 @@ impl Display for Type {
 }
 
 impl Parse for Type {
-    fn parse(tokens: &[TokenWithSpan]) -> Result<ParseResult<Self>, crate::core::lexer::error::Error> where Self: Sized, Self: Default {
+    fn parse(tokens: &[TokenWithSpan], _: ParseOptions) -> Result<ParseResult<Self>, crate::core::lexer::error::Error> where Self: Sized, Self: Default {
         let mutable = Mutability::from(format!("{}", tokens[0].token).as_str());
         let is_mutable = matches!(mutable, Mutability::Mutable);
 

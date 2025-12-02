@@ -4,7 +4,7 @@ use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
 use crate::core::lexer::token::Token;
 use crate::core::io::code_line::CodeLine;
-use crate::core::lexer::parse::{Parse, ParseResult};
+use crate::core::lexer::parse::{Parse, ParseOptions, ParseResult};
 use crate::core::lexer::token_match::MatchResult;
 use crate::core::lexer::token_with_span::TokenWithSpan;
 use crate::core::model::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
@@ -132,7 +132,7 @@ impl StaticTypeCheck for For {
 }
 
 impl Parse for For {
-    fn parse(tokens: &[TokenWithSpan]) -> Result<ParseResult<Self>, crate::core::lexer::error::Error> where Self: Sized, Self: Default {
+    fn parse(tokens: &[TokenWithSpan], _: ParseOptions) -> Result<ParseResult<Self>, crate::core::lexer::error::Error> where Self: Sized, Self: Default {
         if let Some((MatchResult::Parse(variable))) = pattern!(tokens, For, ParenthesisOpen, @ parse Variable::<'=', ';'>,) {
             if let Some((MatchResult::Parse(condition))) = pattern!(&tokens[variable.consumed + 2..], @ parse Assignable,) {
                 println!("{:#?}", variable);
