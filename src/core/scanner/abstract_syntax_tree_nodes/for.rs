@@ -4,9 +4,10 @@ use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
 use crate::core::lexer::token::Token;
 use crate::core::io::code_line::CodeLine;
+use crate::core::lexer::collect_tokens_until_scope_close::CollectTokensFromUntil;
 use crate::core::lexer::parse::{Parse, ParseOptions, ParseResult};
 use crate::core::lexer::token_match::MatchResult;
-use crate::core::lexer::token_with_span::TokenWithSpan;
+use crate::core::lexer::token_with_span::{FilePosition, TokenWithSpan};
 use crate::core::model::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
 use crate::core::model::abstract_syntax_tree_nodes::assignable::{Assignable, AssignableError};
 use crate::core::model::abstract_syntax_tree_nodes::for_::For;
@@ -95,37 +96,37 @@ impl Display for ForErr {
 impl StaticTypeCheck for For {
     fn static_type_check(&self, type_context: &mut StaticTypeContext) -> Result<(), StaticTypeCheckError> {
         // add for header variables
-        type_context.context.push(self.initialization.clone());
-
-        let variables_len = type_context.context.len();
-        let condition_type = self.condition.infer_type_with_context(type_context, &self.code_line)?;
-
-        if !matches!(condition_type, Type::Bool(_)) {
-            return Err(StaticTypeCheckError::InferredError(InferTypeError::MismatchedTypes {
-                expected: Type::Bool(Mutability::Immutable),
-                actual: condition_type,
-                code_line: self.code_line.clone(),
-            }));
-        }
-
-        static_type_check(&Scope {
-            ast_nodes: vec![
-                AbstractSyntaxTreeNode::Variable(self.initialization.clone()),
-                AbstractSyntaxTreeNode::Variable(self.update.clone()),
-            ],
-        })?;
-
-        if self.update.define {
-            return Err(StaticTypeCheckError::InferredError(InferTypeError::DefineNotAllowed(self.update.clone(), self.code_line.clone())));
-        }
-
-        static_type_check_rec(&self.stack, type_context)?;
-
-        let amount_pop = type_context.context.len() - variables_len;
-
-        for _ in 0..amount_pop {
-            let _ = type_context.context.pop();
-        }
+        // type_context.context.push(self.initialization.clone());
+        //
+        // let variables_len = type_context.context.len();
+        // let condition_type = self.condition.infer_type_with_context(type_context, &self.code_line)?;
+        //
+        // if !matches!(condition_type, Type::Bool(_)) {
+        //     return Err(StaticTypeCheckError::InferredError(InferTypeError::MismatchedTypes {
+        //         expected: Type::Bool(Mutability::Immutable),
+        //         actual: condition_type,
+        //         code_line: self.code_line.clone(),
+        //     }));
+        // }
+        //
+        // static_type_check(&Scope {
+        //     ast_nodes: vec![
+        //         AbstractSyntaxTreeNode::Variable(self.initialization.clone()),
+        //         AbstractSyntaxTreeNode::Variable(self.update.clone()),
+        //     ],
+        // })?;
+        //
+        // if self.update.define {
+        //     return Err(StaticTypeCheckError::InferredError(InferTypeError::DefineNotAllowed(self.update.clone(), self.code_line.clone())));
+        // }
+        //
+        // static_type_check_rec(&self.stack, type_context)?;
+        //
+        // let amount_pop = type_context.context.len() - variables_len;
+        //
+        // for _ in 0..amount_pop {
+        //     let _ = type_context.context.pop();
+        // }
         
         Ok(())
     }
@@ -134,9 +135,22 @@ impl StaticTypeCheck for For {
 impl Parse for For {
     fn parse(tokens: &[TokenWithSpan], _: ParseOptions) -> Result<ParseResult<Self>, crate::core::lexer::error::Error> where Self: Sized, Self: Default {
         if let Some((MatchResult::Parse(variable))) = pattern!(tokens, For, ParenthesisOpen, @ parse Variable::<'=', ';'>,) {
-            if let Some((MatchResult::Parse(condition))) = pattern!(&tokens[variable.consumed + 2..], @ parse Assignable,) {
-                println!("{:#?}", variable);
-                println!("{:#?}", condition);
+            if let Some((MatchResult::Parse(assignable))) = pattern!(&tokens[variable.consumed + 2..], @ parse Assignable, SemiColon) {
+                if let Some((MatchResult::Parse(update_variable))) = pattern!(&tokens[variable.consumed + assignable.consumed + 3..], @ parse Variable<'=', ';'>, ParenthesisClose) {
+                    let scope = Scope::parse(&tokens[variable.consumed + assignable.consumed + update_variable.consumed + 4..], ParseOptions::default())
+                        .map_err(|e| crate::core::lexer::error::Error::InsideScope(Box::new(e)))?;
+
+                    return Ok(ParseResult {
+                        result: For {
+                            initialization: variable.result,
+                            condition: assignable.result,
+                            update: update_variable.result,
+                            stack: scope.result.ast_nodes,
+                            file_position: FilePosition::from_min_max(&tokens[0], &tokens[variable.consumed + assignable.consumed + update_variable.consumed + scope.consumed + 3]),
+                        },
+                        consumed: variable.consumed + assignable.consumed + update_variable.consumed + scope.consumed + 4,
+                    });
+                }
             }
         }
 
@@ -149,62 +163,62 @@ impl TryParse for For {
     type Err = ForErr;
 
     fn try_parse(code_lines_iterator: &mut Lines<'_>) -> anyhow::Result<Self::Output, Self::Err> {
-        let for_header = *code_lines_iterator
-            .peek()
-            .ok_or(ForErr::EmptyIterator(EmptyIteratorErr))?;
-
-        let split_alloc = for_header.split(vec![' ']);
-        let split_ref = split_alloc.iter().map(|a| a.as_str()).collect::<Vec<_>>();
-        let split_values = dyck_language(&split_ref.join(" ").to_string(), [vec![], vec![';'], vec![]])?;
-
-        if split_values.len() != 3 {
-            return Err(ForErr::PatternNotMatched {
-                target_value: for_header.line.clone(),
-            })
-        }
-
-        let mut split_ref: Vec<&str> = vec![];
-        let split = split_values[0].splitn(3, ' ').collect::<Vec<_>>();
-
-        split.iter().for_each(|a| split_ref.push(a));
-        split_ref.push(";");
-
-        split_ref.push(&split_values[1]);
-        split_ref.push(";");
-
-        let mut split = split_values[2].rsplitn(3, ' ').collect::<Vec<_>>();
-        split.reverse();
-        split.iter().for_each(|a| split_ref.push(a));
-
-        let mut nodes = vec![];
-        if let ["for", "(", initialization, ";", condition, ";", update, ")", "{"] = &split_ref[..] {
-            let initialization = Variable::<'=', ';'>::try_parse(&CodeLine::imaginary(&format!("{} ;", initialization)))?;
-            let condition = Assignable::from_str(condition)?;
-            let update = Variable::<'=', ';'>::try_parse(&CodeLine::imaginary(&format!("{} ;", update)))?;
-
-            // consume the header
-            let _ = code_lines_iterator.next();
-            while code_lines_iterator.peek().is_some() {
-                let node = Scope::try_parse(code_lines_iterator).map_err(ForErr::ScopeErrorErr)?;
-
-                if let AbstractSyntaxTreeNode::ScopeEnding(_) = node {
-                    break;
-                }
-
-                nodes.push(node);
-            }
-
-            return Ok(For {
-                initialization,
-                condition,
-                update,
-                stack: nodes,
-                code_line: for_header.clone(),
-            });
-        }
+        // let for_header = *code_lines_iterator
+        //     .peek()
+        //     .ok_or(ForErr::EmptyIterator(EmptyIteratorErr))?;
+        //
+        // let split_alloc = for_header.split(vec![' ']);
+        // let split_ref = split_alloc.iter().map(|a| a.as_str()).collect::<Vec<_>>();
+        // let split_values = dyck_language(&split_ref.join(" ").to_string(), [vec![], vec![';'], vec![]])?;
+        //
+        // if split_values.len() != 3 {
+        //     return Err(ForErr::PatternNotMatched {
+        //         target_value: for_header.line.clone(),
+        //     })
+        // }
+        //
+        // let mut split_ref: Vec<&str> = vec![];
+        // let split = split_values[0].splitn(3, ' ').collect::<Vec<_>>();
+        //
+        // split.iter().for_each(|a| split_ref.push(a));
+        // split_ref.push(";");
+        //
+        // split_ref.push(&split_values[1]);
+        // split_ref.push(";");
+        //
+        // let mut split = split_values[2].rsplitn(3, ' ').collect::<Vec<_>>();
+        // split.reverse();
+        // split.iter().for_each(|a| split_ref.push(a));
+        //
+        // let mut nodes = vec![];
+        // if let ["for", "(", initialization, ";", condition, ";", update, ")", "{"] = &split_ref[..] {
+        //     let initialization = Variable::<'=', ';'>::try_parse(&CodeLine::imaginary(&format!("{} ;", initialization)))?;
+        //     let condition = Assignable::from_str(condition)?;
+        //     let update = Variable::<'=', ';'>::try_parse(&CodeLine::imaginary(&format!("{} ;", update)))?;
+        //
+        //     // consume the header
+        //     let _ = code_lines_iterator.next();
+        //     while code_lines_iterator.peek().is_some() {
+        //         let node = Scope::try_parse(code_lines_iterator).map_err(ForErr::ScopeErrorErr)?;
+        //
+        //         if let AbstractSyntaxTreeNode::ScopeEnding(_) = node {
+        //             break;
+        //         }
+        //
+        //         nodes.push(node);
+        //     }
+        //
+        //     return Ok(For {
+        //         initialization,
+        //         condition,
+        //         update,
+        //         stack: nodes,
+        //         code_line: for_header.clone(),
+        //     });
+        // }
 
         Err(ForErr::PatternNotMatched {
-            target_value: for_header.line.to_string(),
+            target_value: "for".to_string(),
         })
     }
 }

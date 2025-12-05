@@ -35,8 +35,14 @@ impl<const OPEN: char, const CLOSE: char> Parse for CollectTokensFromUntil<OPEN,
             }
 
             match &tokens[index].token {
-                token if *token == opening => scope_count += 1,
-                token if *token == closing => scope_count -= 1,
+                token if *token == opening => {
+                    scope_count += 1;
+                    if opening == closing { break; }
+                },
+                token if *token == closing => {
+                    scope_count -= 1;
+                    if opening == closing { break; }
+                },
                 _ => {}
             }
         }

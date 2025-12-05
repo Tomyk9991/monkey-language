@@ -50,7 +50,7 @@ impl Parse for Array {
         }
 
         if let Some(MatchResult::Collect(array_content)) = pattern!(tokens, SquareBracketOpen, @ parse CollectTokensFromUntil<'[', ']'>, SquareBracketClose) {
-            let array_elements = dyck_language_generic(&array_content, [vec!['{', '('], vec![','], vec!['}', ')']], contains)
+            let array_elements = dyck_language_generic(&array_content, [vec!['{', '('], vec![','], vec!['}', ')']], vec![], contains)
                 .map_err(|_| Error::UnexpectedToken(tokens[0].clone()))?;
 
             if array_elements.is_empty() {

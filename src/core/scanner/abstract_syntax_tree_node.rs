@@ -31,7 +31,7 @@ impl AbstractSyntaxTreeNode {
             AbstractSyntaxTreeNode::If(a) => CodeLine::default(),//todo a.file_position.clone(),
             AbstractSyntaxTreeNode::Import(a) => a.code_line.clone(),
             AbstractSyntaxTreeNode::Return(a) => a.code_line.clone(),
-            AbstractSyntaxTreeNode::For(a) => a.code_line.clone(),
+            AbstractSyntaxTreeNode::For(a) => CodeLine::default(),
             AbstractSyntaxTreeNode::While(a) => a.code_line.clone(),
         }
     }

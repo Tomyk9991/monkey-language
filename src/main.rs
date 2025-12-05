@@ -89,7 +89,7 @@ fn run_compiler() -> anyhow::Result<()> {
 
 fn main() {
     if let Err(error) = run_compiler() {
-        eprintln!("{} {error}", "Error:".red());
+        eprintln!("{}\n\t{error}", "Error:".red());
     }
 }
 

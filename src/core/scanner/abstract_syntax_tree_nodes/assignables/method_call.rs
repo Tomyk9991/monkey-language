@@ -248,7 +248,7 @@ impl ArrayOrObject<TokenWithSpan> for Vec<char> {
 /// Let Σ = {( ) [a-z A-Z]}
 ///
 /// {u ∈ Σ* | all prefixes of u contain no more )'s than ('s and the number of ('s in equals the number of )'s }
-pub fn dyck_language_generic<T: ArrayOrObject<K>, K, F>(sequence: &[K], values: [T; 3], contains: F) -> Result<Vec<Vec<K>>, DyckError>
+pub fn dyck_language_generic<T: ArrayOrObject<K>, K, F>(sequence: &[K], values: [T; 3], breaker: T, contains: F) -> Result<Vec<Vec<K>>, DyckError>
 where
     K: Clone + Debug,
     F: Fn(&[K], &K) -> bool {
@@ -259,8 +259,13 @@ where
     let openings = values[0].list();
     let separators = values[1].list();
     let closings = values[2].list();
+    let breaker = breaker.list();
 
     for (index, c) in sequence.iter().enumerate() {
+        if contains(&breaker, &c) && counter == 0 {
+            break;
+        }
+
         if contains(&openings, &c) { // opening
             counter += 1;
         } else if contains(&closings, &c) { // closing

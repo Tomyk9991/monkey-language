@@ -45,7 +45,8 @@ impl Parse for If {
 
         if let Some((MatchResult::Parse(assign))) = pattern!(tokens, If, ParenthesisOpen, @parse Assignable, ParenthesisClose) {
             assign_token_count = assign.consumed;
-            let scope = Scope::parse(&tokens[assign.consumed + 3..], ParseOptions::default())?;
+            let scope = Scope::parse(&tokens[assign.consumed + 3..], ParseOptions::default())
+                .map_err(|e| crate::core::lexer::error::Error::InsideScope(Box::new(e)))?;
 
             parse_result.result = If {
                 condition: assign.result,
@@ -62,7 +63,8 @@ impl Parse for If {
 
         if let [TokenWithSpan { token: Token::Else, .. }, ..] = &tokens[parse_result.consumed..]  {
             assign_token_count += 1;
-            let else_scope = Scope::parse(&tokens[parse_result.consumed + 1..], ParseOptions::default())?;
+            let else_scope = Scope::parse(&tokens[parse_result.consumed + 1..], ParseOptions::default())
+                .map_err(|e| crate::core::lexer::error::Error::InsideScope(Box::new(e)))?;
 
             parse_result.result.else_stack = Some(else_scope.result.ast_nodes);
             parse_result.result.file_position = FilePosition::from_min_max(&tokens[0], &tokens[parse_result.consumed + else_scope.consumed]);

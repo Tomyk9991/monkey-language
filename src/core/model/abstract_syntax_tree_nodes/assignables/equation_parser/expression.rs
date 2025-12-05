@@ -32,6 +32,7 @@ impl From<crate::core::lexer::error::Error> for crate::core::scanner::abstract_s
             Error::UnexpectedToken(d) => crate::core::scanner::abstract_syntax_tree_nodes::assignables::equation_parser::Error::UndefinedSequence(d.token.to_string()),
             Error::UnexpectedEOF => crate::core::scanner::abstract_syntax_tree_nodes::assignables::equation_parser::Error::SourceEmpty,
             Error::ExpectedToken(f) => crate::core::scanner::abstract_syntax_tree_nodes::assignables::equation_parser::Error::TermNotParsable(f.to_string()),
+            Error::InsideScope(f) => crate::core::scanner::abstract_syntax_tree_nodes::assignables::equation_parser::Error::UndefinedSequence(format!("Stacktrace: {:?}", f)),
         }
     }
 }

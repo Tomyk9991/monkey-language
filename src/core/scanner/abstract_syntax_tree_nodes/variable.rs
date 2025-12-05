@@ -33,7 +33,7 @@ use crate::core::semantics::type_checker::{InferType, StaticTypeCheck};
 use crate::core::semantics::type_checker::static_type_checker::StaticTypeCheckError;
 use crate::pattern;
 
-impl<const ASSIGNMENT: char, const SEPARATOR: char> Parse for Variable<ASSIGNMENT, SEPARATOR> {
+impl Parse for Variable<'=', ';'> {
     fn parse(tokens: &[TokenWithSpan], _: ParseOptions) -> Result<ParseResult<Self>, crate::core::lexer::error::Error> where Self: Sized, Self: Default {
         if let Some(MatchResult::Parse(l_value)) = pattern!(tokens, Let, @parse LValue, Equals) {
             if let Some(MatchResult::Parse(assign)) = pattern!(&tokens[l_value.consumed + 2..], @parse Assignable, SemiColon) {
@@ -47,6 +47,22 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> Parse for Variable<ASSIGNMEN
                         code_line: FilePosition::from_min_max(&tokens[0], &tokens[l_value.consumed + assign.consumed + 2]),
                     },
                     consumed: l_value.consumed + assign.consumed + 3,
+                });
+            }
+        }
+
+        if let Some(MatchResult::Parse(l_value)) = pattern!(tokens, @parse LValue, Equals) {
+            if let Some(MatchResult::Parse(assign)) = pattern!(&tokens[l_value.consumed + 1..], @parse Assignable, SemiColon) {
+                return Ok(ParseResult {
+                    result: Variable {
+                        l_value: l_value.result,
+                        mutability: false,
+                        ty: None,
+                        define: false,
+                        assignable: assign.result,
+                        code_line: FilePosition::from_min_max(&tokens[0], &tokens[l_value.consumed + assign.consumed + 1]),
+                    },
+                    consumed: l_value.consumed + assign.consumed + 2,
                 });
             }
         }

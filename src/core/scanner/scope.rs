@@ -1,5 +1,7 @@
 use std::collections::{HashSet};
 use std::fmt::{Debug, Display, Formatter};
+use anyhow::__private::kind::TraitKind;
+use anyhow::Context;
 use crate::core::lexer::collect_tokens_until_scope_close::CollectTokensFromUntil;
 use crate::core::lexer::error::Error;
 use crate::core::lexer::parse::{Parse, ParseOptions, ParseResult};
@@ -37,13 +39,22 @@ impl Parse for Scope {
                 let mut scope_iterator = Scope::iter();
                 let mut consumed = 0;
 
-                for parsing_function in scope_iterator {
-                    consumed += if let Ok(ast) = parsing_function(&scope_tokens[index..]) {
-                        ast_nodes.push(ast.result.clone());
-                        ast.consumed
-                    } else {
-                        0
+                for parsing_iteration_item in scope_iterator {
+                    let parsing_function = parsing_iteration_item.parser;
+
+                    consumed += match parsing_function(&scope_tokens[index..]) {
+                        Ok(ast) => {
+                            ast_nodes.push(ast.result.clone());
+                            ast.consumed
+                        }
+                        Err(Error::InsideScope(mut trace)) => {
+                            return Err(Error::InsideScope(trace));
+                        },
+                        Err(..) => {
+                            0
+                        }
                     };
+
 
                     index += consumed;
                     total_consumed += consumed;
@@ -59,7 +70,7 @@ impl Parse for Scope {
                 }
 
                 if consumed == 0 {
-                    return Err(Error::UnexpectedToken(scope_tokens[index].clone()));
+                    return Err(Error::InsideScope(Box::new(Error::UnexpectedToken(scope_tokens[index].clone()))))
                 }
             }
 
@@ -286,7 +297,7 @@ impl Debug for Scope {
                 acc.push_str(&format!("\t{:?}\n", node));
                 acc
             });
-        
+
         write!(f, "Scope: [\n{}]", ast_nodes_str)
     }
 }

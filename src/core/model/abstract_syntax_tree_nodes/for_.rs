@@ -2,6 +2,7 @@ use std::cmp::Ordering;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use crate::core::io::code_line::CodeLine;
+use crate::core::lexer::token_with_span::FilePosition;
 use crate::core::model::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
 use crate::core::model::abstract_syntax_tree_nodes::assignable::{Assignable, AssignableError};
 use crate::core::model::abstract_syntax_tree_nodes::variable::Variable;
@@ -15,7 +16,7 @@ pub struct For {
     pub condition: Assignable,
     pub update: Variable<'=', ';'>,
     pub stack: Vec<AbstractSyntaxTreeNode>,
-    pub code_line: CodeLine,
+    pub file_position: FilePosition,
 }
 
 #[derive(Debug)]

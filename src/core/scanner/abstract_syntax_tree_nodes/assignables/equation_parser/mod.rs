@@ -159,7 +159,7 @@ impl<'a> Equation<'a> {
     fn parse(&mut self) -> Result<ParseResult<Box<Expression>>, crate::core::lexer::error::Error> where Self: Sized {
         self.next_char();
 
-        if dyck_language_generic(&self.source_code, [vec!['('], vec![','], vec![')']], contains).is_err() {
+        if dyck_language_generic(&self.source_code, [vec!['('], vec![','], vec![')']], vec![')'], contains).is_err() {
             return Err(crate::core::lexer::error::Error::UnexpectedToken(self.source_code[0].clone()));
         }
 
@@ -577,7 +577,7 @@ impl<'a> Equation<'a> {
                         .source_code
                         .iter()
                         .skip(start_pos as usize)
-                        .take((self.pos - start_pos) as usize)
+                        .take(((self.pos - start_pos) as usize).max(1))
                         .map(|t| t.clone())
                         .collect::<Vec<TokenWithSpan>>();
 
@@ -605,6 +605,10 @@ impl<'a> Equation<'a> {
                         consumed: assignable.consumed,
                     };
                     x.result.index_operator = index_operation;
+
+                    if (self.pos - start_pos) == 0 {
+                        self.next_char();
+                    }
                 }
             } else {
                 return self.undefined_or_empty();

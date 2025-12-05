@@ -2,6 +2,7 @@ use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
 
 use crate::core::io::code_line::CodeLine;
+use crate::core::lexer::error::Error;
 use crate::core::lexer::parse::{Parse, ParseOptions, ParseResult};
 use crate::core::lexer::token_with_span::TokenWithSpan;
 use crate::core::model::abstract_syntax_tree_nodes::assignable::{Assignable, AssignableError};
@@ -38,106 +39,38 @@ impl TryFrom<Result<ParseResult<Self>, crate::core::lexer::error::Error>> for As
 }
 
 impl Parse for Assignable {
-    fn parse(
-        tokens: &[TokenWithSpan],
-        parse_options: ParseOptions,
-    ) -> Result<ParseResult<Self>, crate::core::lexer::error::Error>
-    where
-        Self: Sized,
-        Self: Default,
-    {
-        let s = if !parse_options.ignore_expression {
-            if let Ok(expression) = Expression::parse(tokens, ParseOptions::default()) {
-                Ok(ParseResult {
-                    result: Assignable::ArithmeticEquation(expression.result),
-                    consumed: expression.consumed,
-                })
-            } else if let Ok(string) = StaticString::parse(tokens, ParseOptions::default()) {
-                Ok(ParseResult {
-                    result: Assignable::String(string.result),
-                    consumed: string.consumed,
-                })
-            } else if let Ok(float) = FloatAST::parse(tokens, ParseOptions::default()) {
-                Ok(ParseResult {
-                    result: Assignable::Float(float.result),
-                    consumed: float.consumed,
-                })
-            } else if let Ok(integer) = IntegerAST::parse(tokens, ParseOptions::default()) {
-                Ok(ParseResult {
-                    result: Assignable::Integer(integer.result),
-                    consumed: integer.consumed,
-                })
-            } else if let Ok(boolean) = Boolean::parse(tokens, ParseOptions::default()) {
-                Ok(ParseResult {
-                    result: Assignable::Boolean(boolean.result),
-                    consumed: boolean.consumed,
-                })
-            } else if let Ok(array) = Array::parse(tokens, ParseOptions::default()) {
-                Ok(ParseResult {
-                    result: Assignable::Array(array.result),
-                    consumed: array.consumed,
-                })
-            } else if let Ok(l_value) = LValue::parse(tokens, ParseOptions::default()) {
-                Ok(ParseResult {
-                    result: match l_value.result {
-                        LValue::Identifier(i) => Assignable::Identifier(i),
-                    },
-                    consumed: l_value.consumed,
-                })
-            } else {
-                if tokens.is_empty() {
-                    return Err(crate::core::lexer::error::Error::UnexpectedEOF);
+    fn parse(tokens: &[TokenWithSpan], parse_options: ParseOptions) -> Result<ParseResult<Self>, crate::core::lexer::error::Error> where Self: Sized, Self: Default {
+        let mut parsers = vec![
+            |tokens: &[TokenWithSpan]| StaticString::parse(tokens, ParseOptions::default()).map(|r| ParseResult { result: Assignable::String(r.result), consumed: r.consumed }),
+            |tokens: &[TokenWithSpan]| FloatAST::parse(tokens, ParseOptions::default()).map(|r| ParseResult { result: Assignable::Float(r.result), consumed: r.consumed }),
+            |tokens: &[TokenWithSpan]| IntegerAST::parse(tokens, ParseOptions::default()).map(|r| ParseResult { result: Assignable::Integer(r.result), consumed: r.consumed }),
+            |tokens: &[TokenWithSpan]| Boolean::parse(tokens, ParseOptions::default()).map(|r| ParseResult { result: Assignable::Boolean(r.result), consumed: r.consumed }),
+            |tokens: &[TokenWithSpan]| Array::parse(tokens, ParseOptions::default()).map(|r| ParseResult { result: Assignable::Array(r.result), consumed: r.consumed }),
+            |tokens: &[TokenWithSpan]| LValue::parse(tokens, ParseOptions::default()).map(|r| ParseResult { result: match r.result { LValue::Identifier(i) => Assignable::Identifier(i) }, consumed: r.consumed }),
+        ];
+
+        if !parse_options.ignore_expression {
+            parsers.insert(0, |tokens: &[TokenWithSpan]| Expression::parse(tokens, ParseOptions::default()).map(|r| ParseResult { result: Assignable::ArithmeticEquation(r.result), consumed: r.consumed }),);
+        }
+
+        if tokens.is_empty() {
+            return Err(Error::UnexpectedEOF);
+        }
+
+        for parser in parsers {
+            match parser(tokens) {
+                Ok(s) => return Ok(s),
+                Err(err) => match &err {
+                    Error::InvalidCharacter(_) => {}
+                    Error::UnexpectedToken(_) => {}
+                    Error::ExpectedToken(_) => {}
+                    Error::UnexpectedEOF => {}
+                    Error::InsideScope(t) => {
+                        return Err(err)
+                    }
                 }
-
-                Err(crate::core::lexer::error::Error::UnexpectedToken(
-                    tokens[0].clone(),
-                ))
             }
-        } else {
-            if let Ok(string) = StaticString::parse(tokens, ParseOptions::default()) {
-                Ok(ParseResult {
-                    result: Assignable::String(string.result),
-                    consumed: string.consumed,
-                })
-            } else if let Ok(float) = FloatAST::parse(tokens, ParseOptions::default()) {
-                Ok(ParseResult {
-                    result: Assignable::Float(float.result),
-                    consumed: float.consumed,
-                })
-            } else if let Ok(integer) = IntegerAST::parse(tokens, ParseOptions::default()) {
-                Ok(ParseResult {
-                    result: Assignable::Integer(integer.result),
-                    consumed: integer.consumed,
-                })
-            } else if let Ok(boolean) = Boolean::parse(tokens, ParseOptions::default()) {
-                Ok(ParseResult {
-                    result: Assignable::Boolean(boolean.result),
-                    consumed: boolean.consumed,
-                })
-            } else if let Ok(array) = Array::parse(tokens, ParseOptions::default()) {
-                Ok(ParseResult {
-                    result: Assignable::Array(array.result),
-                    consumed: array.consumed,
-                })
-            } else if let Ok(l_value) = LValue::parse(tokens, ParseOptions::default()) {
-                Ok(ParseResult {
-                    result: match l_value.result {
-                        LValue::Identifier(i) => Assignable::Identifier(i),
-                    },
-                    consumed: l_value.consumed,
-                })
-            } else {
-                if tokens.is_empty() {
-                    return Err(crate::core::lexer::error::Error::UnexpectedEOF);
-                }
-
-                Err(crate::core::lexer::error::Error::UnexpectedToken(
-                    tokens[0].clone(),
-                ))
-            }
-        };
-
-        return s;
+        }
         // else if let Ok(array) = Array::from_str(line) {
         //     return Ok(Assignable::Array(array))
         // }

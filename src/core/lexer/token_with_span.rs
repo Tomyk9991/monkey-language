@@ -46,7 +46,7 @@ impl Display for TokenWithSpan {
         let column = if self.span.column.start() == self.span.column.end() {
             self.span.column.start().to_string()
         } else {
-            format!("{} ({} chars{})", self.span.column.start(), self.span.column.end() - self.span.column.start(), line_break_information)
+            format!("{} ({} chars{})", self.span.column.start(), (self.span.column.end() - self.span.column.start()) + 1, line_break_information)
         };
 
 

@@ -2,10 +2,11 @@ use std::fmt::{Debug, Display, Formatter};
 use crate::core::lexer::token::Token;
 use crate::core::lexer::token_with_span::TokenWithSpan;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Error {
     InvalidCharacter(char),
     UnexpectedToken(TokenWithSpan),
+    InsideScope(Box<Error>),
     ExpectedToken(Token),
     UnexpectedEOF,
 }
@@ -54,6 +55,9 @@ impl Display for Error {
             Error::UnexpectedToken(token) => format!("Unexpected token: {}", token),
             Error::ExpectedToken(f) => format!("Expected token: `{}`", f), 
             Error::UnexpectedEOF => "Unexpected EOF".to_string(),
+            Error::InsideScope(trace) => {
+                format!("{}", trace.to_string())
+            }
         })
     }
 }
