@@ -6,9 +6,22 @@ use crate::core::lexer::token_with_span::TokenWithSpan;
 pub enum Error {
     InvalidCharacter(char),
     UnexpectedToken(TokenWithSpan),
-    InsideScope(Box<Error>),
+    Callstack(Box<Error>),
     ExpectedToken(Token),
+    ErrorWithContext {
+        error: Box<Error>,
+        context: TokenWithSpan,
+    },
     UnexpectedEOF,
+}
+
+impl Error {
+    pub fn with_context(&self, start: &TokenWithSpan) -> Error {
+        Error::ErrorWithContext {
+            error: Box::new(self.clone()),
+            context: start.clone(),
+        }
+    }
 }
 
 pub enum ErrorMatch {
@@ -55,8 +68,11 @@ impl Display for Error {
             Error::UnexpectedToken(token) => format!("Unexpected token: {}", token),
             Error::ExpectedToken(f) => format!("Expected token: `{}`", f), 
             Error::UnexpectedEOF => "Unexpected EOF".to_string(),
-            Error::InsideScope(trace) => {
+            Error::Callstack(trace) => {
                 format!("{}", trace.to_string())
+            }
+            Error::ErrorWithContext { error, context } => {
+                format!("{}\n\tInside: {}", error.to_string(), context)
             }
         })
     }

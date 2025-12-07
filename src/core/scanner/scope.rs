@@ -47,10 +47,11 @@ impl Parse for Scope {
                             ast_nodes.push(ast.result.clone());
                             ast.consumed
                         }
-                        Err(Error::InsideScope(mut trace)) => {
-                            return Err(Error::InsideScope(trace));
+                        // this type of error counts as unrecoverable, so we return it
+                        Err(err) if matches!(err, Error::ErrorWithContext { .. }) => {
+                            return Err(err);
                         },
-                        Err(..) => {
+                        Err(_) => {
                             0
                         }
                     };
@@ -70,7 +71,7 @@ impl Parse for Scope {
                 }
 
                 if consumed == 0 {
-                    return Err(Error::InsideScope(Box::new(Error::UnexpectedToken(scope_tokens[index].clone()))))
+                    return Err(Error::UnexpectedToken(scope_tokens[index].clone()))
                 }
             }
 

@@ -65,7 +65,10 @@ impl Parse for Assignable {
                     Error::UnexpectedToken(_) => {}
                     Error::ExpectedToken(_) => {}
                     Error::UnexpectedEOF => {}
-                    Error::InsideScope(t) => {
+                    Error::Callstack(t) => {
+                        return Err(err)
+                    }
+                    Error::ErrorWithContext { error, context } => {
                         return Err(err)
                     }
                 }

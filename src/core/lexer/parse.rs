@@ -27,7 +27,7 @@ impl Default for ParseOptions {
 }
 
 
-pub trait Parse: Default + Clone {
+pub trait Parse: Default + Clone + Sized {
     fn parse(tokens: &[TokenWithSpan], options: ParseOptions) -> Result<ParseResult<Self>, Error> where Self: Sized, Self: Default;
 }
 
