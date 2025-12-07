@@ -81,12 +81,6 @@ impl From<char> for Token {
     }
 }
 
-impl From<Result<ParseResult<AbstractSyntaxTreeNode>, lexer::error::Error>> for Token {
-    fn from(value: Result<ParseResult<AbstractSyntaxTreeNode>, lexer::error::Error>) -> Self {
-        todo!()
-    }
-}
-
 impl Display for Token {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         if let Some(literal) = self.literal() {

@@ -80,6 +80,10 @@ impl Iterator for ScopeIterator {
                 parser: Box::new(move |tokens| For::parse(tokens, ParseOptions::default())?.into()),
                 name: "For",
             },
+            AbstractSyntaxTreeNode::Import(_) => ScopeIterationItem {
+                parser: Box::new(move |tokens| Import::parse(tokens, ParseOptions::default())?.into()),
+                name: "Import",
+            },
             _ => {
                 // create a new box with an error
                 ScopeIterationItem {

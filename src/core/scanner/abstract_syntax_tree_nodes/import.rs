@@ -1,11 +1,15 @@
 use std::error::Error;
 use std::fmt::{Display, Formatter};
+use std::path::PathBuf;
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::code_generator::asm_options::ASMOptions;
 use crate::core::code_generator::asm_result::{ASMResult};
 use crate::core::io::monkey_file::{MonkeyFile, MonkeyFileNew};
 use crate::core::io::code_line::CodeLine;
+use crate::core::lexer::parse::{Parse, ParseOptions, ParseResult};
+use crate::core::lexer::token::Token;
+use crate::core::lexer::token_with_span::TokenWithSpan;
 use crate::core::model::abstract_syntax_tree_nodes::import::Import;
 use crate::core::scanner::errors::EmptyIteratorErr;
 use crate::core::scanner::scope::PatternNotMatchedError;
@@ -55,6 +59,26 @@ impl StaticTypeCheck for Import {
         Ok(())
     }
 }
+
+impl Parse for Import {
+    fn parse(tokens: &[TokenWithSpan], options: ParseOptions) -> Result<ParseResult<Self>, crate::core::lexer::error::Error> where Self: Sized, Self: Default {
+        if let [TokenWithSpan { token: Token::Module, .. }, TokenWithSpan { token: Token::Literal(literal), .. }, TokenWithSpan { token: Token::SemiColon, .. }, ..] = &tokens[..] {
+            return Ok(ParseResult {
+                result: Import {
+                    monkey_file: MonkeyFileNew::read(PathBuf::from(literal)).map_err(|e| {
+                        eprintln!("{}", e);
+                        crate::core::lexer::error::Error::UnexpectedEOF
+                    })?,
+                    code_line: Default::default(),
+                },
+                consumed: 3,
+            })
+        }
+
+        Err(crate::core::lexer::error::Error::first_unexpected_token(&tokens[0..3], &vec![Token::Module.into(), Token::Literal("".to_string()).into(), Token::SemiColon.into()]))
+    }
+}
+
 
 impl TryParse for Import {
     type Output = Import;

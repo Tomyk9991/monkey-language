@@ -1,11 +1,13 @@
 use crate::core::lexer::error::Error;
+use crate::core::lexer::semantic_token_merge::semantic_token_merge;
 use crate::core::lexer::token::Token;
 use crate::core::lexer::token_with_span::{FilePosition, TokenWithSpan};
 
 pub fn tokenize(string: &str) -> Result<Vec<TokenWithSpan>, Error> {
     // let string = normalize(string);
-    // let token = semantic_token_merge_into_literal(&collect_greedy(&string)?)?;
-    Ok(collect_greedy(&string)?)
+    let token = semantic_token_merge(&collect_greedy(&string)?)?;
+    Ok(token)
+    // Ok(collect_greedy(&string)?)
     // Ok(token)
 }
 

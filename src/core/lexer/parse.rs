@@ -4,6 +4,7 @@ use crate::core::model::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
 use crate::core::model::abstract_syntax_tree_nodes::assignable::Assignable;
 use crate::core::model::abstract_syntax_tree_nodes::for_::For;
 use crate::core::model::abstract_syntax_tree_nodes::if_::If;
+use crate::core::model::abstract_syntax_tree_nodes::import::Import;
 use crate::core::model::abstract_syntax_tree_nodes::variable::Variable;
 
 #[derive(Debug, Clone, Default)]
@@ -29,6 +30,16 @@ impl Default for ParseOptions {
 
 pub trait Parse: Default + Clone + Sized {
     fn parse(tokens: &[TokenWithSpan], options: ParseOptions) -> Result<ParseResult<Self>, Error> where Self: Sized, Self: Default;
+}
+
+
+impl From<ParseResult<Import>> for Result<ParseResult<AbstractSyntaxTreeNode>, Error> {
+    fn from(value: ParseResult<Import>) -> Self {
+        Ok(ParseResult {
+            result: AbstractSyntaxTreeNode::Import(value.result),
+            consumed: value.consumed,
+        })
+    }
 }
 
 
