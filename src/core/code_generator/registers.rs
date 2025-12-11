@@ -3,7 +3,7 @@ use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 use crate::core::code_generator::ASMGenerateError;
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, PartialOrd, Clone, Eq, PartialEq)]
 pub enum Bit64 {
     Rax,
     Rcx,
@@ -20,7 +20,7 @@ pub enum Bit64 {
     R12,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, PartialOrd, Clone, Eq, PartialEq)]
 pub enum Bit32 {
     Eax,
     Ecx,
@@ -34,7 +34,7 @@ pub enum Bit32 {
     R12d,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, PartialOrd, Clone, Eq, PartialEq)]
 pub enum Bit16 {
     Ax,
     Cx,
@@ -48,13 +48,13 @@ pub enum Bit16 {
     R9w,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, PartialOrd, Clone, Eq, PartialEq)]
 pub enum Bit8 {
     Single(NibbleRegister),
     _Tuple(NibbleRegister, NibbleRegister),
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, PartialOrd, Clone, Eq, PartialEq)]
 #[allow(clippy::upper_case_acronyms)]
 pub enum NibbleRegister {
     AH,
@@ -72,7 +72,7 @@ pub enum NibbleRegister {
     R9b,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, PartialOrd, Clone, Eq, PartialEq)]
 pub enum GeneralPurposeRegister {
     Bit64(Bit64),
     Bit32(Bit32),
@@ -83,7 +83,7 @@ pub enum GeneralPurposeRegister {
 }
 
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, PartialOrd, Clone, Eq, PartialEq)]
 pub enum FloatRegister {
     Xmm0,
     Xmm1,

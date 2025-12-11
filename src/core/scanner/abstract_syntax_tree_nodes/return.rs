@@ -10,6 +10,11 @@ use crate::core::code_generator::asm_result::{ASMResult, ASMResultError, ASMResu
 use crate::core::code_generator::conventions::return_calling_convention;
 use crate::core::code_generator::registers::{ByteSize, GeneralPurposeRegister};
 use crate::core::io::code_line::CodeLine;
+use crate::core::lexer::error::ErrorMatch;
+use crate::core::lexer::parse::{Parse, ParseOptions, ParseResult};
+use crate::core::lexer::token::Token;
+use crate::core::lexer::token_match::MatchResult;
+use crate::core::lexer::token_with_span::{FilePosition, TokenWithSpan};
 use crate::core::model::abstract_syntax_tree_nodes::assignable::{Assignable, AssignableError};
 use crate::core::model::abstract_syntax_tree_nodes::ret::Return;
 use crate::core::model::types::integer::{IntegerAST, IntegerType};
@@ -20,13 +25,14 @@ use crate::core::scanner::{Lines, TryParse};
 use crate::core::scanner::types::r#type::{InferTypeError};
 use crate::core::semantics::type_checker::static_type_checker::StaticTypeCheckError;
 use crate::core::semantics::type_checker::StaticTypeCheck;
+use crate::pattern;
 
 impl Return {
     /// returns a `Return` with an assignable, the assignable is an integer containing 0
     pub fn num_0() -> Return {
         Return {
             assignable: Some(Assignable::Integer(IntegerAST { value: "0".to_string(), ty: IntegerType::I32 })),
-            code_line: CodeLine::imaginary("return 0;")
+            file_position: FilePosition::default(),
         }
     }
 }
@@ -73,21 +79,47 @@ impl From<anyhow::Error> for ReturnError {
 
 impl StaticTypeCheck for Return {
     fn static_type_check(&self, type_context: &mut StaticTypeContext) -> Result<(), StaticTypeCheckError> {
-        if let Some(expected_return_type) = &type_context.expected_return_type {
-            if let Some(assignable) = &self.assignable {
-                let actual_type = assignable.infer_type_with_context(type_context, &self.code_line)?;
-
-                if expected_return_type.return_type < actual_type {
-                    return Err(StaticTypeCheckError::InferredError(InferTypeError::MethodReturnArgumentTypeMismatch {
-                        expected: expected_return_type.return_type.clone(),
-                        actual: actual_type,
-                        code_line: self.code_line.clone(),
-                    }));
-                }
-            }
-        }
+        // if let Some(expected_return_type) = &type_context.expected_return_type {
+        //     if let Some(assignable) = &self.assignable {
+        //         let actual_type = assignable.infer_type_with_context(type_context, &self.code_line)?;
+        //
+        //         if expected_return_type.return_type < actual_type {
+        //             return Err(StaticTypeCheckError::InferredError(InferTypeError::MethodReturnArgumentTypeMismatch {
+        //                 expected: expected_return_type.return_type.clone(),
+        //                 actual: actual_type,
+        //                 code_line: self.code_line.clone(),
+        //             }));
+        //         }
+        //     }
+        // }
 
         Ok(())
+    }
+}
+
+impl Parse for Return {
+    fn parse(tokens: &[TokenWithSpan], _: ParseOptions) -> Result<ParseResult<Self>, crate::core::lexer::error::Error> where Self: Sized, Self: Default {
+        if let Some((MatchResult::Parse(assignable))) = pattern!(tokens, Return, @ parse Assignable, SemiColon) {
+            return Ok(ParseResult {
+                result: Return {
+                    assignable: Some(assignable.result),
+                    file_position: FilePosition::from_min_max(&tokens[0], &tokens[assignable.consumed + 1]),
+                },
+                consumed: assignable.consumed + 2,
+            })
+        }
+
+        if let [TokenWithSpan { token: Token::Return, ..}, TokenWithSpan { token: Token::SemiColon, ..}, ..] = &tokens {
+            return Ok(ParseResult {
+                result: Return {
+                    assignable: None,
+                    file_position: FilePosition::from_min_max(&tokens[0], &tokens[1]),
+                },
+                consumed: 2,
+            })
+        }
+
+        Err(crate::core::lexer::error::Error::first_unexpected_token(&tokens[0..1], &vec![Token::Return.into()]))
     }
 }
 
@@ -103,23 +135,23 @@ impl TryParse for Return {
 
 impl Return {
     pub fn try_parse(code_line: &CodeLine) -> anyhow::Result<Self, ReturnError> {
-        let split_alloc = code_line.split(vec![' ', ';']);
-        let split = split_alloc.iter().map(|a| a.as_str()).collect::<Vec<_>>();
-
-        if let ["return", assignable @ .., ";"] = &split[..] {
-            let joined = &assignable.join(" ");
-
-            Ok(Return {
-                assignable: Some(Assignable::from_str(joined)?),
-                code_line: code_line.clone(),
-            })
-        } else if let ["return", ";"] = &split[..] {
-            return Ok(Return {
-                assignable: None,
-                code_line: code_line.clone(),
-            })
-        } else {
-            Err(ReturnError::PatternNotMatched { target_value: code_line.line.clone() })
-        }
+        // let split_alloc = code_line.split(vec![' ', ';']);
+        // let split = split_alloc.iter().map(|a| a.as_str()).collect::<Vec<_>>();
+        //
+        // if let ["return", assignable @ .., ";"] = &split[..] {
+        //     let joined = &assignable.join(" ");
+        //
+        //     Ok(Return {
+        //         assignable: Some(Assignable::from_str(joined)?),
+        //         code_line: code_line.clone(),
+        //     })
+        // } else if let ["return", ";"] = &split[..] {
+        //     return Ok(Return {
+        //         assignable: None,
+        //         code_line: code_line.clone(),
+        //     })
+        // } else {
+        // }
+        Err(ReturnError::PatternNotMatched { target_value: code_line.line.clone() })
     }
 }

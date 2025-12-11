@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::ops::{Deref, DerefMut, Range};
 use crate::core::io::code_line::CodeLine;
+use crate::core::lexer::token_with_span::FilePosition;
 use crate::core::model::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
 use crate::core::model::abstract_syntax_tree_nodes::l_value::LValue;
 use crate::core::model::abstract_syntax_tree_nodes::method_definition::MethodDefinition;
@@ -34,16 +35,16 @@ impl StaticTypeContext {
 
     /// checks, if the provided methods have any name collisions
     pub fn colliding_symbols(&self) -> Result<(), InferTypeError> {
-        let default = CodeLine::default();
+        let default = FilePosition::default();
         for method in &self.methods {
             let context = StaticTypeContext::new(&method.stack);
-            let mut hash_map: HashMap<&str, (usize, &CodeLine)> = HashMap::new();
+            let mut hash_map: HashMap<String, (usize, &FilePosition)> = HashMap::new();
 
             for argument in &method.arguments {
-                if let Some((counter, _)) = hash_map.get_mut(argument.name.name.as_str()) {
+                if let Some((counter, _)) = hash_map.get_mut(argument.identifier.identifier().as_str()) {
                     *counter += 1;
                 } else {
-                    hash_map.insert(&argument.name.name, (1, &method.code_line));
+                    hash_map.insert(argument.identifier.identifier(), (1, &method.file_position));
                 }
             }
 
@@ -57,7 +58,7 @@ impl StaticTypeContext {
                     *counter += 1;
                 } else {
                     // hash_map.insert(value, (1, &variable.code_line));
-                    hash_map.insert(value, (1, &default));
+                    hash_map.insert(value.to_string(), (1, &default));
                 }
             }
 
@@ -107,7 +108,7 @@ impl StaticTypeContext {
                         context.push(for_loop.initialization.clone());
                     }
                 },
-                AbstractSyntaxTreeNode::While(_) | AbstractSyntaxTreeNode::ScopeEnding(_) | AbstractSyntaxTreeNode::MethodCall(_) | AbstractSyntaxTreeNode::If(_) | AbstractSyntaxTreeNode::Import(_) | AbstractSyntaxTreeNode::Return(_) => {}
+                AbstractSyntaxTreeNode::While(_) | AbstractSyntaxTreeNode::MethodCall(_) | AbstractSyntaxTreeNode::If(_) | AbstractSyntaxTreeNode::Import(_) | AbstractSyntaxTreeNode::Return(_) => {}
             }
         }
 

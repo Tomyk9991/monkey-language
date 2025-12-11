@@ -1,6 +1,6 @@
 use std::fmt::{Display, Formatter};
 
-#[derive(Debug, PartialEq, Clone, Default)]
+#[derive(Debug, PartialOrd, PartialEq, Clone, Default)]
 pub struct FloatAST {
     // https://pastebin.com/DWcHQbT5
     // there is no need to use a string literal instead of a f64 like in the integerASTNode, because
@@ -9,7 +9,7 @@ pub struct FloatAST {
     pub ty: FloatType,
 }
 
-#[derive(Debug, Default, PartialEq, Eq, Hash, Clone)]
+#[derive(Debug, Default, PartialOrd, PartialEq, Eq, Hash, Clone)]
 pub enum FloatType {
     #[default]
     Float32,

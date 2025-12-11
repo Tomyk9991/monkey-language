@@ -1,13 +1,14 @@
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use crate::core::io::code_line::CodeLine;
+use crate::core::lexer::token_with_span::FilePosition;
 use crate::core::model::abstract_syntax_tree_nodes::assignable::{Assignable, AssignableError};
 use crate::core::scanner::errors::EmptyIteratorErr;
 
 #[derive(Debug, PartialEq, Clone, Default)]
 pub struct Return {
     pub assignable: Option<Assignable>,
-    pub code_line: CodeLine
+    pub file_position: FilePosition,
 }
 
 #[derive(Debug)]

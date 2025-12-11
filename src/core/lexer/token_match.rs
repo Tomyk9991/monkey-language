@@ -17,8 +17,6 @@ pub enum Match<T: Parse> {
     Parse(ParseResult<T>),
     /// A match that collects a specified number of tokens without any constraint.
     Collect(usize), // amount of tokens without any constraint
-    /// An error match.
-    Error,
 }
 
 
@@ -54,13 +52,20 @@ impl TokenMatchSingleReturn for &[TokenWithSpan] {
 
         let is_collection_pattern = pattern.iter().any(|p| matches!(p, Match::Collect(_)));
         let is_parse_pattern = pattern.iter().any(|p| matches!(p, Match::Parse(_)));
-
         // cannot be both
         debug_assert_ne!(is_collection_pattern && is_parse_pattern, true, "Cannot have both collection and parse patterns in the same match pattern");
 
+        let mut previous_token: Option<TokenWithSpan> = None;
         loop {
             let pattern = pattern_iter.next();
-            let token = tokens_iter.next();
+
+            let token: Option<TokenWithSpan> = if let Some(token) = &previous_token {
+                Some(token.clone())
+            } else {
+                tokens_iter.next().cloned()
+            };
+
+            previous_token = None;
 
             if let (Some(pattern), Some(token)) = (pattern, token) {
                 match pattern {
@@ -70,6 +75,10 @@ impl TokenMatchSingleReturn for &[TokenWithSpan] {
                         }
                     },
                     Match::Collect(consume) => {
+                        if *consume == 0 {
+                            previous_token = Some(token.clone());
+                            continue;
+                        }
                         collected.push(token.clone());
                         for _ in 0..*consume - 1 {
                             let token = tokens_iter.next();
@@ -82,7 +91,6 @@ impl TokenMatchSingleReturn for &[TokenWithSpan] {
                             return None;
                         }
                     }
-                    Match::Error => return None,
                     Match::Parse(value) => {
                         parse_pattern = Some(MatchResult::Parse(value.clone()));
                         let consume = value.consumed;
@@ -96,7 +104,7 @@ impl TokenMatchSingleReturn for &[TokenWithSpan] {
                     }
                 }
             } else {
-                if is_collection_pattern && !collected.is_empty() {
+                if is_collection_pattern {
                     return Some(MatchResult::Collect(collected))
                 }
 

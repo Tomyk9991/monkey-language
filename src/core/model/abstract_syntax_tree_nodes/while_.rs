@@ -2,6 +2,7 @@ use std::cmp::Ordering;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use crate::core::io::code_line::CodeLine;
+use crate::core::lexer::token_with_span::FilePosition;
 use crate::core::model::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
 use crate::core::model::abstract_syntax_tree_nodes::assignable::{Assignable, AssignableError};
 use crate::core::scanner::errors::EmptyIteratorErr;
@@ -11,7 +12,7 @@ use crate::core::scanner::scope::ScopeError;
 pub struct While {
     pub condition: Assignable,
     pub stack: Vec<AbstractSyntaxTreeNode>,
-    pub code_line: CodeLine
+    pub file_position: FilePosition
 }
 
 #[derive(Debug)]
@@ -25,7 +26,9 @@ pub enum WhileErr {
 
 impl Display for While {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "while ({}) {{Body}}", self.condition)
+        let mut scope = String::new();
+        self.stack.iter().for_each(|a| scope += &format!("\t{}\n", a));
+        write!(f, "while ({}) \n{scope}", self.condition)
     }
 }
 

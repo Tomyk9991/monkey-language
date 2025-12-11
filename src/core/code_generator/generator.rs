@@ -6,6 +6,7 @@ use crate::core::code_generator::ASMGenerateError;
 use crate::core::code_generator::conventions::calling_convention_from;
 use crate::core::code_generator::registers::{GeneralPurposeRegister};
 use crate::core::code_generator::target_os::TargetOS;
+use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::token_with_span::FilePosition;
 use crate::core::model::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
 use crate::core::model::abstract_syntax_tree_nodes::assignable::Assignable;
@@ -27,7 +28,7 @@ pub struct StackLocation {
     pub position: usize,
     pub size: usize,
     pub elements: usize,
-    pub name: Identifier,
+    pub name: LValue,
 }
 
 impl StackLocation {
@@ -36,7 +37,7 @@ impl StackLocation {
             position,
             size,
             elements: 1,
-            name: Identifier::uuid(),
+            name: LValue::uuid(),
         }
     }
 }
@@ -160,12 +161,12 @@ impl ASMGenerator {
         boiler_plate += &ASMBuilder::line(&format!("global {}", entry_point_label));
         boiler_plate += &ASMBuilder::line("");
 
-        let mut added_extern_methods: Vec<&str> = vec![];
+        let mut added_extern_methods: Vec<String> = vec![];
         self.top_level_scope.ast_nodes.iter().for_each(|a|
             if let AbstractSyntaxTreeNode::MethodDefinition(method_def) = a {
-                if method_def.is_extern && !added_extern_methods.contains(&method_def.identifier.name.as_str()) {
-                    boiler_plate += &ASMBuilder::line(&format!("extern {}", &method_def.identifier.name));
-                    added_extern_methods.push(&method_def.identifier.name);
+                if method_def.is_extern && !added_extern_methods.contains(&method_def.identifier.identifier()) {
+                    boiler_plate += &ASMBuilder::line(&format!("extern {}", &method_def.identifier.identifier()));
+                    added_extern_methods.push(method_def.identifier.identifier());
                 }
             }
         );
@@ -174,7 +175,7 @@ impl ASMGenerator {
 
         if self.require_main {
             // search for main function
-            let main_entry = self.top_level_scope.ast_nodes.iter().filter(|a| matches!(a, AbstractSyntaxTreeNode::MethodDefinition(md) if md.identifier.name == "main")).collect::<Vec<&AbstractSyntaxTreeNode>>();
+            let main_entry = self.top_level_scope.ast_nodes.iter().filter(|a| matches!(a, AbstractSyntaxTreeNode::MethodDefinition(md) if md.identifier.identifier() == "main")).collect::<Vec<&AbstractSyntaxTreeNode>>();
 
             let value: Result<String, ASMGenerateError> = match main_entry.len() {
                 0 => return Err(ASMGenerateError::EntryPointNotFound),
@@ -186,7 +187,7 @@ impl ASMGenerator {
 
                         self.stack.clear_stack();
                         let mut meta = MetaInfo {
-                            code_line: main.code_line.clone(),
+                            code_line: CodeLine::default(),// main.code_line.clone(),
                             target_os: self.target_os.clone(),
                             static_type_information: StaticTypeContext::new(&self.top_level_scope.ast_nodes),
                         };
@@ -219,12 +220,12 @@ impl ASMGenerator {
                 }
             }
             let main_function = AbstractSyntaxTreeNode::MethodDefinition(MethodDefinition {
-                identifier: Identifier { name: "main".to_string() },
+                identifier: LValue::Identifier(Identifier { name: "main".to_string() }),
                 return_type: Type::Integer(IntegerType::I32, Mutability::Immutable),
                 arguments: vec![],
                 stack: main_stack,
                 is_extern: false,
-                code_line: Default::default(),
+                file_position: FilePosition::default(),
             });
 
             self.top_level_scope.ast_nodes.clear();
@@ -250,31 +251,31 @@ impl ASMGenerator {
 
 
             if let AbstractSyntaxTreeNode::MethodDefinition(method_definition) = node {
-                if !method_definition.is_extern && method_definition.identifier.name != "main" {
+                if !method_definition.is_extern && method_definition.identifier.identifier() != "main" {
                     self.stack.clear_stack();
 
                     let calling_convention = calling_convention_from(method_definition, &self.target_os);
 
                     for (index, argument) in method_definition.arguments.iter().enumerate() {
                         let parameter = Parameter {
-                            identifier: argument.name.clone(),
+                            identifier: argument.identifier.clone(),
                             ty: argument.ty.clone(),
                             register: calling_convention[index][0].clone(),
                             mutability: argument.ty.mutable(),
-                            code_line: method_definition.code_line.clone(),
+                            code_line: CodeLine::default() // method_definition.code_line.clone(),
                         };
 
                         self.stack.variables.push(StackLocation {
                             position: self.stack.stack_position,
                             size: argument.ty.byte_size(),
                             elements: 1,
-                            name: argument.name.clone(),
+                            name: argument.identifier.clone(),
                         });
 
                         self.stack.stack_position += argument.ty.byte_size();
 
                         meta.static_type_information.context.push(Variable {
-                            l_value: LValue::Identifier(argument.name.clone()),
+                            l_value: argument.identifier.clone(),
                             mutability: parameter.mutability,
                             ty: Some(argument.ty.clone()),
                             define: true,

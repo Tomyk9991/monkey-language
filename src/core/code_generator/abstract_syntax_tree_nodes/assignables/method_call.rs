@@ -78,7 +78,7 @@ impl Display for MethodCallErr {
 
 impl MethodCall {
     pub fn method_label_name(&self, static_type_context: &StaticTypeContext) -> String {
-        let method_definition = static_type_context.methods.iter().filter(|m| m.identifier.name == self.identifier.name)
+        let method_definition = static_type_context.methods.iter().filter(|m| m.identifier == self.identifier)
             .map(|m| (m, m.arguments.iter().map(|a| a.ty.clone())))
             .filter(|(_, a)| a.clone().collect::<Vec<_>>() == self.arguments.iter().filter_map(|a| a.infer_type(&self.code_line)).collect::<Vec<_>>())
             .map(|(m, _)| m)
@@ -94,10 +94,10 @@ impl MethodCall {
 
 impl ToASM for MethodCall {
     fn to_asm<T: ASMOptions + 'static>(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
-        let mut calling_convention = conventions::calling_convention(stack, meta, &self.arguments, &self.identifier.name)?;
+        let mut calling_convention = conventions::calling_convention(stack, meta, &self.arguments, &self.identifier.identifier())?;
         calling_convention.reverse();
 
-        let method_defs = conventions::method_definitions(&meta.static_type_information, &meta.code_line, &self.arguments, &self.identifier.name)?;
+        let method_defs = conventions::method_definitions(&meta.static_type_information, &meta.code_line, &self.arguments, &self.identifier.identifier())?;
 
         if method_defs.is_empty() {
             return Err(ASMGenerateError::TypeNotInferrable(InferTypeError::UnresolvedReference(self.identifier.to_string(), meta.code_line.clone())));
@@ -106,7 +106,7 @@ impl ToASM for MethodCall {
         if method_defs.len() > 1 {
             return Err(ASMGenerateError::TypeNotInferrable(InferTypeError::MethodCallSignatureMismatch {
                 signatures: meta.static_type_information.methods
-                    .iter().filter(|m| m.identifier.name == self.identifier.name)
+                    .iter().filter(|m| m.identifier.identifier() == self.identifier.identifier())
                     .map(|m| m.arguments.iter().map(|a| a.ty.clone()).collect::<Vec<_>>())
                     .collect::<Vec<_>>(),
                 method_name: self.identifier.clone(),
@@ -254,7 +254,7 @@ impl ToASM for MethodCall {
         }
 
         target += &ASMBuilder::ident(&ASMBuilder::comment_line(&self.to_string()));
-        target += &ASMBuilder::ident_line(&format!("call {}", if method_def.is_extern { method_def.identifier.name.to_string() } else { method_def.method_label_name() }));
+        target += &ASMBuilder::ident_line(&format!("call {}", if method_def.is_extern { method_def.identifier.identifier() } else { method_def.method_label_name() }));
 
         if method_def.return_type != Type::Void {
             target += &ASMBuilder::mov_x_ident_line(

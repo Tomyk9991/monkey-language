@@ -33,7 +33,7 @@ impl ToASM for Identifier {
         }
 
 
-        if let Some(stack_location) = stack.variables.iter().rfind(|&variable| variable.name.name == self.name.as_str()) {
+        if let Some(stack_location) = stack.variables.iter().rfind(|&variable| variable.name.identifier() == self.name.as_str()) {
             if let Some(found_variable) = meta.static_type_information.context.iter().rfind(|v| {
                 if let LValue::Identifier(n) = &v.l_value {
                     n.name == *self.name

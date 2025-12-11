@@ -6,6 +6,7 @@ use crate::core::code_generator::target_os::TargetOS;
 use crate::core::io::code_line::CodeLine;
 use crate::core::model::abstract_syntax_tree_nodes::assignable::Assignable;
 use crate::core::model::abstract_syntax_tree_nodes::identifier::Identifier;
+use crate::core::model::abstract_syntax_tree_nodes::l_value::LValue;
 use crate::core::model::abstract_syntax_tree_nodes::method_definition::MethodDefinition;
 use crate::core::model::types::ty::Type;
 use crate::core::scanner::static_type_context::StaticTypeContext;
@@ -13,7 +14,7 @@ use crate::core::scanner::types::r#type::{InferTypeError};
 
 /// An enum representing the destination register. If its a register it contains the register
 /// For floats its for example a "rcx" or "rdx" for windows calling convention
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, PartialOrd, Debug, PartialEq)]
 pub enum CallingRegister {
     Register(GeneralPurposeRegister),
     Stack,
@@ -81,16 +82,16 @@ fn windows_calling_convention(_stack: &mut Stack, meta: &MetaInfo, calling_argum
     if method_defs.len() > 1 {
         return Err(InferTypeError::MethodCallSignatureMismatch {
             signatures: meta.static_type_information.methods
-                .iter().filter(|m| m.identifier.name == method_name)
+                .iter().filter(|m| m.identifier.identifier() == method_name)
                 .map(|m| m.arguments.iter().map(|a| a.ty.clone()).collect::<Vec<_>>())
                 .collect::<Vec<_>>(),
-            method_name: Identifier { name: method_name.to_string() },
+            method_name: LValue::Identifier(Identifier { name: method_name.to_string() }),
             code_line: meta.code_line.clone(),
             provided: calling_arguments.iter().filter_map(|a| a.infer_type_with_context(&meta.static_type_information, &meta.code_line).ok()).collect::<Vec<_>>(),
         })
     }
 
-    let method_def = if let Some(method_def) = meta.static_type_information.methods.iter().find(|m| m.identifier.name == method_name) {
+    let method_def = if let Some(method_def) = meta.static_type_information.methods.iter().find(|m| m.identifier.identifier() == method_name) {
         method_def.clone()
     } else {
         return Err(InferTypeError::UnresolvedReference(method_name.to_string(), meta.code_line.clone()));
@@ -133,7 +134,7 @@ pub fn method_definitions(meta: &StaticTypeContext, code_line: &CodeLine, argume
     let mut method_definitions = vec![];
 
     'outer: for method in &meta.methods {
-        if method.identifier.name != method_name || method.arguments.len() != arguments.len() {
+        if method.identifier.identifier() != method_name || method.arguments.len() != arguments.len() {
             continue;
         }
 

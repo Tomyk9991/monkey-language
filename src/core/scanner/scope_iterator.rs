@@ -56,8 +56,7 @@ impl Iterator for ScopeIterator {
             AbstractSyntaxTreeNode::MethodCall(_) => AbstractSyntaxTreeNode::MethodDefinition(MethodDefinition::default()),
             AbstractSyntaxTreeNode::MethodDefinition(_) => AbstractSyntaxTreeNode::Import(Import::default()),
             AbstractSyntaxTreeNode::Import(_) => AbstractSyntaxTreeNode::Return(Return::default()),
-            AbstractSyntaxTreeNode::Return(_) => AbstractSyntaxTreeNode::ScopeEnding(ScopeEnding::default()),
-            AbstractSyntaxTreeNode::ScopeEnding(_) => AbstractSyntaxTreeNode::For(For::default()),
+            AbstractSyntaxTreeNode::Return(_) => AbstractSyntaxTreeNode::For(For::default()),
             AbstractSyntaxTreeNode::For(_) => AbstractSyntaxTreeNode::While(While::default()),
             AbstractSyntaxTreeNode::While(_) => AbstractSyntaxTreeNode::If(If::default()),
         };
@@ -84,6 +83,18 @@ impl Iterator for ScopeIterator {
                 parser: Box::new(move |tokens| Import::parse(tokens, ParseOptions::default())?.into()),
                 name: "Import",
             },
+            AbstractSyntaxTreeNode::Return(_) => ScopeIterationItem {
+                parser: Box::new(move |tokens| Return::parse(tokens, ParseOptions::default())?.into()),
+                name: "Return",
+            },
+            AbstractSyntaxTreeNode::While(_) => ScopeIterationItem {
+                parser: Box::new(move |tokens| While::parse(tokens, ParseOptions::default())?.into()),
+                name: "While",
+            },
+            AbstractSyntaxTreeNode::MethodDefinition(_) => ScopeIterationItem {
+                parser: Box::new(move |tokens| MethodDefinition::parse(tokens, ParseOptions::default())?.into()),
+                name: "MethodDefinition",
+            },
             _ => {
                 // create a new box with an error
                 ScopeIterationItem {
@@ -94,11 +105,6 @@ impl Iterator for ScopeIterator {
 
             // AbstractSyntaxTreeNode::MethodCall(_) => Box::new(move |tokens| MethodCall::parse(tokens)?.into()),
             // AbstractSyntaxTreeNode::MethodDefinition(_) => Box::new(move |tokens| MethodDefinition::parse(tokens)?.into()),
-            // AbstractSyntaxTreeNode::Import(_) => Box::new(move |tokens| Import::parse(tokens)?.into()),
-            // AbstractSyntaxTreeNode::Return(_) => Box::new(move |tokens| Return::parse(tokens)?.into()),
-            // AbstractSyntaxTreeNode::ScopeEnding(_) => Box::new(move |tokens| ScopeClosing::parse(tokens)?.into()),
-            // AbstractSyntaxTreeNode::For(_) => Box::new(move |tokens| For::parse(tokens)?.into()),
-            // AbstractSyntaxTreeNode::While(_) => Box::new(move |tokens| While::parse(tokens)?.into()),
         })
     }
 }

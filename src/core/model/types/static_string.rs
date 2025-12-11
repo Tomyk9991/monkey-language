@@ -1,6 +1,6 @@
 use std::fmt::{Display, Formatter};
 
-#[derive(Debug, Eq, PartialEq, Clone, Default)]
+#[derive(Debug, Eq, PartialOrd, PartialEq, Clone, Default)]
 pub struct StaticString {
     pub value: String,
 }

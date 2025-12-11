@@ -15,30 +15,23 @@ use crate::core::scanner::types::r#type::InferTypeError;
 use crate::core::semantics::type_checker::{InferType, StaticTypeCheck};
 use crate::core::semantics::type_checker::static_type_checker::StaticTypeCheckError;
 
-impl Default for AbstractSyntaxTreeNode {
-    fn default() -> Self {
-        AbstractSyntaxTreeNode::ScopeEnding(ScopeEnding::default())
-    }
-}
-
 impl AbstractSyntaxTreeNode {
     pub(crate) fn code_line(&self) -> CodeLine {
         match self {
             AbstractSyntaxTreeNode::Variable(a) => CodeLine::default(),
             AbstractSyntaxTreeNode::MethodCall(a) => a.code_line.clone(),
-            AbstractSyntaxTreeNode::MethodDefinition(a) => a.code_line.clone(),
-            AbstractSyntaxTreeNode::ScopeEnding(a) => a.code_line.clone(),
+            AbstractSyntaxTreeNode::MethodDefinition(a) => CodeLine::default(),
             AbstractSyntaxTreeNode::If(a) => CodeLine::default(),//todo a.file_position.clone(),
             AbstractSyntaxTreeNode::Import(a) => a.code_line.clone(),
-            AbstractSyntaxTreeNode::Return(a) => a.code_line.clone(),
+            AbstractSyntaxTreeNode::Return(a) => CodeLine::default(),
             AbstractSyntaxTreeNode::For(a) => CodeLine::default(),
-            AbstractSyntaxTreeNode::While(a) => a.code_line.clone(),
+            AbstractSyntaxTreeNode::While(a) => CodeLine::default(),
         }
     }
 
     pub fn scope(&self) -> Option<Vec<&Vec<AbstractSyntaxTreeNode>>> {
         match self {
-            AbstractSyntaxTreeNode::Variable(_) | AbstractSyntaxTreeNode::MethodCall(_) | AbstractSyntaxTreeNode::Import(_) | AbstractSyntaxTreeNode::Return(_) | AbstractSyntaxTreeNode::ScopeEnding(_) => None,
+            AbstractSyntaxTreeNode::Variable(_) | AbstractSyntaxTreeNode::MethodCall(_) | AbstractSyntaxTreeNode::Import(_) | AbstractSyntaxTreeNode::Return(_) => None,
             AbstractSyntaxTreeNode::MethodDefinition(t) => Some(vec![&t.stack]),
             AbstractSyntaxTreeNode::If(t) => {
                 let mut res = vec![&t.if_stack];
@@ -63,7 +56,6 @@ impl AbstractSyntaxTreeNode {
             AbstractSyntaxTreeNode::While(while_loop) => while_loop.infer_type(type_context)?,
             AbstractSyntaxTreeNode::MethodDefinition(_) |
             AbstractSyntaxTreeNode::MethodCall(_) |
-            AbstractSyntaxTreeNode::ScopeEnding(_) |
             AbstractSyntaxTreeNode::Import(_) |
             AbstractSyntaxTreeNode::Return(_) => {}
         }
@@ -80,7 +72,6 @@ impl StaticTypeCheck for AbstractSyntaxTreeNode {
             AbstractSyntaxTreeNode::MethodDefinition(method_definition) => method_definition.static_type_check(type_context),
             AbstractSyntaxTreeNode::Import(import) => import.static_type_check(type_context),
             AbstractSyntaxTreeNode::Return(return_node) => return_node.static_type_check(type_context),
-            AbstractSyntaxTreeNode::ScopeEnding(scope_closing) => scope_closing.static_type_check(type_context),
             AbstractSyntaxTreeNode::If(if_node) => if_node.static_type_check(type_context),
             AbstractSyntaxTreeNode::For(for_node) => for_node.static_type_check(type_context),
             AbstractSyntaxTreeNode::While(while_node) => while_node.static_type_check(type_context),
@@ -111,8 +102,8 @@ impl ToASM for AbstractSyntaxTreeNode {
                 vec![&method_def.stack]
             }
             AbstractSyntaxTreeNode::Variable(_) | AbstractSyntaxTreeNode::MethodCall(_) |
-            AbstractSyntaxTreeNode::Import(_) | AbstractSyntaxTreeNode::Return(_) |
-            AbstractSyntaxTreeNode::ScopeEnding(_) => vec![]
+            AbstractSyntaxTreeNode::Import(_) | AbstractSyntaxTreeNode::Return(_)
+            => vec![]
         };
 
         for scope in scopes {
@@ -135,7 +126,6 @@ impl ToASM for AbstractSyntaxTreeNode {
             AbstractSyntaxTreeNode::If(if_node) => if_node.to_asm(stack, meta, options),
             AbstractSyntaxTreeNode::For(for_node) => for_node.to_asm(stack, meta, options),
             AbstractSyntaxTreeNode::While(while_node) => while_node.to_asm(stack, meta, options),
-            AbstractSyntaxTreeNode::ScopeEnding(_) => Ok(ASMResult::Inline(String::new())),
         }
     }
 
@@ -150,7 +140,6 @@ impl ToASM for AbstractSyntaxTreeNode {
             AbstractSyntaxTreeNode::While(a) => a.is_stack_look_up(stack, meta),
             AbstractSyntaxTreeNode::MethodDefinition(a) => a.is_stack_look_up(stack, meta),
             AbstractSyntaxTreeNode::Return(return_type) => return_type.is_stack_look_up(stack, meta),
-            AbstractSyntaxTreeNode::ScopeEnding(_) => false,
         }
     }
 
@@ -164,7 +153,6 @@ impl ToASM for AbstractSyntaxTreeNode {
             AbstractSyntaxTreeNode::While(a) => a.byte_size(meta),
             AbstractSyntaxTreeNode::If(a) => a.byte_size(meta),
             AbstractSyntaxTreeNode::Return(r) => r.byte_size(meta),
-            AbstractSyntaxTreeNode::ScopeEnding(_) => 0,
         }
     }
 
@@ -179,7 +167,6 @@ impl ToASM for AbstractSyntaxTreeNode {
             AbstractSyntaxTreeNode::While(v) => v.data_section(stack, meta),
             AbstractSyntaxTreeNode::If(v) => v.data_section(stack, meta),
             AbstractSyntaxTreeNode::Return(ret) => ret.data_section(stack, meta),
-            AbstractSyntaxTreeNode::ScopeEnding(_) => false,
         }
     }
 }

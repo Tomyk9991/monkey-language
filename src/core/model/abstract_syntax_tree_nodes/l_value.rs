@@ -1,7 +1,8 @@
 use std::fmt::{Display, Formatter};
+use uuid::Uuid;
 use crate::core::model::abstract_syntax_tree_nodes::identifier::Identifier;
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialOrd, PartialEq, Clone)]
 pub enum LValue {
     Identifier(Identifier),
 }
@@ -9,6 +10,12 @@ pub enum LValue {
 #[derive(Debug)]
 pub enum LValueError {
     KeywordReserved(String),
+}
+
+impl LValue {
+    pub fn uuid() -> Self {
+        LValue::Identifier(Identifier::uuid())
+    }
 }
 
 impl Display for LValueError {

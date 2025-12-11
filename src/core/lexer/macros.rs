@@ -4,13 +4,15 @@ use crate::core::lexer::parse::ParseOptions;
 macro_rules! pattern {
     // Einstiegspunkt: Alle weiteren Token werden als Stream (tt-Muncher) übergeben.
     ($tokens:expr, $($input:tt)*) => {{
-        use crate::core::lexer::token_match::TokenMatchSingleReturn;
-        let mut vec: Vec<crate::core::lexer::token_match::Match<_>> = vec![];
-        #[allow(unused_assignments)]
-        let mut _parser_index = 0;
-        pattern!(@internal vec, _parser_index, $tokens, $($input)*);
+        (|| {
+            use crate::core::lexer::token_match::TokenMatchSingleReturn;
+            let mut vec: Vec<crate::core::lexer::token_match::Match<_>> = vec![];
+            #[allow(unused_assignments)]
+            let mut _parser_index = 0;
+            pattern!(@internal vec, _parser_index, $tokens, $($input)*);
 
-        $tokens.matches(&vec)
+            $tokens.matches(&vec)
+        })()
     }};
 
     // Basisfall: Nichts mehr zu verarbeiten.
@@ -25,9 +27,9 @@ macro_rules! pattern {
     // Fall: @parse gefolgt von einem Identifier (z. B. `@parse RValue`).
     (@internal $vec:ident, $parser_index:ident, $tokens:expr, @parse $parser:ty, $($rest:tt)*) => {{
         if $parser_index >= $tokens.len() {
-            return Err($crate::core::lexer::error::Error::UnexpectedEOF);
+            return None;
         }
-        
+
         if let Ok(parse_result) = <$parser>::parse(&$tokens[$parser_index..], ParseOptions::default()) {
             $parser_index += parse_result.consumed;
             $vec.push(parse_result.into());
@@ -37,6 +39,10 @@ macro_rules! pattern {
 
     // Standardfall: Ein Identifier wird als Token interpretiert.
     (@internal $vec:ident, $parser_index:ident, $tokens:expr, $token:ident $($rest:tt)*) => {{
+        if !$tokens.get($parser_index).map(|t| matches!(t.token, $crate::core::lexer::token::Token::$token)).unwrap_or(false) {
+            return None;
+        }
+
         $vec.push($crate::core::lexer::token::Token::$token.into());
         $parser_index += 1;
 

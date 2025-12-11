@@ -138,10 +138,8 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> TryFrom<Result<ParseResult<S
 
 impl<const ASSIGNMENT: char, const SEPARATOR: char> InferType for Variable<ASSIGNMENT, SEPARATOR> {
     fn infer_type(&mut self, type_context: &mut StaticTypeContext) -> Result<(), InferTypeError> {
-        if let LValue::Identifier(l_value) = &self.l_value {
-            if type_context.methods.iter().filter(|a| a.identifier == *l_value).count() > 0 {
-                return Err(InferTypeError::NameCollision(l_value.name.clone(), CodeLine::default()));
-            }
+        if type_context.methods.iter().filter(|a| a.identifier == self.l_value).count() > 0 {
+            return Err(InferTypeError::NameCollision(self.l_value.identifier(), FilePosition::default()));
         }
 
         if !self.define {

@@ -1,8 +1,5 @@
 use std::fmt::{Display, Formatter};
-use crate::core::lexer;
-use crate::core::lexer::parse::ParseResult;
 use crate::core::lexer::token_information::TokenInformationIterator;
-use crate::core::model::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
 
 #[derive(Debug, PartialEq, Clone, Eq, Hash, Default)]
 pub enum Token {
@@ -16,6 +13,9 @@ pub enum Token {
     Literal(String),
     While,
     For,
+    Extern,
+    Fn,
+    Return,
     Equals,                 // =
     Plus,                   // +
     Minus,                  // -
@@ -108,6 +108,9 @@ impl Token {
             Token::Mut => Some("mut"),
             Token::While => Some("while"),
             Token::For => Some("for"),
+            Token::Extern => Some("extern"),
+            Token::Fn => Some("fn"),
+            Token::Return => Some("return"),
             Token::Module => Some("module"),
             Token::ParenthesisOpen => Some("("),
             Token::ParenthesisClose => Some(")"),

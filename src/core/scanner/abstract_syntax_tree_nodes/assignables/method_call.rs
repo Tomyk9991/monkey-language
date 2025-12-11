@@ -19,6 +19,7 @@ use crate::core::lexer::token_with_span::{FilePosition, TokenWithSpan};
 use crate::core::model::abstract_syntax_tree_nodes::assignable::{Assignable, AssignableError};
 use crate::core::model::abstract_syntax_tree_nodes::assignables::method_call::MethodCall;
 use crate::core::model::abstract_syntax_tree_nodes::identifier::{Identifier, IdentifierError};
+use crate::core::model::abstract_syntax_tree_nodes::l_value::LValue;
 use crate::core::model::types::ty::Type;
 use crate::core::scanner::errors::EmptyIteratorErr;
 use crate::core::scanner::scope::PatternNotMatchedError;
@@ -152,7 +153,7 @@ impl StaticTypeCheck for MethodCall {
         }
 
         if method_defs.is_empty() {
-            return Err(StaticTypeCheckError::InferredError(InferTypeError::UnresolvedReference(self.identifier.name.clone(), self.code_line.clone())));
+            return Err(StaticTypeCheckError::InferredError(InferTypeError::UnresolvedReference(self.identifier.identifier(), self.code_line.clone())));
         }
 
         let signatures = method_defs
@@ -176,12 +177,12 @@ impl MethodCall {
 
         if let [name, "(", ")", ";"] = &split[..] {
             Ok(MethodCall {
-                identifier: Identifier::from_str(name, false)?,
+                identifier: LValue::Identifier(Identifier::from_str(name, false)?),
                 arguments: vec![],
                 code_line: code_line.clone(),
             })
         } else if let [name, "(", argument_segments @ .., ")", ";"] = &split[..] {
-            let name = Identifier::from_str(name, false)?;
+            let name = LValue::Identifier(Identifier::from_str(name, false)?);
             let joined = &argument_segments.join(" ");
             let argument_strings = dyck_language(joined, [vec!['{', '('], vec![','], vec!['}', ')']])?;
 
@@ -201,7 +202,7 @@ impl MethodCall {
     }
 
     pub fn infer_type_with_context(&self, context: &StaticTypeContext, code_line: &CodeLine) -> Result<Type, InferTypeError> {
-        if let Some(method_def) = conventions::method_definitions(context, code_line, &self.arguments, &self.identifier.name)?.first() {
+        if let Some(method_def) = conventions::method_definitions(context, code_line, &self.arguments, &self.identifier.identifier())?.first() {
             let mut context = context.clone();
             if let Err(StaticTypeCheckError::InferredError(err)) = self.static_type_check(&mut context) {
                 return Err(err);

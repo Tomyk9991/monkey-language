@@ -28,6 +28,13 @@ impl<const OPEN: char, const CLOSE: char> Parse for CollectTokensFromUntil<OPEN,
         let opening = Token::from(OPEN);
         let closing = Token::from(CLOSE);
 
+        if tokens[index].token == closing {
+            return Ok(ParseResult {
+                result: CollectTokensFromUntil { tokens: vec![] },
+                consumed: 0,
+            })
+        }
+
         while scope_count > 0 {
             index += 1;
             if index >= tokens.len() {
@@ -47,7 +54,8 @@ impl<const OPEN: char, const CLOSE: char> Parse for CollectTokensFromUntil<OPEN,
             }
         }
 
-        let tokens: Vec<TokenWithSpan> = tokens.drain(0..index).collect();
+        // let tokens: Vec<TokenWithSpan> = tokens[0..index].iter().cloned().collect();
+        let tokens: Vec<_> = tokens.drain(0..index).collect();
         let token_len = tokens.len();
 
         Ok(ParseResult {

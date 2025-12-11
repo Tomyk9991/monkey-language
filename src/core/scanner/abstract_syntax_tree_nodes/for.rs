@@ -138,7 +138,7 @@ impl Parse for For {
             if let Some((MatchResult::Parse(assignable))) = pattern!(&tokens[variable.consumed + 2..], @ parse Assignable, SemiColon) {
                 if let Some((MatchResult::Parse(update_variable))) = pattern!(&tokens[variable.consumed + assignable.consumed + 3..], @ parse Variable<'=', ';'>, ParenthesisClose) {
                     let scope = Scope::parse(&tokens[variable.consumed + assignable.consumed + update_variable.consumed + 4..], ParseOptions::default())
-                        .map_err(|e| crate::core::lexer::error::Error::Callstack(Box::new(e)).with_context(&tokens[0]))?;;
+                        .map_err(|e| crate::core::lexer::error::Error::Callstack(Box::new(e)).with_context(&tokens[0]))?;
 
                     return Ok(ParseResult {
                         result: For {

@@ -41,7 +41,7 @@ impl ToASM for Array {
             Some(options) => {
                 let any_t = &options as &dyn Any;
                 if let Some(concrete_type) = any_t.downcast_ref::<IdentifierPresent>() {
-                    let stack_variable = stack.variables.iter().rfind(|v| v.name.name == concrete_type.identifier.name).ok_or(ASMGenerateError::InternalError("Cannot find variable".to_string()))?;
+                    let stack_variable = stack.variables.iter().rfind(|v| v.name == concrete_type.identifier).ok_or(ASMGenerateError::InternalError("Cannot find variable".to_string()))?;
                     stack_variable.position
                 } else {
                     stack.stack_position

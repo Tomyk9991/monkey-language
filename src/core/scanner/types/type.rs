@@ -9,18 +9,21 @@ use crate::core::code_generator::generator::Stack;
 
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::parse::{Parse, ParseOptions, ParseResult};
-use crate::core::lexer::token_with_span::TokenWithSpan;
+use crate::core::lexer::token::Token;
+use crate::core::lexer::token_match::MatchResult;
+use crate::core::lexer::token_with_span::{FilePosition, TokenWithSpan};
 use crate::core::model::abstract_syntax_tree_nodes::assignable::Assignable;
 use crate::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::operator::Operator;
 use crate::core::model::abstract_syntax_tree_nodes::identifier::{Identifier, IdentifierError};
 use crate::core::model::abstract_syntax_tree_nodes::l_value::LValue;
 use crate::core::model::abstract_syntax_tree_nodes::variable::Variable;
 use crate::core::model::types::float::FloatType;
-use crate::core::model::types::integer::IntegerType;
+use crate::core::model::types::integer::{IntegerAST, IntegerType};
 use crate::core::model::types::mutability::Mutability;
 use crate::core::model::types::ty::Type;
 use crate::core::scanner::types::boolean::Boolean;
 use crate::core::scanner::types::cast_to::CastTo;
+use crate::pattern;
 
 pub mod common {
     use crate::core::model::abstract_syntax_tree_nodes::identifier::Identifier;
@@ -48,8 +51,9 @@ pub enum InferTypeError {
     MethodCallArgumentTypeMismatch { info: Box<MethodCallArgumentTypeMismatch> },
     MethodReturnArgumentTypeMismatch { expected: Type, actual: Type, code_line: CodeLine },
     MethodReturnSignatureMismatch { expected: Type, method_name: String, method_head_line: Range<usize>, cause: MethodCallSignatureMismatchCause },
-    MethodCallSignatureMismatch { signatures: Vec<Vec<Type>>, method_name: Identifier, code_line: CodeLine, provided: Vec<Type> },
-    NameCollision(String, CodeLine),
+    MethodCallSignatureMismatch { signatures: Vec<Vec<Type>>, method_name: LValue, code_line: CodeLine, provided: Vec<Type> },
+    // NameCollision(String, CodeLine),
+    NameCollision(String, FilePosition),
     MismatchedTypes { expected: Type, actual: Type, code_line: CodeLine },
 }
 
@@ -156,7 +160,7 @@ impl Display for InferTypeError {
             InferTypeError::TypesNotCalculable(a, o, b, code_line) => write!(f, "Line: {:?}: \tCannot {} between types {} and {}", code_line.actual_line_number, o, a, b),
             InferTypeError::UnresolvedReference(s, code_line) => write!(f, "Line: {:?}: \tUnresolved reference: {s}", code_line.actual_line_number),
             InferTypeError::MismatchedTypes { expected, actual, code_line } => write!(f, "Line: {:?}: \tMismatched types: Expected `{expected}` but found `{actual}`", code_line.actual_line_number),
-            InferTypeError::NameCollision(name, code_line) => write!(f, "Line: {:?}: \tTwo symbols share the same name: `{name}`", code_line.actual_line_number),
+            InferTypeError::NameCollision(name, file_position) => write!(f, "Line: {:?}: \tTwo symbols share the same name: `{name}`", file_position),
             InferTypeError::TypeNotAllowed(ty) => write!(f, "This type is not allowed due to: {}", ty),
             InferTypeError::MethodCallArgumentAmountMismatch { expected, actual, code_line } => write!(f, "Line: {:?}: \tThe method expects {} parameter, but {} are provided", code_line.actual_line_number, expected, actual),
             InferTypeError::MethodCallArgumentTypeMismatch { info } => write!(f, "Line: {:?}: \t The {}. argument must be of type: `{}` but `{}` is provided", info.code_line.actual_line_number, info.nth_parameter, info.expected, info.actual),
@@ -171,7 +175,7 @@ impl Display for InferTypeError {
                 signatures.sort();
                 let signatures = signatures.join(",\n");
 
-                write!(f, "Line: {:?}: Arguments `({})` to the function `{}` are incorrect: Possible signatures are:\n{}", code_line.actual_line_number, provided_arguments, method_name.name, signatures)
+                write!(f, "Line: {:?}: Arguments `({})` to the function `{}` are incorrect: Possible signatures are:\n{}", code_line.actual_line_number, provided_arguments, method_name, signatures)
             }
             InferTypeError::MultipleTypesInArray { expected, unexpected_type, unexpected_type_index, code_line } => {
                 write!(f, "Line: {:?}: Expected `{expected}` in array but found `{unexpected_type}` at position: `{unexpected_type_index}`", code_line.actual_line_number)
@@ -204,19 +208,69 @@ impl Display for Type {
 }
 
 impl Parse for Type {
-    fn parse(tokens: &[TokenWithSpan], _: ParseOptions) -> Result<ParseResult<Self>, crate::core::lexer::error::Error> where Self: Sized, Self: Default {
-        let mutable = Mutability::from(format!("{}", tokens[0].token).as_str());
-        let is_mutable = matches!(mutable, Mutability::Mutable);
+    fn parse(tokens: &[TokenWithSpan], options: ParseOptions) -> Result<ParseResult<Self>, crate::core::lexer::error::Error> where Self: Sized, Self: Default {
+        // mutable
+        if !options.can_be_mutable { // to prevent syntax looking like `mut mut * Type`
+            if let [TokenWithSpan { token: Token::Mut, ..}, ..] = tokens {
+                let mut ty = Self::parse(&tokens[1..], ParseOptions::builder().with_can_be_mutable(true).build())?;
+                ty.result.set_mutability(Mutability::Mutable);
+                return Ok(ParseResult {
+                    result: ty.result,
+                    consumed: ty.consumed + 1,
+                });
+            };
+        }
 
-        if let Ok(ty) = Type::from_str(&format!("{}", tokens[if is_mutable { 1 } else { 0 }].token), mutable) {
-            Ok(ParseResult {
-                result: ty,
-                consumed: if is_mutable { 2 } else { 1 },
-            })
+
+        // array
+        if let Some((MatchResult::Parse(inner_type))) = pattern!(tokens, SquareBracketOpen, @ parse Type, Comma,) {
+            if let Some((MatchResult::Parse(size_assignable))) = pattern!(&tokens[inner_type.consumed + 2..], @ parse Assignable, SquareBracketClose) {
+                return if let ParseResult { result: Assignable::Integer(IntegerAST { value, .. }), .. } = size_assignable {
+                    let array_size = value.parse::<usize>().map_err(|_| crate::core::lexer::error::Error::ExpectedToken(tokens[inner_type.consumed + 2].token.clone()))?;
+                    Ok(ParseResult {
+                        result: Type::Array(Box::new(inner_type.result), array_size, Mutability::Immutable),
+                        consumed: inner_type.consumed + size_assignable.consumed + 3,
+                    })
+                } else {
+                    Err(crate::core::lexer::error::Error::UnexpectedToken(tokens[inner_type.consumed + 2].clone()))
+                }
+            }
         }
-        else {
-            Err(crate::core::lexer::error::Error::UnexpectedToken(tokens[0].clone()))
+
+        // base case
+        if let [TokenWithSpan { token: Token::Literal(ty), .. }, ..] = tokens {
+            if let Ok(parsed_type) = Type::from_str(ty, Mutability::Immutable) {
+                return Ok(ParseResult {
+                    result: parsed_type,
+                    consumed: 1,
+                });
+            }
         }
+
+        // reference
+        if let Some(MatchResult::Parse(mut parsed_type)) = pattern!(tokens, Ampersand, @ parse Type,) {
+            return if let Some(p) = parsed_type.result.pop_pointer() {
+                parsed_type.result = p;
+                Ok(ParseResult {
+                    result: parsed_type.result,
+                    consumed: parsed_type.consumed + 1,
+                })
+            } else {
+                Err(crate::core::lexer::error::Error::UnexpectedToken(tokens[0].clone()))
+            }
+        }
+
+        // pointer
+        if let Some(MatchResult::Parse(mut parsed_type)) = pattern!(tokens, Multiply, @ parse Type,) {
+            parsed_type.result = parsed_type.result.push_pointer();
+            return Ok(ParseResult {
+                result: parsed_type.result,
+                consumed: parsed_type.consumed + 1,
+            });
+        }
+
+
+        Err(crate::core::lexer::error::Error::UnexpectedToken(tokens[0].clone()))
     }
 }
 
@@ -236,13 +290,6 @@ impl Type {
     }
 
     pub fn from_str(s: &str, mutability: Mutability) -> Result<Self, InferTypeError> {
-        if let ["[ ", type_str, ", ", type_size, "]"] = &s.split_inclusive(' ').collect::<Vec<_>>()[..] {
-            return Ok(Type::Array(Box::new(Type::from_str(type_str.trim(), mutability.clone())?), type_size.trim().parse::<usize>()
-                .map_err(|_| InferTypeError::TypeNotAllowed(IdentifierError::UnmatchedRegex {
-                    target_value: s.to_string(),
-                }))?, mutability));
-        }
-
         Ok(match s {
             "bool" => Type::Bool(Mutability::Immutable),
             "void" => Type::Void,

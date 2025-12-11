@@ -3,11 +3,12 @@ use std::fmt::{Display, Formatter};
 use crate::core::io::code_line::CodeLine;
 use crate::core::model::abstract_syntax_tree_nodes::assignable::{Assignable, AssignableError};
 use crate::core::model::abstract_syntax_tree_nodes::identifier::{Identifier, IdentifierError};
+use crate::core::model::abstract_syntax_tree_nodes::l_value::LValue;
 use crate::core::scanner::errors::EmptyIteratorErr;
 
 #[derive(Debug, PartialEq, Clone, Default)]
 pub struct MethodCall {
-    pub identifier: Identifier,
+    pub identifier: LValue,
     pub arguments: Vec<Assignable>,
     pub code_line: CodeLine,
 }

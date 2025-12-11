@@ -3,7 +3,7 @@ use std::fmt::{Display, Formatter};
 
 /// AST node for a name. Basically a string that can be used as a variable name.
 /// Everything is allowed except for reserved keywords and special characters in the beginning
-#[derive(Debug, Eq, PartialEq, Default, Hash, Clone)]
+#[derive(Debug, Eq, PartialOrd, PartialEq, Default, Hash, Clone)]
 pub struct Identifier {
     pub name: String,
 }

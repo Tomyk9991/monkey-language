@@ -203,7 +203,7 @@ impl Scope {
                 AbstractSyntaxTreeNode::While(while_loop) => {
                     Self::method_calls_in_stack(&while_loop.stack, static_type_context).iter().for_each(|a| { called_methods.insert(a.clone()); });
                 }
-                AbstractSyntaxTreeNode::MethodDefinition(_) | AbstractSyntaxTreeNode::Import(_) | AbstractSyntaxTreeNode::Return(_) | AbstractSyntaxTreeNode::ScopeEnding(_) => {}
+                AbstractSyntaxTreeNode::MethodDefinition(_) | AbstractSyntaxTreeNode::Import(_) | AbstractSyntaxTreeNode::Return(_) => {}
             }
         }
 
@@ -212,13 +212,13 @@ impl Scope {
 
     /// Optimize methods out, which are not traversed down from the main method
     pub fn optimize_methods(&mut self, static_type_context: &StaticTypeContext) {
-        if let Some(AbstractSyntaxTreeNode::MethodDefinition(main_method)) = self.ast_nodes.iter().find(|a| matches!(a, AbstractSyntaxTreeNode::MethodDefinition(main) if main.identifier.name == "main")) {
+        if let Some(AbstractSyntaxTreeNode::MethodDefinition(main_method)) = self.ast_nodes.iter().find(|a| matches!(a, AbstractSyntaxTreeNode::MethodDefinition(main) if main.identifier.identifier() == "main")) {
             let called_methods = Self::method_calls_in_stack(&main_method.stack, static_type_context);
             let mut uncalled_methods = vec![];
 
             for node in &self.ast_nodes {
                 if let AbstractSyntaxTreeNode::MethodDefinition(method_definition) = node {
-                    if method_definition.identifier.name == "main" { continue; }
+                    if method_definition.identifier.identifier() == "main" { continue; }
 
                     if !called_methods.contains(&method_definition.method_label_name()) {
                         uncalled_methods.push(method_definition.method_label_name());
@@ -227,7 +227,7 @@ impl Scope {
             }
 
             let mut indices = uncalled_methods.iter().filter_map(|called_method| {
-                self.ast_nodes.iter().position(|node| matches!(node, AbstractSyntaxTreeNode::MethodDefinition(method_def) if method_def.identifier.name == *called_method))
+                self.ast_nodes.iter().position(|node| matches!(node, AbstractSyntaxTreeNode::MethodDefinition(method_def) if method_def.identifier.identifier() == *called_method))
             }).collect::<Vec<_>>();
             indices.sort();
 
@@ -352,7 +352,6 @@ impl TryParse for Scope {
             (Import,               Import,              true),
             (Variable<'=', ';'>,   Variable,            true),
             (MethodCall,           MethodCall,          true),
-            (ScopeEnding,          ScopeEnding,         true),
             (Return,               Return,              true),
             (If,                   If,                  false),
             (MethodDefinition,     MethodDefinition,    false),

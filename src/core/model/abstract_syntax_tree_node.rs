@@ -17,10 +17,15 @@ pub enum AbstractSyntaxTreeNode {
     MethodDefinition(MethodDefinition),
     Import(Import),
     Return(Return),
-    ScopeEnding(ScopeEnding),
     If(If),
     For(For),
     While(While),
+}
+
+impl Default for AbstractSyntaxTreeNode {
+    fn default() -> Self {
+        AbstractSyntaxTreeNode::If(If::default())
+    }
 }
 
 impl Display for AbstractSyntaxTreeNode {
@@ -29,7 +34,6 @@ impl Display for AbstractSyntaxTreeNode {
             AbstractSyntaxTreeNode::Variable(v) => format!("{}", v),
             AbstractSyntaxTreeNode::MethodCall(m) => format!("{}", m),
             AbstractSyntaxTreeNode::MethodDefinition(m) => format!("{}", m),
-            AbstractSyntaxTreeNode::ScopeEnding(m) => format!("{}", m),
             AbstractSyntaxTreeNode::If(m) => format!("{}", m),
             AbstractSyntaxTreeNode::Import(m) => format!("{}", m),
             AbstractSyntaxTreeNode::Return(m) => format!("{}", m),

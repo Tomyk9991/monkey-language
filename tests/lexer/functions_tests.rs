@@ -32,11 +32,11 @@ fn function_test() -> anyhow::Result<()> {
             return_type: Type::Void,
             arguments: vec![
                 MethodArgument {
-                    name: Identifier { name: "variable".to_string() },
+                    identifier: Identifier { name: "variable".to_string() },
                     ty: Type::Integer(Integer::I32, Mutability::Immutable),
                 },
                 MethodArgument {
-                    name: Identifier { name: "variable".to_string() },
+                    identifier: Identifier { name: "variable".to_string() },
                     ty: Type::Integer(Integer::I32, Mutability::Immutable),
                 },
             ],
@@ -96,11 +96,11 @@ fn multiple_functions_test() -> anyhow::Result<()> {
             return_type: Type::Void,
             arguments: vec![
                 MethodArgument {
-                    name: Identifier { name: "variable1".to_string() },
+                    identifier: Identifier { name: "variable1".to_string() },
                     ty: Type::Integer(Integer::I32, Mutability::Immutable),
                 },
                 MethodArgument {
-                    name: Identifier { name: "variable2".to_string() },
+                    identifier: Identifier { name: "variable2".to_string() },
                     ty: Type::Custom(Identifier { name: "Data".to_string() }, Mutability::Immutable),
                 },
             ],
@@ -115,11 +115,11 @@ fn multiple_functions_test() -> anyhow::Result<()> {
             return_type: Type::Void,
             arguments: vec![
                 MethodArgument {
-                    name: Identifier { name: "variable1".to_string() },
+                    identifier: Identifier { name: "variable1".to_string() },
                     ty: Type::Bool(Mutability::Immutable),
                 },
                 MethodArgument {
-                    name: Identifier { name: "variable2".to_string() },
+                    identifier: Identifier { name: "variable2".to_string() },
                     ty: Type::Custom(Identifier { name: "*string".to_string() }, Mutability::Immutable),
                 },
             ],
@@ -156,11 +156,11 @@ fn function_different_return_type_test() -> anyhow::Result<()> {
             return_type: Type::Custom(Identifier { name: String::from("*string") }, Mutability::Immutable),
             arguments: vec![
                 MethodArgument {
-                    name: Identifier { name: "variable1".to_string() },
+                    identifier: Identifier { name: "variable1".to_string() },
                     ty: Type::Integer(Integer::I32, Mutability::Immutable),
                 },
                 MethodArgument {
-                    name: Identifier { name: "variable2".to_string() },
+                    identifier: Identifier { name: "variable2".to_string() },
                     ty: Type::Integer(Integer::I32, Mutability::Immutable),
                 },
             ],
@@ -200,11 +200,11 @@ fn function_in_function_test() -> anyhow::Result<()> {
             return_type: Type::Void,
             arguments: vec![
                 MethodArgument {
-                    name: Identifier { name: "variable1".to_string() },
+                    identifier: Identifier { name: "variable1".to_string() },
                     ty: Type::Integer(Integer::I32, Mutability::Immutable),
                 },
                 MethodArgument {
-                    name: Identifier { name: "variable2".to_string() },
+                    identifier: Identifier { name: "variable2".to_string() },
                     ty: Type::Integer(Integer::I32, Mutability::Immutable),
                 }
             ],
@@ -215,10 +215,10 @@ fn function_in_function_test() -> anyhow::Result<()> {
                     return_type: Type::Void,
                     arguments: vec![
                         MethodArgument {
-                            name: Identifier { name: "variable1".to_string() },
+                            identifier: Identifier { name: "variable1".to_string() },
                             ty: Type::Integer(Integer::I32, Mutability::Immutable),
                         }, MethodArgument {
-                            name: Identifier { name: "variable2".to_string() },
+                            identifier: Identifier { name: "variable2".to_string() },
                             ty: Type::Integer(Integer::I32, Mutability::Immutable),
                         }
                     ],

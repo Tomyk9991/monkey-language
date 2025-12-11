@@ -80,10 +80,7 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for Variable<ASSIGNMEN
         let result = match &self.assignable {
             Assignable::Array(_) => {
                 let i = IdentifierPresent {
-                    identifier: match &self.l_value {
-                        LValue::Identifier(n) => n.clone(),
-                        a => return Err(ASMGenerateError::LValueAssignment(a.clone(), CodeLine::default()/*self.code_line.clone()*/)),
-                    },
+                    identifier: self.l_value.clone(),
                 };
                 self.assignable.to_asm(stack, meta, (!self.define).then_some(i))?
             },
@@ -103,10 +100,7 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for Variable<ASSIGNMEN
                 _ => 1
             };
 
-            match &self.l_value {
-                LValue::Identifier(name) => stack.variables.push(StackLocation { position: stack.stack_position, size: byte_size, name: name.clone(), elements }),
-                a => return Err(ASMGenerateError::LValueAssignment(a.clone(), CodeLine::default()/*self.code_line.clone()*/))
-            }
+            stack.variables.push(StackLocation { position: stack.stack_position, size: byte_size, name: self.l_value.clone(), elements });
 
             stack.stack_position += byte_size;
 

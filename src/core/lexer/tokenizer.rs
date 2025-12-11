@@ -2,13 +2,12 @@ use crate::core::lexer::error::Error;
 use crate::core::lexer::semantic_token_merge::semantic_token_merge;
 use crate::core::lexer::token::Token;
 use crate::core::lexer::token_with_span::{FilePosition, TokenWithSpan};
+use crate::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::operator::Operator;
+use crate::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::prefix_arithmetic::PrefixArithmetic::Operation;
 
 pub fn tokenize(string: &str) -> Result<Vec<TokenWithSpan>, Error> {
-    // let string = normalize(string);
     let token = semantic_token_merge(&collect_greedy(&string)?)?;
     Ok(token)
-    // Ok(collect_greedy(&string)?)
-    // Ok(token)
 }
 
 /// Collects tokens from a string greedily.
@@ -107,8 +106,26 @@ pub fn collect_greedy(string: &str) -> Result<Vec<TokenWithSpan>, Error> {
             }
 
             let end_column = column - 1;
+            // check if the next char is a normal letter
+            // if in literal mode -> literal mode, if first char is a letter
+            let is_literal_mode = collected.chars().nth(0).map(|c| c.is_alphabetic() || c == '_' || c == '$').unwrap_or(false);
 
-            if token_information.matches(&collected) {
+            let whole_literal_captured = if is_literal_mode {
+                // check if the next char is a something else than an operation or whitespace
+                if let Some(next_char) = chars.get(index) {
+                    if next_char.is_whitespace() {
+                        true
+                    } else {
+                        !next_char.is_alphanumeric() || *next_char == '_' || *next_char == '$'
+                    }
+                } else {
+                    true
+                }
+            } else {
+                true
+            };
+
+            if token_information.matches(&collected) && whole_literal_captured {
                 let token = match token_information.token {
                     Token::Literal(_) => Token::Literal(collected),
                     Token::Numbers(_) => Token::Numbers(collected),

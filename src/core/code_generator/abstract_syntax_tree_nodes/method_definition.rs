@@ -57,7 +57,7 @@ impl From<InferTypeError> for MethodDefinitionErr {
 
 impl MethodDefinition {
     pub fn method_label_name(&self) -> String {
-        if self.identifier.name == "main" {
+        if self.identifier.identifier() == "main" {
             return "main".to_string();
         }
 
@@ -90,7 +90,7 @@ impl ToASM for MethodDefinition {
         let calling_convention = calling_convention_from(self, &meta.target_os);
 
         for (index, argument) in self.arguments.iter().enumerate() {
-            if let Some(stack_location) = stack.variables.iter().rfind(|v| v.name.name == argument.name.name) {
+            if let Some(stack_location) = stack.variables.iter().rfind(|v| v.name.identifier() == argument.identifier.identifier()) {
                 let destination = stack_location.name.clone().to_asm(stack, meta, options.clone())?;
                 let source = match &calling_convention[index][0] {
                     CallingRegister::Register(r) => {
@@ -109,14 +109,14 @@ impl ToASM for MethodDefinition {
                     None
                 }));
             } else {
-                return Err(ASMGenerateError::UnresolvedReference { name: argument.name.name.to_string(), code_line: self.code_line.clone()})
+                return Err(ASMGenerateError::UnresolvedReference { name: argument.identifier.identifier().to_string(), code_line: CodeLine::default()/*self.file_position.clone()*/})
             }
         }
 
         meta.static_type_information.expected_return_type = Some(CurrentMethodInfo {
             return_type: self.return_type.clone(),
-            method_header_line: self.code_line.actual_line_number.clone(),
-            method_name: self.identifier.name.to_string(),
+            method_header_line: CodeLine::default().actual_line_number,//self.code_line.actual_line_number.clone(),
+            method_name: self.identifier.identifier(),
         });
 
         for node in &self.stack {

@@ -546,9 +546,9 @@ impl<'a> Equation<'a> {
                     }
 
                     let sub_expression = &self.source_code[start_pos as usize..self.pos as usize];
-                    let assignment = Assignable::parse(sub_expression, ParseOptions {
-                        ignore_expression: true,
-                    })?;
+                    let assignment = Assignable::parse(sub_expression, ParseOptions::builder()
+                        .with_ignore_expression(true)
+                        .build())?;
                     x = ParseResult {
                         result: Box::new(Expression::from(Some(Box::new(assignment.result)))),
                         consumed: assignment.consumed,
