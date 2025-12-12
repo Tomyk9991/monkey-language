@@ -1,6 +1,7 @@
 use std::cmp::Ordering;
 use std::fmt::{Display, Formatter};
 use crate::core::io::code_line::CodeLine;
+use crate::core::lexer::token_with_span::FilePosition;
 use crate::core::model::abstract_syntax_tree_nodes::assignable::{Assignable, AssignableError};
 use crate::core::model::abstract_syntax_tree_nodes::identifier::{Identifier, IdentifierError};
 use crate::core::model::abstract_syntax_tree_nodes::l_value::LValue;
@@ -10,7 +11,7 @@ use crate::core::scanner::errors::EmptyIteratorErr;
 pub struct MethodCall {
     pub identifier: LValue,
     pub arguments: Vec<Assignable>,
-    pub code_line: CodeLine,
+    pub file_position: FilePosition,
 }
 
 #[derive(Debug)]

@@ -39,11 +39,12 @@ impl TryFrom<Result<ParseResult<Self>, crate::core::lexer::error::Error>> for As
 }
 
 impl Parse for Assignable {
-    fn parse(tokens: &[TokenWithSpan], parse_options: ParseOptions) -> Result<ParseResult<Self>, crate::core::lexer::error::Error> where Self: Sized, Self: Default {
+    fn parse(tokens: &[TokenWithSpan], parse_options: ParseOptions) -> Result<ParseResult<Self>, Error> where Self: Sized, Self: Default {
         let mut parsers = vec![
             |tokens: &[TokenWithSpan]| StaticString::parse(tokens, ParseOptions::default()).map(|r| ParseResult { result: Assignable::String(r.result), consumed: r.consumed }),
             |tokens: &[TokenWithSpan]| FloatAST::parse(tokens, ParseOptions::default()).map(|r| ParseResult { result: Assignable::Float(r.result), consumed: r.consumed }),
             |tokens: &[TokenWithSpan]| IntegerAST::parse(tokens, ParseOptions::default()).map(|r| ParseResult { result: Assignable::Integer(r.result), consumed: r.consumed }),
+            |tokens: &[TokenWithSpan]| MethodCall::parse(tokens, ParseOptions::default()).map(|r| ParseResult { result: Assignable::MethodCall(r.result), consumed: r.consumed }),
             |tokens: &[TokenWithSpan]| Boolean::parse(tokens, ParseOptions::default()).map(|r| ParseResult { result: Assignable::Boolean(r.result), consumed: r.consumed }),
             |tokens: &[TokenWithSpan]| Array::parse(tokens, ParseOptions::default()).map(|r| ParseResult { result: Assignable::Array(r.result), consumed: r.consumed }),
             |tokens: &[TokenWithSpan]| LValue::parse(tokens, ParseOptions::default()).map(|r| ParseResult { result: match r.result { LValue::Identifier(i) => Assignable::Identifier(i) }, consumed: r.consumed }),
@@ -57,9 +58,27 @@ impl Parse for Assignable {
             return Err(Error::UnexpectedEOF);
         }
 
-        for parser in parsers {
+        for (index, parser) in parsers.iter().enumerate() {
             match parser(tokens) {
-                Ok(s) => return Ok(s),
+                Ok(assignable) => {
+                    if !parse_options.ignore_expression && index == 0 {
+                        // we parsed an expression, wrap it in an arithmetic equation
+                        let expr = match &assignable.result {
+                            Assignable::ArithmeticEquation(e) => e,
+                            _ => unreachable!(),
+                        };
+
+                        if let (Some(value), None, None, None, None) = (&expr.value, &expr.prefix_arithmetic, &expr.index_operator, &expr.lhs, &expr.rhs) {
+                            // it's just a single value, return that directly
+                            let s = *(*value).clone();
+                            return Ok(ParseResult {
+                                result: s,
+                                consumed: assignable.consumed,
+                            });
+                        }
+                    }
+                    return Ok(assignable)
+                }
                 Err(err) => match &err {
                     Error::InvalidCharacter(_) => {}
                     Error::UnexpectedToken(_) => {}
@@ -74,43 +93,8 @@ impl Parse for Assignable {
                 }
             }
         }
-        // else if let Ok(array) = Array::from_str(line) {
-        //     return Ok(Assignable::Array(array))
-        // }
-        //
-        //
-        // match MethodCall::from_str(line) {
-        //     Ok(method_call) => return Ok(Assignable::MethodCall(method_call)),
-        //     Err(err) => {
-        //         // this counts as a not recoverable error and should return immediately
-        //         if let MethodCallErr::AssignableErr(_) = err {
-        //             return Err(AssignableErr::PatternNotMatched { target_value: line.to_string() });
-        //         }
-        //     }
-        // }
-        // if let Ok(variable_name) = Identifier::from_str(line, false) {
-        //     return Ok(Assignable::Identifier(variable_name));
-        // }
-        //
-        // if let Ok(object) = Object::from_str(line) {
-        //     return Ok(Assignable::Object(object));
-        // }
-        //
-        // if !ignore_expression {
-        //     if let Ok(arithmetic_equation) = Equation::from_str(line) {
-        //         return Ok(Assignable::ArithmeticEquation(arithmetic_equation));
-        //     }
-        // }
-        //
-        //
-        // Err(AssignableErr::PatternNotMatched { target_value: line.to_string() })
-        //
-        return Ok(ParseResult {
-            result: Assignable::Identifier(Identifier {
-                name: "test".to_string(),
-            }),
-            consumed: 1,
-        });
+
+        Err(Error::UnexpectedToken(tokens[0].clone()))
     }
 }
 

@@ -1,3 +1,1 @@
-fn printf() {
-   let a = 5;
-}
+let a_variable = method_call(1);

@@ -18,12 +18,34 @@ use crate::core::scanner::abstract_syntax_tree_nodes::assignables::integer::{Num
 
 impl Parse for FloatAST {
     fn parse(tokens: &[TokenWithSpan], _: ParseOptions) -> Result<ParseResult<Self>, Error> where Self: Sized, Self: Default {
+        if let Some(TokenWithSpan { token: Token::Minus, ..}) = tokens.get(0) {
+            let mut parsed_float = Self::parse(&tokens[1..], Default::default())?;
+            parsed_float.result.value *= -1.0;
+
+            return Ok(ParseResult {
+                result: parsed_float.result,
+                consumed: parsed_float.consumed + 1,
+            });
+        }
+
+        if let Some(TokenWithSpan { token: Token::Plus, ..}) = tokens.get(0) {
+            let mut parsed_float = Self::parse(&tokens[1..], Default::default())?;
+
+            return Ok(ParseResult {
+                result: parsed_float.result,
+                consumed: parsed_float.consumed + 1,
+            });
+        }
+
         let (float_literal, expected_type, consumed) = match tokens.iter().map(|x| x.token.clone()).collect::<Vec<Token>>().as_slice() {
             [Token::Numbers(number), Token::Literal(postfix), ..] if postfix == "_f32" => (number.to_string(), FloatType::Float32, 2),
             [Token::Numbers(number), Token::Literal(postfix), ..] if postfix == "_f64" => (number.to_string(), FloatType::Float64, 2),
             [Token::Numbers(number), Token::Dot, Token::Numbers(decimal), Token::Literal(postfix), ..] if postfix == "_f32" => (format!("{}.{}", number, decimal), FloatType::Float32, 4),
             [Token::Numbers(number), Token::Dot, Token::Numbers(decimal), Token::Literal(postfix), ..] if postfix == "_f64" => (format!("{}.{}", number, decimal), FloatType::Float64, 4),
             [Token::Numbers(number), Token::Dot, Token::Numbers(decimal), ..] => (format!("{}.{}", number, decimal), FloatType::Float32, 3),
+            [Token::Dot, Token::Numbers(decimal), Token::Literal(postfix), ..] if postfix == "_f32" => (format!("0.{}", decimal), FloatType::Float32, 3),
+            [Token::Dot, Token::Numbers(decimal), Token::Literal(postfix), ..] if postfix == "_f64" => (format!("0.{}", decimal), FloatType::Float64, 3),
+            [Token::Dot, Token::Numbers(decimal), ..] => (format!("0.{}", decimal), FloatType::Float32, 2),
             _ => return Err(Error::UnexpectedToken(tokens[0].clone()))
         };
 

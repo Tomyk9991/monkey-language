@@ -102,9 +102,7 @@ impl Iterator for ScopeIterator {
                     name: "Not implemented",
                 }
             }
-
             // AbstractSyntaxTreeNode::MethodCall(_) => Box::new(move |tokens| MethodCall::parse(tokens)?.into()),
-            // AbstractSyntaxTreeNode::MethodDefinition(_) => Box::new(move |tokens| MethodDefinition::parse(tokens)?.into()),
         })
     }
 }

@@ -17,6 +17,12 @@ pub struct TokenWithSpan {
     pub span: FilePosition
 }
 
+impl TokenWithSpan {
+    pub fn new(token: Token, min: i32, max: i32) -> TokenWithSpan {
+        TokenWithSpan { token, span: FilePosition { line: min..=max, column: min..=max } }
+    }
+}
+
 impl FilePosition {
     pub fn from_min_max(min: &TokenWithSpan, max: &TokenWithSpan) -> FilePosition {
         FilePosition {

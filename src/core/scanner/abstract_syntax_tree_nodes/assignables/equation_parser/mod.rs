@@ -465,29 +465,6 @@ impl<'a> Equation<'a> {
 
             return Ok(x);
         }
-        if self.peek(Token::ParenthesisOpen) {
-            if let Some((cast_type, amount_skip)) = self.collect_until(1, Token::ParenthesisClose, |a| Type::parse(a, ParseOptions::default()).is_ok()) {
-                self.next_char_amount(amount_skip);
-
-                if !self.peek(Token::ParenthesisClose) && self.pos < self.source_code.iter().count() as i32 {
-                    let value = self.parse_factor()?;
-                    x = *Box::default();
-
-                    x.result.value = Some(Box::new(Assignable::ArithmeticEquation(*value.result)));
-                    let cast_type = Type::parse(
-                        &cast_type, ParseOptions::default()
-                    )?;
-
-                    x.result.prefix_arithmetic = Some(PrefixArithmetic::Cast(cast_type.result));
-                    x.consumed = value.consumed + cast_type.consumed;
-
-                    return Ok(x);
-                }
-
-                self.previous_char_amount(amount_skip);
-                // not a type cast, resume
-            }
-        }
 
         if self.eat(Some(Token::Multiply)) {
             let value = self.parse_factor()?;
@@ -553,17 +530,19 @@ impl<'a> Equation<'a> {
                         result: Box::new(Expression::from(Some(Box::new(assignment.result)))),
                         consumed: assignment.consumed,
                     };
-                } else if matches!(&ch.token, Token::Literal(_)) {
+                } else if matches!(&ch.token, Token::Literal(_) | Token::True | Token::False) {
                     let mut ident = 0;
                     let mut in_brackets = false;
 
                     while ident != 0 || in_brackets || !self.operator_sequence() {
-                        match &ch.token {
-                            Token::ParenthesisOpen => ident += 1,
-                            Token::ParenthesisClose => ident -= 1,
-                            Token::SquareBracketOpen => in_brackets = true,
-                            Token::SquareBracketClose => in_brackets = false,
-                            _ => break
+                        match self.ch {
+                            Some(TokenWithSpan { token: Token::ParenthesisOpen, ..}) => ident += 1,
+                            Some(TokenWithSpan { token: Token::ParenthesisClose, ..}) => ident -= 1,
+                            Some(TokenWithSpan { token: Token::SquareBracketOpen, ..}) => in_brackets = true,
+                            Some(TokenWithSpan { token: Token::SquareBracketClose, ..}) => in_brackets = false,
+                            Some(TokenWithSpan { token: Token::Literal(_), .. }) => { }
+                            _ if ident <= 0 => break,
+                            _ => { }
                         }
 
                         if ident == -1 {
@@ -583,8 +562,8 @@ impl<'a> Equation<'a> {
 
 
                     let (index_operation, sub_string) = if let (Some(left), Some(right)) = (
-                        sub_expression.iter().position(|a| a.token == Token::ParenthesisOpen),
-                        sub_expression.iter().rposition(|a| a.token == Token::ParenthesisClose),
+                        sub_expression.iter().position(|a| a.token == Token::SquareBracketOpen),
+                        sub_expression.iter().rposition(|a| a.token == Token::SquareBracketClose),
                     ) {
                         (
                             Some(Box::new(Assignable::parse(
@@ -597,7 +576,7 @@ impl<'a> Equation<'a> {
                     };
 
                     let assignable = Assignable::parse(
-                        sub_string, ParseOptions::default()
+                        sub_string, ParseOptions::builder().with_ignore_expression(true).build()
                     )?;
 
                     x = ParseResult {
@@ -614,6 +593,10 @@ impl<'a> Equation<'a> {
                 return self.undefined_or_empty();
             }
         } else {
+            return self.undefined_or_empty();
+        }
+
+        if x == *Box::default() {
             return self.undefined_or_empty();
         }
 

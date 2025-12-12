@@ -6,7 +6,7 @@ use std::str::FromStr;
 use crate::core::code_generator::{ASMGenerateError, MetaInfo};
 use crate::core::code_generator::abstract_syntax_tree_nodes::assignables::equation_parser::operator::{AssemblerOperation, OperatorToASM};
 use crate::core::code_generator::generator::Stack;
-
+use crate::core::constants::KEYWORDS;
 use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::parse::{Parse, ParseOptions, ParseResult};
 use crate::core::lexer::token::Token;
@@ -300,6 +300,11 @@ impl Type {
 
                 if let Ok(float) = FloatType::from_str(custom) {
                     return Ok(Type::Float(float, mutability));
+                }
+
+                // if list of tokens contains the custom string, its an invalid type
+                if let Some(a) = Token::iter().find(|a| a.matches(custom)) {
+                    return Err(InferTypeError::TypeNotAllowed(IdentifierError::KeywordReserved(String::from(custom))));
                 }
 
                 if !lazy_regex::regex_is_match!(r"^[\*&]*[a-zA-Z_$][a-zA-Z_$0-9]*[\*&]*$", s) {

@@ -39,12 +39,6 @@ pub fn collect_greedy(string: &str) -> Result<Vec<TokenWithSpan>, Error> {
     let mut column = 1;
     let chars = string.chars().collect::<Vec<_>>();
 
-    let mut single_character_tokens = Token::iter()
-        .filter_map(|token_information| token_information.token.literal())
-        .filter(|literal| literal.len() == 1)
-        .map(|x| x.to_string())
-        .collect::<Vec<String>>();
-
     while index < chars.len() {
         if chars[index] == '\n' {
             line += 1;
@@ -68,6 +62,14 @@ pub fn collect_greedy(string: &str) -> Result<Vec<TokenWithSpan>, Error> {
             let before_collect_index = index;
             let before_collect_column = column;
 
+            // check if the next char is a normal letter
+            // if in literal mode -> literal mode, if first char is a letter
+            let is_literal_mode = collected
+                .chars()
+                .nth(0)
+                .map(|c| c.is_alphabetic() || c == '_' || c == '$')
+                .unwrap_or(true);
+
             // token length is not always known. for expected tokens like if, let, mut, etc. we know the length
             if let Some(token_length) = token_information.token_length {
                 while collected.len() < token_length && index < chars.len() {
@@ -84,8 +86,13 @@ pub fn collect_greedy(string: &str) -> Result<Vec<TokenWithSpan>, Error> {
                     index += 1;
                     column += 1;
                 }
-            } else { // but for literals we don't know the length; so we need to collect until we find a single character token or whitespace
-                'outer: while !chars[index].is_whitespace() && !single_character_tokens.contains(&chars[index].to_string()) && index < chars.len() {
+            } else {
+                // but for literals we don't know the length; so we need to collect until we find a single character token or whitespace
+                'outer: while 
+                    index < chars.len() && 
+                    !chars[index].is_whitespace()
+                    && (is_literal_mode && !done_collecting_literal(chars.get(index)))
+                {
                     collected.push(chars[index]);
                     index += 1;
                     column += 1;
@@ -106,21 +113,16 @@ pub fn collect_greedy(string: &str) -> Result<Vec<TokenWithSpan>, Error> {
             }
 
             let end_column = column - 1;
-            // check if the next char is a normal letter
-            // if in literal mode -> literal mode, if first char is a letter
-            let is_literal_mode = collected.chars().nth(0).map(|c| c.is_alphabetic() || c == '_' || c == '$').unwrap_or(false);
+
+            let is_literal_mode = collected
+                .chars()
+                .nth(0)
+                .map(|c| c.is_alphabetic() || c == '_' || c == '$')
+                .unwrap_or(true);
 
             let whole_literal_captured = if is_literal_mode {
                 // check if the next char is a something else than an operation or whitespace
-                if let Some(next_char) = chars.get(index) {
-                    if next_char.is_whitespace() {
-                        true
-                    } else {
-                        !next_char.is_alphanumeric() || *next_char == '_' || *next_char == '$'
-                    }
-                } else {
-                    true
-                }
+                done_collecting_literal(chars.get(index))
             } else {
                 true
             };
@@ -154,4 +156,21 @@ pub fn collect_greedy(string: &str) -> Result<Vec<TokenWithSpan>, Error> {
     }
 
     Ok(tokens)
+}
+
+fn done_collecting_literal(target_char: Option<&char>) -> bool {
+    // check if the next char is a something else than an operation or whitespace
+    if let Some(next_char) = target_char {
+        if next_char.is_whitespace() {
+            true
+        } else {
+            if next_char.is_alphanumeric() || *next_char == '_' || *next_char == '$' || *next_char == '"' {
+                false
+            } else {
+                true
+            }
+        }
+    } else {
+        true
+    }
 }

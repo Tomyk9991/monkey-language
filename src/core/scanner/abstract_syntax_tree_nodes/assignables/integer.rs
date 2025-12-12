@@ -14,6 +14,25 @@ use crate::core::model::types::integer::{IntegerType, IntegerAST};
 
 impl Parse for IntegerAST {
     fn parse(tokens: &[TokenWithSpan], _: ParseOptions) -> Result<ParseResult<Self>, Error> where Self: Sized, Self: Default {
+        if let Some(TokenWithSpan { token: Token::Minus, ..}) = tokens.get(0) {
+            let mut parsed_integer = Self::parse(&tokens[1..], Default::default())?;
+            parsed_integer.result.value = format!("-{}", parsed_integer.result.value);
+
+            return Ok(ParseResult {
+                result: parsed_integer.result,
+                consumed: parsed_integer.consumed + 1,
+            });
+        }
+
+        if let Some(TokenWithSpan { token: Token::Plus, ..}) = tokens.get(0) {
+            let mut parsed_integer = Self::parse(&tokens[1..], Default::default())?;
+
+            return Ok(ParseResult {
+                result: parsed_integer.result,
+                consumed: parsed_integer.consumed + 1,
+            });
+        }
+
         if let [number_literal, ..] = tokens {
             if let Token::Numbers(s) = &number_literal.token {
                 if lazy_regex::regex_is_match!("^[+-]?\\d+$", s) {

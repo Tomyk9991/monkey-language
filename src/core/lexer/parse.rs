@@ -80,20 +80,23 @@ pub trait Parse: Default + Clone + Sized {
     /// # Examples
     ///
     /// ```
-    /// use crate::core::lexer::token_with_span::TokenWithSpan;
-    /// use crate::core::lexer::parse::{Parse, ParseOptions, ParseResult};
-    /// use crate::core::model::abstract_syntax_tree_nodes::if_::If;
-    /// use crate::core::lexer::token::Token;
-    /// use crate::core::lexer::error::Error;
+    /// use monkey_language::core::lexer::token_with_span::TokenWithSpan;
+    /// use monkey_language::core::lexer::parse::{Parse, ParseOptions, ParseResult};
+    /// use monkey_language::core::model::abstract_syntax_tree_nodes::if_::If;
+    /// use monkey_language::core::lexer::token::Token;
+    /// use monkey_language::core::lexer::error::Error;
     /// let tokens = vec![
-    ///     TokenWithSpan::new(Token::If, 0, 2),
-    ///     TokenWithSpan::new(Token::ParenthesisOpen, 3, 4),
-    ///     TokenWithSpan::new(Token::Literal("x".to_string()), 5, 6),
-    ///     TokenWithSpan::new(Token::Operator(">".to_string()), 7, 8),
-    ///     TokenWithSpan::new(Token::Numbers("10".to_string()), 9, 11),
-    ///     TokenWithSpan::new(Token::ParenthesisClose, 12, 13),
+    ///     TokenWithSpan::new(Token::If, 1, 3),
+    ///     TokenWithSpan::new(Token::ParenthesisOpen, 4, 5),
+    ///     TokenWithSpan::new(Token::Literal("x".to_string()), 6, 7),
+    ///     TokenWithSpan::new(Token::GreaterThan, 8, 9),
+    ///     TokenWithSpan::new(Token::Numbers("10".to_string()), 10, 12),
+    ///     TokenWithSpan::new(Token::ParenthesisClose, 13, 14),
+    ///     TokenWithSpan::new(Token::CurlyBraceOpen, 15, 16),
+    ///     TokenWithSpan::new(Token::CurlyBraceClose, 17, 18),
     /// ];
     /// let parse_result: Result<ParseResult<If>, Error> = If::parse(&tokens, ParseOptions::default());
+    /// assert!(parse_result.is_ok());
     /// ```
     fn parse(tokens: &[TokenWithSpan], options: ParseOptions) -> Result<ParseResult<Self>, Error> where Self: Sized, Self: Default;
 }

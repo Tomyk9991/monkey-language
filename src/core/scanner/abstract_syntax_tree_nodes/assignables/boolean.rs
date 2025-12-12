@@ -14,10 +14,16 @@ use crate::core::model::types::boolean::{Boolean, BooleanErr};
 
 impl Parse for Boolean {
     fn parse(tokens: &[TokenWithSpan], _: ParseOptions) -> Result<ParseResult<Self>, Error> where Self: Sized, Self: Default {
-        if let [Token::Literal(value), ..] = tokens.iter().map(|x| x.token.clone()).collect::<Vec<Token>>().as_slice() {
-            let value = value.parse::<bool>().map_err(|e| Error::UnexpectedToken(tokens[0].clone()))?;
+        if let [Token::True, ..] = tokens.iter().map(|x| x.token.clone()).collect::<Vec<Token>>().as_slice() {
             return Ok(ParseResult {
-                result: Boolean { value },
+                result: Boolean { value: true },
+                consumed: 1,
+            })
+        }
+        
+        if let [Token::False, ..] = tokens.iter().map(|x| x.token.clone()).collect::<Vec<Token>>().as_slice() {
+            return Ok(ParseResult {
+                result: Boolean { value: false },
                 consumed: 1,
             })
         }

@@ -61,7 +61,7 @@ impl StaticTypeCheck for Import {
 }
 
 impl Parse for Import {
-    fn parse(tokens: &[TokenWithSpan], options: ParseOptions) -> Result<ParseResult<Self>, crate::core::lexer::error::Error> where Self: Sized, Self: Default {
+    fn parse(tokens: &[TokenWithSpan], _: ParseOptions) -> Result<ParseResult<Self>, crate::core::lexer::error::Error> where Self: Sized, Self: Default {
         if let [TokenWithSpan { token: Token::Module, .. }, TokenWithSpan { token: Token::Literal(literal), .. }, TokenWithSpan { token: Token::SemiColon, .. }, ..] = &tokens[..] {
             return Ok(ParseResult {
                 result: Import {
@@ -75,7 +75,7 @@ impl Parse for Import {
             })
         }
 
-        Err(crate::core::lexer::error::Error::first_unexpected_token(&tokens[0..3], &vec![Token::Module.into(), Token::Literal("".to_string()).into(), Token::SemiColon.into()]))
+        Err(crate::core::lexer::error::Error::UnexpectedToken(tokens[0].clone()))
     }
 }
 

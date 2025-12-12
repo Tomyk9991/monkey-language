@@ -189,7 +189,7 @@ fn infer_type_assignment_in_scope_complex() -> anyhow::Result<()> {
                             value: Some(Box::new(Assignable::MethodCall(MethodCall {
                                 identifier: Identifier { name: "constant_1".to_string() },
                                 arguments: vec![],
-                                code_line: CodeLine {
+                                file_position: CodeLine {
                                     line: "constant_1  (   ) ;".to_string(),
                                     actual_line_number: 0..0,
                                     virtual_line_number: 0,
@@ -300,7 +300,7 @@ fn infer_type_assignment_in_scope_complex_in_method() -> anyhow::Result<()> {
                                     value: Some(Box::new(Assignable::MethodCall(MethodCall {
                                         identifier: Identifier { name: "constant_1".to_string() },
                                         arguments: vec![],
-                                        code_line: CodeLine {
+                                        file_position: CodeLine {
                                             line: "constant_1  (   ) ;".to_string(),
                                             actual_line_number: 0..0,
                                             virtual_line_number: 0,

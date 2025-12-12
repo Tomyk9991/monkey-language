@@ -41,6 +41,15 @@ impl MonkeyFileNew {
             size,
         })
     }
+
+    pub fn read_from_str(buffer: &str) -> anyhow::Result<Self> {
+        let tokens = tokenize(buffer)?;
+        Ok(Self {
+            path: PathBuf::new(),
+            tokens,
+            size: buffer.chars().count(),
+        })
+    }
 }
 
 

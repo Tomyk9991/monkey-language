@@ -19,7 +19,7 @@ impl AbstractSyntaxTreeNode {
     pub(crate) fn code_line(&self) -> CodeLine {
         match self {
             AbstractSyntaxTreeNode::Variable(a) => CodeLine::default(),
-            AbstractSyntaxTreeNode::MethodCall(a) => a.code_line.clone(),
+            AbstractSyntaxTreeNode::MethodCall(a) => CodeLine::default(),
             AbstractSyntaxTreeNode::MethodDefinition(a) => CodeLine::default(),
             AbstractSyntaxTreeNode::If(a) => CodeLine::default(),//todo a.file_position.clone(),
             AbstractSyntaxTreeNode::Import(a) => a.code_line.clone(),

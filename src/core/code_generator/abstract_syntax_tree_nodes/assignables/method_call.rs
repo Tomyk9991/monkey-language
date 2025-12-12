@@ -78,9 +78,11 @@ impl Display for MethodCallErr {
 
 impl MethodCall {
     pub fn method_label_name(&self, static_type_context: &StaticTypeContext) -> String {
-        let method_definition = static_type_context.methods.iter().filter(|m| m.identifier == self.identifier)
+        let method_definition = static_type_context.methods
+            .iter()
+            .filter(|m| m.identifier == self.identifier)
             .map(|m| (m, m.arguments.iter().map(|a| a.ty.clone())))
-            .filter(|(_, a)| a.clone().collect::<Vec<_>>() == self.arguments.iter().filter_map(|a| a.infer_type(&self.code_line)).collect::<Vec<_>>())
+            .filter(|(_, a)| a.clone().collect::<Vec<_>>() == self.arguments.iter().filter_map(|a| a.infer_type(&CodeLine::default()/*&self.file_position*/)).collect::<Vec<_>>())
             .map(|(m, _)| m)
             .collect::<Vec<_>>();
 

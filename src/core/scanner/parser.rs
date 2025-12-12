@@ -13,7 +13,7 @@ use crate::core::scanner::types::r#type::InferTypeError;
 
 #[derive(Clone, Debug)]
 pub struct ASTParser {
-    program: Vec<AbstractSyntaxTreeNode>
+    pub program: Vec<AbstractSyntaxTreeNode>
 }
 
 impl Display for ASTParser {
