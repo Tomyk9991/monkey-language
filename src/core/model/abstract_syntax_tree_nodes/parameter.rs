@@ -1,6 +1,5 @@
 use std::cmp::Ordering;
 use crate::core::code_generator::conventions::CallingRegister;
-use crate::core::io::code_line::CodeLine;
 use crate::core::model::abstract_syntax_tree_nodes::identifier::Identifier;
 use crate::core::model::abstract_syntax_tree_nodes::l_value::LValue;
 use crate::core::model::types::ty::Type;

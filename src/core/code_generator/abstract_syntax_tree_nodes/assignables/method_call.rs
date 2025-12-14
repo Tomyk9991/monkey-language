@@ -13,20 +13,19 @@ use crate::core::code_generator::generator::{Stack};
 use crate::core::code_generator::register_destination::byte_size_from_word;
 use crate::core::code_generator::registers::{Bit64, ByteSize, GeneralPurposeRegister};
 use crate::core::code_generator::ToASM;
-use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::token::Token;
 use crate::core::lexer::token_with_span::{FilePosition, TokenWithSpan};
 use crate::core::model::abstract_syntax_tree_nodes::assignable::{Assignable, AssignableError};
 use crate::core::model::abstract_syntax_tree_nodes::assignables::method_call::{MethodCall, MethodCallErr};
 use crate::core::model::abstract_syntax_tree_nodes::identifier::{Identifier, IdentifierError};
 use crate::core::model::types::ty::Type;
-use crate::core::scanner::errors::EmptyIteratorErr;
-use crate::core::scanner::scope::PatternNotMatchedError;
-use crate::core::scanner::static_type_context::StaticTypeContext;
-use crate::core::scanner::{Lines, TryParse};
-use crate::core::scanner::types::r#type::{InferTypeError, MethodCallArgumentTypeMismatch};
-use crate::core::semantics::type_checker::static_type_checker::StaticTypeCheckError;
-use crate::core::semantics::type_checker::StaticTypeCheck;
+use crate::core::parser::errors::EmptyIteratorErr;
+use crate::core::parser::scope::PatternNotMatchedError;
+use crate::core::parser::static_type_context::StaticTypeContext;
+use crate::core::parser::{Lines, TryParse};
+use crate::core::parser::types::r#type::{InferTypeError, MethodCallArgumentTypeMismatch};
+use crate::core::semantics::static_type_check::static_type_checker::StaticTypeCheckError;
+use crate::core::semantics::static_type_check::static_type_check::StaticTypeCheck;
 
 
 impl PatternNotMatchedError for MethodCallErr {
@@ -112,7 +111,7 @@ impl ToASM for MethodCall {
                     .map(|m| m.arguments.iter().map(|a| a.ty.clone()).collect::<Vec<_>>())
                     .collect::<Vec<_>>(),
                 method_name: self.identifier.clone(),
-                code_line: meta.code_line.clone(),
+                file_position: meta.code_line.clone(),
                 provided: self.arguments.iter().filter_map(|a| a.infer_type_with_context(&meta.static_type_information, &meta.code_line).ok()).collect::<Vec<_>>(),
             }));
         }

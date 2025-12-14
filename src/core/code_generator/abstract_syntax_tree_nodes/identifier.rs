@@ -12,12 +12,11 @@ use crate::core::code_generator::generator::{Stack, StackLocation};
 use crate::core::code_generator::register_destination::{byte_size_from_word, word_from_byte_size};
 use crate::core::code_generator::registers::{ByteSize, GeneralPurposeRegister};
 use crate::core::constants::KEYWORDS;
-use crate::core::io::code_line::CodeLine;
 use crate::core::model::abstract_syntax_tree_nodes::identifier::{Identifier, IdentifierError};
 use crate::core::model::abstract_syntax_tree_nodes::l_value::LValue;
 use crate::core::model::types::ty::Type;
-use crate::core::scanner::static_type_context::StaticTypeContext;
-use crate::core::scanner::types::r#type::{InferTypeError};
+use crate::core::parser::static_type_context::StaticTypeContext;
+use crate::core::parser::types::r#type::{InferTypeError};
 
 
 

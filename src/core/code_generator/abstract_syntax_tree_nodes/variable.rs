@@ -1,10 +1,5 @@
 use std::error::Error;
-use std::fmt::{Debug, Display, Formatter};
-use std::str::FromStr;
-
-use anyhow::Context;
-
-use crate::core::code_generator::{ASMGenerateError, MetaInfo, register_destination, ToASM};
+use crate::core::code_generator::{register_destination, ASMGenerateError, MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::asm_options::ASMOptions;
 use crate::core::code_generator::asm_options::identifier_present::IdentifierPresent;
@@ -12,24 +7,13 @@ use crate::core::code_generator::asm_options::interim_result::InterimResultOptio
 use crate::core::code_generator::asm_result::{ASMResult, ASMResultError, ASMResultVariance};
 use crate::core::code_generator::generator::{Stack, StackLocation};
 use crate::core::code_generator::registers::{Bit64, ByteSize, GeneralPurposeRegister};
-use crate::core::io::code_line::CodeLine;
-use crate::core::lexer::parse::{Parse};
 use crate::core::model::abstract_syntax_tree_nodes::assignable::{Assignable, AssignableError};
 use crate::core::model::abstract_syntax_tree_nodes::identifier::IdentifierError;
-use crate::core::model::abstract_syntax_tree_nodes::l_value::LValue;
 use crate::core::model::abstract_syntax_tree_nodes::variable::{ParseVariableErr, Variable};
-use crate::core::model::types::mutability::Mutability;
 use crate::core::model::types::ty::Type;
-use crate::core::scanner::errors::EmptyIteratorErr;
-use crate::core::scanner::scope::PatternNotMatchedError;
-use crate::core::scanner::static_type_context::StaticTypeContext;
-use crate::core::scanner::{Lines, TryParse};
-use crate::core::scanner::abstract_syntax_tree_nodes::l_value::LValueErr;
-use crate::core::scanner::types::r#type::{InferTypeError};
-use crate::core::semantics::type_checker::{InferType, StaticTypeCheck};
-
-
-
+use crate::core::parser::scope::PatternNotMatchedError;
+use crate::core::parser::abstract_syntax_tree_nodes::l_value::LValueErr;
+use crate::core::parser::types::r#type::InferTypeError;
 impl PatternNotMatchedError for ParseVariableErr {
     fn is_pattern_not_matched_error(&self) -> bool {
         matches!(self, ParseVariableErr::PatternNotMatched {..})
@@ -145,7 +129,7 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for Variable<ASSIGNMEN
             ASMResult::MultilineResulted(source, mut register) => {
                 target += &source;
 
-                if let Assignable::ArithmeticEquation(expr) = &self.assignable {
+                if let Assignable::Expression(expr) = &self.assignable {
                     let final_type = expr.traverse_type(meta).ok_or(ASMGenerateError::InternalError("Cannot infer type".to_string()))?;
                     let r = GeneralPurposeRegister::Bit64(Bit64::Rax).to_size_register(&ByteSize::try_from(final_type.byte_size())?);
 

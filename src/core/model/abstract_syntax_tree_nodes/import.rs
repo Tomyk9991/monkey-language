@@ -1,13 +1,13 @@
 use std::error::Error;
 use std::fmt::{Display, Formatter};
-use crate::core::io::code_line::CodeLine;
-use crate::core::io::monkey_file::MonkeyFileNew;
-use crate::core::scanner::errors::EmptyIteratorErr;
+use crate::core::io::monkey_file::MonkeyFile;
+use crate::core::lexer::token_with_span::FilePosition;
+use crate::core::parser::errors::EmptyIteratorErr;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Import {
-    pub monkey_file: MonkeyFileNew,
-    pub code_line: CodeLine
+    pub monkey_file: MonkeyFile,
+    pub file_position: FilePosition
 }
 
 #[derive(Debug)]
@@ -40,12 +40,12 @@ impl Error for ImportError { }
 impl Default for Import {
     fn default() -> Self {
         Import {
-            monkey_file: MonkeyFileNew {
+            monkey_file: MonkeyFile {
                 path: Default::default(),
                 tokens: vec![],
                 size: 0,
             },
-            code_line: Default::default(),
+            file_position: Default::default(),
         }
     }
 }

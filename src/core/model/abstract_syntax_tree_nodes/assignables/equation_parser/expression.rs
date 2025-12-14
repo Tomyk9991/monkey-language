@@ -25,16 +25,16 @@ impl From<Option<Box<Assignable>>> for Expression {
     }
 }
 
-impl From<crate::core::lexer::error::Error> for crate::core::scanner::abstract_syntax_tree_nodes::assignables::equation_parser::Error {
+impl From<crate::core::lexer::error::Error> for crate::core::parser::abstract_syntax_tree_nodes::assignables::equation_parser::Error {
     fn from(value: Error) -> Self {
         match value {
-            Error::InvalidCharacter(f) => crate::core::scanner::abstract_syntax_tree_nodes::assignables::equation_parser::Error::UndefinedSequence(f.to_string()),
-            Error::UnexpectedToken(d) => crate::core::scanner::abstract_syntax_tree_nodes::assignables::equation_parser::Error::UndefinedSequence(d.token.to_string()),
-            Error::UnexpectedEOF => crate::core::scanner::abstract_syntax_tree_nodes::assignables::equation_parser::Error::SourceEmpty,
-            Error::ExpectedToken(f) => crate::core::scanner::abstract_syntax_tree_nodes::assignables::equation_parser::Error::TermNotParsable(f.to_string()),
-            Error::Callstack(f) => crate::core::scanner::abstract_syntax_tree_nodes::assignables::equation_parser::Error::UndefinedSequence(format!("Stacktrace: {:?}", f)),
+            Error::InvalidCharacter(f) => crate::core::parser::abstract_syntax_tree_nodes::assignables::equation_parser::Error::UndefinedSequence(f.to_string()),
+            Error::UnexpectedToken(d) => crate::core::parser::abstract_syntax_tree_nodes::assignables::equation_parser::Error::UndefinedSequence(d.token.to_string()),
+            Error::UnexpectedEOF => crate::core::parser::abstract_syntax_tree_nodes::assignables::equation_parser::Error::SourceEmpty,
+            Error::ExpectedToken(f) => crate::core::parser::abstract_syntax_tree_nodes::assignables::equation_parser::Error::TermNotParsable(f.to_string()),
+            Error::Callstack(f) => crate::core::parser::abstract_syntax_tree_nodes::assignables::equation_parser::Error::UndefinedSequence(format!("Stacktrace: {:?}", f)),
             Error::ErrorWithContext { error, context } => {
-                crate::core::scanner::abstract_syntax_tree_nodes::assignables::equation_parser::Error::UndefinedSequence(format!("With context: {}\n{:?}", error, context))
+                crate::core::parser::abstract_syntax_tree_nodes::assignables::equation_parser::Error::UndefinedSequence(format!("With context: {}\n{:?}", error, context))
             }
         }
     }

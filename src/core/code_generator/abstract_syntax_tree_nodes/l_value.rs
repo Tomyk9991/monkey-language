@@ -13,7 +13,7 @@ use crate::core::lexer::token_with_span::TokenWithSpan;
 use crate::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::expression::Expression;
 use crate::core::model::abstract_syntax_tree_nodes::identifier::Identifier;
 use crate::core::model::abstract_syntax_tree_nodes::l_value::{LValue, LValueError};
-use crate::core::scanner::abstract_syntax_tree_nodes::assignables::equation_parser::Equation;
+use crate::core::parser::abstract_syntax_tree_nodes::assignables::equation_parser::Equation;
 
 
 impl ToASM for LValue {

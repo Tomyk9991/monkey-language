@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::fmt::{Display, Formatter};
 use std::ops::RangeInclusive;
 use crate::core::lexer::token::Token;
 
@@ -41,22 +41,28 @@ impl Default for FilePosition {
     }
 }
 
-impl Display for TokenWithSpan {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let line_break_information = if self.span.line.start() == self.span.line.end() {
+impl Display for FilePosition {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let line_break_information = if self.line.start() == self.line.end() {
             "".to_string()
         } else {
-            format!(", {} line breaks", self.span.line.end() - self.span.line.start())
+            format!(", {} line breaks", self.line.end() - self.line.start())
         };
 
-        let column = if self.span.column.start() == self.span.column.end() {
-            self.span.column.start().to_string()
+        let column = if self.column.start() == self.column.end() {
+            self.column.start().to_string()
         } else {
-            format!("{} ({} chars{})", self.span.column.start(), (self.span.column.end() - self.span.column.start()) + 1, line_break_information)
+            format!("{} ({} chars{})", self.column.start(), (self.column.end() - self.column.start()) + 1, line_break_information)
         };
 
 
-        write!(f, "`{}` at line {}:{}", self.token, self.span.line.start(), column)
+        write!(f, "{}:{}", self.line.start(), column)
+    }
+}
+
+impl Display for TokenWithSpan {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "`{}` at line {}", self.token, self.span)
     }
 }
 

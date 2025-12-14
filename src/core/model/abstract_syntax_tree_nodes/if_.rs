@@ -2,8 +2,8 @@ use std::fmt::{Display, Formatter};
 use crate::core::lexer::token_with_span::FilePosition;
 use crate::core::model::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
 use crate::core::model::abstract_syntax_tree_nodes::assignable::{Assignable, AssignableError};
-use crate::core::scanner::errors::EmptyIteratorErr;
-use crate::core::scanner::scope::ScopeError;
+use crate::core::parser::errors::EmptyIteratorErr;
+use crate::core::parser::scope::ScopeError;
 
 /// AST node for if definition.
 /// # Pattern

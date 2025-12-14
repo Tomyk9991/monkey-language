@@ -6,7 +6,6 @@ use crate::core::code_generator::ASMGenerateError;
 use crate::core::code_generator::conventions::calling_convention_from;
 use crate::core::code_generator::registers::{GeneralPurposeRegister};
 use crate::core::code_generator::target_os::TargetOS;
-use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::token_with_span::FilePosition;
 use crate::core::model::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
 use crate::core::model::abstract_syntax_tree_nodes::assignable::Assignable;
@@ -16,7 +15,7 @@ use crate::core::model::abstract_syntax_tree_nodes::method_definition::MethodDef
 use crate::core::model::abstract_syntax_tree_nodes::parameter::Parameter;
 use crate::core::model::abstract_syntax_tree_nodes::ret::Return;
 use crate::core::model::abstract_syntax_tree_nodes::variable::Variable;
-use crate::core::scanner::static_type_context::StaticTypeContext;
+use crate::core::parser::static_type_context::StaticTypeContext;
 use crate::core::model::data_section::DataSection;
 use crate::core::model::scope::Scope;
 use crate::core::model::types::integer::IntegerType;
@@ -104,7 +103,7 @@ impl Stack {
         self.begin_scope();
 
         for node in nodes {
-            meta.code_line = node.code_line();
+            meta.code_line = node.file_position();
 
             target += match &node.to_asm(self, meta, options.clone())? {
                 ASMResult::Inline(t) => t,
@@ -204,7 +203,7 @@ impl ASMGenerator {
                         return Err(ASMGenerateError::EntryPointNotFound)
                     }
                 }
-                _ => return Err(ASMGenerateError::MultipleEntryPointsFound(main_entry.iter().map(|t| t.code_line()).collect::<Vec<_>>()))
+                _ => return Err(ASMGenerateError::MultipleEntryPointsFound(main_entry.iter().map(|t| t.file_position()).collect::<Vec<_>>()))
             };
 
             Ok(value?)
@@ -244,7 +243,7 @@ impl ASMGenerator {
 
         for node in &self.top_level_scope.ast_nodes {
             let mut meta = MetaInfo {
-                code_line: node.code_line(),
+                code_line: node.file_position(),
                 target_os: self.target_os.clone(),
                 static_type_information: StaticTypeContext::new(&self.top_level_scope.ast_nodes),
             };
@@ -280,7 +279,7 @@ impl ASMGenerator {
                             ty: Some(argument.ty.clone()),
                             define: true,
                             assignable: Assignable::Parameter(parameter),
-                            code_line: FilePosition::default(),//method_definition.code_line.clone(),
+                            file_position: FilePosition::default(),//method_definition.code_line.clone(),
                         });
                     }
 

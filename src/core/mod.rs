@@ -1,5 +1,5 @@
 pub mod io;
-pub mod scanner;
+pub mod parser;
 pub mod constants;
 pub mod model;
 pub mod code_generator;

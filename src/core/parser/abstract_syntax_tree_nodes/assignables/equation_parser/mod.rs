@@ -1,0 +1,639 @@
+use std::fmt::{Debug, Display, Formatter};
+use std::str::FromStr;
+
+use crate::core::lexer::parse::{Parse, ParseOptions, ParseResult};
+use crate::core::lexer::token::Token;
+use crate::core::lexer::token_match::MatchResult;
+use crate::core::lexer::token_with_span::TokenWithSpan;
+use crate::core::model::abstract_syntax_tree_nodes::assignable::{Assignable, AssignableError};
+use crate::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::expression::Expression;
+use crate::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::operator::Operator;
+use crate::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::prefix_arithmetic::{PointerArithmetic, PrefixArithmetic};
+use crate::core::model::abstract_syntax_tree_nodes::identifier::IdentifierError;
+use crate::core::model::types::mutability::Mutability;
+use crate::core::model::types::ty::Type;
+use crate::core::parser::abstract_syntax_tree_nodes::assignables::method_call::{dyck_language, dyck_language_generic};
+use crate::core::parser::types::r#type::{InferTypeError};
+use crate::pattern;
+
+pub mod expression;
+pub mod operator;
+pub mod prefix_arithmetic;
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct Equation<'a> {
+    source_code: &'a [TokenWithSpan],
+    pub syntax_tree: ParseResult<Box<Expression>>,
+    pos: i32,
+    ch: Option<&'a TokenWithSpan>,
+}
+
+impl PartialEq for ParseResult<Box<Expression>> {
+    fn eq(&self, other: &Self) -> bool {
+        self.result.eq(&other.result)
+    }
+}
+
+
+fn contains(a: &[TokenWithSpan], b: &TokenWithSpan) -> bool {
+    a.iter().any(|x| x.token == b.token)
+}
+
+#[derive(Debug)]
+#[allow(unused)]
+pub enum Error {
+    PositionNotInRange(i32),
+    UndefinedSequence(String),
+    FunctionNotFound,
+    SourceEmpty,
+    NotAType(String),
+    // Message
+    TermNotParsable(String),
+    ParenExpected,
+    BracketExpected,
+    CannotParse,
+}
+
+impl From<InferTypeError> for Error {
+    fn from(value: InferTypeError) -> Self {
+        match value {
+            InferTypeError::TypeNotAllowed(t) => Error::NotAType(t.to_string()),
+            _ => unreachable!("Cannot reach this"),
+        }
+    }
+}
+
+impl From<AssignableError> for Error {
+    fn from(value: AssignableError) -> Self {
+        Error::TermNotParsable(match value {
+            AssignableError::PatternNotMatched { target_value } => target_value,
+        })
+    }
+}
+
+impl From<IdentifierError> for Error {
+    fn from(value: IdentifierError) -> Self {
+        Error::UndefinedSequence(value.to_string())
+    }
+}
+
+impl Display for Error {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Error::PositionNotInRange(index) => format!("Index {index} out of range"),
+                Error::ParenExpected => "Expected \")\"".to_string(),
+                Error::BracketExpected => "Expected \"]\"".to_string(),
+                Error::TermNotParsable(v) => v.to_string(),
+                Error::UndefinedSequence(value) => value.to_string(),
+                Error::FunctionNotFound => "Not a function".to_string(),
+                Error::SourceEmpty => "Source code is empty".to_string(),
+                Error::CannotParse => "Cannot parse".to_string(),
+                Error::NotAType(f) => format!("Unexpected type: {f}"),
+            }
+        )
+    }
+}
+
+impl std::error::Error for Error {}
+
+
+#[allow(clippy::should_implement_trait)]
+impl<'a> Equation<'a> {
+    pub fn from_str(string: &str) -> Result<Expression, Error> {
+        todo!()
+        // let mut s: Equation = Equation::new(string);
+        // let f = s.parse()?.clone();
+        // Ok(f)
+    }
+
+    pub fn new(tokens: &'a [TokenWithSpan]) -> Self {
+        Self {
+            source_code: tokens,
+            syntax_tree: *Box::default(),
+            pos: -1,
+            ch: None,
+        }
+    }
+
+    fn next_char(&mut self) {
+        self.pos += 1;
+        self.ch = self.source_code.iter().nth(self.pos as usize);
+    }
+
+    fn prev_char(&mut self) {
+        self.pos -= 1;
+        self.ch = self.source_code.iter().nth(self.pos as usize);
+    }
+
+    // skips the provided amount of characters
+    fn next_char_amount(&mut self, amount_skip: usize) {
+        for _ in 0..amount_skip {
+            self.next_char();
+        }
+    }
+
+    fn previous_char_amount(&mut self, amount_skip: usize) {
+        for _ in 0..amount_skip {
+            self.prev_char();
+        }
+    }
+
+    fn eat(&mut self, char_to_eat: Option<Token>) -> bool {
+        if let (Some(ch), Some(token_to_eat)) = (self.ch, char_to_eat) {
+            if ch.token == token_to_eat {
+                self.next_char();
+                return true;
+            }
+        } else {
+            return false;
+        }
+
+        false
+    }
+
+
+    fn parse(&mut self) -> Result<ParseResult<Box<Expression>>, crate::core::lexer::error::Error> where Self: Sized {
+        self.next_char();
+
+        if dyck_language_generic(&self.source_code, [vec!['('], vec![','], vec![')']], vec![')'], contains).is_err() {
+            return Err(crate::core::lexer::error::Error::UnexpectedToken(self.source_code[0].clone()));
+        }
+
+        if self.pos < 0 || self.pos >= self.source_code.len() as i32 {
+            return Err(crate::core::lexer::error::Error::UnexpectedToken(self.source_code[0].clone()));
+        }
+
+        self.syntax_tree = self.parse_logical_or()?;
+        Ok(self.syntax_tree.clone())
+    }
+
+
+    fn parse_logical_or(&mut self) -> Result<ParseResult<Box<Expression>>, crate::core::lexer::error::Error> where Self: Sized {
+        let mut x = self.parse_logical_and()?;
+
+        loop {
+            if self.eat(Some(Token::LogicalOr)) {
+                let expression = self.parse_logical_and()?;
+                x.result.set(Some(x.result.clone()), Operator::LogicalOr, Some(expression.result), None);
+                x.consumed = x.consumed + expression.consumed + 1;
+            } else {
+                return Ok(x);
+            }
+        }
+    }
+
+    fn parse_logical_and(&mut self) -> Result<ParseResult<Box<Expression>>, crate::core::lexer::error::Error> where Self: Sized {
+        let mut x = self.parse_bitwise_or()?;
+
+        loop {
+            if self.eat(Some(Token::LogicalAnd)) {
+                let expression = self.parse_bitwise_or()?;
+                x.result.set(Some(x.result.clone()), Operator::LogicalAnd, Some(expression.result), None);
+                x.consumed = x.consumed + expression.consumed + 1;
+            } else {
+                return Ok(x);
+            }
+        }
+    }
+
+    fn parse_bitwise_or(&mut self) -> Result<ParseResult<Box<Expression>>, crate::core::lexer::error::Error> where Self: Sized {
+        let mut x = self.parse_bitwise_xor()?;
+
+        loop {
+            let latest_ch = self.ch;
+            let latest_pos = self.pos;
+
+            if self.eat(Some(Token::Pipe)) {
+                let expression = self.parse_bitwise_xor()?;
+                x.result.set(Some(x.result.clone()), Operator::BitwiseOr, Some(expression.result), None);
+                x.consumed = x.consumed + expression.consumed + 1;
+            } else {
+                self.ch = latest_ch;
+                self.pos = latest_pos;
+                return Ok(x);
+            }
+        }
+    }
+
+    fn parse_bitwise_xor(&mut self) -> Result<ParseResult<Box<Expression>>, crate::core::lexer::error::Error> where Self: Sized {
+        let mut x = self.parse_bitwise_and()?;
+
+        loop {
+            if self.eat(Some(Token::Xor)) {
+                let expression = self.parse_bitwise_and()?;
+                x.result.set(Some(x.result.clone()), Operator::BitwiseXor, Some(expression.result), None);
+                x.consumed = x.consumed + expression.consumed + 1;
+            } else {
+                return Ok(x);
+            }
+        }
+    }
+
+    fn parse_bitwise_and(&mut self) -> Result<ParseResult<Box<Expression>>, crate::core::lexer::error::Error> where Self: Sized {
+        let mut x = self.parse_equality_expression()?;
+
+        loop {
+            let latest_ch = self.ch;
+            let latest_pos = self.pos;
+
+            if self.eat(Some(Token::Ampersand)) {
+                let expression = self.parse_equality_expression()?;
+                x.result.set(
+                    Some(x.result.clone()),
+                    Operator::BitwiseAnd,
+                    Some(expression.result),
+                    None,
+                );
+                x.consumed = x.consumed + expression.consumed + 1;
+            } else {
+                self.ch = latest_ch;
+                self.pos = latest_pos;
+                return Ok(x);
+            }
+        }
+    }
+
+    fn parse_equality_expression(&mut self) -> Result<ParseResult<Box<Expression>>, crate::core::lexer::error::Error> where Self: Sized {
+        let mut x = self.parse_relational_expression()?;
+
+        loop {
+            if self.eat(Some(Token::EqualsEquals)) {
+                let expression = self.parse_relational_expression()?;
+                x.result.set(Some(x.result.clone()), Operator::Equal, Some(expression.result), None);
+                x.consumed = x.consumed + expression.consumed + 1;
+            } else if self.eat(Some(Token::NotEquals)) {
+                let expression = self.parse_relational_expression()?;
+                x.result.set(Some(x.result.clone()), Operator::NotEqual, Some(expression.result), None);
+                x.consumed = x.consumed + expression.consumed + 1;
+            } else {
+                return Ok(x);
+            }
+        }
+    }
+
+    fn parse_relational_expression(&mut self) -> Result<ParseResult<Box<Expression>>, crate::core::lexer::error::Error> where Self: Sized {
+        let mut x = self.parse_bitwise_shift_expression()?;
+
+        loop {
+            if self.eat(Some(Token::LessThanEquals)) {
+                let expression = self.parse_bitwise_shift_expression()?;
+                x.result.set(
+                    Some(x.result.clone()),
+                    Operator::LessThanEqual,
+                    Some(expression.result),
+                    None,
+                );
+                x.consumed = x.consumed + expression.consumed + 1;
+            } else if self.eat(Some(Token::GreaterThanEquals)) {
+                let expression = self.parse_bitwise_shift_expression()?;
+                x.result.set(
+                    Some(x.result.clone()),
+                    Operator::GreaterThanEqual,
+                    Some(expression.result),
+                    None,
+                );
+                x.consumed = x.consumed + expression.consumed + 1;
+            } else if self.eat(Some(Token::LessThan)) {
+                let expression = self.parse_bitwise_shift_expression()?;
+                x.result.set(Some(x.result.clone()), Operator::LessThan, Some(expression.result), None);
+                x.consumed = x.consumed + expression.consumed + 1;
+            } else if self.eat(Some(Token::GreaterThan)) {
+                let expression = self.parse_bitwise_shift_expression()?;
+                x.result.set(
+                    Some(x.result.clone()),
+                    Operator::GreaterThan,
+                    Some(expression.result),
+                    None,
+                );
+                x.consumed = x.consumed + expression.consumed + 1;
+            } else {
+                return Ok(x);
+            }
+        }
+    }
+
+    fn parse_bitwise_shift_expression(&mut self) -> Result<ParseResult<Box<Expression>>, crate::core::lexer::error::Error> where Self: Sized {
+        let mut x = self.parse_expression()?;
+
+        loop {
+            if self.eat(Some(Token::LeftShift)) {
+                let expression = self.parse_expression()?;
+                x.result.set(Some(x.result.clone()), Operator::LeftShift, Some(expression.result), None);
+                x.consumed = x.consumed + expression.consumed + 1;
+            } else if self.eat(Some(Token::RightShift)) {
+                let expression = self.parse_expression()?;
+                x.result.set(
+                    Some(x.result.clone()),
+                    Operator::RightShift,
+                    Some(expression.result),
+                    None,
+                );
+                x.consumed = x.consumed + expression.consumed + 1;
+            } else {
+                return Ok(x);
+            }
+        }
+    }
+
+    fn parse_expression(&mut self) -> Result<ParseResult<Box<Expression>>, crate::core::lexer::error::Error> where Self: Sized {
+        let mut x = self.parse_term()?;
+
+        loop {
+            #[allow(clippy::if_same_then_else)]
+            if self.eat(Some(Token::Plus)) {
+                let term = self.parse_term()?;
+                x.result.set(Some(x.result.clone()), Operator::Add, Some(term.result), None);
+                x.consumed = x.consumed + term.consumed + 1;
+            } else if self.eat(Some(Token::Minus)) {
+                let term = self.parse_term()?;
+                x.result.set(Some(x.result.clone()), Operator::Sub, Some(term.result), None);
+                x.consumed = x.consumed + term.consumed + 1;
+            } else {
+                return Ok(x);
+            }
+        }
+    }
+
+    fn parse_term(&mut self) -> Result<ParseResult<Box<Expression>>, crate::core::lexer::error::Error> where Self: Sized {
+        let mut x = self.parse_factor()?;
+        loop {
+            #[allow(clippy::if_same_then_else)]
+            if self.eat(Some(Token::Multiply)) {
+                let term = self.parse_factor()?;
+                x.result.set(Some(x.result.clone()), Operator::Mul, Some(term.result), None);
+                x.consumed = x.consumed + term.consumed + 1;
+            } else if self.eat(Some(Token::Divide)) {
+                let term = self.parse_factor()?;
+                x.result.set(Some(x.result.clone()), Operator::Div, Some(term.result), None);
+                x.consumed = x.consumed + term.consumed + 1;
+            } else if self.eat(Some(Token::Modulo)) {
+                let term = self.parse_factor()?;
+                x.result.set(Some(x.result.clone()), Operator::Mod, Some(term.result), None);
+                x.consumed = x.consumed + term.consumed + 1;
+            } else {
+                return Ok(x);
+            }
+        }
+    }
+
+    fn peek(&self, expected_char: Token) -> bool {
+        if let Some(a) = self.source_code.iter().nth(self.pos as usize) {
+            return a.token == expected_char;
+        }
+
+        false
+    }
+
+    /// collects until the specified character is found and checks each substring, if a certain predicate is met
+    /// returns a trimmed string between the beginning and the expected last character and the amount of characters skipped, including the spaces
+    fn collect_until(&self, offset: usize, expected_last_token: Token, predicate: fn(&[TokenWithSpan]) -> bool) -> Option<(Vec<TokenWithSpan>, usize)> {
+        let starting_position = (self.pos as usize) + offset;
+        let mut end_position = starting_position;
+
+        for char in self.source_code.iter().skip(starting_position) {
+            end_position += 1;
+
+            let current_tokens = self
+                .source_code
+                .iter()
+                .skip(starting_position)
+                .take(end_position - starting_position)
+                .map(|t| t.clone())
+                .collect::<Vec<TokenWithSpan>>();
+
+            // check if it contains something else than *
+            // if it does, check if it is a type
+            let contains_only_stars = !current_tokens.iter().any(|a| a.token != Token::Multiply);
+
+            if current_tokens.is_empty() || contains_only_stars {
+                continue;
+            }
+
+            if char.token == expected_last_token {
+                let current_token = self
+                    .source_code
+                    .iter()
+                    .skip(starting_position)
+                    .take(end_position - 1 - starting_position)
+                    .map(|t| t.clone())
+                    .collect::<Vec<TokenWithSpan>>();
+
+                return if !predicate(&current_token) {
+                    None
+                } else {
+                    Some((current_token.iter().map(|a| a.clone()).collect::<Vec<_>>(), end_position - starting_position + 1))
+                };
+            }
+
+            if !predicate(&current_tokens) {
+                return None;
+            }
+        }
+
+        None
+    }
+
+    fn parse_factor(&mut self) -> Result<ParseResult<Box<Expression>>, crate::core::lexer::error::Error> where Self: Sized {
+        let mut x: ParseResult<Box<Expression>> = *Box::default();
+
+        //Start Prefix
+        if self.eat(Some(Token::Plus)) {
+            x = self.parse_factor()?;
+            x.consumed += 1;
+            return Ok(x);
+        } else if self.eat(Some(Token::Minus)) {
+            x = self.parse_factor()?;
+            x.result.flip_value();
+            x.consumed += 1;
+            return Ok(x);
+        }
+
+        if let Some(MatchResult::Parse(cast_type)) = pattern!(&self.source_code[self.pos as usize..], ParenthesisOpen, @parse Type, ParenthesisClose) {
+            self.next_char_amount(cast_type.consumed + 2);
+
+            let value = self.parse_factor()?;
+            x = *Box::default();
+
+            x.result.value = Some(Box::new(Assignable::Expression(*value.result)));
+
+            x.result.prefix_arithmetic = Some(PrefixArithmetic::Cast(cast_type.result));
+            x.consumed = value.consumed + cast_type.consumed + 2;
+
+            return Ok(x);
+        }
+
+        if self.eat(Some(Token::Multiply)) {
+            let value = self.parse_factor()?;
+            x = *Box::default();
+
+            x.result.value = Some(Box::new(Assignable::Expression(*value.result)));
+            x.result.prefix_arithmetic = Some(PrefixArithmetic::PointerArithmetic(
+                PointerArithmetic::Asterics,
+            ));
+
+            x.consumed = value.consumed + 1;
+
+            return Ok(x);
+        }
+
+        if self.eat(Some(Token::Ampersand)) {
+            let value = self.parse_factor()?;
+            x = *Box::default();
+
+            x.result.value = Some(Box::new(Assignable::Expression(*value.result)));
+            x.result.prefix_arithmetic = Some(PrefixArithmetic::PointerArithmetic(
+                PointerArithmetic::Ampersand,
+            ));
+
+            x.consumed = value.consumed + 1;
+
+            return Ok(x);
+        }
+
+        //End Prefix
+
+        let start_pos: i32 = self.pos;
+        if self.eat(Some(Token::ParenthesisOpen)) {
+            x = self.parse_logical_or()?;
+            x.consumed += 1;
+
+            if !self.eat(Some(Token::ParenthesisClose)) {
+                return Err(crate::core::lexer::error::Error::ExpectedToken(Token::ParenthesisClose));
+            }
+
+            x.consumed += 1;
+        } else if self.ch.is_some() {
+            // digits only
+            if let Some(mut ch) = self.ch {
+                if matches!(&ch.token, Token::Numbers(_)) || matches!(&ch.token, Token::Dot) {
+                    while matches!(&ch.token, Token::Numbers(_))
+                        || matches!(&ch.token, Token::Dot)
+                        || matches!(&ch.token, Token::Underscore)
+                        || matches!(&ch.token, Token::Literal(_)) {
+                        self.next_char();
+                        if let Some(r) = self.ch {
+                            ch = r;
+                        } else {
+                            break;
+                        }
+                    }
+
+                    let sub_expression = &self.source_code[start_pos as usize..self.pos as usize];
+                    let assignment = Assignable::parse(sub_expression, ParseOptions::builder()
+                        .with_ignore_expression(true)
+                        .build())?;
+                    x = ParseResult {
+                        result: Box::new(Expression::from(Some(Box::new(assignment.result)))),
+                        consumed: assignment.consumed,
+                    };
+                } else if matches!(&ch.token, Token::Literal(_) | Token::True | Token::False) {
+                    let mut ident = 0;
+                    let mut in_brackets = false;
+
+                    while ident != 0 || in_brackets || !self.operator_sequence() {
+                        match self.ch {
+                            Some(TokenWithSpan { token: Token::ParenthesisOpen, ..}) => ident += 1,
+                            Some(TokenWithSpan { token: Token::ParenthesisClose, ..}) => ident -= 1,
+                            Some(TokenWithSpan { token: Token::SquareBracketOpen, ..}) => in_brackets = true,
+                            Some(TokenWithSpan { token: Token::SquareBracketClose, ..}) => in_brackets = false,
+                            Some(TokenWithSpan { token: Token::Literal(_), .. }) => { }
+                            _ if ident <= 0 => break,
+                            _ => { }
+                        }
+
+                        if ident == -1 {
+                            break;
+                        }
+
+                        self.next_char();
+                    }
+
+                    let sub_expression = &self
+                        .source_code
+                        .iter()
+                        .skip(start_pos as usize)
+                        .take(((self.pos - start_pos) as usize).max(1))
+                        .map(|t| t.clone())
+                        .collect::<Vec<TokenWithSpan>>();
+
+
+                    let (index_operation, sub_string) = if let (Some(left), Some(right)) = (
+                        sub_expression.iter().position(|a| a.token == Token::SquareBracketOpen),
+                        sub_expression.iter().rposition(|a| a.token == Token::SquareBracketClose),
+                    ) {
+                        (
+                            Some(Box::new(Assignable::parse(
+                                &sub_expression[left + 1..right], ParseOptions::default()
+                            )?.result)),
+                            &sub_expression[..left],
+                        )
+                    } else {
+                        (None, sub_expression.as_slice())
+                    };
+
+                    let assignable = Assignable::parse(
+                        sub_string, ParseOptions::builder().with_ignore_expression(true).build()
+                    )?;
+
+                    x = ParseResult {
+                        result: Box::new(Expression::from(Some(Box::new(assignable.result)))),
+                        consumed: assignable.consumed,
+                    };
+                    x.result.index_operator = index_operation;
+
+                    if (self.pos - start_pos) == 0 {
+                        self.next_char();
+                    }
+                }
+            } else {
+                return self.undefined_or_empty();
+            }
+        } else {
+            return self.undefined_or_empty();
+        }
+
+        if x == *Box::default() {
+            return self.undefined_or_empty();
+        }
+
+        Ok(x)
+    }
+
+    fn undefined_or_empty(&self) -> Result<ParseResult<Box<Expression>>, crate::core::lexer::error::Error> where Self: Sized {
+        if let Some(token) = self.ch {
+            Err(crate::core::lexer::error::Error::UnexpectedToken(token.clone()))
+        } else if let Some(last_character) = self.source_code.iter().last() {
+            Err(crate::core::lexer::error::Error::UnexpectedToken(last_character.clone()))
+        } else {
+            Err(crate::core::lexer::error::Error::UnexpectedEOF)
+        }
+    }
+    fn operator_sequence(&mut self) -> bool {
+        static OPERATORS: [Token; 18] = [
+            Token::Plus, Token::Minus, Token::Multiply, Token::Modulo, Token::Divide, Token::LeftShift,
+            Token::RightShift, Token::LessThan, Token::GreaterThan, Token::LessThanEquals, Token::GreaterThanEquals,
+            Token::EqualsEquals, Token::NotEquals, Token::LogicalAnd, Token::LogicalOr, Token::Ampersand,
+            Token::Xor, Token::Pipe
+        ];
+
+        for operator in &OPERATORS {
+            let latest_ch = self.ch;
+            let latest_pos = self.pos;
+
+            if self.eat(Some(operator.clone())) {
+                self.ch = latest_ch;
+                self.pos = latest_pos;
+
+                return true;
+            }
+
+            self.ch = latest_ch;
+            self.pos = latest_pos;
+        }
+
+        false
+    }
+}

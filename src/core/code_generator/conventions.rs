@@ -3,14 +3,13 @@ use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::MetaInfo;
 use crate::core::code_generator::registers::{Bit64, FloatRegister, GeneralPurposeRegister};
 use crate::core::code_generator::target_os::TargetOS;
-use crate::core::io::code_line::CodeLine;
 use crate::core::model::abstract_syntax_tree_nodes::assignable::Assignable;
 use crate::core::model::abstract_syntax_tree_nodes::identifier::Identifier;
 use crate::core::model::abstract_syntax_tree_nodes::l_value::LValue;
 use crate::core::model::abstract_syntax_tree_nodes::method_definition::MethodDefinition;
 use crate::core::model::types::ty::Type;
-use crate::core::scanner::static_type_context::StaticTypeContext;
-use crate::core::scanner::types::r#type::{InferTypeError};
+use crate::core::parser::static_type_context::StaticTypeContext;
+use crate::core::parser::types::r#type::{InferTypeError};
 
 /// An enum representing the destination register. If its a register it contains the register
 /// For floats its for example a "rcx" or "rdx" for windows calling convention
@@ -86,7 +85,7 @@ fn windows_calling_convention(_stack: &mut Stack, meta: &MetaInfo, calling_argum
                 .map(|m| m.arguments.iter().map(|a| a.ty.clone()).collect::<Vec<_>>())
                 .collect::<Vec<_>>(),
             method_name: LValue::Identifier(Identifier { name: method_name.to_string() }),
-            code_line: meta.code_line.clone(),
+            file_position: meta.code_line.clone(),
             provided: calling_arguments.iter().filter_map(|a| a.infer_type_with_context(&meta.static_type_information, &meta.code_line).ok()).collect::<Vec<_>>(),
         })
     }

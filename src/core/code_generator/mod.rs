@@ -1,15 +1,14 @@
 use std::fmt::{Debug, Display, Formatter};
 use crate::core::code_generator::asm_options::ASMOptions;
 use crate::core::code_generator::asm_result::{ASMResult, ASMResultError};
-use crate::core::io::code_line::CodeLine;
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::target_os::TargetOS;
 use crate::core::lexer::token_with_span::FilePosition;
 use crate::core::model::abstract_syntax_tree_nodes::assignable::Assignable;
 use crate::core::model::abstract_syntax_tree_nodes::l_value::LValue;
-use crate::core::scanner::static_type_context::StaticTypeContext;
-use crate::core::scanner::types::cast_to::CastToError;
-use crate::core::scanner::types::r#type::InferTypeError;
+use crate::core::parser::static_type_context::StaticTypeContext;
+use crate::core::parser::types::cast_to::CastToError;
+use crate::core::parser::types::r#type::InferTypeError;
 
 pub mod generator;
 pub mod target_creator;

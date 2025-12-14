@@ -6,7 +6,6 @@ use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::code_generator::asm_options::ASMOptions;
 use crate::core::code_generator::asm_result::{ASMResult};
-use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::parse::{Parse, ParseResult};
 use crate::core::lexer::token_with_span::TokenWithSpan;
 use crate::core::model::abstract_syntax_tree_nodes::assignable::{Assignable, AssignableError};
@@ -22,11 +21,11 @@ use crate::core::model::types::integer::IntegerAST;
 use crate::core::model::types::mutability::Mutability;
 use crate::core::model::types::static_string::StaticString;
 use crate::core::model::types::ty::Type;
-use crate::core::scanner::static_type_context::StaticTypeContext;
-use crate::core::scanner::abstract_syntax_tree_nodes::assignables::equation_parser::Equation;
-use crate::core::scanner::abstract_syntax_tree_nodes::assignables::method_call::{MethodCallErr};
-use crate::core::scanner::types::r#type;
-use crate::core::scanner::types::r#type::{InferTypeError};
+use crate::core::parser::static_type_context::StaticTypeContext;
+use crate::core::parser::abstract_syntax_tree_nodes::assignables::equation_parser::Equation;
+use crate::core::parser::abstract_syntax_tree_nodes::assignables::method_call::{MethodCallErr};
+use crate::core::parser::types::r#type;
+use crate::core::parser::types::r#type::{InferTypeError};
 
 
 impl ToASM for Assignable {
@@ -35,7 +34,7 @@ impl ToASM for Assignable {
         match &self {
             Assignable::Integer(integer) => Ok(integer.to_asm(stack, meta, options)?),
             Assignable::Identifier(variable) => Ok(variable.to_asm(stack, meta, options)?),
-            Assignable::ArithmeticEquation(expression) => Ok(expression.to_asm(stack, meta, options)?),
+            Assignable::Expression(expression) => Ok(expression.to_asm(stack, meta, options)?),
             Assignable::String(string) => Ok(string.to_asm(stack, meta, options)?),
             Assignable::Float(float) => Ok(float.to_asm(stack, meta, options)?),
             Assignable::MethodCall(method_call) => Ok(method_call.to_asm(stack, meta, options)?),
@@ -55,7 +54,7 @@ impl ToASM for Assignable {
             Assignable::MethodCall(s) => s.is_stack_look_up(stack, meta),
             Assignable::Identifier(s) => s.is_stack_look_up(stack, meta),
             Assignable::Object(s) => s.is_stack_look_up(stack, meta),
-            Assignable::ArithmeticEquation(a) => a.is_stack_look_up(stack, meta),
+            Assignable::Expression(a) => a.is_stack_look_up(stack, meta),
             Assignable::Parameter(r) => r.is_stack_look_up(stack, meta),
             Assignable::Array(s) => s.is_stack_look_up(stack, meta)
         }
@@ -70,7 +69,7 @@ impl ToASM for Assignable {
             Assignable::MethodCall(a) => a.byte_size(meta),
             Assignable::Identifier(a) => a.byte_size(meta),
             Assignable::Object(a) => a.byte_size(meta),
-            Assignable::ArithmeticEquation(a) => a.byte_size(meta),
+            Assignable::Expression(a) => a.byte_size(meta),
             Assignable::Parameter(r) => r.ty.byte_size(),
             Assignable::Array(r) => r.byte_size(meta),
         }
@@ -85,7 +84,7 @@ impl ToASM for Assignable {
             Assignable::MethodCall(v) => v.data_section(stack, meta),
             Assignable::Identifier(v) => v.data_section(stack, meta),
             Assignable::Object(v) => v.data_section(stack, meta),
-            Assignable::ArithmeticEquation(v) => v.data_section(stack, meta),
+            Assignable::Expression(v) => v.data_section(stack, meta),
             Assignable::Parameter(r) => r.data_section(stack, meta),
             Assignable::Array(r) => r.data_section(stack, meta),
         }

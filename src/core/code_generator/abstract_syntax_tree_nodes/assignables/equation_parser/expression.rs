@@ -11,7 +11,6 @@ use crate::core::code_generator::asm_options::prepare_register::PrepareRegisterO
 use crate::core::code_generator::asm_result::{ASMResult, ASMResultError, ASMResultVariance};
 use crate::core::code_generator::generator::{LastUnchecked, Stack};
 use crate::core::code_generator::registers::{ByteSize, FloatRegister, GeneralPurposeRegister, GeneralPurposeRegisterIterator};
-use crate::core::io::code_line::CodeLine;
 use crate::core::model::abstract_syntax_tree_nodes::assignable::Assignable;
 use crate::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::expression::Expression;
 use crate::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::operator::Operator;
@@ -21,10 +20,10 @@ use crate::core::model::types::float::FloatType;
 use crate::core::model::types::integer::IntegerType;
 use crate::core::model::types::mutability::Mutability;
 use crate::core::model::types::ty::Type;
-use crate::core::scanner::static_type_context::StaticTypeContext;
-use crate::core::scanner::abstract_syntax_tree_nodes::assignables::equation_parser::prefix_arithmetic::{PrefixArithmeticOptions};
-use crate::core::scanner::types::boolean::Boolean;
-use crate::core::scanner::types::r#type::{InferTypeError};
+use crate::core::parser::static_type_context::StaticTypeContext;
+use crate::core::parser::abstract_syntax_tree_nodes::assignables::equation_parser::prefix_arithmetic::{PrefixArithmeticOptions};
+use crate::core::parser::types::boolean::Boolean;
+use crate::core::parser::types::r#type::{InferTypeError};
 
 impl Expression {
     fn iterator_from_type(&self, meta: &mut MetaInfo, lhs_size: usize) -> Result<(GeneralPurposeRegisterIterator, Option<FloatType>), ASMGenerateError> {
@@ -561,7 +560,7 @@ impl Expression {
         let mut register_or_stack_address = String::new();
 
         if let Some(prefix_arithmetic) = value.prefix_arithmetic() {
-            if let Assignable::ArithmeticEquation(a) = value {
+            if let Assignable::Expression(a) = value {
                 if let Some(child) = &a.value {
                     Self::prefix_arithmetic_to_asm(&prefix_arithmetic, child, target_register, stack, meta)?
                         .apply_with(&mut target)

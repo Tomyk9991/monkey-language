@@ -1,10 +1,9 @@
 use std::error::Error;
 use std::fmt::{Display, Formatter};
-use crate::core::io::code_line::CodeLine;
-use crate::core::scanner::errors::EmptyIteratorErr;
-use crate::core::scanner::static_type_context::StaticTypeContext;
-use crate::core::semantics::type_checker::static_type_checker::StaticTypeCheckError;
-use crate::core::semantics::type_checker::StaticTypeCheck;
+use crate::core::parser::errors::EmptyIteratorErr;
+use crate::core::parser::static_type_context::StaticTypeContext;
+use crate::core::semantics::static_type_check::static_type_checker::StaticTypeCheckError;
+use crate::core::semantics::static_type_check::static_type_check::StaticTypeCheck;
 
 /// AST node for scope ending. Basically it checks if the codeline is `}`.
 #[derive(Debug, PartialEq, Clone)]

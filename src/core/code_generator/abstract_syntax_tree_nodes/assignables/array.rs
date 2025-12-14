@@ -9,7 +9,6 @@ use crate::core::code_generator::asm_options::ASMOptions;
 use crate::core::code_generator::asm_options::identifier_present::IdentifierPresent;
 use crate::core::code_generator::asm_options::interim_result::InterimResultOption;
 use crate::core::code_generator::registers::{Bit64, ByteSize, GeneralPurposeRegister};
-use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::collect_tokens_until_scope_close::CollectTokensFromUntil;
 use crate::core::lexer::error::Error;
 use crate::core::lexer::parse::{Parse, ParseResult};
@@ -22,9 +21,9 @@ use crate::core::model::abstract_syntax_tree_nodes::l_value::LValue;
 use crate::core::model::types::array::{Array, ArrayErr};
 use crate::core::model::types::mutability::Mutability;
 use crate::core::model::types::ty::Type;
-use crate::core::scanner::static_type_context::StaticTypeContext;
-use crate::core::scanner::abstract_syntax_tree_nodes::assignables::method_call::{dyck_language, dyck_language_generic};
-use crate::core::scanner::types::r#type::{InferTypeError};
+use crate::core::parser::static_type_context::StaticTypeContext;
+use crate::core::parser::abstract_syntax_tree_nodes::assignables::method_call::{dyck_language, dyck_language_generic};
+use crate::core::parser::types::r#type::{InferTypeError};
 use crate::pattern;
 
 fn contains(a: &[TokenWithSpan], b: &TokenWithSpan) -> bool {
@@ -79,7 +78,7 @@ impl ToASM for Array {
                 ASMResult::MultilineResulted(source, mut register) => {
                     target += &source;
 
-                    if let Assignable::ArithmeticEquation(expr) = assignable {
+                    if let Assignable::Expression(expr) = assignable {
                         let final_type = expr.traverse_type(meta).ok_or(ASMGenerateError::InternalError("Cannot infer type".to_string()))?;
                         let r = GeneralPurposeRegister::Bit64(Bit64::Rax).to_size_register(&ByteSize::try_from(final_type.byte_size())?);
 

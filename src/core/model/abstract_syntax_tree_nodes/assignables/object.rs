@@ -5,7 +5,7 @@ use crate::core::model::abstract_syntax_tree_nodes::assignable::AssignableError;
 use crate::core::model::abstract_syntax_tree_nodes::identifier::IdentifierError;
 use crate::core::model::abstract_syntax_tree_nodes::variable::Variable;
 use crate::core::model::types::ty::Type;
-use crate::core::scanner::abstract_syntax_tree_nodes::variable::ParseVariableErr;
+use crate::core::parser::abstract_syntax_tree_nodes::variable::ParseVariableErr;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Object {

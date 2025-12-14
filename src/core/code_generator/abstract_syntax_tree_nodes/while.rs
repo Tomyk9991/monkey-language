@@ -1,29 +1,12 @@
-use std::cmp::Ordering;
-use std::error::Error;
-use std::fmt::{Display, Formatter};
-use std::str::FromStr;
 use crate::core::code_generator::asm_result::{ASMResult, ASMResultError, ASMResultVariance};
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::asm_options::ASMOptions;
-use crate::core::io::code_line::CodeLine;
-use crate::core::model::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
-use crate::core::model::abstract_syntax_tree_nodes::assignable::{Assignable, AssignableError};
+use crate::core::model::abstract_syntax_tree_nodes::assignable::AssignableError;
 use crate::core::model::abstract_syntax_tree_nodes::while_::{While, WhileErr};
-use crate::core::model::scope::Scope;
-use crate::core::model::types::mutability::Mutability;
-use crate::core::model::types::ty::Type;
-use crate::core::scanner::errors::EmptyIteratorErr;
-use crate::core::scanner::scope::{PatternNotMatchedError, ScopeError};
-use crate::core::scanner::static_type_context::StaticTypeContext;
-use crate::core::scanner::abstract_syntax_tree_nodes::assignables::method_call::DyckError;
-use crate::core::scanner::{Lines, TryParse};
-use crate::core::scanner::types::r#type::{InferTypeError};
-use crate::core::semantics::type_checker::{InferType, StaticTypeCheck};
-use crate::core::semantics::type_checker::static_type_checker::{static_type_check_rec, StaticTypeCheckError};
-
-
+use crate::core::parser::scope::PatternNotMatchedError;
+use crate::core::parser::abstract_syntax_tree_nodes::assignables::method_call::DyckError;
 impl PatternNotMatchedError for WhileErr {
     fn is_pattern_not_matched_error(&self) -> bool {
         matches!(self, WhileErr::PatternNotMatched { .. })

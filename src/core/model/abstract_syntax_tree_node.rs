@@ -22,6 +22,22 @@ pub enum AbstractSyntaxTreeNode {
     While(While),
 }
 
+impl AbstractSyntaxTreeNode {
+    pub fn file_position(&self) -> &crate::core::lexer::token_with_span::FilePosition {
+        match self {
+            AbstractSyntaxTreeNode::Variable(v) => &v.file_position,
+            AbstractSyntaxTreeNode::MethodCall(m) => &m.file_position,
+            AbstractSyntaxTreeNode::MethodDefinition(m) => &m.file_position,
+            AbstractSyntaxTreeNode::If(m) => &m.file_position,
+            AbstractSyntaxTreeNode::Import(m) => &m.file_position,
+            AbstractSyntaxTreeNode::Return(m) => &m.file_position,
+            AbstractSyntaxTreeNode::While(a) => &a.file_position,
+            AbstractSyntaxTreeNode::For(m) => &m.file_position,
+        }
+    }
+}
+
+
 impl Default for AbstractSyntaxTreeNode {
     fn default() -> Self {
         AbstractSyntaxTreeNode::If(If::default())

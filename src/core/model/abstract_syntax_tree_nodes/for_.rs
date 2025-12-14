@@ -1,14 +1,13 @@
 use std::cmp::Ordering;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
-use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::token_with_span::FilePosition;
 use crate::core::model::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
 use crate::core::model::abstract_syntax_tree_nodes::assignable::{Assignable, AssignableError};
 use crate::core::model::abstract_syntax_tree_nodes::variable::Variable;
-use crate::core::scanner::abstract_syntax_tree_nodes::variable::ParseVariableErr;
-use crate::core::scanner::errors::EmptyIteratorErr;
-use crate::core::scanner::scope::ScopeError;
+use crate::core::parser::abstract_syntax_tree_nodes::variable::ParseVariableErr;
+use crate::core::parser::errors::EmptyIteratorErr;
+use crate::core::parser::scope::ScopeError;
 
 #[derive(Debug, PartialEq, Clone, Default)]
 pub struct For {

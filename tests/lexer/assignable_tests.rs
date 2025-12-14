@@ -1,5 +1,5 @@
 use std::str::FromStr;
-use monkey_language::core::io::monkey_file::MonkeyFileNew;
+use monkey_language::core::io::monkey_file::MonkeyFile;
 use monkey_language::core::lexer::parse::{Parse, ParseOptions};
 use monkey_language::core::lexer::token_with_span::FilePosition;
 use monkey_language::core::model::abstract_syntax_tree_nodes::assignable::Assignable;
@@ -14,8 +14,8 @@ use monkey_language::core::model::types::boolean::Boolean;
 use monkey_language::core::model::types::float::FloatAST;
 use monkey_language::core::model::types::integer::{IntegerAST, IntegerType};
 use monkey_language::core::model::types::static_string::StaticString;
-use monkey_language::core::scanner::abstract_syntax_tree_nodes::assignables::equation_parser::Equation;
-use monkey_language::core::scanner::parser::ASTParser;
+use monkey_language::core::parser::abstract_syntax_tree_nodes::assignables::equation_parser::Equation;
+use monkey_language::core::parser::parser::ASTParser;
 
 #[test]
 fn assignable_string() -> anyhow::Result<()> {
@@ -65,7 +65,7 @@ fn assignable_integer() -> anyhow::Result<()> {
     ];
 
     for (expected_result, value) in &values {
-        let monkey_file: MonkeyFileNew = MonkeyFileNew::read_from_str(value)?;
+        let monkey_file: MonkeyFile = MonkeyFile::read_from_str(value)?;
         let integer = IntegerAST::parse(&monkey_file.tokens, ParseOptions::default());
 
         if !*expected_result {
@@ -92,7 +92,7 @@ fn assignable_double() -> anyhow::Result<()> {
     ];
 
     for (expected_result, value) in &values {
-        let monkey_file: MonkeyFileNew = MonkeyFileNew::read_from_str(value)?;
+        let monkey_file: MonkeyFile = MonkeyFile::read_from_str(value)?;
         let float = FloatAST::parse(&monkey_file.tokens, ParseOptions::default());
         if !*expected_result {
             println!("{}", float.err().unwrap());
@@ -170,7 +170,7 @@ fn assignable_imaginary_fn_calls() -> anyhow::Result<()> {
     ];
 
     for (expected_result, value) in &values {
-        let monkey_file: MonkeyFileNew = MonkeyFileNew::read_from_str(value)?;
+        let monkey_file: MonkeyFile = MonkeyFile::read_from_str(value)?;
         let node = MethodCall::parse(&monkey_file.tokens, ParseOptions::default());
 
         match *expected_result {
@@ -225,7 +225,7 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
     ];
 
     for (value, expected_result) in &expressions {
-        let monkey_file: MonkeyFileNew = MonkeyFileNew::read_from_str(value)?;
+        let monkey_file: MonkeyFile = MonkeyFile::read_from_str(value)?;
         let mut top_level_scope = Expression::parse(&monkey_file.tokens, ParseOptions::default());
 
         assert_eq!(top_level_scope.is_ok(), *expected_result);
@@ -252,7 +252,7 @@ fn assignable_boolean_equation() -> anyhow::Result<()> {
     ];
 
     for (expected_result, value) in &values {
-        let monkey_file: MonkeyFileNew = MonkeyFileNew::read_from_str(value)?;
+        let monkey_file: MonkeyFile = MonkeyFile::read_from_str(value)?;
         let node = Expression::parse(&monkey_file.tokens, ParseOptions::default());
         
         assert_eq!(node.is_ok(), *expected_result, "{:?}", value);

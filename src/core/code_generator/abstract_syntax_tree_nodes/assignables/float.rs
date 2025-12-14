@@ -14,7 +14,7 @@ use crate::core::lexer::parse::{Parse, ParseResult};
 use crate::core::lexer::token::Token;
 use crate::core::lexer::token_with_span::TokenWithSpan;
 use crate::core::model::types::float::{FloatAST, FloatType};
-use crate::core::scanner::abstract_syntax_tree_nodes::assignables::integer::{NumberErr};
+use crate::core::parser::abstract_syntax_tree_nodes::assignables::integer::{NumberErr};
 
 
 

@@ -14,8 +14,8 @@ use crate::core::model::abstract_syntax_tree_nodes::assignables::equation_parser
 use crate::core::model::types::float::FloatType;
 use crate::core::model::types::integer::IntegerType;
 use crate::core::model::types::ty::Type;
-use crate::core::scanner::types::boolean::Boolean;
-use crate::core::scanner::types::cast_to::{Castable, CastToError};
+use crate::core::parser::types::boolean::Boolean;
+use crate::core::parser::types::cast_to::{Castable, CastToError};
 
 #[derive(Clone)]
 pub struct PrefixArithmeticOptions {

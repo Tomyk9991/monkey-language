@@ -1,15 +1,14 @@
 use std::error::Error;
 use std::fmt::{Display, Formatter};
-use crate::core::io::code_line::CodeLine;
 use crate::core::lexer::token_with_span::FilePosition;
 use crate::core::model::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
 use crate::core::model::abstract_syntax_tree_nodes::assignable::AssignableError;
 use crate::core::model::abstract_syntax_tree_nodes::identifier::{Identifier, IdentifierError};
 use crate::core::model::abstract_syntax_tree_nodes::l_value::LValue;
 use crate::core::model::types::ty::Type;
-use crate::core::scanner::errors::EmptyIteratorErr;
-use crate::core::scanner::scope::ScopeError;
-use crate::core::scanner::types::r#type::InferTypeError;
+use crate::core::parser::errors::EmptyIteratorErr;
+use crate::core::parser::scope::ScopeError;
+use crate::core::parser::types::r#type::InferTypeError;
 
 /// AST node for method definition. Pattern is `fn function_name(argument1, ..., argumentN): returnType { }`
 #[derive(Debug, PartialEq, Clone, Default)]

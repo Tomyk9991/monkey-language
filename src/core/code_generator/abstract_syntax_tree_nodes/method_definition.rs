@@ -10,7 +10,6 @@ use crate::core::code_generator::asm_result::{ASMResult, ASMResultVariance};
 use crate::core::code_generator::conventions::CallingRegister;
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::registers::ByteSize;
-use crate::core::io::code_line::CodeLine;
 use crate::core::model::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
 use crate::core::model::abstract_syntax_tree_nodes::assignable::{Assignable, AssignableError};
 use crate::core::model::abstract_syntax_tree_nodes::identifier::{Identifier, IdentifierError};
@@ -20,13 +19,13 @@ use crate::core::model::abstract_syntax_tree_nodes::variable::Variable;
 use crate::core::model::scope::Scope;
 use crate::core::model::types::mutability::Mutability;
 use crate::core::model::types::ty::Type;
-use crate::core::scanner::errors::EmptyIteratorErr;
-use crate::core::scanner::scope::{PatternNotMatchedError, ScopeError};
-use crate::core::scanner::static_type_context::{CurrentMethodInfo, StaticTypeContext};
-use crate::core::scanner::{Lines, TryParse};
-use crate::core::scanner::types::r#type::{InferTypeError, MethodCallSignatureMismatchCause};
-use crate::core::semantics::type_checker::static_type_checker::{static_type_check_rec, StaticTypeCheckError};
-use crate::core::semantics::type_checker::StaticTypeCheck;
+use crate::core::parser::errors::EmptyIteratorErr;
+use crate::core::parser::scope::{PatternNotMatchedError, ScopeError};
+use crate::core::parser::static_type_context::{CurrentMethodInfo, StaticTypeContext};
+use crate::core::parser::{Lines, TryParse};
+use crate::core::parser::types::r#type::{InferTypeError, MethodCallSignatureMismatchCause};
+use crate::core::semantics::static_type_check::static_type_checker::{static_type_check_rec, StaticTypeCheckError};
+use crate::core::semantics::static_type_check::static_type_check::StaticTypeCheck;
 use crate::utils::math;
 
 
@@ -120,7 +119,7 @@ impl ToASM for MethodDefinition {
         });
 
         for node in &self.stack {
-            meta.code_line = node.code_line();
+            meta.code_line = node.file_position();
             stack_allocation += node.byte_size(meta);
 
 

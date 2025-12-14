@@ -4,9 +4,9 @@ use crate::core::model::abstract_syntax_tree_nodes::assignable::{Assignable, Ass
 use crate::core::model::abstract_syntax_tree_nodes::identifier::IdentifierError;
 use crate::core::model::abstract_syntax_tree_nodes::l_value::LValue;
 use crate::core::model::types::ty::Type;
-use crate::core::scanner::abstract_syntax_tree_nodes::l_value::LValueErr;
-use crate::core::scanner::errors::EmptyIteratorErr;
-use crate::core::scanner::types::r#type::InferTypeError;
+use crate::core::parser::abstract_syntax_tree_nodes::l_value::LValueErr;
+use crate::core::parser::errors::EmptyIteratorErr;
+use crate::core::parser::types::r#type::InferTypeError;
 
 /// AST node for a variable. Pattern is defined as: name <Assignment> assignment <Separator>
 /// # Examples
@@ -22,7 +22,7 @@ pub struct Variable<const ASSIGNMENT: char, const SEPARATOR: char> {
     /// flag defining if the variable is a new definition or a re-assignment
     pub define: bool,
     pub assignable: Assignable,
-    pub code_line: FilePosition,
+    pub file_position: FilePosition,
 }
 
 #[derive(Debug)]

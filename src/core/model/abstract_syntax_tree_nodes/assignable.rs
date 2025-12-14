@@ -22,7 +22,7 @@ pub enum Assignable {
     Identifier(Identifier),
     Object(Object),
     Array(Array),
-    ArithmeticEquation(Expression),
+    Expression(Expression),
 }
 
 #[derive(Debug)]
@@ -40,7 +40,7 @@ impl Display for Assignable {
             Assignable::MethodCall(node) => format!("{}", node),
             Assignable::Identifier(node) => format!("{}", node),
             Assignable::Object(node) => format!("{}", node),
-            Assignable::ArithmeticEquation(node) => format!("{}", node),
+            Assignable::Expression(node) => format!("{}", node),
             Assignable::Parameter(node) => format!("{}", node),
             Assignable::Array(node) => format!("{}", node),
         })

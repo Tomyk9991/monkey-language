@@ -1,5 +1,5 @@
 use monkey_language::core::io::code_line::CodeLine;
-use monkey_language::core::io::monkey_file::{MonkeyFile, MonkeyFileNew};
+use monkey_language::core::io::monkey_file::{MonkeyFile, MonkeyFile};
 use monkey_language::core::lexer::token_with_span::FilePosition;
 use monkey_language::core::model::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
 use monkey_language::core::model::abstract_syntax_tree_nodes::assignable::Assignable;
@@ -16,8 +16,8 @@ use monkey_language::core::model::types::integer::{IntegerAST, IntegerType};
 use monkey_language::core::model::types::mutability::Mutability;
 use monkey_language::core::model::types::static_string::StaticString;
 use monkey_language::core::model::types::ty::Type;
-use monkey_language::core::scanner::parser::ASTParser;
-use monkey_language::core::scanner::types::r#type;
+use monkey_language::core::parser::parser::ASTParser;
+use monkey_language::core::parser::types::r#type;
 
 #[test]
 fn variable_test() -> anyhow::Result<()> {
@@ -46,7 +46,7 @@ fn variable_test() -> anyhow::Result<()> {
     let pointer_arithmetic = *ref_value + 1;
     "#;
 
-    let monkey_file: MonkeyFileNew = MonkeyFileNew::read_from_str(variables)?;
+    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(variables)?;
     let mut top_level_scope = ASTParser::parse(&monkey_file.tokens)?;
 
     let expected = vec![
@@ -57,7 +57,7 @@ fn variable_test() -> anyhow::Result<()> {
                 ty: Some(Type::Custom(Identifier { name: String::from("*string") }, Mutability::Immutable)),
                 define: true,
                 assignable: Assignable::String(StaticString { value: "\"Fische sind wirklich wirklich toll\"".to_string() }),
-                code_line: FilePosition::default(),
+                file_position: FilePosition::default(),
             }
         ),
         AbstractSyntaxTreeNode::Variable(
@@ -67,7 +67,7 @@ fn variable_test() -> anyhow::Result<()> {
                 ty: Some(Type::Custom(Identifier { name: String::from("*string") }, Mutability::Immutable)),
                 define: true,
                 assignable: Assignable::String(StaticString { value: "\"Thomas\"".to_string() }),
-                code_line: FilePosition::default(),
+                file_position: FilePosition::default(),
             }
         ),
         AbstractSyntaxTreeNode::Variable(
@@ -77,7 +77,7 @@ fn variable_test() -> anyhow::Result<()> {
                 ty: Some(Type::Integer(IntegerType::I32, Mutability::Immutable)),
                 define: true,
                 assignable: Assignable::Integer(IntegerAST { value: "5".to_string(), ty: IntegerType::I32 }),
-                code_line: FilePosition::default(),
+                file_position: FilePosition::default(),
             }
         ),
         AbstractSyntaxTreeNode::Variable(
@@ -87,7 +87,7 @@ fn variable_test() -> anyhow::Result<()> {
                 ty: Some(Type::Custom(Identifier { name: String::from("*string") }, Mutability::Immutable)),
                 define: true,
                 assignable: Assignable::String(StaticString { value: "\"\"".to_string() }),
-                code_line: FilePosition::default(),
+                file_position: FilePosition::default(),
             }
         ),
         AbstractSyntaxTreeNode::Variable(
@@ -104,7 +104,7 @@ fn variable_test() -> anyhow::Result<()> {
                             ty: Some(Type::Custom(Identifier { name: String::from("*string") }, Mutability::Immutable)),
                             define: false,
                             assignable: Assignable::String(StaticString { value: "\"Hallo\"".to_string() }),
-                            code_line: FilePosition::default(),
+                            file_position: FilePosition::default(),
                         },
                         Variable {
                             l_value: LValue::Identifier(Identifier { name: "ciau".to_string() }),
@@ -112,7 +112,7 @@ fn variable_test() -> anyhow::Result<()> {
                             ty: Some(Type::Integer(IntegerType::I32, Mutability::Immutable)),
                             define: false,
                             assignable: Assignable::Integer(IntegerAST { value: "5".to_string(), ty: IntegerType::I32 }),
-                            code_line: FilePosition::default(),
+                            file_position: FilePosition::default(),
                         },
                         Variable {
                             l_value: LValue::Identifier(Identifier { name: "rofl".to_string() }),
@@ -126,7 +126,7 @@ fn variable_test() -> anyhow::Result<()> {
                                     file_position: FilePosition::default(),
                                 }
                             ),
-                            code_line: FilePosition::default(),
+                            file_position: FilePosition::default(),
                         },
                         Variable {
                             l_value: LValue::Identifier(Identifier { name: "mofl".to_string() }),
@@ -153,11 +153,11 @@ fn variable_test() -> anyhow::Result<()> {
                                     })],
                                 file_position: FilePosition::default(),
                             }),
-                            code_line: FilePosition::default(),
+                            file_position: FilePosition::default(),
                         }],
                     ty: Type::Custom(Identifier { name: "Data".to_string() }, Mutability::Immutable),
                 }),
-                code_line: FilePosition::default(),
+                file_position: FilePosition::default(),
             }
         ),
         AbstractSyntaxTreeNode::Variable(
@@ -167,7 +167,7 @@ fn variable_test() -> anyhow::Result<()> {
                 ty: Some(Type::Integer(IntegerType::I32, Mutability::Immutable)),
                 define: true,
                 assignable: Assignable::Integer(IntegerAST { value: "9".to_string(), ty: IntegerType::I32 }),
-                code_line: FilePosition::default(),
+                file_position: FilePosition::default(),
             }
         ),
         AbstractSyntaxTreeNode::Variable(
@@ -176,12 +176,12 @@ fn variable_test() -> anyhow::Result<()> {
                 mutability: false,
                 ty: Some(Type::Custom(Identifier { name: "*i32".to_string() }, Mutability::Immutable)),
                 define: true,
-                assignable: Assignable::ArithmeticEquation(Expression {
+                assignable: Assignable::Expression(Expression {
                     lhs: None,
                     rhs: None,
                     operator: Operator::Noop,
                     prefix_arithmetic: Some(PrefixArithmetic::PointerArithmetic(PointerArithmetic::Ampersand)),
-                    value: Some(Box::new(Assignable::ArithmeticEquation(Expression {
+                    value: Some(Box::new(Assignable::Expression(Expression {
                         lhs: None,
                         rhs: None,
                         operator: Operator::Noop,
@@ -193,7 +193,7 @@ fn variable_test() -> anyhow::Result<()> {
                     index_operator: None,
                     positive: true,
                 }),
-                code_line: FilePosition::default(),
+                file_position: FilePosition::default(),
             }
         ),
         // let pointer_arithmetic = *ref_value + 1;
@@ -203,9 +203,9 @@ fn variable_test() -> anyhow::Result<()> {
                 mutability: false,
                 ty: Some(Type::Integer(IntegerType::I32, Mutability::Immutable)),
                 define: true,
-                assignable: Assignable::ArithmeticEquation(Expression {
+                assignable: Assignable::Expression(Expression {
                     lhs: Some(Box::new(Expression {
-                        value: Some(Box::new(Assignable::ArithmeticEquation(Expression {
+                        value: Some(Box::new(Assignable::Expression(Expression {
                             lhs: None,
                             rhs: None,
                             operator: Operator::Noop,
@@ -229,7 +229,7 @@ fn variable_test() -> anyhow::Result<()> {
                     index_operator: None,
                     positive: true,
                 }),
-                code_line: FilePosition::default(),
+                file_position: FilePosition::default(),
             }
         ),
     ];
@@ -257,7 +257,7 @@ fn variable_test_types() -> anyhow::Result<()> {
     let pointer_arithmetic = *ref_value + 1;
     "#;
 
-    let monkey_file: MonkeyFileNew = MonkeyFileNew::read_from_str(variables)?;
+    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(variables)?;
     let mut lexer = ASTParser::parse(&monkey_file.tokens)?;
 
     let expected = vec![
@@ -298,7 +298,7 @@ fn variable_test_casting() -> anyhow::Result<()> {
     let d = 5.0 + 1.0;
     "#;
 
-    let monkey_file: MonkeyFileNew = MonkeyFileNew::read_from_str(variables)?;
+    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(variables)?;
     let mut top_level_scope = ASTParser::parse(&monkey_file.tokens)?;
     println!("{:?}", top_level_scope);
 
@@ -331,7 +331,7 @@ fn variable_test_casting() -> anyhow::Result<()> {
 fn variable_test_double_casting() -> anyhow::Result<()> {
     let variables = r#"let b: f32 = (f32)(i32) 5;"#;
 
-    let monkey_file: MonkeyFileNew = MonkeyFileNew::read_from_str(variables)?;
+    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(variables)?;
     let mut top_level_scope = ASTParser::parse(&monkey_file.tokens)?;
 
     let expected = vec![
@@ -345,7 +345,7 @@ fn variable_test_double_casting() -> anyhow::Result<()> {
         match node {
             AbstractSyntaxTreeNode::Variable(v) => {
                 println!("{:?}", match &v.assignable {
-                    Assignable::ArithmeticEquation(a) => {
+                    Assignable::Expression(a) => {
                         &a.prefix_arithmetic
                     },
                     _ => { &s }
@@ -387,7 +387,7 @@ fn variable_test_casting_complex_expression() -> anyhow::Result<()> {
     let addition4 = (((i32)((f32)*d + (f32)*b) + (*b + *d)) + (*b + *b)) + ((*b + (*b + *b)) + (*b + (*d + *b)));
     "#;
 
-    let monkey_file: MonkeyFileNew = MonkeyFileNew::read_from_str(variables)?;
+    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(variables)?;
     let mut top_level_scope = ASTParser::parse(&monkey_file.tokens)?;
 
     let expected = vec![
@@ -427,7 +427,7 @@ fn variable_test_casting_complex() -> anyhow::Result<()> {
     let k: i32 = (i32)(f32)(((i32)(f32)*r) + 2);
     "#;
 
-    let monkey_file: MonkeyFileNew = MonkeyFileNew::read_from_str(variables)?;
+    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(variables)?;
     let mut top_level_scope = ASTParser::parse(&monkey_file.tokens)?;
 
     println!("{:#?}", top_level_scope);
@@ -478,7 +478,7 @@ fn variable_test_integers() -> anyhow::Result<()> {
     let j = (u64)f + i;
     "#;
 
-    let monkey_file: MonkeyFileNew = MonkeyFileNew::read_from_str(variables)?;
+    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(variables)?;
     let mut top_level_scope = ASTParser::parse(&monkey_file.tokens)?;
 
     println!("{:#?}", top_level_scope);
@@ -530,7 +530,7 @@ fn variable_test_integers_assignable() -> anyhow::Result<()> {
     let i: u64 = 5;
     "#;
 
-    let monkey_file: MonkeyFileNew = MonkeyFileNew::read_from_str(variables)?;
+    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(variables)?;
     let mut top_level_scope = ASTParser::parse(&monkey_file.tokens)?;
 
     println!("{:#?}", top_level_scope);
