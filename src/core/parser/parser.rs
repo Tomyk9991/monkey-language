@@ -20,6 +20,7 @@ impl Display for ASTParser {
         let mut buffer = String::new();
         for astn in &self.program {
             buffer.push_str(&astn.to_string());
+            buffer.push_str("\n");
         }
 
         write!(f, "{}", buffer)

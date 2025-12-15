@@ -11,6 +11,7 @@ use crate::core::code_generator::generator::{Stack, StackLocation};
 use crate::core::code_generator::register_destination::{byte_size_from_word, word_from_byte_size};
 use crate::core::code_generator::registers::{ByteSize, GeneralPurposeRegister};
 use crate::core::constants::KEYWORDS;
+use crate::core::lexer::token_with_span::FilePosition;
 use crate::core::model::abstract_syntax_tree_nodes::identifier::{Identifier, IdentifierError};
 use crate::core::model::abstract_syntax_tree_nodes::l_value::LValue;
 use crate::core::model::types::ty::Type;
@@ -28,7 +29,7 @@ impl Identifier {
 
     pub fn from_str(s: &str, allow_reserved: bool) -> Result<Identifier, IdentifierError> {
         if !allow_reserved && KEYWORDS.iter().any(|keyword| keyword.to_lowercase() == s.to_lowercase()) {
-            return Err(IdentifierError::KeywordReserved(s.to_string()));
+            return Err(IdentifierError::KeywordReserved(s.to_string(), FilePosition::default()));
         }
 
         if !lazy_regex::regex_is_match!(r"^[a-zA-Z_$][a-zA-Z_$0-9]*$", s) {

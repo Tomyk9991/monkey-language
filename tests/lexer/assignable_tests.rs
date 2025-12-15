@@ -34,13 +34,12 @@ fn assignable_string() -> anyhow::Result<()> {
     ];
 
     for (expected_result, value) in &values {
-        let static_string = StaticString::from_str(value);
+        let monkey_file: MonkeyFile = MonkeyFile::read_from_str(value)?;
+        let integer = StaticString::parse(&monkey_file.tokens, ParseOptions::default());
         if !*expected_result {
-            if !*expected_result {
-                println!("{}", static_string.err().unwrap());
-            } else {
-                static_string.unwrap();
-            }
+            println!("{}", integer.err().unwrap());
+        } else {
+            integer.unwrap();
         }
     }
 

@@ -2,7 +2,7 @@ use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
 use crate::core::lexer::error::Error;
 use crate::core::lexer::parse::{Parse, ParseOptions, ParseResult};
-use crate::core::lexer::token_with_span::TokenWithSpan;
+use crate::core::lexer::token_with_span::{FilePosition, TokenWithSpan};
 use crate::core::model::abstract_syntax_tree_nodes::identifier::Identifier;
 use crate::core::model::abstract_syntax_tree_nodes::l_value::LValue;
 
@@ -22,14 +22,14 @@ impl Parse for LValue {
 
 #[derive(Debug)]
 pub enum LValueErr {
-    KeywordReserved(String),
+    KeywordReserved(String, FilePosition),
 }
 
 impl Display for LValueErr {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let message = match self {
-            LValueErr::KeywordReserved(value) => {
-                format!("The variable name \"{}\" variable name can't have the same name as a reserved keyword", value)
+            LValueErr::KeywordReserved(value, file_position) => {
+                format!("The variable name \"{}\" {file_position} variable name can't have the same name as a reserved keyword", value)
             }
         };
         write!(f, "{}", message)
@@ -46,7 +46,7 @@ impl FromStr for LValue {
         if let Ok(name) = Identifier::from_str(s, false) {
             Ok(LValue::Identifier(name))
         } else {
-            Err(LValueErr::KeywordReserved(s.to_string()))
+            Err(LValueErr::KeywordReserved(s.to_string(), FilePosition::default()))
         }
     }
 }

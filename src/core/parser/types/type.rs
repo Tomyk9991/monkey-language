@@ -305,7 +305,9 @@ impl Type {
 
                 // if list of tokens contains the custom string, its an invalid type
                 if let Some(a) = Token::iter().find(|a| a.matches(custom)) {
-                    return Err(InferTypeError::TypeNotAllowed(IdentifierError::KeywordReserved(String::from(custom))));
+                    if !matches!(a.token, Token::Literal(_)) {
+                        return Err(InferTypeError::TypeNotAllowed(IdentifierError::KeywordReserved(String::from(custom), FilePosition::default())));
+                    }
                 }
 
                 if !lazy_regex::regex_is_match!(r"^[\*&]*[a-zA-Z_$][a-zA-Z_$0-9]*[\*&]*$", s) {
