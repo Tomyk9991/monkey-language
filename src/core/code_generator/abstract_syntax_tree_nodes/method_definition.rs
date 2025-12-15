@@ -22,7 +22,6 @@ use crate::core::model::types::ty::Type;
 use crate::core::parser::errors::EmptyIteratorErr;
 use crate::core::parser::scope::{PatternNotMatchedError, ScopeError};
 use crate::core::parser::static_type_context::{CurrentMethodInfo, StaticTypeContext};
-use crate::core::parser::{Lines, TryParse};
 use crate::core::parser::types::r#type::{InferTypeError, MethodCallSignatureMismatchCause};
 use crate::core::semantics::static_type_check::static_type_checker::{static_type_check_rec, StaticTypeCheckError};
 use crate::core::semantics::static_type_check::static_type_check::StaticTypeCheck;
@@ -108,18 +107,18 @@ impl ToASM for MethodDefinition {
                     None
                 }));
             } else {
-                return Err(ASMGenerateError::UnresolvedReference { name: argument.identifier.identifier().to_string(), code_line: CodeLine::default()/*self.file_position.clone()*/})
+                return Err(ASMGenerateError::UnresolvedReference { name: argument.identifier.identifier().to_string(), file_position: self.file_position.clone()})
             }
         }
 
         meta.static_type_information.expected_return_type = Some(CurrentMethodInfo {
             return_type: self.return_type.clone(),
-            method_header_line: CodeLine::default().actual_line_number,//self.code_line.actual_line_number.clone(),
+            method_header_line: self.file_position.clone(),
             method_name: self.identifier.identifier(),
         });
 
         for node in &self.stack {
-            meta.code_line = node.file_position();
+            meta.file_position = node.file_position();
             stack_allocation += node.byte_size(meta);
 
 

@@ -8,7 +8,6 @@ use crate::core::model::abstract_syntax_tree_nodes::if_::If;
 use crate::core::model::abstract_syntax_tree_nodes::import::Import;
 use crate::core::model::abstract_syntax_tree_nodes::method_definition::MethodDefinition;
 use crate::core::model::abstract_syntax_tree_nodes::ret::Return;
-use crate::core::model::abstract_syntax_tree_nodes::scope_ending::ScopeEnding;
 use crate::core::model::abstract_syntax_tree_nodes::variable::Variable;
 use crate::core::model::abstract_syntax_tree_nodes::while_::While;
 

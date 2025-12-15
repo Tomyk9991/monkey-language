@@ -10,11 +10,9 @@ use crate::core::model::abstract_syntax_tree_nodes::if_::{If, IfError};
 use crate::core::model::scope::Scope;
 use crate::core::parser::scope::PatternNotMatchedError;
 use crate::core::parser::static_type_context::StaticTypeContext;
-use crate::core::parser::{Lines, TryParse};
 use crate::core::parser::types::r#type::InferTypeError;
 use crate::core::semantics::static_type_check::static_type_check::StaticTypeCheck;
 use crate::core::semantics::static_type_check::static_type_checker::StaticTypeCheckError;
-use crate::core::semantics::type_infer::infer_type::InferType;
 use crate::pattern;
 
 
@@ -93,19 +91,6 @@ impl If {
     }
 }
 
-impl InferType for If {
-    fn infer_type(&mut self, type_context: &mut StaticTypeContext) -> Result<(), InferTypeError> {
-        Scope::infer_type(&mut self.if_stack, type_context)?;
-
-        if let Some(else_stack) = &mut self.else_stack {
-            Scope::infer_type(else_stack, type_context)?;
-        }
-
-        Ok(())
-    }
-}
-
-
 impl PatternNotMatchedError for IfError {
     fn is_pattern_not_matched_error(&self) -> bool {
         matches!(self, IfError::PatternNotMatched {..})
@@ -152,91 +137,5 @@ impl StaticTypeCheck for If {
         // }
 
         Ok(())
-    }
-}
-
-impl TryParse for If {
-    type Output = If;
-    type Err = IfError;
-
-    fn try_parse(code_lines_iterator: &mut Lines<'_>) -> anyhow::Result<Self::Output, Self::Err> {
-        // let if_header = *code_lines_iterator
-        //     .peek()
-        //     .ok_or(IfErr::EmptyIterator(EmptyIteratorErr))?;
-        //
-        // let split_alloc = if_header.split(vec![' ']);
-        // let split_ref = split_alloc.iter().map(|a| a.as_str()).collect::<Vec<_>>();
-        //
-        // let mut if_stack = vec![];
-        // let mut else_stack: Option<Vec<AbstractSyntaxTreeNode>> = None;
-        //
-        // let mut requested_else_block = false;
-        //
-        // if let ["if", "(", condition @ .., ")", "{"] = &split_ref[..] {
-        //     let condition = condition.join(" ");
-        //     let condition = Assignable::from_str(&condition)?;
-        //
-        //     // consume the header
-        //     let _ = code_lines_iterator.next();
-        //
-        //     // collect the body
-        //     'outer: while code_lines_iterator.peek().is_some() {
-        //         if let Some(next_line) = code_lines_iterator.peek() {
-        //             let split_alloc = next_line.split(vec![' ']);
-        //             let split_ref = split_alloc.iter().map(|a| a.as_str()).collect::<Vec<_>>();
-        //
-        //             if let ["else", "{"] = &split_ref[..] {
-        //                 // consume the "else {"
-        //                 let _ = code_lines_iterator.next();
-        //
-        //                 if else_stack.is_none() {
-        //                     else_stack = Some(vec![]);
-        //                 }
-        //
-        //                 while code_lines_iterator.peek().is_some() {
-        //                     let node = Scope::try_parse(code_lines_iterator)
-        //                         .map_err(IfErr::ScopeErrorErr)?;
-        //
-        //                     if let AbstractSyntaxTreeNode::ScopeEnding(_) = node {
-        //                         break 'outer;
-        //                     }
-        //
-        //
-        //                     if let Some(else_stack) = &mut else_stack {
-        //                         else_stack.push(node);
-        //                     }
-        //                 }
-        //             } else if requested_else_block {
-        //                 break 'outer;
-        //             }
-        //         }
-        //
-        //         let node = Scope::try_parse(code_lines_iterator)
-        //             .map_err(IfErr::ScopeErrorErr)?;
-        //
-        //         if let AbstractSyntaxTreeNode::ScopeEnding(_) = node {
-        //             // after breaking, because you've read "}". check if else block starts. if so, dont break.
-        //             requested_else_block = true;
-        //             continue;
-        //         }
-        //
-        //         if_stack.push(node);
-        //     }
-        //
-        //     return Ok(If {
-        //         condition,
-        //         if_stack,
-        //         else_stack,
-        //         file_position: if_header.clone(),
-        //     });
-        // }
-
-
-        Err(IfError::PatternNotMatched {
-            target_value: "if".to_string()
-        })
-        // Err(IfErr::PatternNotMatched {
-        //     target_value: if_header.line.to_string()
-        // })
     }
 }

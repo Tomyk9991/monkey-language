@@ -7,7 +7,6 @@ use crate::core::parser::static_type_context::StaticTypeContext;
 use crate::core::parser::types::r#type::InferTypeError;
 use crate::core::semantics::static_type_check::static_type_check::StaticTypeCheck;
 use crate::core::semantics::static_type_check::static_type_checker::StaticTypeCheckError;
-use crate::core::semantics::type_infer::infer_type::InferType;
 
 impl AbstractSyntaxTreeNode {
     pub fn scope(&self) -> Option<Vec<&Vec<AbstractSyntaxTreeNode>>> {

@@ -16,6 +16,7 @@ use crate::core::model::types::integer::IntegerType;
 use crate::core::model::types::ty::Type;
 use crate::core::parser::types::boolean::Boolean;
 use crate::core::parser::types::cast_to::{Castable, CastToError};
+use crate::core::semantics::type_infer::infer_type::InferType;
 
 #[derive(Clone)]
 pub struct PrefixArithmeticOptions {
@@ -41,7 +42,7 @@ impl ToASM for PrefixArithmetic {
                                 // trying to lea rax, rax. this is not good
                                 // you must write to an anonymous stack position and dereference that one
                                 if GeneralPurposeRegister::from_str(&options.register_or_stack_address).is_ok() {
-                                    let byte_size = options.value.infer_type_with_context(&meta.static_type_information, &meta.code_line)?.byte_size();
+                                    let byte_size = options.value.infer_type(&mut meta.static_type_information)?.byte_size();
                                     stack.variables.push(StackLocation::new_anonymous_stack_location(stack.stack_position, byte_size));
                                     stack.stack_position += byte_size;
 
@@ -65,7 +66,7 @@ impl ToASM for PrefixArithmetic {
 
                                 if !options.child_has_pointer_arithmetic {
                                     options.target.push_str(&ASMBuilder::mov_ident_line(&options.register_64, format!("QWORD [{}]", options.register_64)));
-                                    let value_type = options.value.infer_type_with_context(&meta.static_type_information, &meta.code_line).ok();
+                                    let value_type = options.value.infer_type(&mut meta.static_type_information).ok();
 
 
                                     if let (GeneralPurposeRegister::Float(destination_float_register), Some(f)) = (&options.target_register, &value_type) {
@@ -78,7 +79,7 @@ impl ToASM for PrefixArithmetic {
                         }
                     }
                     PrefixArithmetic::Cast(ty) => {
-                        let assignable_type = options.value.infer_type_with_context(&meta.static_type_information, &meta.code_line)?;
+                        let assignable_type = options.value.infer_type(&mut meta.static_type_information)?;
                         let cast_to = assignable_type.cast_to(ty);
 
                         if options.child_has_pointer_arithmetic {
@@ -92,7 +93,7 @@ impl ToASM for PrefixArithmetic {
                             (Type::Bool(_), Type::Integer(i2, _)) => Boolean::cast_from_to(&Boolean::True, i2, &options.register_or_stack_address, stack, meta)?,
                             (Type::Float(f1, _), Type::Integer(i2, _)) => FloatType::cast_from_to(f1, i2, &options.register_or_stack_address, stack, meta)?,
                             (Type::Integer(i1, _), Type::Integer(i2, _)) => IntegerType::cast_from_to(i1, i2, &options.register_or_stack_address, stack, meta)?,
-                            _ => return Err(ASMGenerateError::CastUnsupported(CastToError::CastUnsupported(cast_to.clone()), meta.code_line.clone()))
+                            _ => return Err(ASMGenerateError::CastUnsupported(CastToError::CastUnsupported(cast_to.clone()), meta.file_position.clone()))
                         };
 
                         result.apply_with(&mut options.target)

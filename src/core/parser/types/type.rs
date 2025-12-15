@@ -138,6 +138,7 @@ impl OperatorToASM for Type {
             Type::Float(t, _) => t.operation_to_asm(operator, registers, stack, meta),
             Type::Bool(_) => Boolean::True.operation_to_asm(operator, registers, stack, meta),
             Type::Void => Err(ASMGenerateError::InternalError("Void cannot be operated on".to_string())),
+            Type::Statement => Err(ASMGenerateError::InternalError("Statements cannot be operated on".to_string())),
             Type::Array(_, _, _) | Type::Custom(_, _) => todo!(),
         }
     }
@@ -199,6 +200,7 @@ impl Display for Type {
             Type::Float(float, _) => format!("{}", float),
             Type::Bool(_) => "bool".to_string(),
             Type::Void => "void".to_string(),
+            Type::Statement => "statement".to_string(),
             Type::Array(array_type, size, _) => format!("[{}; {size}]", array_type),
             Type::Custom(name, _) => name.name.clone().to_string(),
         })
@@ -283,7 +285,8 @@ impl Type {
                 Mutability::Mutable => true,
                 Mutability::Immutable => false
             }
-            Type::Void => false
+            Type::Void => false,
+            Type::Statement => false
         }
     }
 
@@ -350,6 +353,7 @@ impl Type {
             Type::Float(_, mutability) => *mutability = m,
             Type::Bool(mutability) => *mutability = m,
             Type::Void => {},
+            Type::Statement => {}
             Type::Array(_, _, mutability) => *mutability = m,
             Type::Custom(_, mutability) => *mutability = m,
         }
@@ -405,12 +409,13 @@ impl Type {
             Type::Float(float, mutability) => Type::Custom(Identifier { name: format!("*{}", float) }, mutability.clone()),
             Type::Bool(mutability) => Type::Custom(Identifier { name: "*bool".to_string() }, mutability.clone()),
             Type::Void => Type::Custom(Identifier { name: format!("*{}", Type::Void) }, Mutability::Immutable),
+            Type::Statement => Type::Custom(Identifier { name: format!("*{}", Type::Statement) }, Mutability::Immutable),
             Type::Array(array_type, _, mutability) => Type::Custom(Identifier { name: format!("*{}", array_type)}, mutability.clone()),
             Type::Custom(custom, mutability) => Type::Custom(Identifier { name: format!("*{}", custom) }, mutability.clone()),
         }
     }
 
-    pub fn implicit_cast_to(&self, assignable: &mut Assignable, desired_type: &Type, code_line: &CodeLine) -> Result<Option<Type>, InferTypeError> {
+    pub fn implicit_cast_to(&self, assignable: &mut Assignable, desired_type: &Type, file_position: &FilePosition) -> Result<Option<Type>, InferTypeError> {
         match (self, desired_type) {
             (Type::Integer(_, _), Type::Integer(desired, _)) => {
                 if let Assignable::Integer(integer) = assignable {
@@ -447,7 +452,7 @@ impl Type {
                             integer.ty = desired.clone();
                             return Ok(Some(desired_type.clone()))
                         },
-                        _ => return Err(InferTypeError::IntegerTooSmall { ty: desired_type.clone() , literal: integer.value.to_string(), file_position: code_line.clone() })
+                        _ => return Err(InferTypeError::IntegerTooSmall { ty: desired_type.clone() , literal: integer.value.to_string(), file_position: file_position.clone() })
                     }
                 }
             }
@@ -462,7 +467,7 @@ impl Type {
                             float.ty = desired.clone();
                             Ok(Some(desired_type.clone()))
                         },
-                        _ => Err(InferTypeError::FloatTooSmall { ty: desired_type.clone(), float: float.value, file_position: code_line.clone() })
+                        _ => Err(InferTypeError::FloatTooSmall { ty: desired_type.clone(), float: float.value, file_position: file_position.clone() })
                     }
                 }
             },
@@ -501,6 +506,7 @@ impl Type {
             Type::Array(array_type, _, _) => array_type.byte_size(),
             Type::Bool(_) => 1,
             Type::Void => 0,
+            Type::Statement => 0,
             Type::Custom(_, _) => 8, // todo: calculate custom data types recursively
         }
     }

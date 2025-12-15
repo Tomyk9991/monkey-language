@@ -12,8 +12,8 @@ use crate::core::model::abstract_syntax_tree_nodes::assignables::equation_parser
 use crate::core::model::abstract_syntax_tree_nodes::identifier::IdentifierError;
 use crate::core::model::types::mutability::Mutability;
 use crate::core::model::types::ty::Type;
-use crate::core::parser::abstract_syntax_tree_nodes::assignables::method_call::{dyck_language, dyck_language_generic};
 use crate::core::parser::types::r#type::{InferTypeError};
+use crate::core::parser::utils::dyck::dyck_language_generic;
 use crate::pattern;
 
 pub mod expression;

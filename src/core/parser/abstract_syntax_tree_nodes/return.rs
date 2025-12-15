@@ -20,7 +20,6 @@ use crate::core::model::types::integer::{IntegerAST, IntegerType};
 use crate::core::parser::errors::EmptyIteratorErr;
 use crate::core::parser::scope::PatternNotMatchedError;
 use crate::core::parser::static_type_context::StaticTypeContext;
-use crate::core::parser::{Lines, TryParse};
 use crate::core::parser::types::r#type::{InferTypeError};
 use crate::core::semantics::static_type_check::static_type_checker::StaticTypeCheckError;
 use crate::core::semantics::static_type_check::static_type_check::StaticTypeCheck;
@@ -119,38 +118,5 @@ impl Parse for Return {
         }
 
         Err(crate::core::lexer::error::Error::first_unexpected_token(&tokens[0..1], &vec![Token::Return.into()]))
-    }
-}
-
-impl TryParse for Return {
-    type Output = Return;
-    type Err = ReturnError;
-
-    fn try_parse(code_lines_iterator: &mut Lines<'_>) -> anyhow::Result<Self::Output, Self::Err> {
-        let code_line = *code_lines_iterator.peek().ok_or(ReturnError::EmptyIterator(EmptyIteratorErr))?;
-        Return::try_parse(code_line)
-    }
-}
-
-impl Return {
-    pub fn try_parse(code_line: &CodeLine) -> anyhow::Result<Self, ReturnError> {
-        // let split_alloc = code_line.split(vec![' ', ';']);
-        // let split = split_alloc.iter().map(|a| a.as_str()).collect::<Vec<_>>();
-        //
-        // if let ["return", assignable @ .., ";"] = &split[..] {
-        //     let joined = &assignable.join(" ");
-        //
-        //     Ok(Return {
-        //         assignable: Some(Assignable::from_str(joined)?),
-        //         code_line: code_line.clone(),
-        //     })
-        // } else if let ["return", ";"] = &split[..] {
-        //     return Ok(Return {
-        //         assignable: None,
-        //         code_line: code_line.clone(),
-        //     })
-        // } else {
-        // }
-        Err(ReturnError::PatternNotMatched { target_value: code_line.line.clone() })
     }
 }

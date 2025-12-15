@@ -12,12 +12,10 @@ use crate::core::model::scope::Scope;
 use crate::core::parser::errors::EmptyIteratorErr;
 use crate::core::parser::scope::{PatternNotMatchedError, ScopeError};
 use crate::core::parser::static_type_context::StaticTypeContext;
-use crate::core::parser::abstract_syntax_tree_nodes::assignables::method_call::DyckError;
-use crate::core::parser::{Lines, TryParse};
 use crate::core::parser::types::r#type::InferTypeError;
+use crate::core::parser::utils::dyck::DyckError;
 use crate::core::semantics::static_type_check::static_type_check::StaticTypeCheck;
 use crate::core::semantics::static_type_check::static_type_checker::StaticTypeCheckError;
-use crate::core::semantics::type_infer::infer_type::InferType;
 use crate::pattern;
 
 #[derive(Debug)]
@@ -34,15 +32,6 @@ impl PatternNotMatchedError for WhileErr {
         matches!(self, WhileErr::PatternNotMatched { .. })
     }
 }
-
-impl InferType for While {
-    fn infer_type(&mut self, type_context: &mut StaticTypeContext) -> Result<(), InferTypeError> {
-        Scope::infer_type(&mut self.stack, type_context)?;
-
-        Ok(())
-    }
-}
-
 
 impl From<DyckError> for WhileErr {
     fn from(value: DyckError) -> Self {
@@ -120,48 +109,5 @@ impl Parse for While {
         }
 
         Err(crate::core::lexer::error::Error::first_unexpected_token(&tokens[0..1], &vec![Token::While.into()]))
-    }
-}
-
-impl TryParse for While {
-    type Output = While;
-    type Err = WhileErr;
-
-    fn try_parse(code_lines_iterator: &mut Lines<'_>) -> anyhow::Result<Self::Output, Self::Err> {
-        // let while_header = *code_lines_iterator
-        //     .peek()
-        //     .ok_or(WhileErr::EmptyIterator(EmptyIteratorErr))?;
-        //
-        // let split_alloc = while_header.split(vec![' ']);
-        // let split_ref = split_alloc.iter().map(|a| a.as_str()).collect::<Vec<_>>();
-        // let mut stack = vec![];
-        //
-        // if let ["while", "(", condition @ .., ")", "{"] = &split_ref[..] {
-        //     let condition = condition.join(" ");
-        //     let condition = Assignable::from_str(&condition)?;
-        //
-        //     // consume the header
-        //     let _ = code_lines_iterator.next();
-        //
-        //     while code_lines_iterator.peek().is_some() {
-        //         let node = Scope::try_parse(code_lines_iterator).map_err(WhileErr::ScopeErrorErr)?;
-        //
-        //         if let AbstractSyntaxTreeNode::ScopeEnding(_) = node {
-        //             break;
-        //         }
-        //
-        //         stack.push(node);
-        //     }
-        //
-        //     return Ok(While {
-        //         condition,
-        //         stack,
-        //         code_line: while_header.clone(),
-        //     })
-        // }
-
-        Err(WhileErr::PatternNotMatched {
-            target_value: String::new(),
-        })
     }
 }

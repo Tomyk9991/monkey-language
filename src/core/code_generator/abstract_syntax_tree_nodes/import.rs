@@ -8,7 +8,6 @@ use crate::core::model::abstract_syntax_tree_nodes::import::{Import, ImportError
 use crate::core::parser::errors::EmptyIteratorErr;
 use crate::core::parser::scope::PatternNotMatchedError;
 use crate::core::parser::static_type_context::StaticTypeContext;
-use crate::core::parser::{Lines, TryParse};
 use crate::core::semantics::static_type_check::static_type_checker::StaticTypeCheckError;
 use crate::core::semantics::static_type_check::static_type_check::StaticTypeCheck;
 

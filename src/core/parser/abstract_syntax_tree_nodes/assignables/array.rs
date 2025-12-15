@@ -22,8 +22,8 @@ use crate::core::model::types::array::Array;
 use crate::core::model::types::mutability::Mutability;
 use crate::core::model::types::ty::Type;
 use crate::core::parser::static_type_context::StaticTypeContext;
-use crate::core::parser::abstract_syntax_tree_nodes::assignables::method_call::{dyck_language, dyck_language_generic};
 use crate::core::parser::types::r#type::{InferTypeError};
+use crate::core::parser::utils::dyck::{dyck_language, dyck_language_generic};
 use crate::pattern;
 
 #[derive(Debug)]
@@ -86,43 +86,5 @@ impl Display for ArrayErr {
         write!(f, "{}", match self {
             ArrayErr::UnmatchedRegex => "Array must match: [type, size]"
         })
-    }
-}
-
-
-impl FromStr for Array {
-    type Err = ArrayErr;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if !lazy_regex::regex_is_match!(r"^\[.*\]$", s) {
-            return Err(ArrayErr::UnmatchedRegex);
-        }
-
-        if s.replace(" ", "") == "[]" {
-            return Ok(Array {
-                values: vec![]
-            })
-        }
-
-        if let ["[ ", array_content @ .., "]"] = &s.split_inclusive(' ').collect::<Vec<_>>()[..] {
-            let array_elements_str = dyck_language(&array_content.join(" "), [vec!['{', '('], vec![','], vec!['}', ')']])
-                .map_err(|_| ArrayErr::UnmatchedRegex)?;
-
-            if array_elements_str.is_empty() {
-                return Err(ArrayErr::UnmatchedRegex);
-            }
-
-            let mut values = vec![];
-
-            for array_element in &array_elements_str {
-                values.push(Assignable::from_str(array_element).map_err(|_| ArrayErr::UnmatchedRegex)?);
-            }
-
-            return Ok(Array {
-                values,
-            })
-        }
-
-        Err(ArrayErr::UnmatchedRegex)
     }
 }

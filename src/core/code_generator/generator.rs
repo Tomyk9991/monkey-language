@@ -103,7 +103,7 @@ impl Stack {
         self.begin_scope();
 
         for node in nodes {
-            meta.code_line = node.file_position();
+            meta.file_position = node.file_position().clone();
 
             target += match &node.to_asm(self, meta, options.clone())? {
                 ASMResult::Inline(t) => t,
@@ -186,7 +186,7 @@ impl ASMGenerator {
 
                         self.stack.clear_stack();
                         let mut meta = MetaInfo {
-                            code_line: CodeLine::default(),// main.code_line.clone(),
+                            file_position: main.file_position.clone(),
                             target_os: self.target_os.clone(),
                             static_type_information: StaticTypeContext::new(&self.top_level_scope.ast_nodes),
                         };
@@ -243,7 +243,7 @@ impl ASMGenerator {
 
         for node in &self.top_level_scope.ast_nodes {
             let mut meta = MetaInfo {
-                code_line: node.file_position(),
+                file_position: node.file_position().clone(),
                 target_os: self.target_os.clone(),
                 static_type_information: StaticTypeContext::new(&self.top_level_scope.ast_nodes),
             };
@@ -261,7 +261,7 @@ impl ASMGenerator {
                             ty: argument.ty.clone(),
                             register: calling_convention[index][0].clone(),
                             mutability: argument.ty.mutable(),
-                            code_line: CodeLine::default() // method_definition.code_line.clone(),
+                            file_position: method_definition.file_position.clone(),
                         };
 
                         self.stack.variables.push(StackLocation {

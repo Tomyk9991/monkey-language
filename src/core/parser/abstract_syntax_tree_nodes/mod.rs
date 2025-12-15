@@ -3,7 +3,6 @@ pub mod identifier;
 pub mod assignable;
 pub mod assignables;
 pub mod method_definition;
-pub mod scope_ending;
 pub mod r#if;
 
 pub mod import;

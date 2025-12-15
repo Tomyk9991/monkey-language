@@ -11,7 +11,7 @@ use crate::core::parser::types::r#type::{InferTypeError};
 #[derive(Debug, Clone)]
 pub struct CurrentMethodInfo {
     pub return_type: Type,
-    pub method_header_line: Range<usize>,
+    pub method_header_line: FilePosition,
     pub method_name: String,
 }
 
@@ -116,6 +116,7 @@ impl StaticTypeContext {
         Self {
             context,
             expected_return_type: None,
+            current_file_position: scope.first().map_or(FilePosition::default(), |n| n.file_position().clone()),
             methods,
         }
     }

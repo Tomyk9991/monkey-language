@@ -45,7 +45,7 @@ impl ToASM for CastTo {
         <FloatType as Castable<FloatType, IntegerType>>::add_casts(&mut cast_to_matrix);
 
         if self.from == self.to {
-            return Err(ASMGenerateError::CastUnsupported(CastToError::CastTypesIdentical(self.clone()), meta.code_line.clone()))
+            return Err(ASMGenerateError::CastUnsupported(CastToError::CastTypesIdentical(self.clone()), meta.file_position.clone()))
         }
 
 
@@ -53,7 +53,7 @@ impl ToASM for CastTo {
             return Ok(ASMResult::Inline(v.to_string()))
         }
 
-        Err(ASMGenerateError::CastUnsupported(CastToError::CastUnsupported(self.clone()), meta.code_line.clone()))
+        Err(ASMGenerateError::CastUnsupported(CastToError::CastUnsupported(self.clone()), meta.file_position.clone()))
     }
 
     fn is_stack_look_up(&self, _stack: &mut Stack, _meta: &MetaInfo) -> bool {

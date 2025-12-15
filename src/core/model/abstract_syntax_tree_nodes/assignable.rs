@@ -9,6 +9,7 @@ use crate::core::model::types::boolean::Boolean;
 use crate::core::model::types::float::FloatAST;
 use crate::core::model::types::integer::IntegerAST;
 use crate::core::model::types::static_string::StaticString;
+use crate::core::model::types::ty::Type;
 
 /// AST node for assignable abstract_syntax_tree_nodes. Numbers, strings, method calls, other variables, objects, and arithmetic / boolean equations.
 #[derive(Debug, PartialEq, Clone)]

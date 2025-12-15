@@ -46,7 +46,7 @@ impl Display for MethodDefinition {
         for a in &self.stack {
             stack_buffer.push_str(&format!("    {};\n", a));
         }
-        stack_buffer.push_str("}");
+        stack_buffer.push_str("}\n");
 
         write!(
             f,

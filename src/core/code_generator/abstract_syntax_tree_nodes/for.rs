@@ -6,8 +6,9 @@ use crate::core::code_generator::generator::Stack;
 use crate::core::model::abstract_syntax_tree_nodes::assignable::AssignableError;
 use crate::core::model::abstract_syntax_tree_nodes::for_::{For, ForErr};
 use crate::core::parser::scope::PatternNotMatchedError;
-use crate::core::parser::abstract_syntax_tree_nodes::assignables::method_call::DyckError;
 use crate::core::parser::abstract_syntax_tree_nodes::variable::ParseVariableErr;
+use crate::core::parser::utils::dyck::DyckError;
+
 impl PatternNotMatchedError for ForErr {
     fn is_pattern_not_matched_error(&self) -> bool {
         matches!(self, ForErr::PatternNotMatched { .. })

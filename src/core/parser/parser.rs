@@ -116,16 +116,6 @@ impl ASTParser {
     }
 }
 
-impl ASTParser {
-    pub fn infer_types(scope: &mut Vec<AbstractSyntaxTreeNode>, type_context: &mut StaticTypeContext) -> Result<(), InferTypeError> {
-        for node in scope {
-            node.infer_type(type_context)?;
-        }
-
-        Ok(())
-    }
-}
-
 // impl ASTParser {
 //     /// Build scope ast node with the current file
 //     /// # Returns

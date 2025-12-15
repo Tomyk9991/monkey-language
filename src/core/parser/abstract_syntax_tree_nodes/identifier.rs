@@ -41,24 +41,6 @@ impl Identifier {
             name: s.to_string()
         })
     }
-
-    pub fn infer_type_with_context(&self, context: &StaticTypeContext, code_line: &CodeLine) -> Result<Type, InferTypeError> {
-        if let Some(v) = context.iter().rfind(|v| {
-            if let LValue::Identifier(n) = &v.l_value {
-                n.name == *self.name
-            } else {
-                false
-            }
-        }) {
-            return if let Some(ty) = &v.ty {
-                Ok(ty.clone())
-            } else {
-                Err(InferTypeError::NoTypePresent(v.l_value.clone(), CodeLine::default()/*v.code_line.clone()*/))
-            };
-        }
-
-        Err(InferTypeError::UnresolvedReference(self.to_string(), code_line.clone()))
-    }
 }
 
 fn to_multi_line_index_calculation(operand_hint: &str, index_operation: &str, resulting_register: &GeneralPurposeRegister, stack_location: &StackLocation, element_size: usize) -> Result<ASMResult, ASMGenerateError> {

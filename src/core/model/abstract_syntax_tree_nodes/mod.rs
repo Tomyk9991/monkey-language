@@ -7,7 +7,6 @@ pub mod parameter;
 pub mod ret;
 pub mod method_definition;
 pub mod import;
-pub mod scope_ending;
 pub mod if_;
 pub mod for_;
 pub mod while_;

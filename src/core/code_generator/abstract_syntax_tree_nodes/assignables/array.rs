@@ -22,7 +22,6 @@ use crate::core::model::types::array::{Array, ArrayErr};
 use crate::core::model::types::mutability::Mutability;
 use crate::core::model::types::ty::Type;
 use crate::core::parser::static_type_context::StaticTypeContext;
-use crate::core::parser::abstract_syntax_tree_nodes::assignables::method_call::{dyck_language, dyck_language_generic};
 use crate::core::parser::types::r#type::{InferTypeError};
 use crate::pattern;
 
@@ -33,72 +32,73 @@ fn contains(a: &[TokenWithSpan], b: &TokenWithSpan) -> bool {
 
 impl ToASM for Array {
     fn to_asm<T: ASMOptions + 'static>(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
-        let mut target = String::new();
-        target += &ASMBuilder::ident(&ASMBuilder::comment_line(&format!("{}", self)));
-
-        let initial_position = match options {
-            Some(options) => {
-                let any_t = &options as &dyn Any;
-                if let Some(concrete_type) = any_t.downcast_ref::<IdentifierPresent>() {
-                    let stack_variable = stack.variables.iter().rfind(|v| v.name == concrete_type.identifier).ok_or(ASMGenerateError::InternalError("Cannot find variable".to_string()))?;
-                    stack_variable.position
-                } else {
-                    stack.stack_position
-                }
-            }
-            None => {
-                stack.stack_position
-            }
-        };
-
-        let mut offset = if let [first, ..] = &self.values[..] {
-            initial_position + first.byte_size(meta) * self.values.len()
-        } else {
-            initial_position
-        };
-
-        for assignable in self.values.iter() {
-            let first_register = GeneralPurposeRegister::iter_from_byte_size(assignable.byte_size(meta))?.current();
-            let result = assignable.to_asm(stack, meta, Some(InterimResultOption {
-                general_purpose_register: first_register.clone(),
-            }))?;
-
-            let byte_size = assignable.byte_size(meta);
-            let destination = format!("{} [rbp - {}]", register_destination::word_from_byte_size(byte_size), offset);
-
-            match result {
-                ASMResult::Inline(source) => {
-                    if assignable.is_stack_look_up(stack, meta) {
-                        target += &ASMBuilder::mov_x_ident_line(&first_register, source, Some(first_register.size() as usize));
-                        target += &ASMBuilder::mov_ident_line(destination, &first_register);
-                    } else {
-                        target += &ASMBuilder::mov_ident_line(destination, source);
-                    }
-                }
-                ASMResult::MultilineResulted(source, mut register) => {
-                    target += &source;
-
-                    if let Assignable::Expression(expr) = assignable {
-                        let final_type = expr.traverse_type(meta).ok_or(ASMGenerateError::InternalError("Cannot infer type".to_string()))?;
-                        let r = GeneralPurposeRegister::Bit64(Bit64::Rax).to_size_register(&ByteSize::try_from(final_type.byte_size())?);
-
-                        if let Type::Float(s, _) = final_type {
-                            target += &ASMBuilder::mov_x_ident_line(&r, register, Some(s.byte_size()));
-                            register = r;
-                        }
-                    }
-
-                    target += &ASMBuilder::mov_ident_line(destination, register);
-                }
-                ASMResult::Multiline(source) => {
-                    target += &source;
-                }
-            }
-
-            offset -= byte_size;
-        }
-
-        Ok(ASMResult::Multiline(target))
+        // let mut target = String::new();
+        // target += &ASMBuilder::ident(&ASMBuilder::comment_line(&format!("{}", self)));
+        //
+        // let initial_position = match options {
+        //     Some(options) => {
+        //         let any_t = &options as &dyn Any;
+        //         if let Some(concrete_type) = any_t.downcast_ref::<IdentifierPresent>() {
+        //             let stack_variable = stack.variables.iter().rfind(|v| v.name == concrete_type.identifier).ok_or(ASMGenerateError::InternalError("Cannot find variable".to_string()))?;
+        //             stack_variable.position
+        //         } else {
+        //             stack.stack_position
+        //         }
+        //     }
+        //     None => {
+        //         stack.stack_position
+        //     }
+        // };
+        //
+        // let mut offset = if let [first, ..] = &self.values[..] {
+        //     initial_position + first.byte_size(meta) * self.values.len()
+        // } else {
+        //     initial_position
+        // };
+        //
+        // for assignable in self.values.iter() {
+        //     let first_register = GeneralPurposeRegister::iter_from_byte_size(assignable.byte_size(meta))?.current();
+        //     let result = assignable.to_asm(stack, meta, Some(InterimResultOption {
+        //         general_purpose_register: first_register.clone(),
+        //     }))?;
+        //
+        //     let byte_size = assignable.byte_size(meta);
+        //     let destination = format!("{} [rbp - {}]", register_destination::word_from_byte_size(byte_size), offset);
+        //
+        //     match result {
+        //         ASMResult::Inline(source) => {
+        //             if assignable.is_stack_look_up(stack, meta) {
+        //                 target += &ASMBuilder::mov_x_ident_line(&first_register, source, Some(first_register.size() as usize));
+        //                 target += &ASMBuilder::mov_ident_line(destination, &first_register);
+        //             } else {
+        //                 target += &ASMBuilder::mov_ident_line(destination, source);
+        //             }
+        //         }
+        //         ASMResult::MultilineResulted(source, mut register) => {
+        //             target += &source;
+        //
+        //             if let Assignable::Expression(expr) = assignable {
+        //                 let final_type = expr.traverse_type(meta).ok_or(ASMGenerateError::InternalError("Cannot infer type".to_string()))?;
+        //                 let r = GeneralPurposeRegister::Bit64(Bit64::Rax).to_size_register(&ByteSize::try_from(final_type.byte_size())?);
+        //
+        //                 if let Type::Float(s, _) = final_type {
+        //                     target += &ASMBuilder::mov_x_ident_line(&r, register, Some(s.byte_size()));
+        //                     register = r;
+        //                 }
+        //             }
+        //
+        //             target += &ASMBuilder::mov_ident_line(destination, register);
+        //         }
+        //         ASMResult::Multiline(source) => {
+        //             target += &source;
+        //         }
+        //     }
+        //
+        //     offset -= byte_size;
+        // }
+        //
+        // Ok(ASMResult::Multiline(target))
+        todo!()
     }
 
     fn is_stack_look_up(&self, _stack: &mut Stack, _meta: &MetaInfo) -> bool {

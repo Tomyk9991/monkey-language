@@ -15,7 +15,6 @@ use crate::core::model::types::integer::{IntegerAST, IntegerType};
 use crate::core::parser::errors::EmptyIteratorErr;
 use crate::core::parser::scope::PatternNotMatchedError;
 use crate::core::parser::static_type_context::StaticTypeContext;
-use crate::core::parser::{Lines, TryParse};
 use crate::core::parser::types::r#type::{InferTypeError};
 use crate::core::semantics::static_type_check::static_type_checker::StaticTypeCheckError;
 use crate::core::semantics::static_type_check::static_type_check::StaticTypeCheck;

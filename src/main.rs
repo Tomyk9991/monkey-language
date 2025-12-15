@@ -3,8 +3,9 @@ use colored::Colorize;
 use crate::cli::program_args::{PrintOption, ProgramArgs};
 use crate::core::io::monkey_file::MonkeyFile;
 use crate::core::parser::parser::ASTParser;
-use monkey_language::core::semantics::static_type_check::static_type_checker::static_type_check;
-use monkey_language::core::semantics::type_infer::type_inferer::infer_type;
+use crate::core::semantics::static_type_check::static_type_checker::static_type_check;
+use crate::core::semantics::type_infer::type_inferer::infer_type;
+use crate::core::model::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
 
 mod core;
 mod cli;
@@ -29,9 +30,11 @@ fn run_compiler() -> anyhow::Result<()> {
         };
     }
 
+    let s: &mut Vec<AbstractSyntaxTreeNode> = &mut top_level_scope.result.program;
+
 // 2) Static Type Checking
-    infer_type(&mut top_level_scope.result.program)?;
-    let static_type_context = static_type_check(&top_level_scope.result.program)?;
+    infer_type(s)?;
+    // let static_type_context = static_type_check(&top_level_scope.result.program)?;
 //
 // // 3) o1 Optimization
 //     if args.optimization_level == OptimizationLevel::O1 {

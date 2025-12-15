@@ -1,11 +1,11 @@
 use std::fmt::{Display, Formatter};
+use crate::core::lexer::token_with_span::FilePosition;
 use crate::core::model::abstract_syntax_tree_nodes::assignables::method_call::MethodCall;
 use crate::core::model::abstract_syntax_tree_nodes::for_::For;
 use crate::core::model::abstract_syntax_tree_nodes::if_::If;
 use crate::core::model::abstract_syntax_tree_nodes::import::Import;
 use crate::core::model::abstract_syntax_tree_nodes::method_definition::MethodDefinition;
 use crate::core::model::abstract_syntax_tree_nodes::ret::Return;
-use crate::core::model::abstract_syntax_tree_nodes::scope_ending::ScopeEnding;
 use crate::core::model::abstract_syntax_tree_nodes::variable::Variable;
 use crate::core::model::abstract_syntax_tree_nodes::while_::While;
 
@@ -23,16 +23,16 @@ pub enum AbstractSyntaxTreeNode {
 }
 
 impl AbstractSyntaxTreeNode {
-    pub fn file_position(&self) -> &crate::core::lexer::token_with_span::FilePosition {
+    pub fn file_position(&self) -> FilePosition {
         match self {
-            AbstractSyntaxTreeNode::Variable(v) => &v.file_position,
-            AbstractSyntaxTreeNode::MethodCall(m) => &m.file_position,
-            AbstractSyntaxTreeNode::MethodDefinition(m) => &m.file_position,
-            AbstractSyntaxTreeNode::If(m) => &m.file_position,
-            AbstractSyntaxTreeNode::Import(m) => &m.file_position,
-            AbstractSyntaxTreeNode::Return(m) => &m.file_position,
-            AbstractSyntaxTreeNode::While(a) => &a.file_position,
-            AbstractSyntaxTreeNode::For(m) => &m.file_position,
+            AbstractSyntaxTreeNode::Variable(v) => v.file_position.clone(),
+            AbstractSyntaxTreeNode::MethodCall(m) => m.file_position.clone(),
+            AbstractSyntaxTreeNode::MethodDefinition(m) => m.file_position.clone(),
+            AbstractSyntaxTreeNode::If(m) => m.file_position.clone(),
+            AbstractSyntaxTreeNode::Import(m) => m.file_position.clone(),
+            AbstractSyntaxTreeNode::Return(m) => m.file_position.clone(),
+            AbstractSyntaxTreeNode::While(a) => a.file_position.clone(),
+            AbstractSyntaxTreeNode::For(m) => m.file_position.clone(),
         }
     }
 }

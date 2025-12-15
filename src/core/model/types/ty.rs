@@ -13,4 +13,6 @@ pub enum Type {
     Void,
     Array(Box<Type>, usize, Mutability),
     Custom(Identifier, Mutability),
+    /// Special type to represent type returns from statements like if and loops. Types here are used as a feedback channel for analytical information, not exclusively as a mathematical type.
+    Statement
 }

@@ -1,5 +1,5 @@
 use std::fmt::{Debug, Display, Formatter};
-
+use crate::core::lexer::token_with_span::FilePosition;
 use crate::core::model::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
 use crate::core::model::abstract_syntax_tree_nodes::assignable::Assignable;
 use crate::core::model::abstract_syntax_tree_nodes::l_value::LValue;
@@ -10,10 +10,10 @@ use crate::core::semantics::static_type_check::static_type_check::StaticTypeChec
 
 #[derive(Debug)]
 pub enum StaticTypeCheckError {
-    UnresolvedReference { name: LValue, code_line: CodeLine },
-    NoTypePresent { name: LValue, code_line: CodeLine },
-    VoidType { assignable: Assignable, code_line: CodeLine },
-    ImmutabilityViolated { name: LValue, code_line: CodeLine },
+    UnresolvedReference { name: LValue, file_position: FilePosition },
+    NoTypePresent { name: LValue, file_position: FilePosition },
+    VoidType { assignable: Assignable, file_position: FilePosition },
+    ImmutabilityViolated { name: LValue, file_position: FilePosition },
     InferredError(InferTypeError),
 }
 
@@ -22,11 +22,11 @@ impl std::error::Error for StaticTypeCheckError {}
 impl Display for StaticTypeCheckError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", match self {
-            StaticTypeCheckError::UnresolvedReference { name, code_line } => format!("Line: {:?}\tUnresolved reference: `{name}`", code_line.actual_line_number),
+            StaticTypeCheckError::UnresolvedReference { name, file_position } => format!("Line: {}\tUnresolved reference: `{name}`", file_position),
             StaticTypeCheckError::InferredError(err) => err.to_string(),
-            StaticTypeCheckError::NoTypePresent { name, code_line } => format!("Line: {:?}\tType not inferred: `{name}`", code_line.actual_line_number),
-            StaticTypeCheckError::ImmutabilityViolated { name, code_line } => format!("Line: {:?}\tThis symbol isn't declared mutable: `{name}`", code_line.actual_line_number),
-            StaticTypeCheckError::VoidType { assignable, code_line } => format!("Line: {:?}\tCannot assign void to a variable: `{assignable}`", code_line.actual_line_number),
+            StaticTypeCheckError::NoTypePresent { name, file_position } => format!("Line: {}\tType not inferred: `{name}`", file_position),
+            StaticTypeCheckError::ImmutabilityViolated { name, file_position } => format!("Line: {}\tThis symbol isn't declared mutable: `{name}`", file_position),
+            StaticTypeCheckError::VoidType { assignable, file_position } => format!("Line: {}\tCannot assign void to a variable: `{assignable}`", file_position),
         })
     }
 }
@@ -43,11 +43,12 @@ pub fn static_type_check(scope: &Vec<AbstractSyntaxTreeNode>) -> Result<StaticTy
     // check if a variable, which is not a defined variable has an invalid re-assignment
     // let a = 1.0;
     // a = 5;
-    let mut type_context: StaticTypeContext = StaticTypeContext::new(scope);
-    type_context.colliding_symbols()?;
-    static_type_check_rec(&scope, &mut type_context)?;
-
-    Ok(type_context)
+    // let mut type_context: StaticTypeContext = StaticTypeContext::new(scope);
+    // type_context.colliding_symbols()?;
+    // static_type_check_rec(&scope, &mut type_context)?;
+    //
+    // Ok(type_context)
+    todo!()
 }
 
 pub fn static_type_check_rec(scope: &Vec<AbstractSyntaxTreeNode>, type_context: &mut StaticTypeContext) -> Result<(), StaticTypeCheckError> {

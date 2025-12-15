@@ -16,12 +16,10 @@ use crate::core::model::types::ty::Type;
 use crate::core::parser::errors::EmptyIteratorErr;
 use crate::core::parser::scope::PatternNotMatchedError;
 use crate::core::parser::static_type_context::StaticTypeContext;
-use crate::core::parser::{Lines, TryParse};
 use crate::core::parser::abstract_syntax_tree_nodes::l_value::LValueErr;
 use crate::core::parser::types::r#type::InferTypeError;
 use crate::core::semantics::static_type_check::static_type_check::StaticTypeCheck;
 use crate::core::semantics::static_type_check::static_type_checker::StaticTypeCheckError;
-use crate::core::semantics::type_infer::infer_type::InferType;
 use crate::pattern;
 
 impl Parse for Variable<'=', ';'> {
@@ -128,68 +126,68 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> TryFrom<Result<ParseResult<S
 
 impl StaticTypeCheck for Variable<'=', ';'> {
     fn static_type_check(&self, type_context: &mut StaticTypeContext) -> Result<(), StaticTypeCheckError> {
-        let line = CodeLine::default();
-        if self.define {
-            if let Assignable::Array(array) = &self.assignable {
-                // check if all types are equal, where the first type is the expected type
-                let all_types = array.values
-                    .iter()
-                    .map(|a| a.infer_type_with_context(type_context, &line/*&self.code_line.clone()*/))
-                    .collect::<Vec<Result<Type, InferTypeError>>>();
-
-                if !all_types.is_empty() {
-                    let first_type = &all_types[0];
-                    if let Ok(first_type) = first_type {
-                        for (index, current_type) in all_types.iter().enumerate() {
-                            if let Ok(current_type) = current_type {
-                                if current_type != first_type {
-                                    return Err(StaticTypeCheckError::InferredError(InferTypeError::MultipleTypesInArray {
-                                        expected: first_type.clone(),
-                                        unexpected_type: current_type.clone(),
-                                        unexpected_type_index: index,
-                                        file_position: Default::default(),
-                                    }))
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            let ty = self.assignable.infer_type_with_context(type_context, &line/*&self.code_line*/)?;
-            if matches!(ty, Type::Void) {
-                return Err(StaticTypeCheckError::VoidType { assignable: self.assignable.clone(), code_line: line/*self.code_line.clone()*/ });
-            }
-
-
-            if self.ty.is_some() {
-                type_context.context.push(self.clone());
-                return Ok(());
-            }
-        }
-
-        if !self.define {
-            if let Some(found_variable) = type_context.iter().rfind(|v| v.l_value.identifier() == self.l_value.identifier()) {
-                let inferred_type = self.assignable.infer_type_with_context(type_context, &line/*&self.code_line*/)?;
-                if let Some(ty) = &found_variable.ty {
-
-                    if ty > &inferred_type {
-                        return Err(InferTypeError::MismatchedTypes { expected: ty.clone(), actual: inferred_type.clone(), file_position: line/*self.code_line.clone()*/ }.into());
-                    }
-
-                    if !found_variable.mutability {
-                        return Err(StaticTypeCheckError::ImmutabilityViolated {
-                            name: self.l_value.clone(),
-                            code_line: line/*self.code_line.clone()*/,
-                        });
-                    }
-                } else {
-                    return Err(StaticTypeCheckError::NoTypePresent { name: self.l_value.clone(), code_line: line/*self.code_line.clone()*/ });
-                }
-            } else {
-                return Err(StaticTypeCheckError::UnresolvedReference { name: self.l_value.clone(), code_line: line/*self.code_line.clone()*/ });
-            }
-        }
+        // let line = CodeLine::default();
+        // if self.define {
+        //     if let Assignable::Array(array) = &self.assignable {
+        //         // check if all types are equal, where the first type is the expected type
+        //         let all_types = array.values
+        //             .iter()
+        //             .map(|a| a.infer_type_with_context(type_context, &line/*&self.code_line.clone()*/))
+        //             .collect::<Vec<Result<Type, InferTypeError>>>();
+        //
+        //         if !all_types.is_empty() {
+        //             let first_type = &all_types[0];
+        //             if let Ok(first_type) = first_type {
+        //                 for (index, current_type) in all_types.iter().enumerate() {
+        //                     if let Ok(current_type) = current_type {
+        //                         if current_type != first_type {
+        //                             return Err(StaticTypeCheckError::InferredError(InferTypeError::MultipleTypesInArray {
+        //                                 expected: first_type.clone(),
+        //                                 unexpected_type: current_type.clone(),
+        //                                 unexpected_type_index: index,
+        //                                 file_position: Default::default(),
+        //                             }))
+        //                         }
+        //                     }
+        //                 }
+        //             }
+        //         }
+        //     }
+        //
+        //     let ty = self.assignable.infer_type_with_context(type_context, &line/*&self.code_line*/)?;
+        //     if matches!(ty, Type::Void) {
+        //         return Err(StaticTypeCheckError::VoidType { assignable: self.assignable.clone(), code_line: line/*self.code_line.clone()*/ });
+        //     }
+        //
+        //
+        //     if self.ty.is_some() {
+        //         type_context.context.push(self.clone());
+        //         return Ok(());
+        //     }
+        // }
+        //
+        // if !self.define {
+        //     if let Some(found_variable) = type_context.iter().rfind(|v| v.l_value.identifier() == self.l_value.identifier()) {
+        //         let inferred_type = self.assignable.infer_type_with_context(type_context, &line/*&self.code_line*/)?;
+        //         if let Some(ty) = &found_variable.ty {
+        //
+        //             if ty > &inferred_type {
+        //                 return Err(InferTypeError::MismatchedTypes { expected: ty.clone(), actual: inferred_type.clone(), file_position: line/*self.code_line.clone()*/ }.into());
+        //             }
+        //
+        //             if !found_variable.mutability {
+        //                 return Err(StaticTypeCheckError::ImmutabilityViolated {
+        //                     name: self.l_value.clone(),
+        //                     code_line: line/*self.code_line.clone()*/,
+        //                 });
+        //             }
+        //         } else {
+        //             return Err(StaticTypeCheckError::NoTypePresent { name: self.l_value.clone(), code_line: line/*self.code_line.clone()*/ });
+        //         }
+        //     } else {
+        //         return Err(StaticTypeCheckError::UnresolvedReference { name: self.l_value.clone(), file_position: line/*self.code_line.clone()*/ });
+        //     }
+        // }
 
         Ok(())
     }
@@ -257,162 +255,4 @@ impl Display for ParseVariableErr {
             ParseVariableErr::LValue(err) => err.to_string(),
         })
     }
-}
-
-impl<const ASSIGNMENT: char, const SEPARATOR: char> TryParse for Variable<ASSIGNMENT, SEPARATOR> {
-    type Output = Variable<ASSIGNMENT, SEPARATOR>;
-    type Err = ParseVariableErr;
-
-    fn try_parse(code_lines_iterator: &mut Lines<'_>) -> anyhow::Result<Self::Output, Self::Err> {
-        let code_line = *code_lines_iterator.peek().ok_or(ParseVariableErr::EmptyIterator(EmptyIteratorErr))?;
-        Variable::try_parse(code_line)
-    }
-}
-
-impl<const ASSIGNMENT: char, const SEPARATOR: char> Variable<ASSIGNMENT, SEPARATOR> {
-    pub fn try_parse(code_line: &CodeLine) -> anyhow::Result<Self, ParseVariableErr> {
-        let split_alloc = code_line.split(vec![' ', ';']);
-        let split = split_alloc.iter().map(|a| a.as_str()).collect::<Vec<_>>();
-
-
-        let assignment = ASSIGNMENT.to_string();
-        let separator = SEPARATOR.to_string();
-
-        let binding = process_name_collapse(&split, &assignment);
-        let split: Vec<&str> = binding.iter().map(|a| a.as_str()).collect();
-
-        let let_used;
-        let mut_used;
-
-        let final_variable_name: &str;
-        let assignable: Assignable;
-        let ty: Option<Type>;
-
-        match &split[..] {
-            // [let] [mut] name[: i32] = 5;
-            ["let", name, assignment_str, middle @ .., separator_str] if assignment_str == &assignment && separator_str == &separator => {
-                final_variable_name = name;
-                assignable = Assignable::from_str(middle.join(" ").as_str()).context(code_line.line.clone())?;
-                // type is not specified by the programmer, so it must be inferred
-                ty = assignable.infer_type(code_line);
-
-                let_used = true;
-                mut_used = false;
-            }
-            ["let", name, ":", type_str, assignment_str, middle @ .., separator_str] if assignment_str == &assignment && separator_str == &separator => {
-                final_variable_name = name;
-                assignable = Assignable::from_str(middle.join(" ").as_str()).context(code_line.line.clone())?;
-                ty = Some(Type::from_str(type_str, Mutability::Immutable)?);
-
-                let_used = true;
-                mut_used = false;
-            }
-            ["let", name, ":", "[", type_str, ",", type_size, "]", assignment_str, middle @ .., separator_str] if assignment_str == &assignment && separator_str == &separator => {
-                final_variable_name = name;
-                assignable = Assignable::from_str(middle.join(" ").as_str()).context(code_line.line.clone())?;
-                ty = Some(Type::from_str(&format!("[ {} , {} ]", type_str, type_size), Mutability::Immutable)?);
-
-                let_used = true;
-                mut_used = false;
-            }
-            ["let", "mut", name, assignment_str, middle @ .., separator_str] if assignment_str == &assignment && separator_str == &separator => {
-                final_variable_name = name;
-                assignable = Assignable::from_str(middle.join(" ").as_str()).context(code_line.line.clone())?;
-                // type is not specified by the programmer, so it must be inferred
-                ty = assignable.infer_type(code_line);
-
-                let_used = true;
-                mut_used = true;
-            }
-            ["let", "mut", name, ":", type_str, assignment_str, middle @ .., separator_str] if assignment_str == &assignment && separator_str == &separator => {
-                final_variable_name = name;
-                assignable = Assignable::from_str(middle.join(" ").as_str()).context(code_line.line.clone())?;
-                ty = Some(Type::from_str(type_str, Mutability::Mutable)?);
-
-                let_used = true;
-                mut_used = true;
-            }
-            ["let", "mut", name, ":", "[", type_str, ",", type_size, "]", assignment_str, middle @ .., separator_str] if assignment_str == &assignment && separator_str == &separator => {
-                final_variable_name = name;
-                assignable = Assignable::from_str(middle.join(" ").as_str()).context(code_line.line.clone())?;
-                ty = Some(Type::from_str(&format!("[ {} , {} ]", type_str, type_size), Mutability::Mutable)?);
-
-                let_used = true;
-                mut_used = true;
-            }
-            [name , assignment_str, middle @ .., separator_str] if assignment_str == &assignment && separator_str == &separator => {
-                final_variable_name = name;
-                assignable = Assignable::from_str(middle.join(" ").as_str()).context(code_line.line.clone())?;
-                ty = assignable.infer_type(code_line);
-
-                let_used = false;
-                mut_used = false;
-            }
-            _ => {
-                return Err(ParseVariableErr::PatternNotMatched { target_value: code_line.line.to_string() });
-            }
-        }
-
-        Ok(Variable {
-            l_value: LValue::from_str(final_variable_name)?,
-            mutability: mut_used,
-            ty,
-            define: let_used,
-            assignable,
-            file_position: FilePosition::default()/*code_line.clone()*/,
-        })
-    }
-
-    pub fn infer_with_context(&self, context: &mut StaticTypeContext, code_line: &CodeLine) -> Result<Type, InferTypeError> {
-        match &self.assignable {
-            Assignable::MethodCall(method_call) => {
-                if let Some(method_def) = context.methods.iter().find(|method_def| {
-                    method_def.identifier == method_call.identifier
-                }) {
-                    return Ok(method_def.return_type.clone());
-                }
-            }
-            Assignable::Identifier(variable) => {
-                if let Some(v) = context.iter().rfind(|v| {
-                    v.l_value == LValue::Identifier(variable.clone())
-                }) {
-                    return if let Some(ty) = &v.ty {
-                        Ok(ty.clone())
-                    } else {
-                        Err(InferTypeError::NoTypePresent(v.l_value.clone(), CodeLine::default()/*self.code_line.clone()*/))
-                    };
-                }
-            }
-            Assignable::Expression(expression) => {
-                return expression.traverse_type_resulted(context, code_line);
-            }
-            a => unreachable!("{}", format!("The type {a} should have been inferred or directly parsed. Something went wrong"))
-        }
-
-        Err(InferTypeError::UnresolvedReference(self.assignable.to_string(), CodeLine::default()/*self.code_line.clone()*/))
-    }
-}
-
-// trys to collapse everything that can belong to the l_value
-fn process_name_collapse(regex_split: &[&str], assignment_str: &str) -> Vec<String> {
-    if let Some(assignment_index) = regex_split.iter().position(|a| a == &assignment_str) {
-        let (l_value, right_value) = regex_split.split_at(assignment_index);
-        #[allow(clippy::redundant_slicing)] // slicing must happen, otherwise middle is not a slice with a length known at compile time
-        let l_value = match &l_value[..] {
-            [name, "[", middle@ .., "]"] => {
-                let mut result = name.to_string();
-                result.push_str(" [ ");
-                result.extend(middle.iter().map(|a| a.to_string()));
-                result.push_str(" ]");
-                result
-            },
-            _ => return regex_split.iter().map(|a| a.to_string()).collect(),
-        };
-
-        let mut resulting_vec = vec![l_value, assignment_str.to_string()];
-        resulting_vec.extend(right_value.iter().skip(1).map(|a| a.to_string()));
-        return resulting_vec;
-    }
-
-    regex_split.iter().map(|a| a.to_string()).collect()
 }

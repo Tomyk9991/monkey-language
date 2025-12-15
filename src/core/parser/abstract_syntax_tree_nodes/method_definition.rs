@@ -11,7 +11,6 @@ use crate::core::code_generator::conventions::CallingRegister;
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::registers::ByteSize;
 use crate::core::lexer::collect_tokens_until_scope_close::CollectTokensFromUntil;
-use crate::core::parser::abstract_syntax_tree_nodes::assignables::method_call::dyck_language_generic;
 use crate::core::lexer::parse::{Parse, ParseOptions, ParseResult};
 use crate::core::lexer::token::Token;
 use crate::core::lexer::token_match::MatchResult;
@@ -28,8 +27,8 @@ use crate::core::model::types::ty::Type;
 use crate::core::parser::errors::EmptyIteratorErr;
 use crate::core::parser::scope::{PatternNotMatchedError, ScopeError};
 use crate::core::parser::static_type_context::{CurrentMethodInfo, StaticTypeContext};
-use crate::core::parser::{Lines, TryParse};
 use crate::core::parser::types::r#type::{InferTypeError, MethodCallSignatureMismatchCause};
+use crate::core::parser::utils::dyck::dyck_language_generic;
 use crate::core::semantics::static_type_check::static_type_checker::{static_type_check_rec, StaticTypeCheckError};
 use crate::core::semantics::static_type_check::static_type_check::StaticTypeCheck;
 use crate::pattern;
@@ -184,12 +183,11 @@ impl Parse for MethodDefinition {
                     return_type = parsed_return_type;
                 }
             }
-        };
 
-        // ["fn", name, "(", arguments @ .., ")", ":", return_type, "{"] => (false, name, None, arguments, return_type),
-        if let Some((MatchResult::Parse(parsed_fn_name))) = pattern!(tokens, Fn, @ parse LValue,) {
+        } else if let Some((MatchResult::Parse(parsed_fn_name))) = pattern!(tokens, Fn, @ parse LValue,) {
             if let Some((MatchResult::Collect(parsed_parameters))) = pattern!(&tokens[parsed_fn_name.consumed + 1..], ParenthesisOpen, @ parse CollectTokensFromUntil<'(', ')'>, ParenthesisClose) {
                 if let Some((MatchResult::Parse(parsed_return_type))) = pattern!(&tokens[parsed_fn_name.consumed + parsed_parameters.len() + 3..], Colon, @ parse Type,) {
+                    // ["fn", name, "(", arguments @ .., ")", ":", return_type, "{"] => (false, name, None, arguments, return_type),
                     const_tokens = 4;
                     let parsed_parameters_tokens_consumed = parsed_parameters.len();
                     let parsed_parameters = dyck_language_generic(&parsed_parameters, [vec!['(', '{'], vec![','], vec![')', '}']], vec![')'], contains)
@@ -208,11 +206,9 @@ impl Parse for MethodDefinition {
                     stack = Some(scope);
                 }
             }
-        }
-
-        // ["fn", name, "(", arguments @ .., ")", ":", return_type, "{"] => (false, name, None, arguments, return_type),
-        if let Some((MatchResult::Parse(parsed_fn_name))) = pattern!(tokens, Fn, @ parse LValue,) {
+        } else if let Some((MatchResult::Parse(parsed_fn_name))) = pattern!(tokens, Fn, @ parse LValue,) {
             if let Some((MatchResult::Collect(parsed_parameters))) = pattern!(&tokens[parsed_fn_name.consumed + 1..], ParenthesisOpen, @ parse CollectTokensFromUntil<'(', ')'>, ParenthesisClose) {
+                // ["fn", name, "(", arguments @ .., ")"] => (false, name, None, arguments, return_type),
                 const_tokens = 3;
                 let parsed_parameters_tokens_consumed = parsed_parameters.len();
                 let parsed_parameters = dyck_language_generic(&parsed_parameters, [vec!['(', '{'], vec![','], vec![')', '}']], vec![')'], contains)
@@ -275,83 +271,5 @@ impl Parse for MethodArgument {
         }
 
         Err(crate::core::lexer::error::Error::first_unexpected_token(&tokens[0..1], &vec![Token::Colon.into()]))
-    }
-}
-
-impl TryParse for MethodDefinition {
-    type Output = MethodDefinition;
-    type Err = MethodDefinitionErr;
-
-    fn try_parse(code_lines_iterator: &mut Lines<'_>) -> anyhow::Result<Self, MethodDefinitionErr> {
-        let method_header = *code_lines_iterator
-            .peek()
-            .ok_or(MethodDefinitionErr::EmptyIterator(EmptyIteratorErr))?;
-        //
-        // let split_alloc = method_header.split(vec![' ']);
-        // let split_ref = split_alloc.iter().map(|a| a.as_str()).collect::<Vec<_>>();
-        //
-        // let (is_extern, fn_name, _generic_type, arguments, return_type) = match &split_ref[..] {
-        //     ["extern", "fn", name, "<", generic_type, ">", "(", arguments @ .., ")", ":", return_type, ";"] => (true, name, Some(generic_type), arguments, return_type),
-        //     ["extern", "fn", name, "(", arguments @ .., ")", ":", return_type, ";"] => (true, name, None, arguments, return_type),
-        //     ["fn", name, "(", arguments @ .., ")", ":", return_type, "{"] => (false, name, None, arguments, return_type),
-        //
-        //     ["extern", "fn", name, "<", generic_type, ">", "(", arguments @ .., ")", ":", ";"] => (true, name, Some(generic_type), arguments, &"void"),
-        //     ["extern", "fn", name, "(", arguments @ .., ")", ";"] => (true, name, None, arguments, &"void"),
-        //     ["fn", name, "(", arguments @ .., ")", "{"] => (false, name, None, arguments, &"void"),
-        //     _ => return Err(MethodDefinitionErr::PatternNotMatched { target_value: method_header.line.to_string() })
-        // };
-        //
-        // let mut nodes = vec![];
-        // // consume the header
-        // let _ = code_lines_iterator.next();
-        //
-        // // consume the body
-        // if !is_extern {
-        //     while code_lines_iterator.peek().is_some() {
-        //         let node = Scope::try_parse(code_lines_iterator).map_err(MethodDefinitionErr::ScopeErrorErr)?;
-        //
-        //         nodes.push(node);
-        //     }
-        // }
-        //
-        // Ok(MethodDefinition {
-        //     identifier: Identifier::from_str(fn_name, false)?,
-        //     return_type: Type::from_str(return_type, Mutability::Immutable)?,
-        //     arguments: Self::type_arguments(method_header, arguments)?,
-        //     stack: nodes,
-        //     is_extern,
-        //     code_line: method_header.clone(),
-        // })
-
-        return Err(MethodDefinitionErr::PatternNotMatched { target_value: method_header.line.to_string() })
-    }
-}
-
-impl MethodDefinition {
-    fn type_arguments(method_header: &CodeLine, arguments: &[&str]) -> Result<Vec<MethodArgument>, MethodDefinitionErr> {
-        let arguments_string = arguments.join(" ");
-        let arguments = arguments_string.split(',').filter(|a| !a.is_empty()).map(|a| a.trim()).collect::<Vec<_>>();
-        let mut type_arguments = vec![];
-
-        for argument in arguments {
-            let (name, mut ty) = match &argument.split(':').collect::<Vec<&str>>()[..] {
-                [name, ty] => (name.trim(), ty.trim()),
-                _ => return Err(MethodDefinitionErr::PatternNotMatched { target_value: method_header.line.clone() })
-            };
-
-            let mutability = if let ["mut", t] = ty.split_whitespace().collect::<Vec<&str>>()[..] {
-                ty = t.trim();
-                true
-            } else {
-                false
-            };
-
-            // type_arguments.push(MethodArgument {
-            //     name: Identifier::from_str(name.trim(), false)?,
-            //     ty: Type::from_str(ty.trim(), Mutability::from(mutability))?
-            // })
-        }
-
-        Ok(type_arguments)
     }
 }

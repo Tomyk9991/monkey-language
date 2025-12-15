@@ -1,5 +1,6 @@
 use std::cmp::Ordering;
 use crate::core::code_generator::conventions::CallingRegister;
+use crate::core::lexer::token_with_span::FilePosition;
 use crate::core::model::abstract_syntax_tree_nodes::identifier::Identifier;
 use crate::core::model::abstract_syntax_tree_nodes::l_value::LValue;
 use crate::core::model::types::ty::Type;
@@ -13,7 +14,7 @@ pub struct Parameter {
     /// Where is the data stored?
     pub register: CallingRegister,
     pub mutability: bool,
-    pub code_line: CodeLine
+    pub file_position: FilePosition
 }
 
 impl PartialOrd for Parameter {

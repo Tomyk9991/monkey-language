@@ -23,12 +23,12 @@ pub mod abstract_syntax_tree_nodes;
 
 #[derive(Debug)]
 pub enum ASMGenerateError {
-    _VariableAlreadyUsed { name: String, code_line: CodeLine },
-    UnresolvedReference { name: String, code_line: CodeLine },
-    CastUnsupported(CastToError, CodeLine),
+    _VariableAlreadyUsed { name: String, file_position: FilePosition },
+    UnresolvedReference { name: String, file_position: FilePosition },
+    CastUnsupported(CastToError, FilePosition),
     EntryPointNotFound,
-    LValueAssignment(LValue, CodeLine),
-    MultipleEntryPointsFound(Vec<CodeLine>),
+    LValueAssignment(LValue, FilePosition),
+    MultipleEntryPointsFound(Vec<FilePosition>),
     TypeNotInferrable(InferTypeError),
     InternalError(String),
     ASMResult(ASMResultError),
@@ -51,21 +51,21 @@ impl From<InferTypeError> for ASMGenerateError {
 impl Display for ASMGenerateError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            ASMGenerateError::_VariableAlreadyUsed { name, code_line } => write!(f, "Line:{:?}:\tVariable already in use: {}", code_line.actual_line_number, name),
-            ASMGenerateError::UnresolvedReference { name, code_line } => write!(f, "Line:{:?}:\tCannot resolve variable: {}", code_line.actual_line_number, name),
+            ASMGenerateError::_VariableAlreadyUsed { name, file_position } => write!(f, "Line:{}:\tVariable already in use: {}", file_position, name),
+            ASMGenerateError::UnresolvedReference { name, file_position } => write!(f, "Line:{}:\tCannot resolve variable: {}", file_position, name),
             ASMGenerateError::AssignmentNotImplemented { assignable } => write!(f, "ASM implementation for this Assignment is missing: {}", assignable),
             ASMGenerateError::NotImplemented { ast_node } => write!(f, "Cannot build ASM from this abstract syntax tree node: {}", ast_node),
             ASMGenerateError::TypeNotInferrable(infer) => write!(f, "{}", infer),
             ASMGenerateError::InternalError(message) => write!(f, "Internal Error: {}", message),
-            ASMGenerateError::CastUnsupported(cast_to, code_line) => write!(f, "Line: {:?}:\t{}", code_line.actual_line_number, cast_to),
+            ASMGenerateError::CastUnsupported(cast_to, file_position) => write!(f, "Line: {}:\t{}", file_position, cast_to),
             ASMGenerateError::ASMResult(r) => write!(f, "{}", r),
             ASMGenerateError::EntryPointNotFound => write!(f, "No entry point for the program was found. Consider adding `main` function"),
             ASMGenerateError::MultipleEntryPointsFound(e) => write!(f, "Multiple entry points were found: [\n{}\n]", {
-                e.iter().map(|l| format!("\tLine: {:?}", l.actual_line_number))
+                e.iter().map(|l| format!("\tLine: {}", l))
                     .collect::<Vec<String>>()
                     .join(",\n")
             }),
-            ASMGenerateError::LValueAssignment(lvalue, code_line) => write!(f, "Line: {:?}\tCannot assign to value: {}", code_line.actual_line_number, lvalue),
+            ASMGenerateError::LValueAssignment(lvalue, file_position) => write!(f, "Line: {}\tCannot assign to value: {}", file_position, lvalue),
         }
     }
 }
@@ -74,7 +74,7 @@ impl std::error::Error for ASMGenerateError { }
 
 #[derive(Debug, Default)]
 pub struct MetaInfo {
-    pub code_line: CodeLine,
+    pub file_position: FilePosition,
     pub target_os: TargetOS,
     pub static_type_information: StaticTypeContext
 }
