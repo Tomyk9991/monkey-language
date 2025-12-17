@@ -43,12 +43,11 @@ pub fn static_type_check(scope: &Vec<AbstractSyntaxTreeNode>) -> Result<StaticTy
     // check if a variable, which is not a defined variable has an invalid re-assignment
     // let a = 1.0;
     // a = 5;
-    // let mut type_context: StaticTypeContext = StaticTypeContext::new(scope);
-    // type_context.colliding_symbols()?;
-    // static_type_check_rec(&scope, &mut type_context)?;
-    //
-    // Ok(type_context)
-    todo!()
+    let mut type_context: StaticTypeContext = StaticTypeContext::new(scope);
+    type_context.colliding_symbols()?;
+    static_type_check_rec(&scope, &mut type_context)?;
+    
+    Ok(type_context)
 }
 
 pub fn static_type_check_rec(scope: &Vec<AbstractSyntaxTreeNode>, type_context: &mut StaticTypeContext) -> Result<(), StaticTypeCheckError> {
@@ -58,7 +57,7 @@ pub fn static_type_check_rec(scope: &Vec<AbstractSyntaxTreeNode>, type_context: 
                 expected: ty.return_type.clone(),
                 method_name: ty.method_name.to_string(),
                 file_position: ty.method_header_line.clone(),
-                cause: MethodCallSignatureMismatchCause::ReturnMissing,
+                cause: MethodCallSignatureMismatchCause::ReturnMismatch,
             }));
         }
     }

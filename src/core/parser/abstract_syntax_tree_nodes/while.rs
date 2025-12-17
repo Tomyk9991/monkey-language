@@ -67,30 +67,6 @@ impl Display for WhileErr {
     }
 }
 
-impl StaticTypeCheck for While {
-    fn static_type_check(&self, type_context: &mut StaticTypeContext) -> Result<(), StaticTypeCheckError> {
-        // let variables_len = type_context.context.len();
-        // let condition_type = self.condition.infer_type_with_context(type_context, &self.code_line)?;
-        //
-        // if !matches!(condition_type, Type::Bool(_)) {
-        //     return Err(StaticTypeCheckError::InferredError(InferTypeError::MismatchedTypes {
-        //         expected: Type::Bool(Mutability::Immutable),
-        //         actual: condition_type,
-        //         code_line: self.code_line.clone(),
-        //     }));
-        // }
-        //
-        // static_type_check_rec(&self.stack, type_context)?;
-        //
-        // let amount_pop = type_context.context.len() - variables_len;
-        //
-        // for _ in 0..amount_pop {
-        //     let _ = type_context.context.pop();
-        // }
-        
-        Ok(())
-    }
-}
 
 impl Parse for While {
     fn parse(tokens: &[TokenWithSpan], options: ParseOptions) -> Result<ParseResult<Self>, crate::core::lexer::error::Error> where Self: Sized, Self: Default {

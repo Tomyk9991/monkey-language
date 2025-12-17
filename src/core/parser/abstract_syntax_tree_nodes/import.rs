@@ -52,12 +52,6 @@ impl From<anyhow::Error> for ImportError {
     }
 }
 
-impl StaticTypeCheck for Import {
-    fn static_type_check(&self, _type_context: &mut StaticTypeContext) -> Result<(), StaticTypeCheckError> {
-        Ok(())
-    }
-}
-
 impl Parse for Import {
     fn parse(tokens: &[TokenWithSpan], _: ParseOptions) -> Result<ParseResult<Self>, crate::core::lexer::error::Error> where Self: Sized, Self: Default {
         if let [TokenWithSpan { token: Token::Module, .. }, TokenWithSpan { token: Token::Literal(literal), .. }, TokenWithSpan { token: Token::SemiColon, .. }, ..] = &tokens[..] {

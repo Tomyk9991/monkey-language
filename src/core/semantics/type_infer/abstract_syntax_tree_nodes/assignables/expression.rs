@@ -89,11 +89,10 @@ impl InferType for Expression {
 
 impl Expression {
     pub fn get_type(&self, type_context: &StaticTypeContext) -> Option<Type> {
-        if let Some(value) = &self.value {
-            return value.get_type(type_context);
-        }
+        let mut type_context_cloned = type_context.clone();
+        let mut self_cloned = self.clone();
 
-        None
+        self_cloned.infer_type(&mut type_context_cloned).ok()
     }
 
     pub fn traverse_type(&mut self, meta: &mut MetaInfo) -> Option<Type> {

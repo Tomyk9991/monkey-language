@@ -540,7 +540,7 @@ impl<'a> Equation<'a> {
                             Some(TokenWithSpan { token: Token::SquareBracketOpen, ..}) => in_brackets = true,
                             Some(TokenWithSpan { token: Token::SquareBracketClose, ..}) => in_brackets = false,
                             Some(TokenWithSpan { token: Token::Literal(_), .. }) => { }
-                            _ if ident <= 0 => break,
+                            _ if ident <= 0 && !in_brackets => break,
                             _ => { }
                         }
 
@@ -567,7 +567,7 @@ impl<'a> Equation<'a> {
                         (
                             Some(Box::new(Assignable::parse(
                                 &sub_expression[left + 1..right], ParseOptions::default()
-                            )?.result)),
+                            )?)),
                             &sub_expression[..left],
                         )
                     } else {
@@ -582,7 +582,9 @@ impl<'a> Equation<'a> {
                         result: Box::new(Expression::from(Some(Box::new(assignable.result)))),
                         consumed: assignable.consumed,
                     };
-                    x.result.index_operator = index_operation;
+
+                    x.consumed += index_operation.clone().map(|ip| ip.consumed + 2).unwrap_or(0);
+                    x.result.index_operator = index_operation.map(|s| Box::new(s.result));
 
                     if (self.pos - start_pos) == 0 {
                         self.next_char();

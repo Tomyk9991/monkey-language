@@ -1,1 +1,9 @@
-let q = (i32)*(*f32)5;
+fn print() {
+
+}
+
+let mut i = 0;
+while (i < 5) {
+    print();
+    i = i + 1;
+}

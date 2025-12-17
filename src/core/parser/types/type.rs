@@ -57,8 +57,8 @@ pub enum InferTypeError {
 
 #[derive(Debug)]
 pub enum MethodCallSignatureMismatchCause {
-    ReturnMissing,
-    IfCondition
+    ReturnMismatch,
+    IfCondition,
 }
 
 
@@ -93,8 +93,8 @@ impl Display for Mutability {
 impl Display for MethodCallSignatureMismatchCause {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", match self {
-            MethodCallSignatureMismatchCause::ReturnMissing => "",
-            MethodCallSignatureMismatchCause::IfCondition => "Every branch of an if statement must end with a return statement"
+            MethodCallSignatureMismatchCause::ReturnMismatch => "",
+            MethodCallSignatureMismatchCause::IfCondition => "Every branch of an if statement must end with a return statement",
         })
     }
 }

@@ -1,6 +1,7 @@
 use crate::core::lexer::error::Error;
 use crate::core::lexer::token_with_span::TokenWithSpan;
 use crate::core::model::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
+use crate::core::model::abstract_syntax_tree_nodes::assignables::method_call::MethodCall;
 use crate::core::model::abstract_syntax_tree_nodes::for_::For;
 use crate::core::model::abstract_syntax_tree_nodes::if_::If;
 use crate::core::model::abstract_syntax_tree_nodes::import::Import;
@@ -20,18 +21,21 @@ pub struct ParseResult<T: Default + Clone> {
 pub struct ParseOptions {
     pub ignore_expression: bool,
     pub can_be_mutable: bool,
+    pub ends_with_semicolon: bool,
 }
 
 #[derive(Default)]
 pub struct ParseOptionsBuilder {
     ignore_expression: bool,
     can_be_mutable: bool,
+    ends_with_semicolon: bool,
 }
 
 impl ParseOptionsBuilder {
     pub fn with_can_be_mutable(&self, can_be_mutable: bool) -> ParseOptionsBuilder {
         ParseOptionsBuilder {
             ignore_expression: self.ignore_expression,
+            ends_with_semicolon: self.ends_with_semicolon,
             can_be_mutable,
         }
     }
@@ -39,6 +43,15 @@ impl ParseOptionsBuilder {
     pub fn with_ignore_expression(&self, ignore_expression: bool) -> ParseOptionsBuilder {
         ParseOptionsBuilder {
             ignore_expression,
+            ends_with_semicolon: self.ends_with_semicolon,
+            can_be_mutable: self.can_be_mutable,
+        }
+    }
+
+    pub fn with_ends_with_semicolon(&self, ends_with_semicolon: bool) -> ParseOptionsBuilder {
+        ParseOptionsBuilder {
+            ignore_expression: self.ignore_expression,
+            ends_with_semicolon,
             can_be_mutable: self.can_be_mutable,
         }
     }
@@ -47,6 +60,7 @@ impl ParseOptionsBuilder {
         ParseOptions {
             ignore_expression: self.ignore_expression,
             can_be_mutable: self.can_be_mutable,
+            ends_with_semicolon: self.ends_with_semicolon,
         }
     }
 }
@@ -62,6 +76,7 @@ impl Default for ParseOptions {
         ParseOptions {
             ignore_expression: false,
             can_be_mutable: true,
+            ends_with_semicolon: false,
         }
     }
 }
@@ -99,6 +114,15 @@ pub trait Parse: Default + Clone + Sized {
     /// assert!(parse_result.is_ok());
     /// ```
     fn parse(tokens: &[TokenWithSpan], options: ParseOptions) -> Result<ParseResult<Self>, Error> where Self: Sized, Self: Default;
+}
+
+impl From<ParseResult<MethodCall>> for Result<ParseResult<AbstractSyntaxTreeNode>, Error> {
+    fn from(value: ParseResult<MethodCall>) -> Self {
+        Ok(ParseResult {
+            result: AbstractSyntaxTreeNode::MethodCall(value.result),
+            consumed: value.consumed,
+        })
+    }
 }
 
 impl From<ParseResult<MethodDefinition>> for Result<ParseResult<AbstractSyntaxTreeNode>, Error> {

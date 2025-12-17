@@ -8,7 +8,7 @@ use crate::core::lexer::parse::{Parse, ParseOptions, ParseResult};
 use crate::core::lexer::token_match::MatchResult;
 use crate::core::lexer::token_with_span::{FilePosition, TokenWithSpan};
 use crate::core::model::abstract_syntax_tree_nodes::assignable::{Assignable, AssignableError};
-use crate::core::model::abstract_syntax_tree_nodes::identifier::IdentifierError;
+use crate::core::model::abstract_syntax_tree_nodes::identifier::{Identifier, IdentifierError};
 use crate::core::model::abstract_syntax_tree_nodes::l_value::LValue;
 use crate::core::model::abstract_syntax_tree_nodes::variable::Variable;
 use crate::core::model::types::mutability::Mutability;
@@ -121,75 +121,6 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> TryFrom<Result<ParseResult<S
             Ok(value) => Ok(value.result),
             Err(e) => Err(e),
         }
-    }
-}
-
-impl StaticTypeCheck for Variable<'=', ';'> {
-    fn static_type_check(&self, type_context: &mut StaticTypeContext) -> Result<(), StaticTypeCheckError> {
-        // let line = CodeLine::default();
-        // if self.define {
-        //     if let Assignable::Array(array) = &self.assignable {
-        //         // check if all types are equal, where the first type is the expected type
-        //         let all_types = array.values
-        //             .iter()
-        //             .map(|a| a.infer_type_with_context(type_context, &line/*&self.code_line.clone()*/))
-        //             .collect::<Vec<Result<Type, InferTypeError>>>();
-        //
-        //         if !all_types.is_empty() {
-        //             let first_type = &all_types[0];
-        //             if let Ok(first_type) = first_type {
-        //                 for (index, current_type) in all_types.iter().enumerate() {
-        //                     if let Ok(current_type) = current_type {
-        //                         if current_type != first_type {
-        //                             return Err(StaticTypeCheckError::InferredError(InferTypeError::MultipleTypesInArray {
-        //                                 expected: first_type.clone(),
-        //                                 unexpected_type: current_type.clone(),
-        //                                 unexpected_type_index: index,
-        //                                 file_position: Default::default(),
-        //                             }))
-        //                         }
-        //                     }
-        //                 }
-        //             }
-        //         }
-        //     }
-        //
-        //     let ty = self.assignable.infer_type_with_context(type_context, &line/*&self.code_line*/)?;
-        //     if matches!(ty, Type::Void) {
-        //         return Err(StaticTypeCheckError::VoidType { assignable: self.assignable.clone(), code_line: line/*self.code_line.clone()*/ });
-        //     }
-        //
-        //
-        //     if self.ty.is_some() {
-        //         type_context.context.push(self.clone());
-        //         return Ok(());
-        //     }
-        // }
-        //
-        // if !self.define {
-        //     if let Some(found_variable) = type_context.iter().rfind(|v| v.l_value.identifier() == self.l_value.identifier()) {
-        //         let inferred_type = self.assignable.infer_type_with_context(type_context, &line/*&self.code_line*/)?;
-        //         if let Some(ty) = &found_variable.ty {
-        //
-        //             if ty > &inferred_type {
-        //                 return Err(InferTypeError::MismatchedTypes { expected: ty.clone(), actual: inferred_type.clone(), file_position: line/*self.code_line.clone()*/ }.into());
-        //             }
-        //
-        //             if !found_variable.mutability {
-        //                 return Err(StaticTypeCheckError::ImmutabilityViolated {
-        //                     name: self.l_value.clone(),
-        //                     code_line: line/*self.code_line.clone()*/,
-        //                 });
-        //             }
-        //         } else {
-        //             return Err(StaticTypeCheckError::NoTypePresent { name: self.l_value.clone(), code_line: line/*self.code_line.clone()*/ });
-        //         }
-        //     } else {
-        //         return Err(StaticTypeCheckError::UnresolvedReference { name: self.l_value.clone(), file_position: line/*self.code_line.clone()*/ });
-        //     }
-        // }
-
-        Ok(())
     }
 }
 

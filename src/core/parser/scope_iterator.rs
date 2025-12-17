@@ -94,6 +94,10 @@ impl Iterator for ScopeIterator {
                 parser: Box::new(move |tokens| MethodDefinition::parse(tokens, ParseOptions::default())?.into()),
                 name: "MethodDefinition",
             },
+            AbstractSyntaxTreeNode::MethodCall(_) => ScopeIterationItem {
+                parser: Box::new(move |tokens| MethodCall::parse(tokens, ParseOptions::builder().with_ends_with_semicolon(true).build())?.into()),
+                name: "MethodCall",
+            },
             _ => {
                 // create a new box with an error
                 ScopeIterationItem {

@@ -49,18 +49,18 @@ fn assignable_string() -> anyhow::Result<()> {
 #[test]
 fn assignable_integer() -> anyhow::Result<()> {
     let values: Vec<(bool, String)> = vec![
-        // (false, "\"This is a monkeystring\"".to_string()),
-        // (false, "2\"\"".to_string()),
-        // (true, "2".to_string()),
+        (false, "\"This is a monkeystring\"".to_string()),
+        (false, "2\"\"".to_string()),
+        (true, "2".to_string()),
         (true, "-0".to_string()),
-        // (true, "15".to_string()),
-        // (false, "-+12".to_string()),
-        // (true, "+0".to_string()),
-        // (true, "+12312".to_string()),
-        // (true, "2147483648".to_string()),
-        // (true, "2147483647".to_string()),
-        // (true, "-2147483648".to_string()),
-        // (true, "-2147483649".to_string()),
+        (true, "15".to_string()),
+        (true, "-+12".to_string()),
+        (true, "+0".to_string()),
+        (true, "+12312".to_string()),
+        (true, "2147483648".to_string()),
+        (true, "2147483647".to_string()),
+        (true, "-2147483648".to_string()),
+        (true, "-2147483649".to_string()),
     ];
 
     for (expected_result, value) in &values {

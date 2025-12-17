@@ -75,26 +75,6 @@ impl From<anyhow::Error> for ReturnError {
     }
 }
 
-impl StaticTypeCheck for Return {
-    fn static_type_check(&self, type_context: &mut StaticTypeContext) -> Result<(), StaticTypeCheckError> {
-        // if let Some(expected_return_type) = &type_context.expected_return_type {
-        //     if let Some(assignable) = &self.assignable {
-        //         let actual_type = assignable.infer_type_with_context(type_context, &self.code_line)?;
-        //
-        //         if expected_return_type.return_type < actual_type {
-        //             return Err(StaticTypeCheckError::InferredError(InferTypeError::MethodReturnArgumentTypeMismatch {
-        //                 expected: expected_return_type.return_type.clone(),
-        //                 actual: actual_type,
-        //                 code_line: self.code_line.clone(),
-        //             }));
-        //         }
-        //     }
-        // }
-
-        Ok(())
-    }
-}
-
 impl Parse for Return {
     fn parse(tokens: &[TokenWithSpan], _: ParseOptions) -> Result<ParseResult<Self>, crate::core::lexer::error::Error> where Self: Sized, Self: Default {
         if let Some((MatchResult::Parse(assignable))) = pattern!(tokens, Return, @ parse Assignable, SemiColon) {

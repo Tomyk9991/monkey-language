@@ -26,7 +26,7 @@ fn run_compiler() -> anyhow::Result<()> {
 
     // 2) Static Type Checking
     infer_type(s)?;
-    // let static_type_context = static_type_check(&top_level_scope.result.program)?;
+    let _static_type_context = static_type_check(&top_level_scope.result.program)?;
     //
     // // 3) o1 Optimization
     //     if args.optimization_level == OptimizationLevel::O1 {
