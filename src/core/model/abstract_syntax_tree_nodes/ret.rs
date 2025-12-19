@@ -19,7 +19,9 @@ pub enum ReturnError {
 
 impl Display for Return {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "return{}", if let Some(assignable) = &self.assignable {
+        let ident = f.width().unwrap_or(0);
+        
+        write!(f, "{}return{}", " ".repeat(ident), if let Some(assignable) = &self.assignable {
             format!(" {}", assignable)
         } else {
             "".to_string()

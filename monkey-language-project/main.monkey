@@ -1,9 +1,4 @@
-fn print() {
-
-}
-
-let mut i = 0;
-while (i < 5) {
-    print();
-    i = i + 1;
+fn main() {
+    let i = 5;
+    let a = i < 10;
 }

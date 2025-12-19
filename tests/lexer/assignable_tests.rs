@@ -1,21 +1,12 @@
 use std::str::FromStr;
 use monkey_language::core::io::monkey_file::MonkeyFile;
 use monkey_language::core::lexer::parse::{Parse, ParseOptions};
-use monkey_language::core::lexer::token_with_span::FilePosition;
-use monkey_language::core::model::abstract_syntax_tree_nodes::assignable::Assignable;
 use monkey_language::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::expression::Expression;
-use monkey_language::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::operator::Operator;
-use monkey_language::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::prefix_arithmetic::{PointerArithmetic, PrefixArithmetic};
 use monkey_language::core::model::abstract_syntax_tree_nodes::assignables::method_call::MethodCall;
-use monkey_language::core::model::abstract_syntax_tree_nodes::assignables::object::Object;
-use monkey_language::core::model::abstract_syntax_tree_nodes::identifier::Identifier;
-use monkey_language::core::model::abstract_syntax_tree_nodes::l_value::LValue;
 use monkey_language::core::model::types::boolean::Boolean;
 use monkey_language::core::model::types::float::FloatAST;
-use monkey_language::core::model::types::integer::{IntegerAST, IntegerType};
+use monkey_language::core::model::types::integer::{IntegerAST};
 use monkey_language::core::model::types::static_string::StaticString;
-use monkey_language::core::parser::abstract_syntax_tree_nodes::assignables::equation_parser::Equation;
-use monkey_language::core::parser::parser::ASTParser;
 
 #[test]
 fn assignable_string() -> anyhow::Result<()> {

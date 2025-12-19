@@ -7,6 +7,7 @@ use crate::core::code_generator::asm_options::ASMOptions;
 use crate::core::code_generator::asm_result::{ASMResult};
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::registers::{Bit64, ByteSize, GeneralPurposeRegister};
+use crate::core::lexer::token_with_span::FilePosition;
 use crate::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::operator::Operator;
 use crate::core::model::types::ty::Type;
 
@@ -75,12 +76,12 @@ impl AssemblerOperation {
         Ok(format!("cmp {}, {}\n    {} {}", destination, source, instruction, register_a))
     }
 
-    pub fn two_operands<T: Display, P: Display>(instruction: &str, register_a: &T, register_b: &P) -> Result<AssemblerOperation, ASMGenerateError> {
+    pub fn two_operands<T: Display, P: Display>(instruction: &str, register_a: &T, register_b: &P, file_position: &FilePosition) -> Result<AssemblerOperation, ASMGenerateError> {
         Ok(AssemblerOperation {
             prefix: None,
             operation: format!("{instruction} {register_a}, {register_b}"),
             postfix: None,
-            result_expected: GeneralPurposeRegister::from_str(&register_a.to_string()).map_err(|_| ASMGenerateError::InternalError(format!("Cannot build register from {}", register_a)))?,
+            result_expected: GeneralPurposeRegister::from_str(&register_a.to_string()).map_err(|_| ASMGenerateError::InternalError(format!("Cannot build register from {}", register_a), file_position.clone()))?,
         })
     }
 

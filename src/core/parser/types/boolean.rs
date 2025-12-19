@@ -10,6 +10,7 @@ use crate::core::code_generator::asm_options::interim_result::InterimResultOptio
 use crate::core::code_generator::asm_result::{ASMResult};
 use crate::core::code_generator::register_destination::word_from_byte_size;
 use crate::core::code_generator::registers::{Bit32, GeneralPurposeRegister};
+use crate::core::lexer::token_with_span::FilePosition;
 use crate::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::operator::Operator;
 use crate::core::model::types::integer::IntegerType;
 use crate::core::model::types::mutability::Mutability;
@@ -25,32 +26,32 @@ pub enum Boolean {
 
 impl OperatorToASM for Boolean {
     fn operation_to_asm<T: Display>(&self, operator: &Operator, registers: &[T], stack: &mut Stack, meta: &mut MetaInfo) -> Result<AssemblerOperation, ASMGenerateError> {
-        fn no_operation(operation: &str) -> Result<AssemblerOperation, ASMGenerateError> {
-            Err(ASMGenerateError::InternalError(format!("No operation `{}` on booleans", operation)))
+        fn no_operation(operation: &str, file_position: FilePosition) -> Result<AssemblerOperation, ASMGenerateError> {
+            Err(ASMGenerateError::InternalError(format!("No operation `{}` on booleans", operation), file_position))
         }
 
         match operator {
-            Operator::Noop => no_operation("noop"),
-            Operator::Add => no_operation("add"),
-            Operator::Sub => no_operation("sub"),
-            Operator::Div => no_operation("div"),
-            Operator::Mul => no_operation("mul"),
-            Operator::LeftShift => no_operation("left shift"),
-            Operator::RightShift => no_operation("right shift"),
-            Operator::LessThan => no_operation("less than"),
-            Operator::GreaterThan => no_operation("greater than"),
-            Operator::LessThanEqual => no_operation("less than equal"),
-            Operator::GreaterThanEqual => no_operation("greater than equal"),
-            Operator::BitwiseXor => no_operation("bitwise xor"),
-            Operator::Mod => no_operation("modulo"),
+            Operator::Noop => no_operation("noop", meta.file_position.clone()),
+            Operator::Add => no_operation("add", meta.file_position.clone()),
+            Operator::Sub => no_operation("sub", meta.file_position.clone()),
+            Operator::Div => no_operation("div", meta.file_position.clone()),
+            Operator::Mul => no_operation("mul", meta.file_position.clone()),
+            Operator::LeftShift => no_operation("left shift", meta.file_position.clone()),
+            Operator::RightShift => no_operation("right shift", meta.file_position.clone()),
+            Operator::LessThan => no_operation("less than", meta.file_position.clone()),
+            Operator::GreaterThan => no_operation("greater than", meta.file_position.clone()),
+            Operator::LessThanEqual => no_operation("less than equal", meta.file_position.clone()),
+            Operator::GreaterThanEqual => no_operation("greater than equal", meta.file_position.clone()),
+            Operator::BitwiseXor => no_operation("bitwise xor", meta.file_position.clone()),
+            Operator::Mod => no_operation("modulo", meta.file_position.clone()),
             Operator::Equal | Operator::NotEqual => Ok(AssemblerOperation {
                 prefix: None,
                 operation: AssemblerOperation::compare(&operator.to_asm::<InterimResultOption>(&mut Default::default(), &mut Default::default(), None)?.to_string(), &registers[0], &registers[1])?,
                 postfix: None,
-                result_expected: GeneralPurposeRegister::from_str(&registers[0].to_string()).map_err(|_| ASMGenerateError::InternalError(format!("Cannot build {} from register", &registers[0])))?,
+                result_expected: GeneralPurposeRegister::from_str(&registers[0].to_string()).map_err(|_| ASMGenerateError::InternalError(format!("Cannot build {} from register", &registers[0]), meta.file_position.clone()))?,
             }),
             Operator::BitwiseAnd | Operator::BitwiseOr => {
-                AssemblerOperation::two_operands(&operator.to_asm::<InterimResultOption>(stack, meta, None)?.to_string(), &registers[0], &registers[1])
+                AssemblerOperation::two_operands(&operator.to_asm::<InterimResultOption>(stack, meta, None)?.to_string(), &registers[0], &registers[1], &meta.file_position)
             }
             Operator::LogicalAnd => {
                 // the actual data of register[0] is moved to rcx
@@ -88,7 +89,7 @@ impl OperatorToASM for Boolean {
                     prefix: Some(AssemblerOperation::save_rax_rcx_rdx(1, registers)?),
                     operation: target,
                     postfix: Some(AssemblerOperation::load_rax_rcx_rdx(1, registers)?),
-                    result_expected: GeneralPurposeRegister::from_str(&registers[0].to_string()).map_err(|_| ASMGenerateError::InternalError(format!("Cannot build register from {}", registers[0])))?,
+                    result_expected: GeneralPurposeRegister::from_str(&registers[0].to_string()).map_err(|_| ASMGenerateError::InternalError(format!("Cannot build register from {}", registers[0]), meta.file_position.clone()))?,
                 })
             },
             Operator::LogicalOr => {
@@ -128,7 +129,7 @@ impl OperatorToASM for Boolean {
                     prefix: Some(AssemblerOperation::save_rax_rcx_rdx(1, registers)?),
                     operation: target,
                     postfix: Some(AssemblerOperation::load_rax_rcx_rdx(1, registers)?),
-                    result_expected: GeneralPurposeRegister::from_str(&registers[0].to_string()).map_err(|_| ASMGenerateError::InternalError(format!("Cannot build register from {}", registers[0])))?,
+                    result_expected: GeneralPurposeRegister::from_str(&registers[0].to_string()).map_err(|_| ASMGenerateError::InternalError(format!("Cannot build register from {}", registers[0]), meta.file_position.clone()))?,
                 })
             }
         }

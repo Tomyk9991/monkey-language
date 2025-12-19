@@ -11,11 +11,13 @@ use crate::core::code_generator::asm_options::prepare_register::PrepareRegisterO
 use crate::core::code_generator::asm_result::{ASMResult, ASMResultError, ASMResultVariance};
 use crate::core::code_generator::generator::{LastUnchecked, Stack};
 use crate::core::code_generator::registers::{ByteSize, FloatRegister, GeneralPurposeRegister, GeneralPurposeRegisterIterator};
+use crate::core::lexer::token_with_span::FilePosition;
 use crate::core::model::abstract_syntax_tree_nodes::assignable::Assignable;
 use crate::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::expression::Expression;
 use crate::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::operator::Operator;
 use crate::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::prefix_arithmetic::{PointerArithmetic, PrefixArithmetic};
 use crate::core::model::abstract_syntax_tree_nodes::identifier::Identifier;
+use crate::core::model::abstract_syntax_tree_nodes::l_value::LValue;
 use crate::core::model::types::float::FloatType;
 use crate::core::model::types::integer::IntegerType;
 use crate::core::model::types::mutability::Mutability;
@@ -28,17 +30,19 @@ use crate::core::semantics::type_infer::infer_type::InferType;
 
 impl Expression {
     fn iterator_from_type(&self, meta: &mut MetaInfo, lhs_size: usize) -> Result<(GeneralPurposeRegisterIterator, Option<FloatType>), ASMGenerateError> {
-        // if let Some(lhs) = &self.lhs {
-        //     let ty = &lhs.traverse_type(meta).ok_or(ASMGenerateError::InternalError("Could not traverse type".to_string()))?;
-        //
-        //     return Ok(if let Type::Float(f, _) = ty {
-        //         (GeneralPurposeRegister::iter_from_byte_size(lhs_size)?, Some(f.clone()))
-        //     } else {
-        //         (GeneralPurposeRegister::iter_from_byte_size(lhs_size)?, None)
-        //     });
-        // }
+        if let Some(lhs) = &self.lhs {
+            let ty = &lhs.get_type(&meta.static_type_information).ok_or(InferTypeError::NoTypePresent(
+                LValue::Identifier(Identifier { name: "Expression".to_string() }), meta.file_position.clone()
+            ))?;
 
-        Err(ASMGenerateError::InternalError("Internal error".to_string()))
+            return Ok(if let Type::Float(f, _) = ty {
+                (GeneralPurposeRegister::iter_from_byte_size(lhs_size)?, Some(f.clone()))
+            } else {
+                (GeneralPurposeRegister::iter_from_byte_size(lhs_size)?, None)
+            });
+        }
+
+        Err(ASMGenerateError::InternalError("Internal error".to_string(), meta.file_position.clone()))
     }
 
     fn latest_used_destination_register(&self, meta: &mut MetaInfo, target: &str, lhs_size: usize) -> Result<GeneralPurposeRegister, ASMGenerateError> {
@@ -78,149 +82,157 @@ impl Expression {
     }
 
     fn expression_some_some_some_some(&self, stack: &mut Stack, meta: &mut MetaInfo, lhs: &Expression, rhs: &Expression) -> Result<Option<ASMResult>, ASMGenerateError> {
-        // if let (Some(a), Some(b), Some(c), Some(d)) = (&lhs.lhs, &lhs.rhs, &rhs.lhs, &rhs.rhs) {
-        //     if let (Some(_), Some(_), Some(_), Some(_)) = (&a.value, &b.value, &c.value, &d.value) {
-        //         // two expressions containing two values
-        //         let mut target = String::new();
-        //         let (lhs_size, _) = lhs_rhs_byte_sizes(lhs, rhs, meta)?;
-        //         let (mut register_iterator, _) = self.iterator_from_type(meta, lhs_size)?;
-        //
-        //         let register_b = register_iterator.next().ok_or(ASMGenerateError::InternalError("No next register found".to_string()))?;
-        //         let register_c = register_iterator.next().ok_or(ASMGenerateError::InternalError("No next register found".to_string()))?;
-        //
-        //         stack.register_to_use.push(register_b.clone());
-        //         let mut destination_register = stack.register_to_use.last()?;
-        //
-        //         match lhs.to_asm(stack, meta, Some(PrepareRegisterOption {
-        //             general_purpose_register: destination_register.clone(),
-        //             assignable: lhs.value.clone().map(|value| value.as_ref().clone()),
-        //         }))? {
-        //             ASMResult::Inline(inline) => target += &ASMBuilder::mov_x_ident_line(&destination_register, inline, Some(lhs.byte_size(meta))),
-        //             ASMResult::MultilineResulted(s, r) => {
-        //                 target += &s;
-        //                 destination_register = if r.is_float_register() { destination_register.to_float_register() } else { destination_register };
-        //                 target += &ASMBuilder::mov_x_ident_line(&destination_register, &r, Some(r.size() as usize));
-        //             }
-        //             ASMResult::Multiline(_) => return Err(ASMGenerateError::ASMResult(ASMResultError::UnexpectedVariance {
-        //                 expected: vec![ASMResultVariance::Inline, ASMResultVariance::MultilineResulted],
-        //                 actual: ASMResultVariance::Multiline,
-        //                 ast_node: "Expression".to_string(),
-        //             }))
-        //         }
-        //         stack.register_to_use.pop();
-        //
-        //         stack.register_to_use.push(register_c.clone());
-        //         let mut target_register = stack.register_to_use.last()?;
-        //         match rhs.to_asm(stack, meta, Some(PrepareRegisterOption {
-        //             general_purpose_register: target_register.clone(),
-        //             assignable: rhs.value.clone().map(|value| value.as_ref().clone()),
-        //         }))? {
-        //             ASMResult::Inline(inline) => target += &ASMBuilder::mov_x_ident_line(&target_register, inline, Some(rhs.byte_size(meta))),
-        //             ASMResult::MultilineResulted(s, r) => {
-        //                 target += &s;
-        //                 target_register = if r.is_float_register() { target_register.to_float_register() } else { target_register };
-        //                 target += &ASMBuilder::mov_x_ident_line(&target_register, &r, Some(r.size() as usize));
-        //             }
-        //             ASMResult::Multiline(_) => return Err(ASMGenerateError::ASMResult(ASMResultError::UnexpectedVariance {
-        //                 expected: vec![ASMResultVariance::Inline, ASMResultVariance::MultilineResulted],
-        //                 actual: ASMResultVariance::Multiline,
-        //                 ast_node: "Expression".to_string(),
-        //             }))
-        //         }
-        //         stack.register_to_use.pop();
-        //
-        //         let ty = &rhs.traverse_type(meta).ok_or(ASMGenerateError::InternalError("Could not traverse type".to_string()))?;
-        //         let operation = self.operator.specific_operation(ty, &[&destination_register, &target_register], stack, meta)?.inject_registers();
-        //         target += &ASMBuilder::ident_line(&operation.0);
-        //         return Ok(Some(ASMResult::MultilineResulted(target, operation.1)));
-        //     }
-        // }
-        //
-        // Ok(None)
-        todo!()
+        if let (Some(a), Some(b), Some(c), Some(d)) = (&lhs.lhs, &lhs.rhs, &rhs.lhs, &rhs.rhs) {
+            if let (Some(_), Some(_), Some(_), Some(_)) = (&a.value, &b.value, &c.value, &d.value) {
+                // two expressions containing two values
+                let mut target = String::new();
+                let (lhs_size, _) = lhs_rhs_byte_sizes(lhs, rhs, meta)?;
+                let (mut register_iterator, _) = self.iterator_from_type(meta, lhs_size)?;
+
+                let register_b = register_iterator.next().ok_or(ASMGenerateError::InternalError("No next register found".to_string(), meta.file_position.clone()))?;
+                let register_c = register_iterator.next().ok_or(ASMGenerateError::InternalError("No next register found".to_string(), meta.file_position.clone()))?;
+
+                stack.register_to_use.push(register_b.clone());
+                let mut destination_register = stack.register_to_use.last(&meta.file_position)?;
+
+                match lhs.to_asm(stack, meta, Some(PrepareRegisterOption {
+                    general_purpose_register: destination_register.clone(),
+                    assignable: lhs.value.clone().map(|value| value.as_ref().clone()),
+                }))? {
+                    ASMResult::Inline(inline) => target += &ASMBuilder::mov_x_ident_line(&destination_register, inline, Some(lhs.byte_size(meta))),
+                    ASMResult::MultilineResulted(s, r) => {
+                        target += &s;
+                        destination_register = if r.is_float_register() { destination_register.to_float_register() } else { destination_register };
+                        target += &ASMBuilder::mov_x_ident_line(&destination_register, &r, Some(r.size() as usize));
+                    }
+                    ASMResult::Multiline(_) => return Err(ASMGenerateError::ASMResult(ASMResultError::UnexpectedVariance {
+                        expected: vec![ASMResultVariance::Inline, ASMResultVariance::MultilineResulted],
+                        actual: ASMResultVariance::Multiline,
+                        ast_node: "Expression".to_string(),
+                    }))
+                }
+                stack.register_to_use.pop();
+
+                stack.register_to_use.push(register_c.clone());
+                let mut target_register = stack.register_to_use.last(&meta.file_position)?;
+                match rhs.to_asm(stack, meta, Some(PrepareRegisterOption {
+                    general_purpose_register: target_register.clone(),
+                    assignable: rhs.value.clone().map(|value| value.as_ref().clone()),
+                }))? {
+                    ASMResult::Inline(inline) => target += &ASMBuilder::mov_x_ident_line(&target_register, inline, Some(rhs.byte_size(meta))),
+                    ASMResult::MultilineResulted(s, r) => {
+                        target += &s;
+                        target_register = if r.is_float_register() { target_register.to_float_register() } else { target_register };
+                        target += &ASMBuilder::mov_x_ident_line(&target_register, &r, Some(r.size() as usize));
+                    }
+                    ASMResult::Multiline(_) => return Err(ASMGenerateError::ASMResult(ASMResultError::UnexpectedVariance {
+                        expected: vec![ASMResultVariance::Inline, ASMResultVariance::MultilineResulted],
+                        actual: ASMResultVariance::Multiline,
+                        ast_node: "Expression".to_string(),
+                    }))
+                }
+                stack.register_to_use.pop();
+
+                let ty = &rhs.get_type(&meta.static_type_information).ok_or(InferTypeError::NoTypePresent(
+                    LValue::Identifier(Identifier { name: "Expression".to_string() }), meta.file_position.clone()
+                ))?;
+                let operation = self.operator.specific_operation(ty, &[&destination_register, &target_register], stack, meta)?.inject_registers();
+                target += &ASMBuilder::ident_line(&operation.0);
+                return Ok(Some(ASMResult::MultilineResulted(target, operation.1)));
+            }
+        }
+
+        Ok(None)
     }
 
-    fn expression_some_some(&mut self, stack: &mut Stack, meta: &mut MetaInfo, lhs: &Expression, rhs: &Expression) -> Result<ASMResult, ASMGenerateError> {
-        // let mut target = String::new();
-        // target += &ASMBuilder::ident(&ASMBuilder::comment_line(&format!("{}", self)));
-        // let (lhs_size, _) = lhs_rhs_byte_sizes(lhs, rhs, meta)?;
-        // let (mut register_iterator, _) = self.iterator_from_type(meta, lhs_size)?;
-        // let next_register = register_iterator.current();
-        //
-        //
-        // // pushing twice. the last pop will move the arithmetic result into this register,
-        // // basically eax or rax or anything similar where a result is expected
-        // if stack.register_to_use.is_empty() {
-        //     stack.register_to_use.push(next_register.clone());
-        // }
-        //
-        // stack.register_to_use.push(next_register.clone());
-        // let mut destination_register = stack.register_to_use.last()?;
-        //
-        // match lhs.to_asm(stack, meta, Some(PrepareRegisterOption {
-        //     general_purpose_register: destination_register.clone(),
-        //     assignable: lhs.value.clone().map(|value| value.as_ref().clone()),
-        // }))? {
-        //     ASMResult::Inline(inline) => target += &ASMBuilder::mov_x_ident_line(&destination_register, inline, Some(rhs.byte_size(meta))),
-        //     ASMResult::MultilineResulted(s, new_register) => {
-        //         target += &s;
-        //         let final_ty = self.infer_type(&mut meta.static_type_information)?;
-        //         let maybe_new_register = if final_ty.is_float() { new_register.to_float_register() } else { new_register.clone() };
-        //
-        //         target += &ASMBuilder::mov_x_ident_line(&maybe_new_register, new_register, Some(final_ty.byte_size()));
-        //         destination_register = maybe_new_register;
-        //     }
-        //     ASMResult::Multiline(_) => return Err(ASMGenerateError::ASMResult(ASMResultError::UnexpectedVariance {
-        //         expected: vec![ASMResultVariance::Inline, ASMResultVariance::MultilineResulted],
-        //         actual: ASMResultVariance::Multiline,
-        //         ast_node: "Expression".to_string(),
-        //     }))
-        // }
-        //
-        // let next_register = register_iterator.nth(2).ok_or(ASMGenerateError::InternalError("No next register found".to_string()))?;
-        //
-        // stack.register_to_use.push(next_register);
-        // let target_register = stack.register_to_use.last()?;
-        //
-        // match rhs.to_asm(stack, meta, Some(PrepareRegisterOption {
-        //     general_purpose_register: target_register.clone(),
-        //     assignable: rhs.value.clone().map(|value| value.as_ref().clone()),
-        // }))? {
-        //     ASMResult::Inline(inline) => {
-        //         let ty = rhs.traverse_type(meta).ok_or(ASMGenerateError::InternalError("Could not traverse type".to_string()))?;
-        //         let operation = self.operator.specific_operation(&ty, &[destination_register.to_string(), inline.to_string()], stack, meta)?.inject_registers();
-        //         target += &ASMBuilder::ident_line(&operation.0);
-        //         destination_register = operation.1;
-        //     }
-        //     ASMResult::MultilineResulted(s, mut new_register) => {
-        //         target += &s;
-        //         let final_ty = self.infer_type(&mut meta.static_type_information)?;
-        //         let maybe_new_register = if final_ty.is_float() { new_register.to_float_register() } else { new_register.clone() };
-        //
-        //
-        //         target += &ASMBuilder::mov_x_ident_line(&maybe_new_register, &new_register, Some(final_ty.byte_size()));
-        //         new_register = maybe_new_register;
-        //
-        //
-        //         let ty = rhs.traverse_type(meta).ok_or(ASMGenerateError::InternalError("Could not traverse type".to_string()))?;
-        //         let operation = self.operator.specific_operation(&ty, &[destination_register.to_string(), new_register.to_string()], stack, meta)?.inject_registers();
-        //         target += &ASMBuilder::ident_line(&operation.0);
-        //         destination_register = operation.1;
-        //     }
-        //     ASMResult::Multiline(_) => return Err(ASMGenerateError::ASMResult(ASMResultError::UnexpectedVariance {
-        //         expected: vec![ASMResultVariance::Inline, ASMResultVariance::MultilineResulted],
-        //         actual: ASMResultVariance::Multiline,
-        //         ast_node: "Expression".to_string(),
-        //     }))
-        // }
-        // stack.register_to_use.pop();
-        //
-        // if stack.register_to_use.len() == 1 {
-        //     stack.register_to_use.pop();
-        // }
-        //
-        // Ok(ASMResult::MultilineResulted(target, destination_register))
-        todo!()
+    fn expression_some_some(&self, stack: &mut Stack, meta: &mut MetaInfo, lhs: &Expression, rhs: &Expression) -> Result<ASMResult, ASMGenerateError> {
+        let mut target = String::new();
+        target += &ASMBuilder::ident(&ASMBuilder::comment_line(&format!("{}", self)));
+        let (lhs_size, _) = lhs_rhs_byte_sizes(lhs, rhs, meta)?;
+        let (mut register_iterator, _) = self.iterator_from_type(meta, lhs_size)?;
+        let next_register = register_iterator.current();
+
+
+        // pushing twice. the last pop will move the arithmetic result into this register,
+        // basically eax or rax or anything similar where a result is expected
+        if stack.register_to_use.is_empty() {
+            stack.register_to_use.push(next_register.clone());
+        }
+
+        stack.register_to_use.push(next_register.clone());
+        let mut destination_register = stack.register_to_use.last(&meta.file_position)?;
+
+        match lhs.to_asm(stack, meta, Some(PrepareRegisterOption {
+            general_purpose_register: destination_register.clone(),
+            assignable: lhs.value.clone().map(|value| value.as_ref().clone()),
+        }))? {
+            ASMResult::Inline(inline) => target += &ASMBuilder::mov_x_ident_line(&destination_register, inline, Some(rhs.byte_size(meta))),
+            ASMResult::MultilineResulted(s, new_register) => {
+                target += &s;
+                let final_ty = self.get_type(&mut meta.static_type_information).ok_or(InferTypeError::NoTypePresent(
+                    LValue::Identifier(Identifier { name: "Expression".to_string() }), meta.file_position.clone()
+                ))?;
+                let maybe_new_register = if final_ty.is_float() { new_register.to_float_register() } else { new_register.clone() };
+
+                target += &ASMBuilder::mov_x_ident_line(&maybe_new_register, new_register, Some(final_ty.byte_size()));
+                destination_register = maybe_new_register;
+            }
+            ASMResult::Multiline(_) => return Err(ASMGenerateError::ASMResult(ASMResultError::UnexpectedVariance {
+                expected: vec![ASMResultVariance::Inline, ASMResultVariance::MultilineResulted],
+                actual: ASMResultVariance::Multiline,
+                ast_node: "Expression".to_string(),
+            }))
+        }
+
+        let next_register = register_iterator.nth(2).ok_or(ASMGenerateError::InternalError("No next register found".to_string(), meta.file_position.clone()))?;
+
+        stack.register_to_use.push(next_register);
+        let target_register = stack.register_to_use.last(&meta.file_position)?;
+
+        match rhs.to_asm(stack, meta, Some(PrepareRegisterOption {
+            general_purpose_register: target_register.clone(),
+            assignable: rhs.value.clone().map(|value| value.as_ref().clone()),
+        }))? {
+            ASMResult::Inline(inline) => {
+                let ty = rhs.get_type(&meta.static_type_information).ok_or(InferTypeError::NoTypePresent(
+                    LValue::Identifier(Identifier { name: "Expression".to_string() }), meta.file_position.clone()
+                ))?;
+                let operation = self.operator.specific_operation(&ty, &[destination_register.to_string(), inline.to_string()], stack, meta)?.inject_registers();
+                target += &ASMBuilder::ident_line(&operation.0);
+                destination_register = operation.1;
+            }
+            ASMResult::MultilineResulted(s, mut new_register) => {
+                target += &s;
+                let final_ty = self.get_type(&mut meta.static_type_information).ok_or(InferTypeError::NoTypePresent(
+                    LValue::Identifier(Identifier { name: "Expression".to_string() }), meta.file_position.clone()
+                ))?;
+                let maybe_new_register = if final_ty.is_float() { new_register.to_float_register() } else { new_register.clone() };
+
+
+                target += &ASMBuilder::mov_x_ident_line(&maybe_new_register, &new_register, Some(final_ty.byte_size()));
+                new_register = maybe_new_register;
+
+
+                let ty = rhs.get_type(&meta.static_type_information).ok_or(InferTypeError::NoTypePresent(
+                    LValue::Identifier(Identifier { name: "Expression".to_string() }), meta.file_position.clone()
+                ))?;
+                let operation = self.operator.specific_operation(&ty, &[destination_register.to_string(), new_register.to_string()], stack, meta)?.inject_registers();
+                target += &ASMBuilder::ident_line(&operation.0);
+                destination_register = operation.1;
+            }
+            ASMResult::Multiline(_) => return Err(ASMGenerateError::ASMResult(ASMResultError::UnexpectedVariance {
+                expected: vec![ASMResultVariance::Inline, ASMResultVariance::MultilineResulted],
+                actual: ASMResultVariance::Multiline,
+                ast_node: "Expression".to_string(),
+            }))
+        }
+        stack.register_to_use.pop();
+
+        if stack.register_to_use.len() == 1 {
+            stack.register_to_use.pop();
+        }
+
+        Ok(ASMResult::MultilineResulted(target, destination_register))
     }
 
     fn expression_none_some(&self, stack: &mut Stack, meta: &mut MetaInfo, lhs: &Expression, rhs: &Expression) -> Result<ASMResult, ASMGenerateError> {
@@ -461,62 +473,63 @@ impl Expression {
 
 impl ToASM for Expression {
     fn to_asm<T: ASMOptions + 'static>(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
-        // let mut target = String::new();
-        //
-        // if let Some(value) = &self.value { // no lhs and rhs
-        //     if stack.register_to_use.is_empty() {
-        //         let assignable_type = self.infer_type(&mut meta.static_type_information)?;
-        //         let iterator = GeneralPurposeRegister::iter_from_byte_size(assignable_type.byte_size())?;
-        //         stack.register_to_use.push(iterator.current());
-        //     }
-        //
-        //     if let Some(index_operator) = &self.index_operator {
-        //         let index_asm_operation = index_operator.to_asm(stack, meta, options.clone())?;
-        //         stack.indexing = Some(index_asm_operation.clone());
-        //     }
-        //
-        //
-        //     let s = if let Some(prefix_arithmetic) = &self.prefix_arithmetic {
-        //         Self::prefix_arithmetic_to_asm(prefix_arithmetic, value, &stack.register_to_use.last()?, stack, meta)
-        //     } else if matches!(value.as_ref(), Assignable::MethodCall(_)) {
-        //         value.to_asm(stack, meta, Some(InExpressionMethodCall))
-        //     } else {
-        //         value.to_asm(stack, meta, options)
-        //     };
-        //
-        //     stack.indexing = None;
-        //
-        //     if stack.register_to_use.len() == 1 {
-        //         stack.register_to_use.pop();
-        //     }
-        //
-        //     return s;
-        // }
-        //
-        // target += &ASMBuilder::ident(&ASMBuilder::comment_line(&format!("{}", self)));
-        //
-        // match (&self.lhs, &self.rhs) {
-        //     (Some(lhs), Some(rhs)) => {
-        //         // Optimization. Use every register. (Some(Some, Some), Some(Some, Some))
-        //         if let Some(t) = &self.expression_some_some_some_some(stack, meta, lhs, rhs)? {
-        //             if let Ok(Some(new_register)) = t.apply_with(&mut target)
-        //                 .allow(ASMResultVariance::MultilineResulted)
-        //                 .ast_node("Expression")
-        //                 .finish() {
-        //                 return Ok(ASMResult::MultilineResulted(target, new_register.clone()));
-        //             }
-        //         }
-        //
-        //         match (&lhs.value, &rhs.value) {
-        //             (Some(_), Some(_)) => self.expression_some_some(stack, meta, lhs, rhs), // 2 + 3
-        //             (None, Some(_)) => self.expression_none_some(stack, meta, lhs, rhs), // (3 + 2) + 5
-        //             (Some(_), None) => self.expression_some_none(stack, meta, lhs, rhs), // 5 + (3 + 2)
-        //             (None, None) => self.expression_none_none(stack, meta, lhs, rhs), // ((1 + 2) + (3 + 4)) + ((5 + 6) + (7 + 8)) // any depth
-        //         }
-        //     }
-        //     (_, _) => Err(ASMGenerateError::NotImplemented { ast_node: "Something went wrong. Neither rhs nor lhs are valid".to_string() })
-        // }
-        todo!()
+        let mut target = String::new();
+
+        if let Some(value) = &self.value { // no lhs and rhs
+            if stack.register_to_use.is_empty() {
+                let assignable_type = self.get_type(&meta.static_type_information).ok_or(InferTypeError::NoTypePresent(
+                    LValue::Identifier(Identifier { name: value.identifier().unwrap_or("Expression".to_string() )}), meta.file_position.clone()
+                ))?;
+                let iterator = GeneralPurposeRegister::iter_from_byte_size(assignable_type.byte_size())?;
+                stack.register_to_use.push(iterator.current());
+            }
+
+            if let Some(index_operator) = &self.index_operator {
+                let index_asm_operation = index_operator.to_asm(stack, meta, options.clone())?;
+                stack.indexing = Some(index_asm_operation.clone());
+            }
+
+
+            let s = if let Some(prefix_arithmetic) = &self.prefix_arithmetic {
+                Self::prefix_arithmetic_to_asm(prefix_arithmetic, value, &stack.register_to_use.last(&meta.file_position)?, stack, meta)
+            } else if matches!(value.as_ref(), Assignable::MethodCall(_)) {
+                value.to_asm(stack, meta, Some(InExpressionMethodCall))
+            } else {
+                value.to_asm(stack, meta, options)
+            };
+
+            stack.indexing = None;
+
+            if stack.register_to_use.len() == 1 {
+                stack.register_to_use.pop();
+            }
+
+            return s;
+        }
+
+        target += &ASMBuilder::ident(&ASMBuilder::comment_line(&format!("{}", self)));
+
+        match (&self.lhs, &self.rhs) {
+            (Some(lhs), Some(rhs)) => {
+                // Optimization. Use every register. (Some(Some, Some), Some(Some, Some))
+                if let Some(t) = &self.expression_some_some_some_some(stack, meta, lhs, rhs)? {
+                    if let Ok(Some(new_register)) = t.apply_with(&mut target)
+                        .allow(ASMResultVariance::MultilineResulted)
+                        .ast_node("Expression")
+                        .finish() {
+                        return Ok(ASMResult::MultilineResulted(target, new_register.clone()));
+                    }
+                }
+
+                match (&lhs.value, &rhs.value) {
+                    (Some(_), Some(_)) => self.expression_some_some(stack, meta, lhs, rhs), // 2 + 3
+                    (None, Some(_)) => self.expression_none_some(stack, meta, lhs, rhs), // (3 + 2) + 5
+                    (Some(_), None) => self.expression_some_none(stack, meta, lhs, rhs), // 5 + (3 + 2)
+                    (None, None) => self.expression_none_none(stack, meta, lhs, rhs), // ((1 + 2) + (3 + 4)) + ((5 + 6) + (7 + 8)) // any depth
+                }
+            }
+            (_, _) => Err(ASMGenerateError::NotImplemented { ast_node: "Something went wrong. Neither rhs nor lhs are valid".to_string() })
+        }
     }
 
     fn is_stack_look_up(&self, _stack: &mut Stack, _meta: &MetaInfo) -> bool {
@@ -524,12 +537,11 @@ impl ToASM for Expression {
     }
 
     fn byte_size(&self, meta: &mut MetaInfo) -> usize {
-        // if let Some(ty) = self.traverse_type(meta) {
-        //     return ty.byte_size();
-        // }
-        //
-        // 0
-        todo!()
+        if let Some(ty) = self.get_type(&meta.static_type_information) {
+            return ty.byte_size();
+        }
+
+        0
     }
 }
 
@@ -562,7 +574,7 @@ fn extract_last_general_purpose_instruction(current_asm: &str) -> Option<String>
 impl Expression {
     pub fn prefix_arithmetic_to_asm(prefix_arithmetic: &PrefixArithmetic, value: &Assignable, target_register: &GeneralPurposeRegister, stack: &mut Stack, meta: &mut MetaInfo) -> Result<ASMResult, ASMGenerateError> {
         let mut target = String::new();
-        let register_to_use = stack.register_to_use.last()?;
+        let register_to_use = stack.register_to_use.last(&meta.file_position)?;
         let register_64 = register_to_use.to_64_bit_register();
         let mut child_has_pointer_arithmetic = false;
         let mut register_or_stack_address = String::new();

@@ -41,23 +41,41 @@ impl Display for IfError {
 
 impl Display for If {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let mut buffer = String::new();
-        buffer.push_str("if (");
-        buffer.push_str(&self.condition.to_string());
-        buffer.push_str(") {\n");
+        let ident: usize = f.width().unwrap_or(0);
+        write!(f, "{}if ({}) {{\n", " ".repeat(ident), self.condition)?;
 
         for a in &self.if_stack {
-            buffer.push_str(&format!("    {};\n", a));
+            write!(f, "{:width$}{}\n", "", a, width = ident + 4)?;
         }
-        buffer.push_str("}");
+        write!(f, "{}}}", " ".repeat(ident))?;
         if let Some(else_stack) = &self.else_stack {
-            buffer.push_str(" else {\n");
+            write!(f, " else {{\n")?;
             for a in else_stack {
-                buffer.push_str(&format!("    {};\n", a));
+                write!(f, "{:width$}{}\n", "", a, width = ident + 4)?;
             }
-            buffer.push_str("}\n");
+            write!(f, "{}}}\n", " ".repeat(ident))?;
         }
-        write!(f, "{buffer}")
+
+
+        Ok(())
+
+        // let mut buffer = String::new();
+        // buffer.push_str("if (");
+        // buffer.push_str(&self.condition.to_string());
+        // buffer.push_str(") {\n");
+        //
+        // for a in &self.if_stack {
+        //     buffer.push_str(&format!("    {};\n", a));
+        // }
+        // buffer.push_str("}");
+        // if let Some(else_stack) = &self.else_stack {
+        //     buffer.push_str(" else {\n");
+        //     for a in else_stack {
+        //         buffer.push_str(&format!("    {};\n", a));
+        //     }
+        //     buffer.push_str("}\n");
+        // }
+        // write!(f, "{buffer}")
     }
 }
 

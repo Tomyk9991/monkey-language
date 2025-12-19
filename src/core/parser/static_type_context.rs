@@ -62,9 +62,9 @@ impl StaticTypeContext {
                 }
             }
 
-            for (key, (value, code_line)) in &hash_map {
+            for (key, (value, file_position)) in &hash_map {
                 if *value > 1 {
-                    return Err(InferTypeError::NameCollision(key.to_string(), (*code_line).clone()));
+                    return Err(InferTypeError::NameCollision(key.to_string(), (*file_position).clone()));
                 }
             }
         }

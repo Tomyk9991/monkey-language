@@ -5,3 +5,4 @@ pub mod model;
 pub mod code_generator;
 pub mod semantics;
 pub mod lexer;
+pub mod optimization;

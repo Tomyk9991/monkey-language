@@ -40,27 +40,35 @@ pub struct MethodArgument {
 
 impl Display for MethodDefinition {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let mut stack_buffer = String::new();
-        stack_buffer.push_str(" {\n");
+        let ident = f.width().unwrap_or(0);
 
-        for a in &self.stack {
-            stack_buffer.push_str(&format!("    {};\n", a));
+        write!(f, "{}{}fn {}({}): {}{}",
+               " ".repeat(ident),
+               if self.is_extern { "extern " } else { "" },
+               self.identifier,
+               self.arguments
+                   .iter()
+                   .map(|argument| format!("{}: {}{}", argument.identifier, if argument.ty.mutable() { "mut" } else { "" }, argument.ty))
+                   .collect::<Vec<String>>()
+                   .join(", "),
+               self.return_type,
+               if self.is_extern { ";" } else { "" }
+        )?;
+
+        if self.is_extern {
+            return Ok(());
         }
-        stack_buffer.push_str("}\n");
 
-        write!(
-            f,
-            "{}fn {}({}): {}{}",
-            if self.is_extern { "extern " } else { "" },
-            self.identifier,
-            self.arguments
-                .iter()
-                .map(|argument| format!("{}: {}{}", argument.identifier, if argument.ty.mutable() { "mut" } else { "" }, argument.ty))
-                .collect::<Vec<String>>()
-                .join(", "),
-            self.return_type,
-            if self.is_extern { ";" } else { &stack_buffer }
-        )
+
+        write!(f, " {{\n")?;
+
+        for node in &self.stack {
+            write!(f, "{}{:width$}\n", " ".repeat(ident), node, width = ident + 4)?;
+        }
+
+        write!(f, "}}")?;
+
+        Ok(())
     }
 }
 

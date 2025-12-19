@@ -2,6 +2,7 @@ use std::cmp::Ordering;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 use crate::core::code_generator::ASMGenerateError;
+use crate::core::lexer::token_with_span::FilePosition;
 
 #[derive(Debug, PartialOrd, Clone, Eq, PartialEq)]
 pub enum Bit64 {
@@ -109,7 +110,7 @@ impl FromStr for FloatRegister {
             "xmm5" => Ok(FloatRegister::Xmm5),
             "xmm6" => Ok(FloatRegister::Xmm6),
             "xmm7" => Ok(FloatRegister::Xmm7),
-            a => { Err(ASMGenerateError::InternalError(format!("Float: Could not convert `{a}` into a register"))) }
+            a => { Err(ASMGenerateError::InternalError(format!("Float: Could not convert `{a}` into a register"), FilePosition::default())) }
         }
     }
 }
@@ -164,7 +165,7 @@ impl FromStr for GeneralPurposeRegister {
             "xmm5" => Ok(GeneralPurposeRegister::Float(FloatRegister::Xmm5)),
             "xmm6" => Ok(GeneralPurposeRegister::Float(FloatRegister::Xmm6)),
             "xmm7" => Ok(GeneralPurposeRegister::Float(FloatRegister::Xmm7)),
-            a => { Err(ASMGenerateError::InternalError(format!("Could not convert `{a}` into a register"))) }
+            a => { Err(ASMGenerateError::InternalError(format!("Could not convert `{a}` into a register"), FilePosition::default())) }
         }
     }
 }
@@ -311,7 +312,7 @@ impl GeneralPurposeRegister {
             2 => Ok(GeneralPurposeRegisterIterator::new(GeneralPurposeRegister::Bit16(Bit16::Ax))),
             4 => Ok(GeneralPurposeRegisterIterator::new(GeneralPurposeRegister::Bit32(Bit32::Eax))),
             8 => Ok(GeneralPurposeRegisterIterator::new(GeneralPurposeRegister::Bit64(Bit64::Rax))),
-            _ => Err(ASMGenerateError::InternalError(format!("Could not convert `{}` into a register", size))),
+            _ => Err(ASMGenerateError::InternalError(format!("Could not convert `{}` into a register", size), FilePosition::default())),
         }
     }
 
@@ -620,7 +621,7 @@ impl TryFrom<usize> for ByteSize {
             4 => Ok(ByteSize::_4),
             2 => Ok(ByteSize::_2),
             1 => Ok(ByteSize::_1),
-            _ => Err(ASMGenerateError::InternalError("Something went wrong casting general purpose registers".to_string()))
+            _ => Err(ASMGenerateError::InternalError("Something went wrong casting general purpose registers".to_string(), FilePosition::default()))
         }
     }
 }

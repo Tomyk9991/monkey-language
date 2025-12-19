@@ -137,8 +137,8 @@ impl OperatorToASM for Type {
             Type::Integer(t, _) => t.operation_to_asm(operator, registers, stack, meta),
             Type::Float(t, _) => t.operation_to_asm(operator, registers, stack, meta),
             Type::Bool(_) => Boolean::True.operation_to_asm(operator, registers, stack, meta),
-            Type::Void => Err(ASMGenerateError::InternalError("Void cannot be operated on".to_string())),
-            Type::Statement => Err(ASMGenerateError::InternalError("Statements cannot be operated on".to_string())),
+            Type::Void => Err(ASMGenerateError::InternalError("Void cannot be operated on".to_string(), meta.file_position.clone())),
+            Type::Statement => Err(ASMGenerateError::InternalError("Statements cannot be operated on".to_string(), meta.file_position.clone())),
             Type::Array(_, _, _) | Type::Custom(_, _) => todo!(),
         }
     }

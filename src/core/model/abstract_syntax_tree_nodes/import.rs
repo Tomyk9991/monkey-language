@@ -20,7 +20,7 @@ pub enum ImportError {
 
 impl Display for Import {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "module {};", self.monkey_file.path.display())
+        writeln!(f, "{}module {};", " ".repeat(f.width().unwrap_or(0)), self.monkey_file.path.display())
     }
 }
 

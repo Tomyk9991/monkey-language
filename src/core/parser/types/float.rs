@@ -186,15 +186,16 @@ impl OperatorToASM for FloatType {
         };
 
         match operator {
-            Operator::Noop => Err(ASMGenerateError::InternalError("Noop instruction is not supported on".to_string())),
+            Operator::Noop => Err(ASMGenerateError::InternalError("Noop instruction is not supported on".to_string(), meta.file_position.clone())),
             Operator::Add | Operator::Sub | Operator::Div | Operator::Mul => AssemblerOperation::two_operands(
                 &format!("{}{suffix}", operator.to_asm::<InterimResultOption>(stack, meta, None)?),
                 &registers[0],
-                &registers[1]
+                &registers[1],
+                &meta.file_position
             ),
-            Operator::Mod => Err(ASMGenerateError::InternalError("Modulo instruction is not supported on floats".to_string())),
-            Operator::LeftShift => Err(ASMGenerateError::InternalError("Left Shift instruction is not supported on floats".to_string())),
-            Operator::RightShift => Err(ASMGenerateError::InternalError("Left Shift instruction is not supported on floats".to_string())),
+            Operator::Mod => Err(ASMGenerateError::InternalError("Modulo instruction is not supported on floats".to_string(), meta.file_position.clone())),
+            Operator::LeftShift => Err(ASMGenerateError::InternalError("Left Shift instruction is not supported on floats".to_string(), meta.file_position.clone())),
+            Operator::RightShift => Err(ASMGenerateError::InternalError("Left Shift instruction is not supported on floats".to_string(), meta.file_position.clone())),
             Operator::LessThan | Operator::GreaterThan | Operator::LessThanEqual | Operator::GreaterThanEqual | Operator::Equal | Operator::NotEqual => {
                 let float_operator = match operator {
                     Operator::LessThan => "setb".to_string(),
@@ -206,7 +207,7 @@ impl OperatorToASM for FloatType {
                     _ => operator.to_asm::<InterimResultOption>(stack, meta, None)?.to_string()
                 };
 
-                let first_register = GeneralPurposeRegister::from_str(&registers[0].to_string()).map_err(|_| ASMGenerateError::InternalError(format!("Cannot build {} from register", &registers[0])))?;
+                let first_register = GeneralPurposeRegister::from_str(&registers[0].to_string()).map_err(|_| ASMGenerateError::InternalError(format!("Cannot build {} from register", &registers[0]), meta.file_position.clone()))?;
 
                 Ok(AssemblerOperation {
                     prefix: None,
@@ -215,7 +216,7 @@ impl OperatorToASM for FloatType {
                     result_expected: first_register.to_64_bit_register().to_size_register(&ByteSize::_1),
                 })
             },
-            a => Err(ASMGenerateError::InternalError(format!("`{a}` is not a supported operation on {self}")))
+            a => Err(ASMGenerateError::InternalError(format!("`{a}` is not a supported operation on {self}"), meta.file_position.clone()))
         }
     }
 }

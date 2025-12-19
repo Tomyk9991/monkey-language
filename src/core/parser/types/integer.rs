@@ -221,11 +221,11 @@ impl OperatorToASM for IntegerType {
         let integer_size = self.byte_size();
 
         match operator {
-            Operator::Noop => Err(ASMGenerateError::InternalError("Noop instruction is not supported".to_string())),
-            Operator::LogicalAnd => Err(ASMGenerateError::InternalError("`Logical And` instruction is not supported".to_string())),
-            Operator::LogicalOr => Err(ASMGenerateError::InternalError("`Logical Or` instruction is not supported".to_string())),
+            Operator::Noop => Err(ASMGenerateError::InternalError("Noop instruction is not supported".to_string(), meta.file_position.clone())),
+            Operator::LogicalAnd => Err(ASMGenerateError::InternalError("`Logical And` instruction is not supported".to_string(), meta.file_position.clone())),
+            Operator::LogicalOr => Err(ASMGenerateError::InternalError("`Logical Or` instruction is not supported".to_string(), meta.file_position.clone())),
             Operator::Add | Operator::Sub | Operator::BitwiseAnd | Operator::BitwiseXor | Operator::BitwiseOr => Ok(
-                AssemblerOperation::two_operands(&operator.to_asm::<InterimResultOption>(stack, meta, None)?.to_string(), &registers[0], &registers[1])?
+                AssemblerOperation::two_operands(&operator.to_asm::<InterimResultOption>(stack, meta, None)?.to_string(), &registers[0], &registers[1], &meta.file_position)?
             ),
             Operator::Div | Operator::Mod => {
                 let rax = GeneralPurposeRegister::Bit64(Bit64::Rax).to_size_register(&ByteSize::try_from(integer_size)?);
@@ -251,7 +251,7 @@ impl OperatorToASM for IntegerType {
                 })
             },
             Operator::Mul => if self.signed() {
-                AssemblerOperation::two_operands("imul", &registers[0], &registers[1])
+                AssemblerOperation::two_operands("imul", &registers[0], &registers[1], &meta.file_position)
             } else {
                 Ok(AssemblerOperation {
                     prefix: Some(AssemblerOperation::save_rax_rcx_rdx(self.byte_size(), registers)?),
@@ -265,7 +265,7 @@ impl OperatorToASM for IntegerType {
                     prefix: Some(AssemblerOperation::save_rax_rcx_rdx(self.byte_size(), registers)?),
                     operation: format!("shl {}, cl", &registers[0]),
                     postfix: Some(AssemblerOperation::load_rax_rcx_rdx(self.byte_size(), registers)?),
-                    result_expected: GeneralPurposeRegister::from_str(&registers[0].to_string()).map_err(|_| ASMGenerateError::InternalError(format!("Cannot build {} from register", &registers[0])))?,
+                    result_expected: GeneralPurposeRegister::from_str(&registers[0].to_string()).map_err(|_| ASMGenerateError::InternalError(format!("Cannot build {} from register", &registers[0]), meta.file_position.clone()))?,
                 })
             }
             Operator::RightShift => {
@@ -273,14 +273,14 @@ impl OperatorToASM for IntegerType {
                     prefix: Some(AssemblerOperation::save_rax_rcx_rdx(self.byte_size(), registers)?),
                     operation: format!("shr {}, cl", &registers[0]),
                     postfix: Some(AssemblerOperation::load_rax_rcx_rdx(self.byte_size(), registers)?),
-                    result_expected: GeneralPurposeRegister::from_str(&registers[0].to_string()).map_err(|_| ASMGenerateError::InternalError(format!("Cannot build {} from register", &registers[0])))?,
+                    result_expected: GeneralPurposeRegister::from_str(&registers[0].to_string()).map_err(|_| ASMGenerateError::InternalError(format!("Cannot build {} from register", &registers[0]), meta.file_position.clone()))?,
                 })
             }
             Operator::LessThan | Operator::GreaterThan | Operator::LessThanEqual | Operator::GreaterThanEqual | Operator::Equal | Operator::NotEqual => Ok(AssemblerOperation {
                 prefix: None,
                 operation: AssemblerOperation::compare(&operator.to_asm::<InterimResultOption>(stack, meta, None)?.to_string(), &registers[0], &registers[1])?,
                 postfix: None,
-                result_expected: GeneralPurposeRegister::from_str(&registers[0].to_string()).map_err(|_| ASMGenerateError::InternalError(format!("Cannot build {} from register", &registers[0])))?.to_size_register(&ByteSize::_1),
+                result_expected: GeneralPurposeRegister::from_str(&registers[0].to_string()).map_err(|_| ASMGenerateError::InternalError(format!("Cannot build {} from register", &registers[0]), meta.file_position.clone()))?.to_size_register(&ByteSize::_1),
             }),
         }
     }

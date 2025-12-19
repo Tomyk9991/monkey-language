@@ -11,7 +11,9 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> InferType for Variable<ASSIG
         }
 
         if !self.define {
-            return Ok(self.assignable.infer_type(type_context)?);
+            let ty = self.assignable.infer_type(type_context)?;
+            self.ty = Some(ty.clone());
+            return Ok(ty);
         }
 
         match &self.ty {

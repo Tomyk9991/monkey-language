@@ -36,23 +36,7 @@ impl Assignable {
             Assignable::Array(node) => node.values[0].get_type(type_context),
             Assignable::Expression(node) => node.get_type(type_context),
             Assignable::MethodCall(_) => None,
-            Assignable::Identifier(identifier) => {
-                if let Some(variable) = type_context.context.iter().find(|var| {
-                    match &var.l_value {
-                        LValue::Identifier(a) => a.name.as_str() == identifier.name.as_str(),
-                        _ => false,
-                    }
-                }) {
-                    return if variable.l_value.identifier() == identifier.name.as_str() {
-                        variable.ty.clone()
-                    } else {
-                        None
-                    }
-                } {
-                    None
-                }
-
-            },
+            Assignable::Identifier(identifier) => identifier.get_type(type_context),
             Assignable::Parameter(param) => Some(param.ty.clone()),
         }
     }

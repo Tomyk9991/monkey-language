@@ -25,9 +25,14 @@ pub enum WhileErr {
 
 impl Display for While {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let mut scope = String::new();
-        self.stack.iter().for_each(|a| scope += &format!("\t{}\n", a));
-        write!(f, "while ({}) \n{scope}", self.condition)
+        write!(f, "{}while ({}) {{", " ".repeat(f.width().unwrap_or(0)), self.condition)?;
+
+        for a in &self.stack {
+            write!(f, "\n{:width$}{}", "", a, width = f.width().unwrap_or(0) + 4)?;
+        }
+        
+        write!(f, "\n{}}}", " ".repeat(f.width().unwrap_or(0)))?;
+        Ok(())
     }
 }
 

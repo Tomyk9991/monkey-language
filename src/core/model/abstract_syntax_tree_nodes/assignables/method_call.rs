@@ -22,13 +22,15 @@ pub enum MethodCallErr {
     EmptyIterator(EmptyIteratorErr),
 }
 
-
 impl Display for MethodCall {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}({})", self.identifier, self.arguments
-            .iter()
-            .map(|ass| format!("{}", ass))
-            .collect::<Vec<String>>()
-            .join(", "))
+        write!(f, "{}{}({})",
+               " ".repeat(f.width().unwrap_or(0)), 
+               self.identifier, 
+               self.arguments
+                   .iter()
+                   .map(|ass| format!("{}", ass))
+                   .collect::<Vec<String>>()
+                   .join(", "))
     }
 }

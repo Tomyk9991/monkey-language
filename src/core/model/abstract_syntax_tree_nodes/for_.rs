@@ -30,9 +30,13 @@ pub enum ForErr {
 
 impl Display for For {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let mut scope = String::new();
-        self.stack.iter().for_each(|a| scope += &format!("\t{}\n", a));
-        write!(f, "for ({}; {}; {}) \n{scope}", self.initialization, self.condition, self.update)
+        write!(f, "{}for ({} {}; {}) {{", " ".repeat(f.width().unwrap_or(0)), self.initialization, self.condition, self.update)?;
+        for a in &self.stack {
+            write!(f, "\n{:width$}{}", "", a, width = f.width().unwrap_or(0) + 4)?;
+        }
+        write!(f, "\n{}}}", " ".repeat(f.width().unwrap_or(0)))?;
+        
+        Ok(())
     }
 }
 

@@ -54,7 +54,8 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> Display for Variable<ASSIGNM
 
         write!(
             f,
-            "{}{}{}{} {} {}",
+            "{}{}{}{}{} {} {};",
+            " ".repeat(f.width().unwrap_or(0)),  // indentation
             if self.define { "let " } else { "" },      // definition
             if self.mutability { "mut " } else { "" },  // mutability
             self.l_value,                               // name
