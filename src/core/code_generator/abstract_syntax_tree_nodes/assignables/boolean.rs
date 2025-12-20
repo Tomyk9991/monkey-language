@@ -1,16 +1,11 @@
 use std::fmt::{Display, Formatter};
-use std::str::{FromStr, ParseBoolError};
+use std::str::ParseBoolError;
 
-use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::code_generator::asm_options::ASMOptions;
-use crate::core::code_generator::asm_result::{ASMResult};
+use crate::core::code_generator::asm_result::ASMResult;
 use crate::core::code_generator::generator::Stack;
-use crate::core::lexer::error::Error;
-use crate::core::lexer::parse::{Parse, ParseResult};
-use crate::core::lexer::token::Token;
-use crate::core::lexer::token_with_span::TokenWithSpan;
+use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::model::types::boolean::{Boolean, BooleanError};
-
 
 
 impl From<ParseBoolError> for BooleanError {
@@ -20,7 +15,6 @@ impl From<ParseBoolError> for BooleanError {
 impl Display for BooleanError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", match self {
-            BooleanError::UnmatchedRegex => "Boolean must match ^(?i:true|false)$".to_string(),
             BooleanError::ParseBoolError(err) => err.to_string()
         })
     }

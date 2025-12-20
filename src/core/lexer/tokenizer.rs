@@ -2,11 +2,9 @@ use crate::core::lexer::error::Error;
 use crate::core::lexer::semantic_token_merge::semantic_token_merge;
 use crate::core::lexer::token::Token;
 use crate::core::lexer::token_with_span::{FilePosition, TokenWithSpan};
-use crate::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::operator::Operator;
-use crate::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::prefix_arithmetic::PrefixArithmetic::Operation;
 
 pub fn tokenize(string: &str) -> Result<Vec<TokenWithSpan>, Error> {
-    let token = semantic_token_merge(&collect_greedy(&string)?)?;
+    let token = semantic_token_merge(&collect_greedy(string)?)?;
     Ok(token)
 }
 
@@ -53,11 +51,11 @@ pub fn collect_greedy(string: &str) -> Result<Vec<TokenWithSpan>, Error> {
             continue;
         }
 
-        let mut start_token = column;
-        let mut token_target = Token::iter();
+        let start_token = column;
+        let token_target = Token::iter();
         let mut found = false;
 
-        while let Some(token_information) = token_target.next() {
+        for token_information in token_target {
             let mut collected = String::new();
             let before_collect_index = index;
             let before_collect_column = column;
@@ -66,7 +64,7 @@ pub fn collect_greedy(string: &str) -> Result<Vec<TokenWithSpan>, Error> {
             // if in literal mode -> literal mode, if first char is a letter
             let is_literal_mode = collected
                 .chars()
-                .nth(0)
+                .next()
                 .map(|c| c.is_alphabetic() || c == '_' || c == '$')
                 .unwrap_or(true);
 
@@ -116,7 +114,7 @@ pub fn collect_greedy(string: &str) -> Result<Vec<TokenWithSpan>, Error> {
 
             let is_literal_mode = collected
                 .chars()
-                .nth(0)
+                .next()
                 .map(|c| c.is_alphabetic() || c == '_' || c == '$')
                 .unwrap_or(true);
 
@@ -164,11 +162,7 @@ fn done_collecting_literal(target_char: Option<&char>) -> bool {
         if next_char.is_whitespace() {
             true
         } else {
-            if next_char.is_alphanumeric() || *next_char == '_' || *next_char == '$' || *next_char == '"' {
-                false
-            } else {
-                true
-            }
+            !(next_char.is_alphanumeric() || *next_char == '_' || *next_char == '$' || *next_char == '"')
         }
     } else {
         true

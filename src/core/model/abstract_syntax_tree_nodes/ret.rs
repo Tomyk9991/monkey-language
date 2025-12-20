@@ -1,8 +1,7 @@
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use crate::core::lexer::token_with_span::FilePosition;
-use crate::core::model::abstract_syntax_tree_nodes::assignable::{Assignable, AssignableError};
-use crate::core::parser::errors::EmptyIteratorErr;
+use crate::core::model::abstract_syntax_tree_nodes::assignable::{Assignable};
 
 #[derive(Debug, PartialEq, Clone, Default)]
 pub struct Return {
@@ -13,8 +12,6 @@ pub struct Return {
 #[derive(Debug)]
 pub enum ReturnError {
     PatternNotMatched { target_value: String },
-    AssignableError(AssignableError),
-    EmptyIterator(EmptyIteratorErr)
 }
 
 impl Display for Return {
@@ -35,8 +32,6 @@ impl Display for ReturnError {
             ReturnError::PatternNotMatched { target_value } => {
                 format!("Pattern not matched for: `{}?\n\t return assignable;", target_value)
             }
-            ReturnError::AssignableError(e) => e.to_string(),
-            ReturnError::EmptyIterator(e) => e.to_string(),
         })
     }
 }

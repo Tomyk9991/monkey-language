@@ -1,34 +1,21 @@
-use std::fmt::{Debug, Display, Formatter};
-use std::str::FromStr;
-
 use crate::core::lexer::error::Error;
 use crate::core::lexer::parse::{Parse, ParseOptions, ParseResult};
-use crate::core::lexer::token_with_span::{FilePosition, TokenWithSpan};
-use crate::core::model::abstract_syntax_tree_nodes::assignable::{Assignable, AssignableError};
+use crate::core::lexer::token_with_span::TokenWithSpan;
+use crate::core::model::abstract_syntax_tree_nodes::assignable::Assignable;
 use crate::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::expression::Expression;
 use crate::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::prefix_arithmetic::PrefixArithmetic;
 use crate::core::model::abstract_syntax_tree_nodes::assignables::method_call::MethodCall;
-use crate::core::model::abstract_syntax_tree_nodes::assignables::object::Object;
 use crate::core::model::abstract_syntax_tree_nodes::identifier::Identifier;
-use crate::core::model::abstract_syntax_tree_nodes::l_value::LValue;
 use crate::core::model::types::array::Array;
 use crate::core::model::types::boolean::Boolean;
 use crate::core::model::types::float::FloatAST;
 use crate::core::model::types::integer::IntegerAST;
-use crate::core::model::types::mutability::Mutability;
 use crate::core::model::types::static_string::StaticString;
-use crate::core::model::types::ty::Type;
-use crate::core::parser::static_type_context::StaticTypeContext;
-use crate::core::parser::abstract_syntax_tree_nodes::assignables::equation_parser::Equation;
-use crate::core::parser::abstract_syntax_tree_nodes::assignables::method_call::{MethodCallErr};
-use crate::core::parser::types::r#type;
-use crate::core::parser::types::r#type::{InferTypeError};
 
-impl TryFrom<Result<ParseResult<Self>, crate::core::lexer::error::Error>> for Assignable {
-    type Error = crate::core::lexer::error::Error;
+impl TryFrom<Result<ParseResult<Self>, Error>> for Assignable {
+    type Error = Error;
 
-    fn try_from(
-        value: Result<ParseResult<Self>, crate::core::lexer::error::Error>,
+    fn try_from(value: Result<ParseResult<Self>, crate::core::lexer::error::Error>,
     ) -> Result<Self, Self::Error> {
         match value {
             Ok(value) => Ok(value.result),
@@ -83,10 +70,10 @@ impl Parse for Assignable {
                     Error::UnexpectedToken(_) => {}
                     Error::ExpectedToken(_) => {}
                     Error::UnexpectedEOF => {}
-                    Error::Callstack(t) => {
+                    Error::Callstack(_) => {
                         return Err(err)
                     }
-                    Error::ErrorWithContext { error, context } => {
+                    Error::WithContext { .. } => {
                         return Err(err)
                     }
                 }

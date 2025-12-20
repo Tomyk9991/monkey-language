@@ -1,11 +1,10 @@
-use crate::core::code_generator::{ASMResult, MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::asm_options::ASMOptions;
-use crate::core::code_generator::asm_options::interim_result::InterimResultOption;
-use crate::core::code_generator::ASMGenerateError;
 use crate::core::code_generator::conventions::calling_convention_from;
-use crate::core::code_generator::registers::{GeneralPurposeRegister};
+use crate::core::code_generator::registers::GeneralPurposeRegister;
 use crate::core::code_generator::target_os::TargetOS;
+use crate::core::code_generator::ASMGenerateError;
+use crate::core::code_generator::{ASMResult, MetaInfo, ToASM};
 use crate::core::lexer::token_with_span::FilePosition;
 use crate::core::model::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
 use crate::core::model::abstract_syntax_tree_nodes::assignable::Assignable;
@@ -15,12 +14,11 @@ use crate::core::model::abstract_syntax_tree_nodes::method_definition::MethodDef
 use crate::core::model::abstract_syntax_tree_nodes::parameter::Parameter;
 use crate::core::model::abstract_syntax_tree_nodes::ret::Return;
 use crate::core::model::abstract_syntax_tree_nodes::variable::Variable;
-use crate::core::parser::static_type_context::StaticTypeContext;
 use crate::core::model::data_section::DataSection;
-use crate::core::model::scope::Scope;
 use crate::core::model::types::integer::IntegerType;
 use crate::core::model::types::mutability::Mutability;
 use crate::core::model::types::ty::Type;
+use crate::core::parser::static_type_context::StaticTypeContext;
 
 #[derive(Debug)]
 pub struct StackLocation {

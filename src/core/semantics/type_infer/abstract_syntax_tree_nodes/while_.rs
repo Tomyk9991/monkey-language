@@ -5,7 +5,7 @@ use crate::core::parser::types::r#type::InferTypeError;
 use crate::core::semantics::type_infer::infer_type::InferType;
 
 impl InferType for While {
-    fn infer_type(&mut self, type_context: &mut StaticTypeContext) -> Result<Type, InferTypeError> {
+    fn infer_type(&mut self, type_context: &mut StaticTypeContext) -> Result<Type, Box<InferTypeError>> {
         self.condition.infer_type(type_context)?;
         self.stack.infer_type(type_context)?;
 

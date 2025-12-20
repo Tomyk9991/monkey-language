@@ -8,17 +8,17 @@ use crate::core::parser::types::r#type::InferTypeError;
 use crate::core::semantics::type_infer::infer_type::InferType;
 
 impl InferType for Array {
-    fn infer_type(&mut self, type_context: &mut StaticTypeContext) -> Result<Type, InferTypeError> {
+    fn infer_type(&mut self, type_context: &mut StaticTypeContext) -> Result<Type, Box<InferTypeError>> {
         let file_position = type_context.current_file_position.clone();
 
         if self.values.is_empty() {
-            return Err(InferTypeError::NoTypePresent(LValue::Identifier(Identifier { name: "Array".to_string() }), file_position.clone()))
+            return Err(Box::new(InferTypeError::NoTypePresent(LValue::Identifier(Identifier { name: "Array".to_string() }), file_position.clone())))
         }
 
         if let Ok(ty) = self.values[0].infer_type(type_context) {
             return Ok(Type::Array(Box::new(ty), self.values.len(), Mutability::Immutable));
         }
 
-        Err(InferTypeError::NoTypePresent(LValue::Identifier(Identifier { name: "Array".to_string() }), file_position))
+        Err(Box::new(InferTypeError::NoTypePresent(LValue::Identifier(Identifier { name: "Array".to_string() }), file_position)))
     }
 }

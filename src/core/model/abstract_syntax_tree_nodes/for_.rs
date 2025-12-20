@@ -1,13 +1,11 @@
+use crate::core::lexer::token_with_span::FilePosition;
+use crate::core::model::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
+use crate::core::model::abstract_syntax_tree_nodes::assignable::{Assignable};
+use crate::core::model::abstract_syntax_tree_nodes::variable::Variable;
+use crate::core::parser::abstract_syntax_tree_nodes::variable::ParseVariableErr;
 use std::cmp::Ordering;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
-use crate::core::lexer::token_with_span::FilePosition;
-use crate::core::model::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
-use crate::core::model::abstract_syntax_tree_nodes::assignable::{Assignable, AssignableError};
-use crate::core::model::abstract_syntax_tree_nodes::variable::Variable;
-use crate::core::parser::abstract_syntax_tree_nodes::variable::ParseVariableErr;
-use crate::core::parser::errors::EmptyIteratorErr;
-use crate::core::parser::scope::ScopeError;
 
 #[derive(Debug, PartialEq, Clone, Default)]
 pub struct For {
@@ -20,12 +18,8 @@ pub struct For {
 
 #[derive(Debug)]
 pub enum ForErr {
-    PatternNotMatched { target_value: String },
-    AssignableErr(AssignableError),
     ParseVariableErr(ParseVariableErr),
-    ScopeErrorErr(ScopeError),
     DyckLanguageErr { target_value: String, ordering: Ordering },
-    EmptyIterator(EmptyIteratorErr),
 }
 
 impl Display for For {
@@ -45,12 +39,7 @@ impl Error for ForErr {}
 impl Display for ForErr {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", match self {
-            ForErr::PatternNotMatched { target_value } =>
-                format!("Pattern mot matched for: `{target_value}`\n\t for (initializiation; condition; update) {{}}"),
-            ForErr::AssignableErr(a) => a.to_string(),
             ForErr::ParseVariableErr(a) => a.to_string(),
-            ForErr::ScopeErrorErr(a) => a.to_string(),
-            ForErr::EmptyIterator(e) => e.to_string(),
             ForErr::DyckLanguageErr { target_value, ordering } =>
                 {
                     let error: String = match ordering {

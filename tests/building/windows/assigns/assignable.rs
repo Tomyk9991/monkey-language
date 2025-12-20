@@ -1,7 +1,7 @@
 use monkey_language::core::code_generator::generator::ASMGenerator;
 use monkey_language::core::code_generator::target_os::TargetOS;
 use monkey_language::core::io::monkey_file::MonkeyFile;
-use monkey_language::core::parser::parser::ASTParser;
+use monkey_language::core::parser::ast_parser::ASTParser;
 use monkey_language::core::semantics::static_type_check::static_type_checker::static_type_check;
 use monkey_language::core::semantics::type_infer::type_inferer::infer_type;
 

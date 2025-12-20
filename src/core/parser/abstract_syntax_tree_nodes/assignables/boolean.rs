@@ -1,9 +1,5 @@
-use std::fmt::{Display, Formatter};
 use std::str::{FromStr, ParseBoolError};
 
-use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
-use crate::core::code_generator::asm_result::{ASMResult};
-use crate::core::code_generator::generator::Stack;
 use crate::core::lexer::error::Error;
 use crate::core::lexer::parse::{Parse, ParseOptions, ParseResult};
 use crate::core::lexer::token::Token;

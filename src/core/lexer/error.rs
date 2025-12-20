@@ -8,7 +8,7 @@ pub enum Error {
     UnexpectedToken(TokenWithSpan),
     Callstack(Box<Error>),
     ExpectedToken(Token),
-    ErrorWithContext {
+    WithContext {
         error: Box<Error>,
         context: TokenWithSpan,
     },
@@ -17,7 +17,7 @@ pub enum Error {
 
 impl Error {
     pub fn with_context(&self, start: &TokenWithSpan) -> Error {
-        Error::ErrorWithContext {
+        Error::WithContext {
             error: Box::new(self.clone()),
             context: start.clone(),
         }
@@ -68,11 +68,9 @@ impl Display for Error {
             Error::UnexpectedToken(token) => format!("Unexpected token: {}", token),
             Error::ExpectedToken(f) => format!("Expected token: `{}`", f), 
             Error::UnexpectedEOF => "Unexpected EOF".to_string(),
-            Error::Callstack(trace) => {
-                format!("{}", trace.to_string())
-            }
-            Error::ErrorWithContext { error, context } => {
-                format!("{}\n\tInside: {}", error.to_string(), context)
+            Error::Callstack(trace) => trace.to_string(),
+            Error::WithContext { error, context } => {
+                format!("{}\n\tInside: {}", error, context)
             }
         })
     }

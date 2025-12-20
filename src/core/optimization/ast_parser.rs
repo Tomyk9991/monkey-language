@@ -1,5 +1,5 @@
-use crate::core::optimization::optimization::{Optimization, OptimizationContext};
-use crate::core::parser::parser::ASTParser;
+use crate::core::optimization::optimization_trait::{Optimization, OptimizationContext};
+use crate::core::parser::ast_parser::ASTParser;
 use crate::core::parser::static_type_context::StaticTypeContext;
 
 impl Optimization for ASTParser {

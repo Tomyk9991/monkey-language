@@ -5,7 +5,6 @@ use crate::core::lexer::token_with_span::TokenWithSpan;
 
 #[derive(Debug, Default, Clone)]
 pub struct CollectTokensFromUntil<const OPEN: char, const CLOSE: char> {
-    pub tokens: Vec<TokenWithSpan>
 }
 
 impl<const OPEN: char, const CLOSE: char> TryFrom<Result<ParseResult<Self>, Error>> for CollectTokensFromUntil<OPEN, CLOSE> {
@@ -30,7 +29,7 @@ impl<const OPEN: char, const CLOSE: char> Parse for CollectTokensFromUntil<OPEN,
 
         if tokens[index].token == closing {
             return Ok(ParseResult {
-                result: CollectTokensFromUntil { tokens: vec![] },
+                result: CollectTokensFromUntil {  },
                 consumed: 0,
             })
         }
@@ -59,7 +58,7 @@ impl<const OPEN: char, const CLOSE: char> Parse for CollectTokensFromUntil<OPEN,
         let token_len = tokens.len();
 
         Ok(ParseResult {
-            result: CollectTokensFromUntil { tokens },
+            result: CollectTokensFromUntil { },
             consumed: token_len,
         })
     }

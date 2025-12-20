@@ -6,7 +6,7 @@ use crate::core::lexer::token_with_span::{FilePosition, TokenWithSpan};
 use crate::core::model::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
 use crate::core::model::scope::Scope;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Default, Debug)]
 pub struct ASTParser {
     pub program: Vec<AbstractSyntaxTreeNode>,
     pub has_main_method: bool,
@@ -18,19 +18,10 @@ impl Display for ASTParser {
 
         let indent_level: usize = 0;
         for astn in &self.program {
-            write!(f, "{:width$}\n", astn, width = indent_level)?;
+            writeln!(f, "{:width$}", astn, width = indent_level)?;
         }
 
         write!(f, "{}", buffer)
-    }
-}
-
-impl Default for ASTParser {
-    fn default() -> Self {
-        Self {
-            program: vec![],
-            has_main_method: false,
-        }
     }
 }
 

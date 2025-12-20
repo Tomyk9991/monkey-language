@@ -1,9 +1,7 @@
-use std::fmt::{Display, Formatter};
 use crate::core::lexer::token_with_span::FilePosition;
 use crate::core::model::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
-use crate::core::model::abstract_syntax_tree_nodes::assignable::{Assignable, AssignableError};
-use crate::core::parser::errors::EmptyIteratorErr;
-use crate::core::parser::scope::ScopeError;
+use crate::core::model::abstract_syntax_tree_nodes::assignable::{Assignable};
+use std::fmt::{Display, Formatter};
 
 /// AST node for if definition.
 /// # Pattern
@@ -17,43 +15,21 @@ pub struct If {
     pub file_position: FilePosition,
 }
 
-#[derive(Debug)]
-pub enum IfError {
-    PatternNotMatched { target_value: String },
-    AssignableErr(AssignableError),
-    ScopeErrorErr(ScopeError),
-    EmptyIterator(EmptyIteratorErr),
-}
-
-impl std::error::Error for IfError {}
-
-impl Display for IfError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", match self {
-            IfError::PatternNotMatched { target_value }
-            => format!("Pattern not matched for: `{target_value}`\n\t if(condition) {{ }}"),
-            IfError::AssignableErr(a) => a.to_string(),
-            IfError::ScopeErrorErr(a) => a.to_string(),
-            IfError::EmptyIterator(e) => e.to_string(),
-        })
-    }
-}
-
 impl Display for If {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let ident: usize = f.width().unwrap_or(0);
-        write!(f, "{}if ({}) {{\n", " ".repeat(ident), self.condition)?;
+        writeln!(f, "{}if ({}) {{", " ".repeat(ident), self.condition)?;
 
         for a in &self.if_stack {
-            write!(f, "{:width$}{}\n", "", a, width = ident + 4)?;
+            writeln!(f, "{:width$}{}", "", a, width = ident + 4)?;
         }
         write!(f, "{}}}", " ".repeat(ident))?;
         if let Some(else_stack) = &self.else_stack {
-            write!(f, " else {{\n")?;
+            writeln!(f, " else {{")?;
             for a in else_stack {
-                write!(f, "{:width$}{}\n", "", a, width = ident + 4)?;
+                writeln!(f, "{:width$}{}", "", a, width = ident + 4)?;
             }
-            write!(f, "{}}}\n", " ".repeat(ident))?;
+            writeln!(f, "{}}}", " ".repeat(ident))?;
         }
 
 

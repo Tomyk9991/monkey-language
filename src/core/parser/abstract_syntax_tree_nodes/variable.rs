@@ -4,13 +4,11 @@ use std::fmt::{Debug, Display, Formatter};
 use crate::core::lexer::parse::{Parse, ParseOptions, ParseResult};
 use crate::core::lexer::token_match::MatchResult;
 use crate::core::lexer::token_with_span::{FilePosition, TokenWithSpan};
-use crate::core::model::abstract_syntax_tree_nodes::assignable::{Assignable, AssignableError};
+use crate::core::model::abstract_syntax_tree_nodes::assignable::{Assignable};
 use crate::core::model::abstract_syntax_tree_nodes::identifier::{IdentifierError};
 use crate::core::model::abstract_syntax_tree_nodes::l_value::LValue;
 use crate::core::model::abstract_syntax_tree_nodes::variable::Variable;
 use crate::core::model::types::ty::Type;
-use crate::core::parser::errors::EmptyIteratorErr;
-use crate::core::parser::scope::PatternNotMatchedError;
 use crate::core::parser::abstract_syntax_tree_nodes::l_value::LValueErr;
 use crate::core::parser::types::r#type::InferTypeError;
 use crate::pattern;
@@ -121,23 +119,15 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> TryFrom<Result<ParseResult<S
 pub enum ParseVariableErr {
     PatternNotMatched { target_value: String },
     IdentifierErr(IdentifierError),
-    AssignableErr(AssignableError),
     LValue(LValueErr),
-    InferType(InferTypeError),
-    EmptyIterator(EmptyIteratorErr),
-}
-
-impl PatternNotMatchedError for ParseVariableErr {
-    fn is_pattern_not_matched_error(&self) -> bool {
-        matches!(self, ParseVariableErr::PatternNotMatched {..})
-    }
+    InferType(Box<InferTypeError>),
 }
 
 impl Error for ParseVariableErr {}
 
 impl From<InferTypeError> for ParseVariableErr {
     fn from(value: InferTypeError) -> Self {
-        ParseVariableErr::InferType(value)
+        ParseVariableErr::InferType(Box::new(value))
     }
 }
 
@@ -157,15 +147,8 @@ impl From<anyhow::Error> for ParseVariableErr {
         buffer += &value.to_string();
         buffer += "\n";
 
-        if let Some(e) = value.downcast_ref::<AssignableError>() {
-            buffer += &e.to_string();
-        }
         ParseVariableErr::PatternNotMatched { target_value: buffer }
     }
-}
-
-impl From<AssignableError> for ParseVariableErr {
-    fn from(a: AssignableError) -> Self { ParseVariableErr::AssignableErr(a) }
 }
 
 impl Display for ParseVariableErr {
@@ -173,8 +156,6 @@ impl Display for ParseVariableErr {
         write!(f, "{}", match self {
             ParseVariableErr::PatternNotMatched { target_value } => format!("`{target_value}`\n\tThe pattern for a variable is defined as: lvalue = assignment;"),
             ParseVariableErr::IdentifierErr(a) => a.to_string(),
-            ParseVariableErr::AssignableErr(a) => a.to_string(),
-            ParseVariableErr::EmptyIterator(e) => e.to_string(),
             ParseVariableErr::InferType(err) => err.to_string(),
             ParseVariableErr::LValue(err) => err.to_string(),
         })

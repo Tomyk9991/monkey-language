@@ -1,39 +1,29 @@
-use std::collections::HashMap;
-use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
 
-use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
-use crate::core::code_generator::asm_options::ASMOptions;
 use crate::core::code_generator::asm_options::in_expression_method_call::InExpressionMethodCall;
-use crate::core::code_generator::asm_options::interim_result::InterimResultOption;
 use crate::core::code_generator::asm_options::prepare_register::PrepareRegisterOption;
+use crate::core::code_generator::asm_options::ASMOptions;
 use crate::core::code_generator::asm_result::{ASMResult, ASMResultError, ASMResultVariance};
 use crate::core::code_generator::generator::{LastUnchecked, Stack};
 use crate::core::code_generator::registers::{ByteSize, FloatRegister, GeneralPurposeRegister, GeneralPurposeRegisterIterator};
-use crate::core::lexer::token_with_span::FilePosition;
+use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::model::abstract_syntax_tree_nodes::assignable::Assignable;
 use crate::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::expression::Expression;
-use crate::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::operator::Operator;
-use crate::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::prefix_arithmetic::{PointerArithmetic, PrefixArithmetic};
+use crate::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::prefix_arithmetic::PrefixArithmetic;
 use crate::core::model::abstract_syntax_tree_nodes::identifier::Identifier;
 use crate::core::model::abstract_syntax_tree_nodes::l_value::LValue;
 use crate::core::model::types::float::FloatType;
-use crate::core::model::types::integer::IntegerType;
-use crate::core::model::types::mutability::Mutability;
 use crate::core::model::types::ty::Type;
-use crate::core::parser::static_type_context::StaticTypeContext;
-use crate::core::parser::abstract_syntax_tree_nodes::assignables::equation_parser::prefix_arithmetic::{PrefixArithmeticOptions};
-use crate::core::parser::types::boolean::Boolean;
-use crate::core::parser::types::r#type::{InferTypeError};
-use crate::core::semantics::type_infer::infer_type::InferType;
+use crate::core::parser::abstract_syntax_tree_nodes::assignables::equation_parser::prefix_arithmetic::PrefixArithmeticOptions;
+use crate::core::parser::types::r#type::InferTypeError;
 
 impl Expression {
     fn iterator_from_type(&self, meta: &mut MetaInfo, lhs_size: usize) -> Result<(GeneralPurposeRegisterIterator, Option<FloatType>), ASMGenerateError> {
         if let Some(lhs) = &self.lhs {
-            let ty = &lhs.get_type(&meta.static_type_information).ok_or(InferTypeError::NoTypePresent(
+            let ty = &lhs.get_type(&meta.static_type_information).ok_or(Box::new(InferTypeError::NoTypePresent(
                 LValue::Identifier(Identifier { name: "Expression".to_string() }), meta.file_position.clone()
-            ))?;
+            )))?;
 
             return Ok(if let Type::Float(f, _) = ty {
                 (GeneralPurposeRegister::iter_from_byte_size(lhs_size)?, Some(f.clone()))
@@ -133,9 +123,9 @@ impl Expression {
                 }
                 stack.register_to_use.pop();
 
-                let ty = &rhs.get_type(&meta.static_type_information).ok_or(InferTypeError::NoTypePresent(
+                let ty = &rhs.get_type(&meta.static_type_information).ok_or(Box::new(InferTypeError::NoTypePresent(
                     LValue::Identifier(Identifier { name: "Expression".to_string() }), meta.file_position.clone()
-                ))?;
+                )))?;
                 let operation = self.operator.specific_operation(ty, &[&destination_register, &target_register], stack, meta)?.inject_registers();
                 target += &ASMBuilder::ident_line(&operation.0);
                 return Ok(Some(ASMResult::MultilineResulted(target, operation.1)));
@@ -169,9 +159,9 @@ impl Expression {
             ASMResult::Inline(inline) => target += &ASMBuilder::mov_x_ident_line(&destination_register, inline, Some(rhs.byte_size(meta))),
             ASMResult::MultilineResulted(s, new_register) => {
                 target += &s;
-                let final_ty = self.get_type(&mut meta.static_type_information).ok_or(InferTypeError::NoTypePresent(
+                let final_ty = self.get_type(&meta.static_type_information).ok_or(Box::new(InferTypeError::NoTypePresent(
                     LValue::Identifier(Identifier { name: "Expression".to_string() }), meta.file_position.clone()
-                ))?;
+                )))?;
                 let maybe_new_register = if final_ty.is_float() { new_register.to_float_register() } else { new_register.clone() };
 
                 target += &ASMBuilder::mov_x_ident_line(&maybe_new_register, new_register, Some(final_ty.byte_size()));
@@ -194,18 +184,18 @@ impl Expression {
             assignable: rhs.value.clone().map(|value| value.as_ref().clone()),
         })))? {
             ASMResult::Inline(inline) => {
-                let ty = rhs.get_type(&meta.static_type_information).ok_or(InferTypeError::NoTypePresent(
+                let ty = rhs.get_type(&meta.static_type_information).ok_or(Box::new(InferTypeError::NoTypePresent(
                     LValue::Identifier(Identifier { name: "Expression".to_string() }), meta.file_position.clone()
-                ))?;
+                )))?;
                 let operation = self.operator.specific_operation(&ty, &[destination_register.to_string(), inline.to_string()], stack, meta)?.inject_registers();
                 target += &ASMBuilder::ident_line(&operation.0);
                 destination_register = operation.1;
             }
             ASMResult::MultilineResulted(s, mut new_register) => {
                 target += &s;
-                let final_ty = self.get_type(&mut meta.static_type_information).ok_or(InferTypeError::NoTypePresent(
+                let final_ty = self.get_type(&meta.static_type_information).ok_or(Box::new(InferTypeError::NoTypePresent(
                     LValue::Identifier(Identifier { name: "Expression".to_string() }), meta.file_position.clone()
-                ))?;
+                )))?;
                 let maybe_new_register = if final_ty.is_float() { new_register.to_float_register() } else { new_register.clone() };
 
 
@@ -213,9 +203,9 @@ impl Expression {
                 new_register = maybe_new_register;
 
 
-                let ty = rhs.get_type(&meta.static_type_information).ok_or(InferTypeError::NoTypePresent(
+                let ty = rhs.get_type(&meta.static_type_information).ok_or(Box::new(InferTypeError::NoTypePresent(
                     LValue::Identifier(Identifier { name: "Expression".to_string() }), meta.file_position.clone()
-                ))?;
+                )))?;
                 let operation = self.operator.specific_operation(&ty, &[destination_register.to_string(), new_register.to_string()], stack, meta)?.inject_registers();
                 target += &ASMBuilder::ident_line(&operation.0);
                 destination_register = operation.1;
@@ -257,9 +247,9 @@ impl Expression {
             ASMResult::Inline(inline) => target += &ASMBuilder::mov_x_ident_line(&destination_register, inline, Some(rhs.byte_size(meta))),
             ASMResult::MultilineResulted(s, new_register) => {
                 target += &s;
-                let final_ty = self.get_type(&mut meta.static_type_information).ok_or(InferTypeError::NoTypePresent(
+                let final_ty = self.get_type(&meta.static_type_information).ok_or(Box::new(InferTypeError::NoTypePresent(
                     LValue::Identifier(Identifier { name: "Expression".to_string() }), meta.file_position.clone()
-                ))?;
+                )))?;
                 let maybe_new_register = if final_ty.is_float() { new_register.to_float_register() } else { new_register.clone() };
 
                 target += &ASMBuilder::mov_x_ident_line(&maybe_new_register, new_register, Some(final_ty.byte_size()));
@@ -288,9 +278,9 @@ impl Expression {
             }
             ASMResult::MultilineResulted(s, mut new_register) => {
                 target += &s;
-                let final_ty = self.get_type(&mut meta.static_type_information).ok_or(InferTypeError::NoTypePresent(
+                let final_ty = self.get_type(&meta.static_type_information).ok_or(Box::new(InferTypeError::NoTypePresent(
                     LValue::Identifier(Identifier { name: "Expression".to_string() }), meta.file_position.clone()
-                ))?;
+                )))?;
                 let maybe_new_register = if final_ty.is_float() { new_register.to_float_register() } else { new_register.clone() };
 
                 target += &ASMBuilder::mov_x_ident_line(&maybe_new_register, &new_register, Some(final_ty.byte_size()));
@@ -364,9 +354,9 @@ impl Expression {
             }
             ASMResult::MultilineResulted(s, mut new_register) => {
                 target += &s;
-                let final_ty = self.get_type(&mut meta.static_type_information).ok_or(InferTypeError::NoTypePresent(
+                let final_ty = self.get_type(&meta.static_type_information).ok_or(Box::new(InferTypeError::NoTypePresent(
                     LValue::Identifier(Identifier { name: "Expression".to_string() }), meta.file_position.clone()
-                ))?;
+                )))?;
                 let maybe_new_register = if final_ty.is_float() { new_register.to_float_register() } else { new_register.clone() };
 
                 target += &ASMBuilder::mov_x_ident_line(&maybe_new_register, &new_register, Some(final_ty.byte_size()));
@@ -480,9 +470,9 @@ impl ToASM for Expression {
 
         if let Some(value) = &self.value { // no lhs and rhs
             if stack.register_to_use.is_empty() {
-                let assignable_type = self.get_type(&meta.static_type_information).ok_or(InferTypeError::NoTypePresent(
+                let assignable_type = self.get_type(&meta.static_type_information).ok_or(Box::new(InferTypeError::NoTypePresent(
                     LValue::Identifier(Identifier { name: value.identifier().unwrap_or("Expression".to_string() )}), meta.file_position.clone()
-                ))?;
+                )))?;
                 let iterator = GeneralPurposeRegister::iter_from_byte_size(assignable_type.byte_size())?;
                 stack.register_to_use.push(iterator.current());
             }

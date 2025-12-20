@@ -7,23 +7,17 @@ use crate::core::code_generator::asm_options::interim_result::InterimResultOptio
 use crate::core::code_generator::asm_result::{ASMResult, ASMResultError, ASMResultVariance};
 use crate::core::code_generator::generator::{Stack, StackLocation};
 use crate::core::code_generator::registers::{Bit64, ByteSize, GeneralPurposeRegister};
-use crate::core::model::abstract_syntax_tree_nodes::assignable::{Assignable, AssignableError};
+use crate::core::model::abstract_syntax_tree_nodes::assignable::{Assignable};
 use crate::core::model::abstract_syntax_tree_nodes::identifier::IdentifierError;
 use crate::core::model::abstract_syntax_tree_nodes::variable::{ParseVariableErr, Variable};
 use crate::core::model::types::ty::Type;
-use crate::core::parser::scope::PatternNotMatchedError;
 use crate::core::parser::abstract_syntax_tree_nodes::l_value::LValueErr;
 use crate::core::parser::types::r#type::InferTypeError;
-impl PatternNotMatchedError for ParseVariableErr {
-    fn is_pattern_not_matched_error(&self) -> bool {
-        matches!(self, ParseVariableErr::PatternNotMatched {..})
-    }
-}
 
 impl Error for ParseVariableErr {}
 
-impl From<InferTypeError> for ParseVariableErr {
-    fn from(value: InferTypeError) -> Self {
+impl From<Box<InferTypeError>> for ParseVariableErr {
+    fn from(value: Box<InferTypeError>) -> Self {
         ParseVariableErr::InferType(value)
     }
 }
@@ -44,17 +38,9 @@ impl From<anyhow::Error> for ParseVariableErr {
         buffer += &value.to_string();
         buffer += "\n";
 
-        if let Some(e) = value.downcast_ref::<AssignableError>() {
-            buffer += &e.to_string();
-        }
         ParseVariableErr::PatternNotMatched { target_value: buffer }
     }
 }
-
-impl From<AssignableError> for ParseVariableErr {
-    fn from(a: AssignableError) -> Self { ParseVariableErr::AssignableErr(a) }
-}
-
 
 impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for Variable<ASSIGNMENT, SEPARATOR> {
     fn to_asm(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<ASMOptions>) -> Result<ASMResult, ASMGenerateError> {
@@ -167,29 +153,4 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for Variable<ASSIGNMEN
     fn data_section(&self, stack: &mut Stack, meta: &mut MetaInfo) -> bool {
         self.assignable.data_section(stack, meta)
     }
-}
-
-
-// trys to collapse everything that can belong to the l_value
-fn process_name_collapse(regex_split: &[&str], assignment_str: &str) -> Vec<String> {
-    if let Some(assignment_index) = regex_split.iter().position(|a| a == &assignment_str) {
-        let (l_value, right_value) = regex_split.split_at(assignment_index);
-        #[allow(clippy::redundant_slicing)] // slicing must happen, otherwise middle is not a slice with a length known at compile time
-        let l_value = match &l_value[..] {
-            [name, "[", middle@ .., "]"] => {
-                let mut result = name.to_string();
-                result.push_str(" [ ");
-                result.extend(middle.iter().map(|a| a.to_string()));
-                result.push_str(" ]");
-                result
-            },
-            _ => return regex_split.iter().map(|a| a.to_string()).collect(),
-        };
-
-        let mut resulting_vec = vec![l_value, assignment_str.to_string()];
-        resulting_vec.extend(right_value.iter().skip(1).map(|a| a.to_string()));
-        return resulting_vec;
-    }
-
-    regex_split.iter().map(|a| a.to_string()).collect()
 }

@@ -1,14 +1,5 @@
-use std::any::Any;
-use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
-use crate::core::code_generator::{ASMGenerateError,
-                                  MetaInfo, ToASM};
-use crate::core::code_generator::asm_builder::ASMBuilder;
-use crate::core::code_generator::asm_options::interim_result::InterimResultOption;
-use crate::core::code_generator::asm_result::{ASMResult};
-use crate::core::code_generator::generator::Stack;
-use crate::core::code_generator::registers::GeneralPurposeRegister;
 use crate::core::lexer::error::Error;
 use crate::core::lexer::parse::{Parse, ParseOptions, ParseResult};
 use crate::core::lexer::token::Token;
@@ -33,17 +24,6 @@ impl Parse for StaticString {
         Err(Error::UnexpectedToken(tokens[0].clone()))
     }
 }
-
-
-
-/// replaces the occurrence with the provided number and sets quotes
-/// ## Example
-/// replace_add_quote("\"Hallo \n Welt\"") returns
-/// \"Hallo\", 10, \"Welt\"
-fn replace_add_quote(value: &str, occurrence: &str, replace_value: usize) -> String {
-    format!("\"{}\"", value[1..value.len() - 1].replace(occurrence, &format!("\", {}, \"", replace_value)))
-}
-
 
 impl FromStr for StaticString {
     type Err = StaticStringError;

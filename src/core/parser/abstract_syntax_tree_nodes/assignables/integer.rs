@@ -1,9 +1,6 @@
 use std::fmt::{Display, Formatter};
 use std::num::{ParseFloatError, ParseIntError};
 use std::str::FromStr;
-use crate::core::code_generator::generator::Stack;
-use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
-use crate::core::code_generator::asm_result::{ASMResult};
 use crate::core::lexer::error::Error;
 use crate::core::lexer::parse::{Parse, ParseOptions, ParseResult};
 use crate::core::lexer::token::Token;
@@ -13,7 +10,7 @@ use crate::core::model::types::integer::{IntegerType, IntegerAST};
 
 impl Parse for IntegerAST {
     fn parse(tokens: &[TokenWithSpan], _: ParseOptions) -> Result<ParseResult<Self>, Error> where Self: Sized, Self: Default {
-        if let Some(TokenWithSpan { token: Token::Minus, ..}) = tokens.get(0) {
+        if let Some(TokenWithSpan { token: Token::Minus, ..}) = tokens.first() {
             let mut parsed_integer = Self::parse(&tokens[1..], Default::default())?;
             parsed_integer.result.value = format!("-{}", parsed_integer.result.value);
 
@@ -23,8 +20,8 @@ impl Parse for IntegerAST {
             });
         }
 
-        if let Some(TokenWithSpan { token: Token::Plus, ..}) = tokens.get(0) {
-            let mut parsed_integer = Self::parse(&tokens[1..], Default::default())?;
+        if let Some(TokenWithSpan { token: Token::Plus, ..}) = tokens.first() {
+            let parsed_integer = Self::parse(&tokens[1..], Default::default())?;
 
             return Ok(ParseResult {
                 result: parsed_integer.result,
@@ -35,7 +32,7 @@ impl Parse for IntegerAST {
         if let [number_literal, ..] = tokens {
             if let Token::Numbers(s) = &number_literal.token {
                 if lazy_regex::regex_is_match!("^[+-]?\\d+$", s) {
-                    let value: i128 = s.parse::<i128>().map_err(|e| Error::UnexpectedToken(tokens[0].clone()))?;
+                    let value: i128 = s.parse::<i128>().map_err(|_| Error::UnexpectedToken(tokens[0].clone()))?;
 
                     let final_type = match value {
                         -2_147_483_648..=2_147_483_647 => IntegerType::I32,

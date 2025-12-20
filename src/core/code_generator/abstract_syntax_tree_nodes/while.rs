@@ -3,26 +3,12 @@ use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::asm_options::ASMOptions;
-use crate::core::model::abstract_syntax_tree_nodes::assignable::AssignableError;
 use crate::core::model::abstract_syntax_tree_nodes::while_::{While, WhileErr};
-use crate::core::parser::scope::PatternNotMatchedError;
 use crate::core::parser::utils::dyck::DyckError;
-
-impl PatternNotMatchedError for WhileErr {
-    fn is_pattern_not_matched_error(&self) -> bool {
-        matches!(self, WhileErr::PatternNotMatched { .. })
-    }
-}
 
 impl From<DyckError> for WhileErr {
     fn from(value: DyckError) -> Self {
         WhileErr::DyckLanguageErr { target_value: value.target_value, ordering: value.ordering }
-    }
-}
-
-impl From<AssignableError> for WhileErr {
-    fn from(value: AssignableError) -> Self {
-        WhileErr::AssignableErr(value)
     }
 }
 

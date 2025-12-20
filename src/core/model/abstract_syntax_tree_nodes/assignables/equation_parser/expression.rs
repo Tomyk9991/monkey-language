@@ -33,7 +33,7 @@ impl From<crate::core::lexer::error::Error> for crate::core::parser::abstract_sy
             Error::UnexpectedEOF => crate::core::parser::abstract_syntax_tree_nodes::assignables::equation_parser::Error::SourceEmpty,
             Error::ExpectedToken(f) => crate::core::parser::abstract_syntax_tree_nodes::assignables::equation_parser::Error::TermNotParsable(f.to_string()),
             Error::Callstack(f) => crate::core::parser::abstract_syntax_tree_nodes::assignables::equation_parser::Error::UndefinedSequence(format!("Stacktrace: {:?}", f)),
-            Error::ErrorWithContext { error, context } => {
+            Error::WithContext { error, context } => {
                 crate::core::parser::abstract_syntax_tree_nodes::assignables::equation_parser::Error::UndefinedSequence(format!("With context: {}\n{:?}", error, context))
             }
         }

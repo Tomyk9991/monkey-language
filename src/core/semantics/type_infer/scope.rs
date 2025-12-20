@@ -5,10 +5,10 @@ use crate::core::parser::types::r#type::InferTypeError;
 use crate::core::semantics::type_infer::infer_type::InferType;
 
 impl InferType for Vec<AbstractSyntaxTreeNode> {
-    fn infer_type(&mut self, type_context: &mut StaticTypeContext) -> Result<Type, InferTypeError> {
+    fn infer_type(&mut self, type_context: &mut StaticTypeContext) -> Result<Type, Box<InferTypeError>> {
         let variables_len = type_context.len();
 
-        let scoped_checker = StaticTypeContext::new(&self);
+        let scoped_checker = StaticTypeContext::new(self);
         type_context.merge(scoped_checker);
 
         for node in self {

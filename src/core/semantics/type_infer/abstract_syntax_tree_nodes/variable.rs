@@ -5,9 +5,9 @@ use crate::core::parser::types::r#type::InferTypeError;
 use crate::core::semantics::type_infer::infer_type::InferType;
 
 impl<const ASSIGNMENT: char, const SEPARATOR: char> InferType for Variable<ASSIGNMENT, SEPARATOR> {
-    fn infer_type(&mut self, type_context: &mut StaticTypeContext) -> Result<Type, InferTypeError> {
+    fn infer_type(&mut self, type_context: &mut StaticTypeContext) -> Result<Type, Box<InferTypeError>> {
         if type_context.methods.iter().filter(|a| a.identifier == self.l_value).count() > 0 {
-            return Err(InferTypeError::NameCollision(self.l_value.identifier(), self.file_position.clone()));
+            return Err(Box::new(InferTypeError::NameCollision(self.l_value.identifier(), self.file_position.clone())));
         }
 
         if !self.define {
@@ -31,7 +31,7 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> InferType for Variable<ASSIG
                         self.ty = Some(implicit_cast.clone());
                         return Ok(implicit_cast);
                     } else {
-                        return Err(InferTypeError::MismatchedTypes { expected: ty.clone(), actual: inferred_type.clone(), file_position: type_context.current_file_position.clone() });
+                        return Err(Box::new(InferTypeError::MismatchedTypes { expected: ty.clone(), actual: inferred_type.clone(), file_position: type_context.current_file_position.clone() }));
                     }
                 }
 

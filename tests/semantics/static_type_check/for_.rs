@@ -11,7 +11,7 @@ use monkey_language::core::model::abstract_syntax_tree_nodes::variable::Variable
 use monkey_language::core::model::types::integer::{IntegerAST, IntegerType};
 use monkey_language::core::model::types::mutability::Mutability;
 use monkey_language::core::model::types::ty::Type;
-use monkey_language::core::parser::parser::ASTParser;
+use monkey_language::core::parser::ast_parser::ASTParser;
 use monkey_language::core::semantics::static_type_check::static_type_checker::{static_type_check, StaticTypeCheckError};
 use monkey_language::core::semantics::type_infer::type_inferer::infer_type;
 

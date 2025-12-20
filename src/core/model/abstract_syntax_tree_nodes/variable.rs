@@ -1,11 +1,10 @@
 use std::fmt::{Display, Formatter};
 use crate::core::lexer::token_with_span::FilePosition;
-use crate::core::model::abstract_syntax_tree_nodes::assignable::{Assignable, AssignableError};
+use crate::core::model::abstract_syntax_tree_nodes::assignable::{Assignable};
 use crate::core::model::abstract_syntax_tree_nodes::identifier::IdentifierError;
 use crate::core::model::abstract_syntax_tree_nodes::l_value::LValue;
 use crate::core::model::types::ty::Type;
 use crate::core::parser::abstract_syntax_tree_nodes::l_value::LValueErr;
-use crate::core::parser::errors::EmptyIteratorErr;
 use crate::core::parser::types::r#type::InferTypeError;
 
 /// AST node for a variable. Pattern is defined as: name <Assignment> assignment <Separator>
@@ -29,10 +28,8 @@ pub struct Variable<const ASSIGNMENT: char, const SEPARATOR: char> {
 pub enum ParseVariableErr {
     PatternNotMatched { target_value: String },
     IdentifierErr(IdentifierError),
-    AssignableErr(AssignableError),
     LValue(LValueErr),
-    InferType(InferTypeError),
-    EmptyIterator(EmptyIteratorErr),
+    InferType(Box<InferTypeError>),
 }
 
 impl Display for ParseVariableErr {
@@ -40,8 +37,6 @@ impl Display for ParseVariableErr {
         write!(f, "{}", match self {
             ParseVariableErr::PatternNotMatched { target_value } => format!("`{target_value}`\n\tThe pattern for a variable is defined as: lvalue = assignment;"),
             ParseVariableErr::IdentifierErr(a) => a.to_string(),
-            ParseVariableErr::AssignableErr(a) => a.to_string(),
-            ParseVariableErr::EmptyIterator(e) => e.to_string(),
             ParseVariableErr::InferType(err) => err.to_string(),
             ParseVariableErr::LValue(err) => err.to_string(),
         })

@@ -1,24 +1,10 @@
-use std::collections::HashMap;
-use std::fmt::{Debug, Display};
-use std::str::FromStr;
-
-use crate::core::code_generator::{MetaInfo};
 use crate::core::lexer::error::Error;
 use crate::core::lexer::parse::{Parse, ParseOptions, ParseResult};
 use crate::core::lexer::token_with_span::TokenWithSpan;
 use crate::core::model::abstract_syntax_tree_nodes::assignable::Assignable;
 use crate::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::expression::Expression;
 use crate::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::operator::Operator;
-use crate::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::prefix_arithmetic::{PointerArithmetic, PrefixArithmetic};
-use crate::core::model::abstract_syntax_tree_nodes::identifier::Identifier;
-use crate::core::model::types::float::FloatType;
-use crate::core::model::types::integer::IntegerType;
-use crate::core::model::types::mutability::Mutability;
-use crate::core::model::types::ty::Type;
 use crate::core::parser::abstract_syntax_tree_nodes::assignables::equation_parser::Equation;
-use crate::core::parser::static_type_context::StaticTypeContext;
-use crate::core::parser::types::boolean::Boolean;
-use crate::core::parser::types::r#type::{InferTypeError};
 
 impl Expression {
     /// identifier expects a variable name. Expressions per se dont have variables names, but the identifier function is called on a l_value

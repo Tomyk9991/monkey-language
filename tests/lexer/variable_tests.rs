@@ -1,12 +1,10 @@
-use monkey_language::core::io::monkey_file::{MonkeyFile};
+use monkey_language::core::io::monkey_file::MonkeyFile;
 use monkey_language::core::lexer::token_with_span::FilePosition;
 use monkey_language::core::model::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
 use monkey_language::core::model::abstract_syntax_tree_nodes::assignable::Assignable;
 use monkey_language::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::expression::Expression;
 use monkey_language::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::operator::Operator;
 use monkey_language::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::prefix_arithmetic::{PointerArithmetic, PrefixArithmetic};
-use monkey_language::core::model::abstract_syntax_tree_nodes::assignables::method_call::MethodCall;
-use monkey_language::core::model::abstract_syntax_tree_nodes::assignables::object::Object;
 use monkey_language::core::model::abstract_syntax_tree_nodes::identifier::Identifier;
 use monkey_language::core::model::abstract_syntax_tree_nodes::l_value::LValue;
 use monkey_language::core::model::abstract_syntax_tree_nodes::variable::Variable;
@@ -15,7 +13,7 @@ use monkey_language::core::model::types::integer::{IntegerAST, IntegerType};
 use monkey_language::core::model::types::mutability::Mutability;
 use monkey_language::core::model::types::static_string::StaticString;
 use monkey_language::core::model::types::ty::Type;
-use monkey_language::core::parser::parser::ASTParser;
+use monkey_language::core::parser::ast_parser::ASTParser;
 use monkey_language::core::parser::types::r#type;
 use monkey_language::core::semantics::type_infer::type_inferer::infer_type;
 
@@ -273,7 +271,7 @@ fn variable_test_double_casting() -> anyhow::Result<()> {
     let variables = r#"let b: f32 = (f32)(i32) 5;"#;
 
     let monkey_file: MonkeyFile = MonkeyFile::read_from_str(variables)?;
-    let mut top_level_scope = ASTParser::parse(&monkey_file.tokens)?;
+    let top_level_scope = ASTParser::parse(&monkey_file.tokens)?;
 
     let expected = vec![
         Type::Float(FloatType::Float32, Mutability::Immutable),

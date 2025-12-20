@@ -1,6 +1,5 @@
-use std::error::Error;
-use std::fmt::{Display, Formatter};
 use crate::core::lexer::token_with_span::FilePosition;
+use std::fmt::{Display, Formatter};
 
 /// AST node for a name. Basically a string that can be used as a variable name.
 /// Everything is allowed except for reserved keywords and special characters in the beginning

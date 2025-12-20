@@ -1,18 +1,12 @@
-use std::str::FromStr;
 use crate::core::lexer::error::{Error, ErrorMatch};
 use crate::core::lexer::parse::{Parse, ParseOptions, ParseResult};
 use crate::core::lexer::token::Token;
 use crate::core::lexer::token_match::MatchResult;
 use crate::core::lexer::token_with_span::{FilePosition, TokenWithSpan};
 use crate::core::model::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
-use crate::core::model::abstract_syntax_tree_nodes::assignable::{Assignable, AssignableError};
-use crate::core::model::abstract_syntax_tree_nodes::if_::{If, IfError};
+use crate::core::model::abstract_syntax_tree_nodes::assignable::{Assignable};
+use crate::core::model::abstract_syntax_tree_nodes::if_::{If};
 use crate::core::model::scope::Scope;
-use crate::core::parser::scope::PatternNotMatchedError;
-use crate::core::parser::static_type_context::StaticTypeContext;
-use crate::core::parser::types::r#type::InferTypeError;
-use crate::core::semantics::static_type_check::static_type_check::StaticTypeCheck;
-use crate::core::semantics::static_type_check::static_type_checker::StaticTypeCheckError;
 use crate::pattern;
 
 
@@ -31,11 +25,8 @@ impl TryFrom<Result<ParseResult<Self>, Error>> for If {
 impl Parse for If {
     fn parse(tokens: &[TokenWithSpan], _: ParseOptions) -> Result<ParseResult<Self>, Error> where Self: Sized, Self: Default {
         let mut parse_result = ParseResult::<If>::default();
-        let mut parsing_fulfilled = false;
-        let mut assign_token_count = 0;
 
-        if let Some((MatchResult::Parse(assign))) = pattern!(tokens, If, ParenthesisOpen, @parse Assignable, ParenthesisClose) {
-            assign_token_count = assign.consumed;
+        if let Some(MatchResult::Parse(assign)) = pattern!(tokens, If, ParenthesisOpen, @parse Assignable, ParenthesisClose) {
             let scope = Scope::parse(&tokens[assign.consumed + 3..], ParseOptions::default())
                 .map_err(|e| Error::Callstack(Box::new(e)).with_context(&tokens[0]))?;
 
@@ -47,13 +38,11 @@ impl Parse for If {
             };
 
             parse_result.consumed = assign.consumed + scope.consumed + 3;
-            parsing_fulfilled = true;
         } else {
-            return Err(Error::first_unexpected_token(tokens, &vec![Token::If.into(), Token::ParenthesisOpen.into(), ErrorMatch::Collect(assign_token_count), Token::ParenthesisClose.into()]));
+            return Err(Error::first_unexpected_token(tokens, &[Token::If.into(), Token::ParenthesisOpen.into(), ErrorMatch::Collect(0), Token::ParenthesisClose.into()]));
         }
 
         if let [TokenWithSpan { token: Token::Else, .. }, ..] = &tokens[parse_result.consumed..]  {
-            assign_token_count += 1;
             let else_scope = Scope::parse(&tokens[parse_result.consumed + 1..], ParseOptions::default())
                 .map_err(|e| Error::Callstack(Box::new(e)).with_context(&tokens[parse_result.consumed]))?;
 
@@ -62,10 +51,7 @@ impl Parse for If {
             parse_result.consumed += else_scope.consumed + 1;
         }
 
-        match parsing_fulfilled {
-            true => Ok(parse_result),
-            false => Err(Error::first_unexpected_token(tokens, &vec![Token::If.into(), Token::ParenthesisOpen.into(), ErrorMatch::Collect(assign_token_count), Token::ParenthesisClose.into()]))
-        }
+        Ok(parse_result)
     }
 }
 
@@ -88,17 +74,5 @@ impl If {
         }
 
         false
-    }
-}
-
-impl PatternNotMatchedError for IfError {
-    fn is_pattern_not_matched_error(&self) -> bool {
-        matches!(self, IfError::PatternNotMatched {..})
-    }
-}
-
-impl From<AssignableError> for IfError {
-    fn from(value: AssignableError) -> Self {
-        IfError::AssignableErr(value)
     }
 }

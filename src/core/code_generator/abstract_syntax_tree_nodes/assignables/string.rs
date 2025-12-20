@@ -1,20 +1,11 @@
-use std::any::Any;
-use std::fmt::{Display, Formatter};
-use std::str::FromStr;
-
-use crate::core::code_generator::{ASMGenerateError,
-                                  MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::asm_options::ASMOptions;
-use crate::core::code_generator::asm_options::interim_result::InterimResultOption;
-use crate::core::code_generator::asm_result::{ASMResult};
+use crate::core::code_generator::asm_result::ASMResult;
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::registers::GeneralPurposeRegister;
-use crate::core::lexer::error::Error;
-use crate::core::lexer::parse::{Parse, ParseResult};
-use crate::core::lexer::token::Token;
-use crate::core::lexer::token_with_span::TokenWithSpan;
-use crate::core::model::types::static_string::{StaticString, StaticStringError};
+use crate::core::code_generator::{ASMGenerateError,
+                                  MetaInfo, ToASM};
+use crate::core::model::types::static_string::StaticString;
 
 impl ToASM for StaticString {
     fn to_asm(&self, stack: &mut Stack, _meta: &mut MetaInfo, options: Option<ASMOptions>) -> Result<ASMResult, ASMGenerateError> {

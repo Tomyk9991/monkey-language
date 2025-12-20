@@ -1,4 +1,3 @@
-use std::fmt::{Display, Formatter};
 use crate::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::expression::Expression;
 use crate::core::model::abstract_syntax_tree_nodes::assignables::method_call::MethodCall;
 use crate::core::model::abstract_syntax_tree_nodes::assignables::object::Object;
@@ -9,7 +8,7 @@ use crate::core::model::types::boolean::Boolean;
 use crate::core::model::types::float::FloatAST;
 use crate::core::model::types::integer::IntegerAST;
 use crate::core::model::types::static_string::StaticString;
-use crate::core::model::types::ty::Type;
+use std::fmt::{Display, Formatter};
 
 /// AST node for assignable abstract_syntax_tree_nodes. Numbers, strings, method calls, other variables, objects, and arithmetic / boolean equations.
 #[derive(Debug, PartialEq, Clone)]
@@ -26,11 +25,6 @@ pub enum Assignable {
     Expression(Expression),
 }
 
-#[derive(Debug)]
-pub enum AssignableError {
-    PatternNotMatched { target_value: String }
-}
-
 impl Display for Assignable {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", match self {
@@ -44,17 +38,6 @@ impl Display for Assignable {
             Assignable::Expression(node) => format!("{}", node),
             Assignable::Parameter(node) => format!("{}", node),
             Assignable::Array(node) => format!("{}", node),
-        })
-    }
-}
-
-impl std::error::Error for AssignableError {}
-
-impl Display for AssignableError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", match self {
-            AssignableError::PatternNotMatched { target_value }
-            => format!("Pattern not matched for: `{target_value}`\n\tAssignments are: string: \"String\", integer: 21, -125, double: -51.1512, 152.1521")
         })
     }
 }

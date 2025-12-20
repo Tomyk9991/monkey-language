@@ -1,4 +1,4 @@
-use crate::core::parser::parser::ASTParser;
+use crate::core::parser::ast_parser::ASTParser;
 use crate::core::parser::static_type_context::StaticTypeContext;
 
 #[derive(Debug)]

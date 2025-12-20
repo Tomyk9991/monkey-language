@@ -11,12 +11,12 @@ impl Identifier {
                 _ => false,
             }
         }) {
-            return if variable.l_value.identifier() == self.name.as_str() {
+            if variable.l_value.identifier() == self.name.as_str() {
                 variable.ty.clone()
             } else {
                 None
             }
-        } {
+        } else {
             None
         }
     }

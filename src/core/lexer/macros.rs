@@ -1,12 +1,10 @@
-use crate::core::lexer::parse::ParseOptions;
-
 #[macro_export]
 macro_rules! pattern {
     // Einstiegspunkt: Alle weiteren Token werden als Stream (tt-Muncher) übergeben.
     ($tokens:expr, $($input:tt)*) => {{
         (|| {
-            use crate::core::lexer::token_match::TokenMatchSingleReturn;
-            let mut vec: Vec<crate::core::lexer::token_match::Match<_>> = vec![];
+            use $crate::core::lexer::token_match::TokenMatchSingleReturn;
+            let mut vec: Vec<$crate::core::lexer::token_match::Match<_>> = vec![];
             #[allow(unused_assignments)]
             let mut _parser_index = 0;
             pattern!(@internal vec, _parser_index, $tokens, $($input)*);

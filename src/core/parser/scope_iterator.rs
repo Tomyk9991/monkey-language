@@ -18,12 +18,10 @@ pub struct ScopeIterator {
     index: AbstractSyntaxTreeNode,
 }
 
+type ParseFunction = Box<dyn Fn(&[TokenWithSpan]) -> Result<ParseResult<AbstractSyntaxTreeNode>, Error>>;
 pub struct ScopeIterationItem {
-    pub parser: Box<dyn Fn(&[TokenWithSpan]) -> Result<ParseResult<AbstractSyntaxTreeNode>, Error>>,
-    pub name: &'static str,
+    pub parser: ParseFunction,
 }
-
-pub trait ScopeIteratorItem: Into<AbstractSyntaxTreeNode> { }
 
 impl ScopeIterator {
     pub fn new() -> Self {
@@ -45,7 +43,6 @@ impl Iterator for ScopeIterator {
             let value = If::parse;
             return Some(ScopeIterationItem {
                 parser: Box::new(move |tokens| value(tokens, ParseOptions::default())?.into()),
-                name: "If",
             });
         }
 
@@ -68,44 +65,28 @@ impl Iterator for ScopeIterator {
         Some(match next_token {
             AbstractSyntaxTreeNode::If(_) => ScopeIterationItem {
                 parser: Box::new(move |tokens| If::parse(tokens, ParseOptions::default())?.into()),
-                name: "If",
             },
             AbstractSyntaxTreeNode::Variable(_) => ScopeIterationItem {
                 parser: Box::new(move |tokens| Variable::<'=', ';'>::parse(tokens, ParseOptions::default())?.into()),
-                name: "Variable",
             },
             AbstractSyntaxTreeNode::For(_) => ScopeIterationItem {
                 parser: Box::new(move |tokens| For::parse(tokens, ParseOptions::default())?.into()),
-                name: "For",
             },
             AbstractSyntaxTreeNode::Import(_) => ScopeIterationItem {
                 parser: Box::new(move |tokens| Import::parse(tokens, ParseOptions::default())?.into()),
-                name: "Import",
             },
             AbstractSyntaxTreeNode::Return(_) => ScopeIterationItem {
                 parser: Box::new(move |tokens| Return::parse(tokens, ParseOptions::default())?.into()),
-                name: "Return",
             },
             AbstractSyntaxTreeNode::While(_) => ScopeIterationItem {
                 parser: Box::new(move |tokens| While::parse(tokens, ParseOptions::default())?.into()),
-                name: "While",
             },
             AbstractSyntaxTreeNode::MethodDefinition(_) => ScopeIterationItem {
                 parser: Box::new(move |tokens| MethodDefinition::parse(tokens, ParseOptions::default())?.into()),
-                name: "MethodDefinition",
             },
             AbstractSyntaxTreeNode::MethodCall(_) => ScopeIterationItem {
                 parser: Box::new(move |tokens| MethodCall::parse(tokens, ParseOptions::builder().with_ends_with_semicolon(true).build())?.into()),
-                name: "MethodCall",
-            },
-            _ => {
-                // create a new box with an error
-                ScopeIterationItem {
-                    parser: Box::new(move |_| { Err(Error::UnexpectedEOF) }),
-                    name: "Not implemented",
-                }
             }
-            // AbstractSyntaxTreeNode::MethodCall(_) => Box::new(move |tokens| MethodCall::parse(tokens)?.into()),
         })
     }
 }

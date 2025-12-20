@@ -8,8 +8,8 @@ use crate::core::model::abstract_syntax_tree_nodes::variable::Variable;
 use crate::core::model::types::ty::Type;
 use crate::core::parser::static_type_context::{CurrentMethodInfo, StaticTypeContext};
 use crate::core::parser::types::r#type::{InferTypeError, MethodCallSignatureMismatchCause};
-use crate::core::semantics::static_type_check::static_type_check::StaticTypeCheck;
 use crate::core::semantics::static_type_check::static_type_checker::{static_type_check_rec, StaticTypeCheckError};
+use crate::core::semantics::static_type_check::StaticTypeCheck;
 
 impl StaticTypeCheck for MethodDefinition {
     fn static_type_check(&self, type_context: &mut StaticTypeContext) -> Result<(), StaticTypeCheckError> {
@@ -49,12 +49,12 @@ impl StaticTypeCheck for MethodDefinition {
                 
                 if method_return_signature_mismatch {
                     if let Some(expected_return_type) = &type_context.expected_return_type {
-                        return Err(StaticTypeCheckError::InferredError(InferTypeError::MethodReturnSignatureMismatch {
+                        return Err(StaticTypeCheckError::InferredError(Box::new(InferTypeError::MethodReturnSignatureMismatch {
                             expected: expected_return_type.return_type.clone(),
                             method_name: expected_return_type.method_name.to_string(),
                             file_position: expected_return_type.method_header_line.clone(),
                             cause,
-                        }));
+                        })));
                     }
                 }
             }

@@ -1,7 +1,6 @@
-use std::str::FromStr;
 use crate::core::lexer::token::Token;
-use crate::core::model::types::float::FloatAST;
 use crate::core::model::types::integer::IntegerAST;
+use std::str::FromStr;
 
 #[derive(Debug, PartialEq)]
 pub struct TokenInformation {
@@ -25,10 +24,7 @@ impl TokenInformation {
 impl From<Token> for TokenInformation {
     fn from(value: Token) -> Self {
         TokenInformation {
-            token_length: match value.literal() {
-                Some(literal) => Some(literal.len()),
-                None => None
-            },
+            token_length: value.literal().map(|literal| literal.len()),
             token: value,
         }
     }

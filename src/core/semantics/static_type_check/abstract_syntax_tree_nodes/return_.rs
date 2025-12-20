@@ -1,11 +1,10 @@
-use crate::core::model::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
 use crate::core::model::abstract_syntax_tree_nodes::identifier::Identifier;
 use crate::core::model::abstract_syntax_tree_nodes::l_value::LValue;
 use crate::core::model::abstract_syntax_tree_nodes::ret::Return;
 use crate::core::parser::static_type_context::StaticTypeContext;
 use crate::core::parser::types::r#type::InferTypeError;
-use crate::core::semantics::static_type_check::static_type_check::StaticTypeCheck;
 use crate::core::semantics::static_type_check::static_type_checker::StaticTypeCheckError;
+use crate::core::semantics::static_type_check::StaticTypeCheck;
 
 impl StaticTypeCheck for Return {
     fn static_type_check(&self, type_context: &mut StaticTypeContext) -> Result<(), StaticTypeCheckError> {
@@ -17,11 +16,11 @@ impl StaticTypeCheck for Return {
                 })?;
 
                 if expected_return_type.return_type < actual_type {
-                    return Err(StaticTypeCheckError::InferredError(InferTypeError::MethodReturnArgumentTypeMismatch {
+                    return Err(StaticTypeCheckError::InferredError(Box::new(InferTypeError::MethodReturnArgumentTypeMismatch {
                         expected: expected_return_type.return_type.clone(),
                         actual: actual_type,
                         file_position: self.file_position.clone()
-                    }));
+                    })));
                 }
             }
         }

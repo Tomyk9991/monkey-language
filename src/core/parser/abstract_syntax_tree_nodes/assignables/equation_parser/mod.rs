@@ -1,18 +1,16 @@
 use std::fmt::{Debug, Display, Formatter};
-use std::str::FromStr;
 
 use crate::core::lexer::parse::{Parse, ParseOptions, ParseResult};
 use crate::core::lexer::token::Token;
 use crate::core::lexer::token_match::MatchResult;
 use crate::core::lexer::token_with_span::TokenWithSpan;
-use crate::core::model::abstract_syntax_tree_nodes::assignable::{Assignable, AssignableError};
+use crate::core::model::abstract_syntax_tree_nodes::assignable::{Assignable};
 use crate::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::expression::Expression;
 use crate::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::operator::Operator;
 use crate::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::prefix_arithmetic::{PointerArithmetic, PrefixArithmetic};
 use crate::core::model::abstract_syntax_tree_nodes::identifier::IdentifierError;
-use crate::core::model::types::mutability::Mutability;
 use crate::core::model::types::ty::Type;
-use crate::core::parser::types::r#type::{InferTypeError};
+use crate::core::parser::types::r#type::InferTypeError;
 use crate::core::parser::utils::dyck::dyck_language_generic;
 use crate::pattern;
 
@@ -63,14 +61,6 @@ impl From<InferTypeError> for Error {
     }
 }
 
-impl From<AssignableError> for Error {
-    fn from(value: AssignableError) -> Self {
-        Error::TermNotParsable(match value {
-            AssignableError::PatternNotMatched { target_value } => target_value,
-        })
-    }
-}
-
 impl From<IdentifierError> for Error {
     fn from(value: IdentifierError) -> Self {
         Error::UndefinedSequence(value.to_string())
@@ -102,13 +92,6 @@ impl std::error::Error for Error {}
 
 #[allow(clippy::should_implement_trait)]
 impl<'a> Equation<'a> {
-    pub fn from_str(string: &str) -> Result<Expression, Error> {
-        todo!()
-        // let mut s: Equation = Equation::new(string);
-        // let f = s.parse()?.clone();
-        // Ok(f)
-    }
-
     pub fn new(tokens: &'a [TokenWithSpan]) -> Self {
         Self {
             source_code: tokens,
@@ -120,12 +103,12 @@ impl<'a> Equation<'a> {
 
     fn next_char(&mut self) {
         self.pos += 1;
-        self.ch = self.source_code.iter().nth(self.pos as usize);
+        self.ch = self.source_code.get(self.pos as usize);
     }
 
     fn prev_char(&mut self) {
         self.pos -= 1;
-        self.ch = self.source_code.iter().nth(self.pos as usize);
+        self.ch = self.source_code.get(self.pos as usize);
     }
 
     // skips the provided amount of characters
@@ -158,7 +141,7 @@ impl<'a> Equation<'a> {
     fn parse(&mut self) -> Result<ParseResult<Box<Expression>>, crate::core::lexer::error::Error> where Self: Sized {
         self.next_char();
 
-        if dyck_language_generic(&self.source_code, [vec!['('], vec![','], vec![')']], vec![')'], contains).is_err() {
+        if dyck_language_generic(self.source_code, [vec!['('], vec![','], vec![')']], vec![')'], contains).is_err() {
             return Err(crate::core::lexer::error::Error::UnexpectedToken(self.source_code[0].clone()));
         }
 
@@ -379,63 +362,6 @@ impl<'a> Equation<'a> {
         }
     }
 
-    fn peek(&self, expected_char: Token) -> bool {
-        if let Some(a) = self.source_code.iter().nth(self.pos as usize) {
-            return a.token == expected_char;
-        }
-
-        false
-    }
-
-    /// collects until the specified character is found and checks each substring, if a certain predicate is met
-    /// returns a trimmed string between the beginning and the expected last character and the amount of characters skipped, including the spaces
-    fn collect_until(&self, offset: usize, expected_last_token: Token, predicate: fn(&[TokenWithSpan]) -> bool) -> Option<(Vec<TokenWithSpan>, usize)> {
-        let starting_position = (self.pos as usize) + offset;
-        let mut end_position = starting_position;
-
-        for char in self.source_code.iter().skip(starting_position) {
-            end_position += 1;
-
-            let current_tokens = self
-                .source_code
-                .iter()
-                .skip(starting_position)
-                .take(end_position - starting_position)
-                .map(|t| t.clone())
-                .collect::<Vec<TokenWithSpan>>();
-
-            // check if it contains something else than *
-            // if it does, check if it is a type
-            let contains_only_stars = !current_tokens.iter().any(|a| a.token != Token::Multiply);
-
-            if current_tokens.is_empty() || contains_only_stars {
-                continue;
-            }
-
-            if char.token == expected_last_token {
-                let current_token = self
-                    .source_code
-                    .iter()
-                    .skip(starting_position)
-                    .take(end_position - 1 - starting_position)
-                    .map(|t| t.clone())
-                    .collect::<Vec<TokenWithSpan>>();
-
-                return if !predicate(&current_token) {
-                    None
-                } else {
-                    Some((current_token.iter().map(|a| a.clone()).collect::<Vec<_>>(), end_position - starting_position + 1))
-                };
-            }
-
-            if !predicate(&current_tokens) {
-                return None;
-            }
-        }
-
-        None
-    }
-
     fn parse_factor(&mut self) -> Result<ParseResult<Box<Expression>>, crate::core::lexer::error::Error> where Self: Sized {
         let mut x: ParseResult<Box<Expression>> = *Box::default();
 
@@ -559,7 +485,7 @@ impl<'a> Equation<'a> {
                         .iter()
                         .skip(start_pos as usize)
                         .take(((self.pos - start_pos) as usize).max(1))
-                        .map(|t| t.clone())
+                        .cloned()
                         .collect::<Vec<TokenWithSpan>>();
 
 

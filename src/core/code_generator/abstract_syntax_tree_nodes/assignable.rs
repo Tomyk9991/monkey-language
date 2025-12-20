@@ -1,31 +1,8 @@
-use std::error::Error;
-use std::fmt::{Debug, Display, Formatter};
-use std::str::FromStr;
-
+use crate::core::code_generator::asm_options::ASMOptions;
+use crate::core::code_generator::asm_result::ASMResult;
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
-use crate::core::code_generator::asm_options::ASMOptions;
-use crate::core::code_generator::asm_result::{ASMResult};
-use crate::core::lexer::parse::{Parse, ParseResult};
-use crate::core::lexer::token_with_span::TokenWithSpan;
-use crate::core::model::abstract_syntax_tree_nodes::assignable::{Assignable, AssignableError};
-use crate::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::prefix_arithmetic::PrefixArithmetic;
-use crate::core::model::abstract_syntax_tree_nodes::assignables::method_call::MethodCall;
-use crate::core::model::abstract_syntax_tree_nodes::assignables::object::Object;
-use crate::core::model::abstract_syntax_tree_nodes::identifier::Identifier;
-use crate::core::model::abstract_syntax_tree_nodes::l_value::LValue;
-use crate::core::model::types::array::Array;
-use crate::core::model::types::boolean::Boolean;
-use crate::core::model::types::float::FloatAST;
-use crate::core::model::types::integer::IntegerAST;
-use crate::core::model::types::mutability::Mutability;
-use crate::core::model::types::static_string::StaticString;
-use crate::core::model::types::ty::Type;
-use crate::core::parser::static_type_context::StaticTypeContext;
-use crate::core::parser::abstract_syntax_tree_nodes::assignables::equation_parser::Equation;
-use crate::core::parser::abstract_syntax_tree_nodes::assignables::method_call::{MethodCallErr};
-use crate::core::parser::types::r#type;
-use crate::core::parser::types::r#type::{InferTypeError};
+use crate::core::model::abstract_syntax_tree_nodes::assignable::Assignable;
 
 
 impl ToASM for Assignable {

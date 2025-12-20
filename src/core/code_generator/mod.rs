@@ -29,7 +29,7 @@ pub enum ASMGenerateError {
     EntryPointNotFound,
     LValueAssignment(LValue, FilePosition),
     MultipleEntryPointsFound(Vec<FilePosition>),
-    TypeNotInferrable(InferTypeError),
+    TypeNotInferrable(Box<InferTypeError>),
     InternalError(String, FilePosition),
     ASMResult(ASMResultError),
     AssignmentNotImplemented { assignable: Assignable, },
@@ -42,8 +42,8 @@ impl From<ASMResultError> for ASMGenerateError {
     }
 }
 
-impl From<InferTypeError> for ASMGenerateError {
-    fn from(value: InferTypeError) -> Self {
+impl From<Box<InferTypeError>> for ASMGenerateError {
+    fn from(value: Box<InferTypeError>) -> Self {
         ASMGenerateError::TypeNotInferrable(value)
     }
 }

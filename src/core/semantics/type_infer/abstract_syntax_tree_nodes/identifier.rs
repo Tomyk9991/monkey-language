@@ -6,7 +6,7 @@ use crate::core::parser::types::r#type::InferTypeError;
 use crate::core::semantics::type_infer::infer_type::InferType;
 
 impl InferType for Identifier {
-    fn infer_type(&mut self, type_context: &mut StaticTypeContext) -> Result<Type, InferTypeError> {
+    fn infer_type(&mut self, type_context: &mut StaticTypeContext) -> Result<Type, Box<InferTypeError>> {
         if let Some(v) = type_context.iter().rfind(|v| {
             if let LValue::Identifier(n) = &v.l_value {
                 n.name == *self.name
@@ -17,10 +17,10 @@ impl InferType for Identifier {
             return if let Some(ty) = &v.ty {
                 Ok(ty.clone())
             } else {
-                Err(InferTypeError::NoTypePresent(v.l_value.clone(), type_context.current_file_position.clone()))
+                Err(Box::new(InferTypeError::NoTypePresent(v.l_value.clone(), type_context.current_file_position.clone())))
             };
         }
 
-        Err(InferTypeError::UnresolvedReference(self.to_string(), type_context.current_file_position.clone()))
+        Err(Box::new(InferTypeError::UnresolvedReference(self.to_string(), type_context.current_file_position.clone())))
     }
 }

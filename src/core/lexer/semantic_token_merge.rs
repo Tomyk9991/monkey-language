@@ -2,6 +2,8 @@ use crate::core::lexer::error::Error;
 use crate::core::lexer::token::Token;
 use crate::core::lexer::token_with_span::{FilePosition, TokenWithSpan};
 
+type SemanticPattern = (Token, Box<dyn for<'a> FnMut(&'a Token) -> bool>, fn(&[TokenWithSpan]) -> Token);
+
 /// Merge tokens that are semantically related.
 ///
 /// # Arguments
@@ -10,7 +12,7 @@ use crate::core::lexer::token_with_span::{FilePosition, TokenWithSpan};
 ///
 /// returns: Result<Vec<TokenWithSpan>, Error>
 pub fn semantic_token_merge(tokens: &[TokenWithSpan]) -> Result<Vec<TokenWithSpan>, Error> {
-    let mut pattern: Vec<(_, Box<dyn for<'a> FnMut(&'a Token) -> bool>, _)> = vec![
+    let mut pattern: Vec<SemanticPattern> = vec![
         (Token::Module, until(&Token::SemiColon), collect()),
     ];
 
@@ -27,7 +29,7 @@ pub fn semantic_token_merge(tokens: &[TokenWithSpan]) -> Result<Vec<TokenWithSpa
                     let mut collected = vec![];
 
 
-                    while let Some(current_collecting_token) = token_iter.next() {
+                    for current_collecting_token in token_iter.by_ref() {
                         if predicate(&current_collecting_token.token) {
                             let min_column = *collected.iter()
                                 .map(|t: &TokenWithSpan| &t.span)
@@ -70,16 +72,4 @@ fn collect() -> fn(&[TokenWithSpan]) -> Token {
 
 fn until(expected: &Token) -> Box<dyn for<'a> FnMut(&'a Token) -> bool + '_> {
     Box::new(|token: &Token| *token == *expected)
-}
-
-fn take(n: usize) -> Box<dyn for<'a> FnMut(&'a Token) -> bool> {
-    let mut count = 0;
-    Box::new(move |_token: &Token| {
-        if count < n {
-            count += 1;
-            true
-        } else {
-            false
-        }
-    })
 }

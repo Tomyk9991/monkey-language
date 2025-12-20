@@ -1,30 +1,13 @@
-use std::collections::{HashSet};
-use std::fmt::{Debug, Display, Formatter};
-use anyhow::__private::kind::TraitKind;
-use anyhow::Context;
 use crate::core::lexer::collect_tokens_until_scope_close::CollectTokensFromUntil;
 use crate::core::lexer::error::Error;
 use crate::core::lexer::parse::{Parse, ParseOptions, ParseResult};
 use crate::core::lexer::token_match::MatchResult;
 use crate::core::lexer::token_with_span::TokenWithSpan;
 use crate::core::model::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
-use crate::core::model::abstract_syntax_tree_nodes::assignable::Assignable;
-use crate::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::expression::Expression;
-use crate::core::model::abstract_syntax_tree_nodes::assignables::method_call::MethodCall;
-use crate::core::model::abstract_syntax_tree_nodes::for_::For;
-use crate::core::model::abstract_syntax_tree_nodes::if_::If;
-use crate::core::model::abstract_syntax_tree_nodes::import::Import;
-use crate::core::model::abstract_syntax_tree_nodes::method_definition::MethodDefinition;
-use crate::core::model::abstract_syntax_tree_nodes::ret::Return;
-use crate::core::model::abstract_syntax_tree_nodes::variable::Variable;
-use crate::core::model::abstract_syntax_tree_nodes::while_::While;
 use crate::core::model::scope::Scope;
-use crate::core::parser::errors::EmptyIteratorErr;
-use crate::core::parser::static_type_context::StaticTypeContext;
-use crate::core::parser::parser::{ASTParser};
 use crate::core::parser::scope_iterator::ScopeIterator;
-use crate::core::parser::types::r#type::InferTypeError;
 use crate::pattern;
+use std::fmt::{Debug, Display, Formatter};
 
 impl Parse for Scope {
     fn parse(tokens: &[TokenWithSpan], _: ParseOptions) -> Result<ParseResult<Self>, Error> where Self: Sized, Self: Default {
@@ -34,7 +17,7 @@ impl Parse for Scope {
             let mut total_consumed = 0;
 
             'outer: while index < scope_tokens.len() {
-                let mut scope_iterator = Scope::iter();
+                let scope_iterator = Scope::iter();
                 let mut consumed = 0;
 
                 for parsing_iteration_item in scope_iterator {
@@ -46,7 +29,7 @@ impl Parse for Scope {
                             ast.consumed
                         }
                         // this type of error counts as unrecoverable, so we return it
-                        Err(err) if matches!(err, Error::ErrorWithContext { .. }) => {
+                        Err(err) if matches!(err, Error::WithContext { .. }) => {
                             return Err(err);
                         },
                         Err(_) => {
@@ -91,60 +74,6 @@ impl Scope {
     }
 }
 
-pub enum ScopeError {
-    ParsingError { message: String },
-    InferredError(InferTypeError),
-    EmptyIterator(EmptyIteratorErr)
-}
-
-impl PatternNotMatchedError for ScopeError {
-    fn is_pattern_not_matched_error(&self) -> bool {
-        matches!(self, ScopeError::ParsingError { .. })
-    }
-}
-
-impl Debug for ScopeError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self)
-    }
-}
-
-impl Display for ScopeError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", match self {
-            ScopeError::ParsingError { message } => message.to_string(),
-            ScopeError::EmptyIterator(e) => e.to_string(),
-            ScopeError::InferredError(e) => e.to_string()
-        })
-    }
-}
-
-
-impl std::error::Error for ScopeError {}
-
-macro_rules! ast_node_expand {
-    ($code_lines_iterator: ident, $(($ast_node_implementation:ty, $ast_node_type:ident, $iterates_over_same_scope:ident)),*) => {
-        $(
-            match <$ast_node_implementation as TryParse>::try_parse($code_lines_iterator) {
-                Ok(t) => {
-                    if $iterates_over_same_scope {
-                        $code_lines_iterator.next();
-                    }
-                    return Ok(AbstractSyntaxTreeNode::$ast_node_type(t))
-                },
-                Err(err) => {
-                    if !err.is_pattern_not_matched_error() {
-                        return Err(ScopeError::ParsingError {
-                            message: format!("{}", err)
-                        })
-                    }
-                }
-            }
-        )*
-    }
-}
-
-
 impl Debug for Scope {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let ast_nodes_str = self.ast_nodes
@@ -178,14 +107,4 @@ impl Display for Scope {
             })
             .collect::<String>())
     }
-}
-
-impl From<InferTypeError> for ScopeError {
-    fn from(value: InferTypeError) -> Self {
-        ScopeError::InferredError(value)
-    }
-}
-
-pub trait PatternNotMatchedError {
-    fn is_pattern_not_matched_error(&self) -> bool;
 }

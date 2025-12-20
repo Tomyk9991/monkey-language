@@ -53,7 +53,7 @@ impl TokenMatchSingleReturn for &[TokenWithSpan] {
         let is_collection_pattern = pattern.iter().any(|p| matches!(p, Match::Collect(_)));
         let is_parse_pattern = pattern.iter().any(|p| matches!(p, Match::Parse(_)));
         // cannot be both
-        debug_assert_ne!(is_collection_pattern && is_parse_pattern, true, "Cannot have both collection and parse patterns in the same match pattern");
+        debug_assert!(!(is_collection_pattern && is_parse_pattern), "Cannot have both collection and parse patterns in the same match pattern");
 
         let mut previous_token: Option<TokenWithSpan> = None;
         loop {

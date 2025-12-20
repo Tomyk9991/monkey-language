@@ -1,7 +1,7 @@
 use crate::cli::program_args::{OptimizationLevel, PrintOption, ProgramArgs};
 use crate::core::io::monkey_file::MonkeyFile;
 use crate::core::model::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
-use crate::core::parser::parser::ASTParser;
+use crate::core::parser::ast_parser::ASTParser;
 use crate::core::semantics::static_type_check::static_type_checker::static_type_check;
 use crate::core::semantics::type_infer::type_inferer::infer_type;
 use clap::Parser;
@@ -9,8 +9,8 @@ use colored::Colorize;
 use crate::core::code_generator::generator::ASMGenerator;
 use crate::core::code_generator::target_creator::TargetCreator;
 use crate::core::code_generator::target_os::TargetOS;
-use crate::core::optimization::optimization::Optimization;
-use crate::core::optimization::optimization::OptimizationContext;
+use crate::core::optimization::optimization_trait::Optimization;
+use crate::core::optimization::optimization_trait::OptimizationContext;
 
 mod cli;
 mod core;

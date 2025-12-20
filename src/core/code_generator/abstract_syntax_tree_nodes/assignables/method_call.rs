@@ -1,39 +1,22 @@
-use std::any::Any;
-use std::cmp::Ordering;
-use std::fmt::{Debug, Display, Formatter};
-use std::str::FromStr;
-use crate::core::code_generator::{ASMGenerateError, conventions, MetaInfo};
 use crate::core::code_generator::asm_builder::ASMBuilder;
-use crate::core::code_generator::asm_options::ASMOptions;
-use crate::core::code_generator::asm_options::in_expression_method_call::InExpressionMethodCall;
 use crate::core::code_generator::asm_options::interim_result::InterimResultOption;
+use crate::core::code_generator::asm_options::ASMOptions;
 use crate::core::code_generator::asm_result::{ASMResult, ASMResultError, ASMResultVariance};
 use crate::core::code_generator::conventions::CallingRegister;
-use crate::core::code_generator::generator::{Stack};
+use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::register_destination::byte_size_from_word;
 use crate::core::code_generator::registers::{Bit64, ByteSize, GeneralPurposeRegister};
 use crate::core::code_generator::ToASM;
-use crate::core::lexer::token::Token;
-use crate::core::lexer::token_with_span::{FilePosition, TokenWithSpan};
-use crate::core::model::abstract_syntax_tree_nodes::assignable::{Assignable, AssignableError};
+use crate::core::code_generator::{conventions, ASMGenerateError, MetaInfo};
+use crate::core::model::abstract_syntax_tree_nodes::assignable::{Assignable};
 use crate::core::model::abstract_syntax_tree_nodes::assignables::method_call::{MethodCall, MethodCallErr};
 use crate::core::model::abstract_syntax_tree_nodes::identifier::{Identifier, IdentifierError};
 use crate::core::model::abstract_syntax_tree_nodes::l_value::LValue;
 use crate::core::model::types::ty::Type;
-use crate::core::parser::errors::EmptyIteratorErr;
-use crate::core::parser::scope::PatternNotMatchedError;
-use crate::core::parser::static_type_context::StaticTypeContext;
-use crate::core::parser::types::r#type::{InferTypeError, MethodCallArgumentTypeMismatch};
+use crate::core::parser::types::r#type::InferTypeError;
 use crate::core::parser::utils::dyck::DyckError;
-use crate::core::semantics::static_type_check::static_type_checker::StaticTypeCheckError;
-use crate::core::semantics::static_type_check::static_type_check::StaticTypeCheck;
-use crate::core::semantics::type_infer::infer_type::InferType;
-
-impl PatternNotMatchedError for MethodCallErr {
-    fn is_pattern_not_matched_error(&self) -> bool {
-        matches!(self, MethodCallErr::PatternNotMatched {..}) || matches!(self, MethodCallErr::IdentifierErr(_))
-    }
-}
+use std::cmp::Ordering;
+use std::fmt::{Debug, Display, Formatter};
 
 impl std::error::Error for MethodCallErr {}
 
@@ -41,10 +24,6 @@ impl From<IdentifierError> for MethodCallErr {
     fn from(value: IdentifierError) -> Self {
         MethodCallErr::IdentifierErr(value)
     }
-}
-
-impl From<AssignableError> for MethodCallErr {
-    fn from(value: AssignableError) -> Self { MethodCallErr::AssignableErr(value) }
 }
 
 impl From<DyckError> for MethodCallErr {
@@ -56,8 +35,6 @@ impl From<DyckError> for MethodCallErr {
 impl Display for MethodCallErr {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let message = match self {
-            MethodCallErr::PatternNotMatched { target_value } => format!("\"{target_value}\" must match: methodName(assignable1, ..., assignableN)"),
-            MethodCallErr::AssignableErr(a) => a.to_string(),
             MethodCallErr::IdentifierErr(a) => a.to_string(),
             MethodCallErr::DyckLanguageErr { target_value, ordering } =>
                 {
@@ -68,7 +45,6 @@ impl Display for MethodCallErr {
                     };
                     format!("\"{target_value}\": {error}")
                 }
-            MethodCallErr::EmptyIterator(e) => e.to_string()
         };
 
         write!(f, "{}", message)
@@ -83,11 +59,11 @@ impl ToASM for MethodCall {
         let method_defs = conventions::method_definitions(&mut meta.static_type_information, &self.arguments, &self.identifier.identifier())?;
 
         if method_defs.is_empty() {
-            return Err(ASMGenerateError::TypeNotInferrable(InferTypeError::UnresolvedReference(self.identifier.to_string(), meta.file_position.clone())));
+            return Err(ASMGenerateError::TypeNotInferrable(Box::new(InferTypeError::UnresolvedReference(self.identifier.to_string(), meta.file_position.clone()))));
         }
 
         if method_defs.len() > 1 {
-            return Err(ASMGenerateError::TypeNotInferrable(InferTypeError::MethodCallSignatureMismatch {
+            return Err(ASMGenerateError::TypeNotInferrable(Box::new(InferTypeError::MethodCallSignatureMismatch {
                 signatures: meta.static_type_information.methods
                     .iter().filter(|m| m.identifier.identifier() == self.identifier.identifier())
                     .map(|m| m.arguments.iter().map(|a| a.ty.clone()).collect::<Vec<_>>())
@@ -95,7 +71,7 @@ impl ToASM for MethodCall {
                 method_name: self.identifier.clone(),
                 file_position: meta.file_position.clone(),
                 provided: self.arguments.iter().filter_map(|a| a.get_type(&meta.static_type_information)).collect::<Vec<_>>(),
-            }));
+            })));
         }
 
         let method_def = &method_defs[0];
@@ -132,9 +108,9 @@ impl ToASM for MethodCall {
         let mut parameters = vec![];
 
         for (conventions, argument) in zipped {
-            let provided_type = argument.get_type(&meta.static_type_information).ok_or(InferTypeError::NoTypePresent(
+            let provided_type = argument.get_type(&meta.static_type_information).ok_or(Box::new(InferTypeError::NoTypePresent(
                 LValue::Identifier(Identifier { name: self.identifier.identifier() },), self.file_position.clone()
-            ))?;
+            )))?;
             let result_from_eval = GeneralPurposeRegister::Bit64(Bit64::Rax)
                 .to_size_register(&ByteSize::try_from(provided_type.byte_size())?);
 

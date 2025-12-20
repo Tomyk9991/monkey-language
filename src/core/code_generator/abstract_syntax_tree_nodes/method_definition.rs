@@ -1,45 +1,18 @@
-use std::error::Error;
-use std::fmt::{Display, Formatter};
 use crate::core::code_generator::conventions::calling_convention_from;
 
-use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::asm_options::ASMOptions;
-use crate::core::code_generator::asm_options::interim_result::InterimResultOption;
 use crate::core::code_generator::asm_result::{ASMResult, ASMResultVariance};
 use crate::core::code_generator::conventions::CallingRegister;
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::registers::ByteSize;
-use crate::core::model::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
-use crate::core::model::abstract_syntax_tree_nodes::assignable::{Assignable, AssignableError};
-use crate::core::model::abstract_syntax_tree_nodes::identifier::{Identifier, IdentifierError};
-use crate::core::model::abstract_syntax_tree_nodes::l_value::LValue;
-use crate::core::model::abstract_syntax_tree_nodes::method_definition::{MethodArgument, MethodDefinition, MethodDefinitionErr};
-use crate::core::model::abstract_syntax_tree_nodes::variable::Variable;
-use crate::core::model::scope::Scope;
-use crate::core::model::types::mutability::Mutability;
+use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
+use crate::core::model::abstract_syntax_tree_nodes::identifier::IdentifierError;
+use crate::core::model::abstract_syntax_tree_nodes::method_definition::{MethodDefinition, MethodDefinitionErr};
 use crate::core::model::types::ty::Type;
-use crate::core::parser::errors::EmptyIteratorErr;
-use crate::core::parser::scope::{PatternNotMatchedError, ScopeError};
 use crate::core::parser::static_type_context::{CurrentMethodInfo, StaticTypeContext};
-use crate::core::parser::types::r#type::{InferTypeError, MethodCallSignatureMismatchCause};
-use crate::core::semantics::static_type_check::static_type_checker::{static_type_check_rec, StaticTypeCheckError};
-use crate::core::semantics::static_type_check::static_type_check::StaticTypeCheck;
+use crate::core::parser::types::r#type::InferTypeError;
 use crate::utils::math;
-
-
-
-impl PatternNotMatchedError for MethodDefinitionErr {
-    fn is_pattern_not_matched_error(&self) -> bool {
-        matches!(self, MethodDefinitionErr::PatternNotMatched {..})
-    }
-}
-
-impl From<AssignableError> for MethodDefinitionErr {
-    fn from(value: AssignableError) -> Self {
-        MethodDefinitionErr::AssignableErr(value)
-    }
-}
 
 impl From<IdentifierError> for MethodDefinitionErr {
     fn from(value: IdentifierError) -> Self {
@@ -47,8 +20,8 @@ impl From<IdentifierError> for MethodDefinitionErr {
     }
 }
 
-impl From<InferTypeError> for MethodDefinitionErr {
-    fn from(value: InferTypeError) -> Self {
+impl From<Box<InferTypeError>> for MethodDefinitionErr {
+    fn from(value: Box<InferTypeError>) -> Self {
         MethodDefinitionErr::ReturnErr(value)
     }
 }

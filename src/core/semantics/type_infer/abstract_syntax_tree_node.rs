@@ -5,7 +5,7 @@ use crate::core::parser::types::r#type::InferTypeError;
 use crate::core::semantics::type_infer::infer_type::InferType;
 
 impl InferType for AbstractSyntaxTreeNode {
-    fn infer_type(&mut self, type_context: &mut StaticTypeContext) -> Result<Type, InferTypeError> {
+    fn infer_type(&mut self, type_context: &mut StaticTypeContext) -> Result<Type, Box<InferTypeError>> {
         let ty = match self {
             AbstractSyntaxTreeNode::Variable(variable) => variable.infer_type(type_context)?,
             AbstractSyntaxTreeNode::If(if_definition) => if_definition.infer_type(type_context)?,

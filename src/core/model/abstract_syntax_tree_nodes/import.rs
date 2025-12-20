@@ -2,7 +2,6 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 use crate::core::io::monkey_file::MonkeyFile;
 use crate::core::lexer::token_with_span::FilePosition;
-use crate::core::parser::errors::EmptyIteratorErr;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Import {
@@ -12,8 +11,6 @@ pub struct Import {
 
 #[derive(Debug)]
 pub enum ImportError {
-    PatternNotMatched { target_value: String },
-    EmptyIterator(EmptyIteratorErr),
     MonkeyFileRead(anyhow::Error)
 }
 
@@ -27,10 +24,6 @@ impl Display for Import {
 impl Display for ImportError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", match self {
-            ImportError::PatternNotMatched { target_value } => {
-                format!("Pattern not matched for: `{}?\n\t import name;", target_value)
-            },
-            ImportError::EmptyIterator(e) => e.to_string(),
             ImportError::MonkeyFileRead(a) => format!("Cannot read the file: {a}")
         })
     }

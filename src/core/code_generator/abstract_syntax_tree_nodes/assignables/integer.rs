@@ -1,20 +1,14 @@
-use std::fmt::{Display, Formatter};
-use std::num::{ParseFloatError, ParseIntError};
-use std::str::FromStr;
+use crate::core::code_generator::asm_options::ASMOptions;
+use crate::core::code_generator::asm_result::ASMResult;
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
-use crate::core::code_generator::asm_options::ASMOptions;
-use crate::core::code_generator::asm_result::{ASMResult};
-use crate::core::lexer::error::Error;
-use crate::core::lexer::parse::{Parse, ParseResult};
-use crate::core::lexer::token::Token;
-use crate::core::lexer::token_with_span::TokenWithSpan;
-use crate::core::model::types::integer::{IntegerType, IntegerAST};
+use crate::core::model::types::integer::{IntegerAST, IntegerType};
+use std::fmt::{Display, Formatter};
+use std::num::{ParseFloatError, ParseIntError};
 
 
 #[derive(Debug)]
 pub enum NumberErr {
-    UnmatchedRegex,
     ParseIntError(ParseIntError),
     ParseFloatError(ParseFloatError)
 }
@@ -34,7 +28,6 @@ impl std::error::Error for NumberErr { }
 impl Display for NumberErr {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", match self {
-            NumberErr::UnmatchedRegex => "Integer must match ^[+-]?\\d+$".to_string(),
             NumberErr::ParseIntError(err) => err.to_string(),
             NumberErr::ParseFloatError(err) => err.to_string()
         })

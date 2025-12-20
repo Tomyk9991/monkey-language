@@ -1,23 +1,14 @@
-use std::any::Any;
-use std::fmt::{Display, Formatter};
-use std::str::FromStr;
-use crate::core::code_generator::asm_builder::ASMBuilder;
-use crate::core::code_generator::generator::Stack;
-use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
-use crate::core::code_generator::asm_options::interim_result::InterimResultOption;
-use crate::core::code_generator::asm_options::prepare_register::PrepareRegisterOption;
-use crate::core::code_generator::asm_result::{ASMResult, ASMResultError};
-use crate::core::code_generator::registers::{ByteSize};
 use crate::core::lexer::error::Error;
 use crate::core::lexer::parse::{Parse, ParseOptions, ParseResult};
 use crate::core::lexer::token::Token;
 use crate::core::lexer::token_with_span::TokenWithSpan;
 use crate::core::model::types::float::{FloatAST, FloatType};
-use crate::core::parser::abstract_syntax_tree_nodes::assignables::integer::{NumberErr};
+use crate::core::parser::abstract_syntax_tree_nodes::assignables::integer::NumberErr;
+use std::str::FromStr;
 
 impl Parse for FloatAST {
     fn parse(tokens: &[TokenWithSpan], _: ParseOptions) -> Result<ParseResult<Self>, Error> where Self: Sized, Self: Default {
-        if let Some(TokenWithSpan { token: Token::Minus, ..}) = tokens.get(0) {
+        if let Some(TokenWithSpan { token: Token::Minus, ..}) = tokens.first() {
             let mut parsed_float = Self::parse(&tokens[1..], Default::default())?;
             parsed_float.result.value *= -1.0;
 
@@ -27,8 +18,8 @@ impl Parse for FloatAST {
             });
         }
 
-        if let Some(TokenWithSpan { token: Token::Plus, ..}) = tokens.get(0) {
-            let mut parsed_float = Self::parse(&tokens[1..], Default::default())?;
+        if let Some(TokenWithSpan { token: Token::Plus, ..}) = tokens.first() {
+            let parsed_float = Self::parse(&tokens[1..], Default::default())?;
 
             return Ok(ParseResult {
                 result: parsed_float.result,

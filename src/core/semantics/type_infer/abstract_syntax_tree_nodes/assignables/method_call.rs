@@ -6,11 +6,11 @@ use crate::core::parser::types::r#type::InferTypeError;
 use crate::core::semantics::type_infer::infer_type::InferType;
 
 impl InferType for MethodCall {
-    fn infer_type(&mut self, type_context: &mut StaticTypeContext) -> Result<Type, InferTypeError> {
-        if let Some(method_def) = conventions::method_definitions(type_context, &mut self.arguments, &self.identifier.identifier())?.first() {
+    fn infer_type(&mut self, type_context: &mut StaticTypeContext) -> Result<Type, Box<InferTypeError>> {
+        if let Some(method_def) = conventions::method_definitions(type_context, &self.arguments, &self.identifier.identifier())?.first() {
             return Ok(method_def.return_type.clone());
         }
 
-        Err(InferTypeError::UnresolvedReference(self.to_string(), type_context.current_file_position.clone()))
+        Err(Box::new(InferTypeError::UnresolvedReference(self.to_string(), type_context.current_file_position.clone())))
     }
 }

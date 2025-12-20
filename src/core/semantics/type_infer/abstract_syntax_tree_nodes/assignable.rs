@@ -1,6 +1,5 @@
 use crate::core::model::abstract_syntax_tree_nodes::assignable::Assignable;
 use crate::core::model::abstract_syntax_tree_nodes::identifier::Identifier;
-use crate::core::model::abstract_syntax_tree_nodes::l_value::LValue;
 use crate::core::model::types::mutability::Mutability;
 use crate::core::model::types::ty::Type;
 use crate::core::parser::static_type_context::StaticTypeContext;
@@ -9,7 +8,7 @@ use crate::core::parser::types::r#type::InferTypeError;
 use crate::core::semantics::type_infer::infer_type::InferType;
 
 impl InferType for Assignable {
-    fn infer_type(&mut self, type_context: &mut StaticTypeContext) -> Result<Type, InferTypeError> {
+    fn infer_type(&mut self, type_context: &mut StaticTypeContext) -> Result<Type, Box<InferTypeError>> {
         match self {
             Assignable::String(_) => Ok(r#type::common::string()),
             Assignable::Integer(a) => Ok(Type::Integer(a.ty.clone(), Mutability::Immutable)),

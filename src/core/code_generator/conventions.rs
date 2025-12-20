@@ -1,16 +1,15 @@
-use std::fmt::{Display, Formatter};
 use crate::core::code_generator::generator::Stack;
-use crate::core::code_generator::MetaInfo;
 use crate::core::code_generator::registers::{Bit64, FloatRegister, GeneralPurposeRegister};
 use crate::core::code_generator::target_os::TargetOS;
+use crate::core::code_generator::MetaInfo;
 use crate::core::model::abstract_syntax_tree_nodes::assignable::Assignable;
 use crate::core::model::abstract_syntax_tree_nodes::identifier::Identifier;
 use crate::core::model::abstract_syntax_tree_nodes::l_value::LValue;
 use crate::core::model::abstract_syntax_tree_nodes::method_definition::MethodDefinition;
 use crate::core::model::types::ty::Type;
-use crate::core::semantics::type_infer::infer_type::InferType;
 use crate::core::parser::static_type_context::StaticTypeContext;
-use crate::core::parser::types::r#type::{InferTypeError};
+use crate::core::parser::types::r#type::InferTypeError;
+use std::fmt::{Display, Formatter};
 
 /// An enum representing the destination register. If its a register it contains the register
 /// For floats its for example a "rcx" or "rdx" for windows calling convention
@@ -29,7 +28,7 @@ impl Display for CallingRegister {
     }
 }
 
-pub fn calling_convention(stack: &mut Stack, meta: &mut MetaInfo, calling_arguments: &[Assignable], method_name: &str) -> Result<Vec<Vec<CallingRegister>>, InferTypeError> {
+pub fn calling_convention(stack: &mut Stack, meta: &mut MetaInfo, calling_arguments: &[Assignable], method_name: &str) -> Result<Vec<Vec<CallingRegister>>, Box<InferTypeError>> {
     match meta.target_os {
         TargetOS::Windows => windows_calling_convention(stack, meta, calling_arguments, method_name),
         TargetOS::Linux | TargetOS::WindowsSubsystemLinux => {
@@ -47,7 +46,7 @@ pub fn calling_convention_from(method_definition: &MethodDefinition, target_os: 
     }
 }
 
-pub fn return_calling_convention(_stack: &mut Stack, meta: &MetaInfo) -> Result<GeneralPurposeRegister, InferTypeError> {
+pub fn return_calling_convention(_stack: &mut Stack, meta: &MetaInfo) -> Result<GeneralPurposeRegister, Box<InferTypeError>> {
     match meta.target_os {
         TargetOS::Windows => Ok(GeneralPurposeRegister::Bit64(Bit64::Rax)),
         TargetOS::Linux | TargetOS::WindowsSubsystemLinux => {
@@ -56,7 +55,7 @@ pub fn return_calling_convention(_stack: &mut Stack, meta: &MetaInfo) -> Result<
     }
 }
 
-fn windows_calling_convention(_stack: &mut Stack, meta: &mut MetaInfo, calling_arguments: &[Assignable], method_name: &str) -> Result<Vec<Vec<CallingRegister>>, InferTypeError> {
+fn windows_calling_convention(_stack: &mut Stack, meta: &mut MetaInfo, calling_arguments: &[Assignable], method_name: &str) -> Result<Vec<Vec<CallingRegister>>, Box<InferTypeError>> {
     static FLOAT_ORDER: [CallingRegister; 4] = [
         CallingRegister::Register(GeneralPurposeRegister::Float(FloatRegister::Xmm0)),
         CallingRegister::Register(GeneralPurposeRegister::Float(FloatRegister::Xmm1)),
@@ -76,29 +75,29 @@ fn windows_calling_convention(_stack: &mut Stack, meta: &mut MetaInfo, calling_a
     let method_defs = method_definitions(&mut meta.static_type_information, calling_arguments, method_name)?;
 
     if method_defs.is_empty() {
-        return Err(InferTypeError::UnresolvedReference(method_name.to_string(), meta.file_position.clone()))
+        return Err(Box::new(InferTypeError::UnresolvedReference(method_name.to_string(), meta.file_position.clone())))
     }
 
     if method_defs.len() > 1 {
-        return Err(InferTypeError::MethodCallSignatureMismatch {
+        return Err(Box::new(InferTypeError::MethodCallSignatureMismatch {
             signatures: meta.static_type_information.methods
                 .iter().filter(|m| m.identifier.identifier() == method_name)
                 .map(|m| m.arguments.iter().map(|a| a.ty.clone()).collect::<Vec<_>>())
                 .collect::<Vec<_>>(),
             method_name: LValue::Identifier(Identifier { name: method_name.to_string() }),
             file_position: meta.file_position.clone(),
-            provided: calling_arguments.iter().filter_map(|a| a.get_type(&mut meta.static_type_information)).collect::<Vec<_>>(),
-        })
+            provided: calling_arguments.iter().filter_map(|a| a.get_type(&meta.static_type_information)).collect::<Vec<_>>(),
+        }))
     }
 
     let method_def = if let Some(method_def) = meta.static_type_information.methods.iter().find(|m| m.identifier.identifier() == method_name) {
         method_def.clone()
     } else {
-        return Err(InferTypeError::UnresolvedReference(method_name.to_string(), meta.file_position.clone()));
+        return Err(Box::new(InferTypeError::UnresolvedReference(method_name.to_string(), meta.file_position.clone())));
     };
 
     for (index, calling_argument) in calling_arguments.iter().enumerate() {
-        let calling_ty: Type = calling_argument.get_type(&mut meta.static_type_information).ok_or(InferTypeError::NoTypePresent(
+        let calling_ty: Type = calling_argument.get_type(&meta.static_type_information).ok_or(InferTypeError::NoTypePresent(
             LValue::Identifier(Identifier { name: "Argument".to_string() }), meta.file_position.clone()
         ))?;
 
@@ -133,7 +132,7 @@ fn windows_calling_convention(_stack: &mut Stack, meta: &mut MetaInfo, calling_a
 }
 
 /// Returns every possible method definition based on the argument signature and method name
-pub fn method_definitions(type_context: &mut StaticTypeContext, arguments: &[Assignable], method_name: &str) -> Result<Vec<MethodDefinition>, InferTypeError> {
+pub fn method_definitions(type_context: &mut StaticTypeContext, arguments: &[Assignable], method_name: &str) -> Result<Vec<MethodDefinition>, Box<InferTypeError>> {
     let mut method_definitions = vec![];
 
     'outer: for method in &type_context.methods {
@@ -142,7 +141,7 @@ pub fn method_definitions(type_context: &mut StaticTypeContext, arguments: &[Ass
         }
 
         for (index, argument) in method.arguments.iter().enumerate() {
-            let calling_type = arguments[index].get_type(&type_context);
+            let calling_type = arguments[index].get_type(type_context);
             if let Some(calling_type) = calling_type {
                 if argument.ty < calling_type {
                     continue 'outer;

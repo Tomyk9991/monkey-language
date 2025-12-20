@@ -1,4 +1,3 @@
-use std::fs::File;
 use monkey_language::core::io::monkey_file::MonkeyFile;
 use monkey_language::core::lexer::token_with_span::FilePosition;
 use monkey_language::core::model::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
@@ -16,7 +15,7 @@ use monkey_language::core::model::types::boolean::Boolean;
 use monkey_language::core::model::types::integer::{IntegerAST, IntegerType};
 use monkey_language::core::model::types::mutability::Mutability;
 use monkey_language::core::model::types::ty::Type;
-use monkey_language::core::parser::parser::ASTParser;
+use monkey_language::core::parser::ast_parser::ASTParser;
 use monkey_language::core::semantics::type_infer::type_inferer::infer_type;
 
 #[test]

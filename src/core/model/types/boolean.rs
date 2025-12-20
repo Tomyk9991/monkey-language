@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter};
 use std::str::ParseBoolError;
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, Default, PartialEq, Clone)]
 pub struct Boolean {
     pub value: bool,
 }
@@ -15,7 +15,6 @@ pub enum BooleanErr {
 
 #[derive(Debug)]
 pub enum BooleanError {
-    UnmatchedRegex,
     ParseBoolError(ParseBoolError),
 }
 
@@ -29,15 +28,5 @@ impl Display for BooleanErr {
             BooleanErr::UnmatchedRegex => "Boolean must match ^(?i:true|false)$".to_string(),
             BooleanErr::ParseBoolError(err) => err.to_string()
         })
-    }
-}
-
-
-
-impl Default for Boolean {
-    fn default() -> Self {
-        Boolean {
-            value: false
-        }
     }
 }

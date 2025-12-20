@@ -1,13 +1,10 @@
 use std::fs::File;
 use std::io::Read;
-use std::ops::Range;
 use std::path::{Path, PathBuf};
 
 use anyhow::Context;
 use crate::core::lexer::tokenizer::tokenize;
-use crate::core::constants::{CLOSING_SCOPE, OPENING_SCOPE};
 use crate::core::lexer::token_with_span::TokenWithSpan;
-use crate::core::model::scope_type::{ScopeType, ScopeTypeIterator};
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct MonkeyFile {

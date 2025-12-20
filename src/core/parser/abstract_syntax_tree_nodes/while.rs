@@ -1,36 +1,19 @@
-use std::cmp::Ordering;
-use std::error::Error;
-use std::fmt::{Display, Formatter};
-use std::str::FromStr;
 use crate::core::lexer::parse::{Parse, ParseOptions, ParseResult};
 use crate::core::lexer::token::Token;
 use crate::core::lexer::token_match::MatchResult;
 use crate::core::lexer::token_with_span::{FilePosition, TokenWithSpan};
-use crate::core::model::abstract_syntax_tree_nodes::assignable::{Assignable, AssignableError};
+use crate::core::model::abstract_syntax_tree_nodes::assignable::{Assignable};
 use crate::core::model::abstract_syntax_tree_nodes::while_::While;
 use crate::core::model::scope::Scope;
-use crate::core::parser::errors::EmptyIteratorErr;
-use crate::core::parser::scope::{PatternNotMatchedError, ScopeError};
-use crate::core::parser::static_type_context::StaticTypeContext;
-use crate::core::parser::types::r#type::InferTypeError;
 use crate::core::parser::utils::dyck::DyckError;
-use crate::core::semantics::static_type_check::static_type_check::StaticTypeCheck;
-use crate::core::semantics::static_type_check::static_type_checker::StaticTypeCheckError;
 use crate::pattern;
+use std::cmp::Ordering;
+use std::error::Error;
+use std::fmt::{Display, Formatter};
 
 #[derive(Debug)]
 pub enum WhileErr {
-    PatternNotMatched { target_value: String },
-    AssignableErr(AssignableError),
-    ScopeErrorErr(ScopeError),
     DyckLanguageErr { target_value: String, ordering: Ordering },
-    EmptyIterator(EmptyIteratorErr)
-}
-
-impl PatternNotMatchedError for WhileErr {
-    fn is_pattern_not_matched_error(&self) -> bool {
-        matches!(self, WhileErr::PatternNotMatched { .. })
-    }
 }
 
 impl From<DyckError> for WhileErr {
@@ -39,22 +22,11 @@ impl From<DyckError> for WhileErr {
     }
 }
 
-impl From<AssignableError> for WhileErr {
-    fn from(value: AssignableError) -> Self {
-        WhileErr::AssignableErr(value)
-    }
-}
-
 impl Error for WhileErr { }
 
 impl Display for WhileErr {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", match self {
-            WhileErr::PatternNotMatched { target_value } =>
-                format!("Pattern not matched for: `{target_value}`\n\t while (condition) {{}}"),
-            WhileErr::AssignableErr(a) => a.to_string(),
-            WhileErr::EmptyIterator(e) => e.to_string(),
-            WhileErr::ScopeErrorErr(a) => a.to_string(),
             WhileErr::DyckLanguageErr { target_value, ordering } => {
                 let error: String = match ordering {
                     Ordering::Less => String::from("Expected `)`"),
@@ -69,8 +41,8 @@ impl Display for WhileErr {
 
 
 impl Parse for While {
-    fn parse(tokens: &[TokenWithSpan], options: ParseOptions) -> Result<ParseResult<Self>, crate::core::lexer::error::Error> where Self: Sized, Self: Default {
-        if let Some((MatchResult::Parse(condition))) = pattern!(tokens, While, ParenthesisOpen, @ parse Assignable, ParenthesisClose) {
+    fn parse(tokens: &[TokenWithSpan], _: ParseOptions) -> Result<ParseResult<Self>, crate::core::lexer::error::Error> where Self: Sized, Self: Default {
+        if let Some(MatchResult::Parse(condition)) = pattern!(tokens, While, ParenthesisOpen, @ parse Assignable, ParenthesisClose) {
             let scope = Scope::parse(&tokens[condition.consumed + 3..], ParseOptions::default())
                 .map_err(|e| crate::core::lexer::error::Error::Callstack(Box::new(e)).with_context(&tokens[0]))?;
 
@@ -84,6 +56,6 @@ impl Parse for While {
             })
         }
 
-        Err(crate::core::lexer::error::Error::first_unexpected_token(&tokens[0..1], &vec![Token::While.into()]))
+        Err(crate::core::lexer::error::Error::first_unexpected_token(&tokens[0..1], &[Token::While.into()]))
     }
 }

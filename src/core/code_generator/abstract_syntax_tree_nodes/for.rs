@@ -3,17 +3,9 @@ use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::asm_options::ASMOptions;
 use crate::core::code_generator::asm_result::{ASMResult, ASMResultError, ASMResultVariance};
 use crate::core::code_generator::generator::Stack;
-use crate::core::model::abstract_syntax_tree_nodes::assignable::AssignableError;
 use crate::core::model::abstract_syntax_tree_nodes::for_::{For, ForErr};
-use crate::core::parser::scope::PatternNotMatchedError;
 use crate::core::parser::abstract_syntax_tree_nodes::variable::ParseVariableErr;
 use crate::core::parser::utils::dyck::DyckError;
-
-impl PatternNotMatchedError for ForErr {
-    fn is_pattern_not_matched_error(&self) -> bool {
-        matches!(self, ForErr::PatternNotMatched { .. })
-    }
-}
 
 
 impl From<DyckError> for ForErr {
@@ -25,12 +17,6 @@ impl From<DyckError> for ForErr {
 impl From<ParseVariableErr> for ForErr {
     fn from(value: ParseVariableErr) -> Self {
         ForErr::ParseVariableErr(value)
-    }
-}
-
-impl From<AssignableError> for ForErr {
-    fn from(value: AssignableError) -> Self {
-        ForErr::AssignableErr(value)
     }
 }
 

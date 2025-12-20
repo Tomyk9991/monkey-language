@@ -1,6 +1,4 @@
-use crate::core::parser::scope::PatternNotMatchedError;
-
-pub mod parser;
+pub mod ast_parser;
 pub mod scope;
 pub mod abstract_syntax_tree_node;
 pub mod abstract_syntax_tree_nodes;

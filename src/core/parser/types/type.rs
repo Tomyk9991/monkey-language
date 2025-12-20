@@ -1,12 +1,6 @@
-use std::cmp::Ordering;
-use std::error::Error;
-use std::fmt::{Display, Formatter};
-use std::ops::Range;
-use std::str::FromStr;
-use crate::core::code_generator::{ASMGenerateError, MetaInfo};
 use crate::core::code_generator::abstract_syntax_tree_nodes::assignables::equation_parser::operator::{AssemblerOperation, OperatorToASM};
 use crate::core::code_generator::generator::Stack;
-use crate::core::constants::KEYWORDS;
+use crate::core::code_generator::{ASMGenerateError, MetaInfo};
 use crate::core::lexer::parse::{Parse, ParseOptions, ParseResult};
 use crate::core::lexer::token::Token;
 use crate::core::lexer::token_match::MatchResult;
@@ -23,11 +17,15 @@ use crate::core::model::types::ty::Type;
 use crate::core::parser::types::boolean::Boolean;
 use crate::core::parser::types::cast_to::CastTo;
 use crate::pattern;
+use std::cmp::Ordering;
+use std::error::Error;
+use std::fmt::{Display, Formatter};
+use std::str::FromStr;
 
 pub mod common {
     use crate::core::model::abstract_syntax_tree_nodes::identifier::Identifier;
     use crate::core::model::types::mutability::Mutability;
-    use crate::core::parser::types::r#type::{Type};
+    use crate::core::parser::types::r#type::Type;
 
     #[allow(unused)]
     pub fn string() -> Type { Type::Custom(Identifier { name: "*string".to_string() }, Mutability::Immutable)}
@@ -223,8 +221,8 @@ impl Parse for Type {
 
 
         // array
-        if let Some((MatchResult::Parse(inner_type))) = pattern!(tokens, SquareBracketOpen, @ parse Type, Comma,) {
-            if let Some((MatchResult::Parse(size_assignable))) = pattern!(&tokens[inner_type.consumed + 2..], @ parse Assignable, SquareBracketClose) {
+        if let Some(MatchResult::Parse(inner_type)) = pattern!(tokens, SquareBracketOpen, @ parse Type, Comma,) {
+            if let Some(MatchResult::Parse(size_assignable)) = pattern!(&tokens[inner_type.consumed + 2..], @ parse Assignable, SquareBracketClose) {
                 return if let ParseResult { result: Assignable::Integer(IntegerAST { value, .. }), .. } = size_assignable {
                     let array_size = value.parse::<usize>().map_err(|_| crate::core::lexer::error::Error::ExpectedToken(tokens[inner_type.consumed + 2].token.clone()))?;
                     Ok(ParseResult {
@@ -290,7 +288,7 @@ impl Type {
         }
     }
 
-    pub fn from_str(s: &str, mutability: Mutability) -> Result<Self, InferTypeError> {
+    pub fn from_str(s: &str, mutability: Mutability) -> Result<Self, Box<InferTypeError>> {
         Ok(match s {
             "bool" => Type::Bool(Mutability::Immutable),
             "void" => Type::Void,
@@ -306,12 +304,12 @@ impl Type {
                 // if list of tokens contains the custom string, its an invalid type
                 if let Some(a) = Token::iter().find(|a| a.matches(custom)) {
                     if !matches!(a.token, Token::Literal(_)) {
-                        return Err(InferTypeError::TypeNotAllowed(IdentifierError::KeywordReserved(String::from(custom), FilePosition::default())));
+                        return Err(Box::new(InferTypeError::TypeNotAllowed(IdentifierError::KeywordReserved(String::from(custom), FilePosition::default()))));
                     }
                 }
 
                 if !lazy_regex::regex_is_match!(r"^[\*&]*[a-zA-Z_$][a-zA-Z_$0-9]*[\*&]*$", s) {
-                    return Err(InferTypeError::TypeNotAllowed(IdentifierError::UnmatchedRegex { target_value: String::from(custom) }));
+                    return Err(Box::new(InferTypeError::TypeNotAllowed(IdentifierError::UnmatchedRegex { target_value: String::from(custom) })));
                 }
 
                 Type::Custom(Identifier { name: custom.to_string() }, mutability)
@@ -319,7 +317,7 @@ impl Type {
         })
     }
 
-    pub fn from_str_with_token_consumed(s: &str, mutability: Mutability) -> Result<(Self, i32), InferTypeError> {
+    pub fn from_str_with_token_consumed(s: &str, mutability: Mutability) -> Result<(Self, i32), Box<InferTypeError>> {
         if let ["[ ", type_str, ", ", type_size, "]"] = &s.split_inclusive(' ').collect::<Vec<_>>()[..] {
             let (inner_type, inner_consumed) = Type::from_str_with_token_consumed(type_str.trim(), mutability.clone())?;
             return Ok((Type::Array(Box::new(inner_type), type_size.trim().parse::<usize>()
@@ -341,7 +339,7 @@ impl Type {
                 }
 
                 if !lazy_regex::regex_is_match!(r"^[\*&]*[a-zA-Z_$][a-zA-Z_$0-9]*[\*&]*$", s) {
-                    return Err(InferTypeError::TypeNotAllowed(IdentifierError::UnmatchedRegex { target_value: String::from(custom) }));
+                    return Err(Box::new(InferTypeError::TypeNotAllowed(IdentifierError::UnmatchedRegex { target_value: String::from(custom) })));
                 }
 
                 (Type::Custom(Identifier { name: custom.to_string() }, mutability), 1)
@@ -417,7 +415,7 @@ impl Type {
         }
     }
 
-    pub fn implicit_cast_to(&self, assignable: &mut Assignable, desired_type: &Type, file_position: &FilePosition) -> Result<Option<Type>, InferTypeError> {
+    pub fn implicit_cast_to(&self, assignable: &mut Assignable, desired_type: &Type, file_position: &FilePosition) -> Result<Option<Type>, Box<InferTypeError>> {
         match (self, desired_type) {
             (Type::Integer(_, _), Type::Integer(desired, _)) => {
                 if let Assignable::Integer(integer) = assignable {
@@ -454,7 +452,7 @@ impl Type {
                             integer.ty = desired.clone();
                             return Ok(Some(desired_type.clone()))
                         },
-                        _ => return Err(InferTypeError::IntegerTooSmall { ty: desired_type.clone() , literal: integer.value.to_string(), file_position: file_position.clone() })
+                        _ => return Err(Box::new(InferTypeError::IntegerTooSmall { ty: desired_type.clone() , literal: integer.value.to_string(), file_position: file_position.clone() }))
                     }
                 }
             }
@@ -469,7 +467,7 @@ impl Type {
                             float.ty = desired.clone();
                             Ok(Some(desired_type.clone()))
                         },
-                        _ => Err(InferTypeError::FloatTooSmall { ty: desired_type.clone(), float: float.value, file_position: file_position.clone() })
+                        _ => Err(Box::new(InferTypeError::FloatTooSmall { ty: desired_type.clone(), float: float.value, file_position: file_position.clone() }))
                     }
                 }
             },
@@ -477,11 +475,11 @@ impl Type {
                 //todo: check desired_inner_type with actual array_type
                 if let Assignable::Array(_) = assignable {
                     if size != desired_size {
-                        return Err(InferTypeError::MismatchedTypes {
+                        return Err(Box::new(InferTypeError::MismatchedTypes {
                             expected: desired_type.clone(),
                             actual: Type::Array(array_type.clone(), *size, mutability.clone()),
                             file_position: Default::default(),
-                        });
+                        }));
                     }
 
                     return Ok(Some(desired_type.clone()));
@@ -493,7 +491,7 @@ impl Type {
         Ok(None)
     }
 
-    fn in_range<T: PartialEq<P>, P: PartialOrd<T>>(min: T, max: T, value: Result<P, InferTypeError>) -> bool {
+    fn in_range<T: PartialEq<P>, P: PartialOrd<T>>(min: T, max: T, value: Result<P, Box<InferTypeError>>) -> bool {
         if let Ok(value) = value {
             value >= min && value <= max
         } else {

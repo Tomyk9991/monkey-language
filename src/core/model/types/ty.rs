@@ -1,4 +1,3 @@
-use crate::core::model::abstract_syntax_tree_nodes::assignable::Assignable;
 use crate::core::model::abstract_syntax_tree_nodes::identifier::Identifier;
 use crate::core::model::types::float::FloatType;
 use crate::core::model::types::integer::IntegerType;

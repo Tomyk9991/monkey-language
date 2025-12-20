@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::ops::{Deref, DerefMut, Range};
+use std::ops::{Deref, DerefMut};
 use crate::core::lexer::token_with_span::FilePosition;
 use crate::core::model::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
 use crate::core::model::abstract_syntax_tree_nodes::l_value::LValue;
@@ -34,7 +34,7 @@ impl StaticTypeContext {
     }
 
     /// checks, if the provided methods have any name collisions
-    pub fn colliding_symbols(&self) -> Result<(), InferTypeError> {
+    pub fn colliding_symbols(&self) -> Result<(), Box<InferTypeError>> {
         let default = FilePosition::default();
         for method in &self.methods {
             let context = StaticTypeContext::new(&method.stack);
@@ -64,7 +64,7 @@ impl StaticTypeContext {
 
             for (key, (value, file_position)) in &hash_map {
                 if *value > 1 {
-                    return Err(InferTypeError::NameCollision(key.to_string(), (*file_position).clone()));
+                    return Err(Box::new(InferTypeError::NameCollision(key.to_string(), (*file_position).clone())));
                 }
             }
         }

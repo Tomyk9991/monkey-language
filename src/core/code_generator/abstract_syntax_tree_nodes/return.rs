@@ -1,37 +1,13 @@
-use std::error::Error;
-use std::fmt::{Display, Formatter};
-use std::str::FromStr;
-use crate::core::code_generator::generator::Stack;
-use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
-use crate::core::code_generator::asm_options::ASMOptions;
 use crate::core::code_generator::asm_options::interim_result::InterimResultOption;
+use crate::core::code_generator::asm_options::ASMOptions;
 use crate::core::code_generator::asm_result::{ASMResult, ASMResultError, ASMResultVariance};
 use crate::core::code_generator::conventions::return_calling_convention;
+use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::registers::{ByteSize, GeneralPurposeRegister};
-use crate::core::model::abstract_syntax_tree_nodes::assignable::{Assignable, AssignableError};
+use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::model::abstract_syntax_tree_nodes::ret::{Return, ReturnError};
-use crate::core::model::types::integer::{IntegerAST, IntegerType};
-use crate::core::parser::errors::EmptyIteratorErr;
-use crate::core::parser::scope::PatternNotMatchedError;
-use crate::core::parser::static_type_context::StaticTypeContext;
-use crate::core::parser::types::r#type::{InferTypeError};
-use crate::core::semantics::static_type_check::static_type_checker::StaticTypeCheckError;
-use crate::core::semantics::static_type_check::static_type_check::StaticTypeCheck;
 
-impl PatternNotMatchedError for ReturnError {
-    fn is_pattern_not_matched_error(&self) -> bool {
-        matches!(self, ReturnError::PatternNotMatched {..})
-    }
-}
-
-
-
-impl From<AssignableError> for ReturnError {
-    fn from(value: AssignableError) -> Self {
-        ReturnError::AssignableError(value)
-    }
-}
 
 impl From<anyhow::Error> for ReturnError {
     fn from(value: anyhow::Error) -> Self {

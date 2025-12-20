@@ -14,7 +14,7 @@ use crate::core::parser::types::r#type::InferTypeError;
 use crate::core::semantics::type_infer::infer_type::InferType;
 
 impl InferType for Expression {
-    fn infer_type(&mut self, type_context: &mut StaticTypeContext) -> Result<Type, InferTypeError> {
+    fn infer_type(&mut self, type_context: &mut StaticTypeContext) -> Result<Type, Box<InferTypeError>> {
         if let Some(value) = &mut self.value {
             let mut value_type = value.infer_type(type_context);
             let has_prefix_arithmetics = self.prefix_arithmetic.is_some();
@@ -24,14 +24,14 @@ impl InferType for Expression {
                 if let Some(index_operator) = &mut self.index_operator {
                     let index_type = index_operator.infer_type(type_context)?;
                     if !matches!(index_type, Type::Integer(_, _)) {
-                        return Err(InferTypeError::IllegalIndexOperation(index_type, type_context.current_file_position.clone()));
+                        return Err(Box::new(InferTypeError::IllegalIndexOperation(index_type, type_context.current_file_position.clone())));
                     }
                 }
                 let value_type_cloned = value_type?.clone();
                 if let Some(element_type) = value_type_cloned.pop_array() {
                     value_type = Ok(element_type);
                 } else {
-                    return Err(InferTypeError::IllegalArrayTypeLookup(value_type_cloned, type_context.current_file_position.clone()));
+                    return Err(Box::new(InferTypeError::IllegalArrayTypeLookup(value_type_cloned, type_context.current_file_position.clone())));
                 }
             }
 
@@ -55,15 +55,15 @@ impl InferType for Expression {
                             if let Some(new_ty) = value_type.pop_pointer() {
                                 value_type = new_ty;
                             } else {
-                                return Err(InferTypeError::IllegalDereference(*value.clone(), value_type, type_context.current_file_position.clone()));
+                                return Err(Box::new(InferTypeError::IllegalDereference(*value.clone(), value_type, type_context.current_file_position.clone())));
                             }
                         }
                         PrefixArithmetic::PointerArithmetic(PointerArithmetic::Ampersand) => {
                             value_type = value_type.push_pointer();
                         }
                         PrefixArithmetic::PointerArithmetic(PointerArithmetic::Asterics) => {
-                            // just using & in front of non pointer types is illegal. Dereferencing non pointers doesnt make any sense
-                            return Err(InferTypeError::IllegalDereference(*value.clone(), value_type, type_context.current_file_position.clone()));
+                            // just using & in front of non pointer types is illegal. Dereferencing non pointers doesn't make any sense
+                            return Err(Box::new(InferTypeError::IllegalDereference(*value.clone(), value_type, type_context.current_file_position.clone())));
                         }
                         PrefixArithmetic::Cast(casting_to) => {
                             value_type = Type::from_str(&casting_to.to_string(), Mutability::Immutable)?;
@@ -99,9 +99,9 @@ impl Expression {
         self.infer_type(&mut meta.static_type_information).ok()
     }
 
-    fn infer_type_after_operation(error_message: String, lhs: &mut Option<Box<Expression>>, operator: Operator, rhs: &mut Option<Box<Expression>>, context: &mut StaticTypeContext) -> Result<Type, InferTypeError> {
-            if let Some(mut lhs) = lhs.as_mut() {
-                if let Some(mut rhs) = rhs.as_mut() {
+    fn infer_type_after_operation(error_message: String, lhs: &mut Option<Box<Expression>>, operator: Operator, rhs: &mut Option<Box<Expression>>, context: &mut StaticTypeContext) -> Result<Type, Box<InferTypeError>> {
+            if let Some(lhs) = lhs.as_mut() {
+                if let Some(rhs) = rhs.as_mut() {
                     let lhs_type = lhs.infer_type(context)?;
                     let rhs_type = rhs.infer_type(context)?;
 
@@ -122,11 +122,11 @@ impl Expression {
                         return Ok(result_type.clone());
                     }
 
-                    return Err(InferTypeError::TypesNotCalculable(lhs_type, operator, rhs_type, context.current_file_position.clone()));
+                    return Err(Box::new(InferTypeError::TypesNotCalculable(lhs_type, operator, rhs_type, context.current_file_position.clone())));
                 }
             }
 
-            Err(InferTypeError::UnresolvedReference(error_message, context.current_file_position.clone()))
+            Err(Box::new(InferTypeError::UnresolvedReference(error_message, context.current_file_position.clone())))
     }
 
     // fn check_operator_compatibility(error_message: String, lhs: &mut Option<Box<Expression>>, operator: Operator, rhs: &mut Option<Box<Expression>>, context: &mut StaticTypeContext) -> Result<Type, InferTypeError> {

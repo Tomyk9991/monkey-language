@@ -14,8 +14,8 @@ use monkey_language::core::model::types::integer::{IntegerAST, IntegerType};
 use monkey_language::core::model::types::mutability::Mutability;
 use monkey_language::core::model::types::static_string::StaticString;
 use monkey_language::core::model::types::ty::Type;
-use monkey_language::core::parser::parser::ASTParser;
-use monkey_language::core::parser::types::r#type::{InferTypeError, MethodCallSignatureMismatchCause};
+use monkey_language::core::parser::ast_parser::ASTParser;
+use monkey_language::core::parser::types::r#type::InferTypeError;
 use monkey_language::core::semantics::static_type_check::static_type_checker::{static_type_check, StaticTypeCheckError};
 use monkey_language::core::semantics::type_infer::type_inferer::infer_type;
 
@@ -144,10 +144,14 @@ fn static_type_check_return_mismatch() -> anyhow::Result<()> {
     assert!(result.is_err());
 
     println!("{:#?}", result);
-    assert!(matches!(result, Err(StaticTypeCheckError::InferredError(InferTypeError::MethodReturnArgumentTypeMismatch {
-        expected: Type::Integer(IntegerType::I32, Mutability::Immutable),
-        actual,
-        file_position
-    }))));
+
+    if let Err(StaticTypeCheckError::InferredError(s)) = result {
+        let b = *s;
+        assert!(matches!(b, InferTypeError::MethodReturnArgumentTypeMismatch {
+            expected: Type::Integer(IntegerType::I32, Mutability::Immutable),
+            ..
+        }));
+    }
+
     Ok(())
 }

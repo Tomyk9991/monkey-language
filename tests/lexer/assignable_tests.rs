@@ -216,7 +216,7 @@ fn assignable_arithmetic_equation() -> anyhow::Result<()> {
 
     for (value, expected_result) in &expressions {
         let monkey_file: MonkeyFile = MonkeyFile::read_from_str(value)?;
-        let mut top_level_scope = Expression::parse(&monkey_file.tokens, ParseOptions::default());
+        let top_level_scope = Expression::parse(&monkey_file.tokens, ParseOptions::default());
 
         assert_eq!(top_level_scope.is_ok(), *expected_result);
     }

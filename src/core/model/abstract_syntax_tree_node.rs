@@ -11,6 +11,7 @@ use crate::core::model::abstract_syntax_tree_nodes::while_::While;
 
 /// An abstract syntax tree node is a piece of code that is used to represent atomic elements of a program.
 #[derive(Debug, PartialEq, Clone)]
+#[allow(clippy::large_enum_variant)]
 pub enum AbstractSyntaxTreeNode {
     Variable(Variable<'=', ';'>),
     MethodCall(MethodCall),
