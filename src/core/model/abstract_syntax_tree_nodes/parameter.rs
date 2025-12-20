@@ -8,7 +8,7 @@ use crate::core::model::types::ty::Type;
 #[derive(Debug, PartialEq, Clone)]
 pub struct Parameter {
     /// name of the variable
-    pub identifier: LValue,
+    pub identifier: Identifier,
     /// Type of the parameter
     pub ty: Type,
     /// Where is the data stored?

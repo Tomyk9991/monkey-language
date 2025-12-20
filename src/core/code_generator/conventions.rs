@@ -29,7 +29,7 @@ impl Display for CallingRegister {
     }
 }
 
-pub fn calling_convention(stack: &mut Stack, meta: &mut MetaInfo, calling_arguments: &mut [Assignable], method_name: &str) -> Result<Vec<Vec<CallingRegister>>, InferTypeError> {
+pub fn calling_convention(stack: &mut Stack, meta: &mut MetaInfo, calling_arguments: &[Assignable], method_name: &str) -> Result<Vec<Vec<CallingRegister>>, InferTypeError> {
     match meta.target_os {
         TargetOS::Windows => windows_calling_convention(stack, meta, calling_arguments, method_name),
         TargetOS::Linux | TargetOS::WindowsSubsystemLinux => {
@@ -56,7 +56,7 @@ pub fn return_calling_convention(_stack: &mut Stack, meta: &MetaInfo) -> Result<
     }
 }
 
-fn windows_calling_convention(_stack: &mut Stack, meta: &mut MetaInfo, calling_arguments: &mut [Assignable], method_name: &str) -> Result<Vec<Vec<CallingRegister>>, InferTypeError> {
+fn windows_calling_convention(_stack: &mut Stack, meta: &mut MetaInfo, calling_arguments: &[Assignable], method_name: &str) -> Result<Vec<Vec<CallingRegister>>, InferTypeError> {
     static FLOAT_ORDER: [CallingRegister; 4] = [
         CallingRegister::Register(GeneralPurposeRegister::Float(FloatRegister::Xmm0)),
         CallingRegister::Register(GeneralPurposeRegister::Float(FloatRegister::Xmm1)),
@@ -87,7 +87,7 @@ fn windows_calling_convention(_stack: &mut Stack, meta: &mut MetaInfo, calling_a
                 .collect::<Vec<_>>(),
             method_name: LValue::Identifier(Identifier { name: method_name.to_string() }),
             file_position: meta.file_position.clone(),
-            provided: calling_arguments.iter_mut().filter_map(|a| a.infer_type(&mut meta.static_type_information).ok()).collect::<Vec<_>>(),
+            provided: calling_arguments.iter().filter_map(|a| a.get_type(&mut meta.static_type_information)).collect::<Vec<_>>(),
         })
     }
 
@@ -97,8 +97,10 @@ fn windows_calling_convention(_stack: &mut Stack, meta: &mut MetaInfo, calling_a
         return Err(InferTypeError::UnresolvedReference(method_name.to_string(), meta.file_position.clone()));
     };
 
-    for (index, calling_argument) in calling_arguments.iter_mut().enumerate() {
-        let calling_ty: Type = calling_argument.infer_type(&mut meta.static_type_information)?;
+    for (index, calling_argument) in calling_arguments.iter().enumerate() {
+        let calling_ty: Type = calling_argument.get_type(&mut meta.static_type_information).ok_or(InferTypeError::NoTypePresent(
+            LValue::Identifier(Identifier { name: "Argument".to_string() }), meta.file_position.clone()
+        ))?;
 
         match calling_ty {
             Type::Integer(_, _) | Type::Bool(_) | Type::Custom(_, _) | Type::Array(_, _, _) => {
@@ -131,7 +133,7 @@ fn windows_calling_convention(_stack: &mut Stack, meta: &mut MetaInfo, calling_a
 }
 
 /// Returns every possible method definition based on the argument signature and method name
-pub fn method_definitions(type_context: &mut StaticTypeContext, arguments: &mut [Assignable], method_name: &str) -> Result<Vec<MethodDefinition>, InferTypeError> {
+pub fn method_definitions(type_context: &mut StaticTypeContext, arguments: &[Assignable], method_name: &str) -> Result<Vec<MethodDefinition>, InferTypeError> {
     let mut method_definitions = vec![];
 
     'outer: for method in &type_context.methods {

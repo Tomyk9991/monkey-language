@@ -42,7 +42,7 @@ impl Display for NumberErr {
 }
 
 impl ToASM for IntegerAST {
-    fn to_asm<T: ASMOptions>(&self, _stack: &mut Stack, _meta: &mut MetaInfo, _options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
+    fn to_asm(&self, _stack: &mut Stack, _meta: &mut MetaInfo, _options: Option<ASMOptions>) -> Result<ASMResult, ASMGenerateError> {
         Ok(ASMResult::Inline(self.value.to_string()))
     }
 

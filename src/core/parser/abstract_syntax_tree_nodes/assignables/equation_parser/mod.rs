@@ -454,15 +454,18 @@ impl<'a> Equation<'a> {
         if let Some(MatchResult::Parse(cast_type)) = pattern!(&self.source_code[self.pos as usize..], ParenthesisOpen, @parse Type, ParenthesisClose) {
             self.next_char_amount(cast_type.consumed + 2);
 
-            let value = self.parse_factor()?;
-            x = *Box::default();
-
-            x.result.value = Some(Box::new(Assignable::Expression(*value.result)));
-
-            x.result.prefix_arithmetic = Some(PrefixArithmetic::Cast(cast_type.result));
-            x.consumed = value.consumed + cast_type.consumed + 2;
-
-            return Ok(x);
+            if let Ok(value) = self.parse_factor() {
+                x = *Box::default();
+    
+                x.result.value = Some(Box::new(Assignable::Expression(*value.result)));
+    
+                x.result.prefix_arithmetic = Some(PrefixArithmetic::Cast(cast_type.result));
+                x.consumed = value.consumed + cast_type.consumed + 2;
+    
+                return Ok(x);
+            }
+            
+            self.previous_char_amount(cast_type.consumed + 2);
         }
 
         if self.eat(Some(Token::Multiply)) {

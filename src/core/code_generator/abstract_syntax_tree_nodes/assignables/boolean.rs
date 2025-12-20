@@ -29,7 +29,7 @@ impl Display for BooleanError {
 impl std::error::Error for BooleanError {}
 
 impl ToASM for Boolean {
-    fn to_asm<T: ASMOptions>(&self, _stack: &mut Stack, _meta: &mut MetaInfo, _options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
+    fn to_asm(&self, _stack: &mut Stack, _meta: &mut MetaInfo, _options: Option<ASMOptions>) -> Result<ASMResult, ASMGenerateError> {
         Ok(ASMResult::Inline((if self.value { "1" } else { "0" }).to_string()))
     }
 

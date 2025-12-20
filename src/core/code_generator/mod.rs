@@ -81,9 +81,10 @@ pub struct MetaInfo {
 
 
 
+
 pub trait ToASM {
     /// Generates a String that represents the ast node in assembler language
-    fn to_asm<T: ASMOptions + 'static>(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<T>) -> Result<ASMResult, ASMGenerateError>;
+    fn to_asm(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<ASMOptions>) -> Result<ASMResult, ASMGenerateError>;
     /// returns a bool, if the current implementor needs to look up it's state in the stack
     fn is_stack_look_up(&self, stack: &mut Stack, meta: &MetaInfo) -> bool;
     /// returns the size in byte to indicate how much space on the stack must be reserved

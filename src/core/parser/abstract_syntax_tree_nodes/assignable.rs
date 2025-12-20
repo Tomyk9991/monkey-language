@@ -46,7 +46,7 @@ impl Parse for Assignable {
             |tokens: &[TokenWithSpan]| MethodCall::parse(tokens, ParseOptions::default()).map(|r| ParseResult { result: Assignable::MethodCall(r.result), consumed: r.consumed }),
             |tokens: &[TokenWithSpan]| Boolean::parse(tokens, ParseOptions::default()).map(|r| ParseResult { result: Assignable::Boolean(r.result), consumed: r.consumed }),
             |tokens: &[TokenWithSpan]| Array::parse(tokens, ParseOptions::default()).map(|r| ParseResult { result: Assignable::Array(r.result), consumed: r.consumed }),
-            |tokens: &[TokenWithSpan]| LValue::parse(tokens, ParseOptions::default()).map(|r| ParseResult { result: match r.result { LValue::Identifier(i) => Assignable::Identifier(i) }, consumed: r.consumed }),
+            |tokens: &[TokenWithSpan]| Identifier::parse(tokens, ParseOptions::default()).map(|r| ParseResult { result: Assignable::Identifier(r.result), consumed: r.consumed }),
         ];
 
         if !parse_options.ignore_expression {

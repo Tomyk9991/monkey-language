@@ -4,7 +4,6 @@ use std::str::FromStr;
 use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
-use crate::core::code_generator::asm_options::ASMOptions;
 use crate::core::code_generator::asm_options::interim_result::InterimResultOption;
 use crate::core::code_generator::asm_options::prepare_register::PrepareRegisterOption;
 use crate::core::code_generator::asm_result::{ASMResult, ASMResultError};
@@ -38,6 +37,8 @@ impl Parse for FloatAST {
         }
 
         let (float_literal, expected_type, consumed) = match tokens.iter().map(|x| x.token.clone()).collect::<Vec<Token>>().as_slice() {
+            [Token::Numbers(number), Token::Dot, Token::Literal(postfix), ..] if split_digits_ends_with_postfix(postfix, "_f32") => (format!("{}.{}", number, get_digits_part(postfix, "_f32")), FloatType::Float32, 3),
+            [Token::Numbers(number), Token::Dot, Token::Literal(postfix), ..] if split_digits_ends_with_postfix(postfix, "_f64") => (format!("{}.{}", number, get_digits_part(postfix, "_f32")), FloatType::Float64, 3),
             [Token::Numbers(number), Token::Literal(postfix), ..] if postfix == "_f32" => (number.to_string(), FloatType::Float32, 2),
             [Token::Numbers(number), Token::Literal(postfix), ..] if postfix == "_f64" => (number.to_string(), FloatType::Float64, 2),
             [Token::Numbers(number), Token::Dot, Token::Numbers(decimal), Token::Literal(postfix), ..] if postfix == "_f32" => (format!("{}.{}", number, decimal), FloatType::Float32, 4),
@@ -71,6 +72,21 @@ impl Parse for FloatAST {
             consumed,
         })
     }
+}
+
+fn get_digits_part<'a>(target: &'a str, postfix: &'a str) -> &'a str {
+    &target[..target.len() - postfix.len()]
+}
+
+/// Returns true, if the target string starts with digits and ends with the given postfix.
+fn split_digits_ends_with_postfix(target: &str, postfix: &str) -> bool {
+    if !target.ends_with(postfix) {
+        return false;
+    }
+
+    let digits_part = &target[..target.len() - postfix.len()];
+
+    digits_part.chars().all(|c| c.is_ascii_digit())
 }
 
 impl FromStr for FloatAST {

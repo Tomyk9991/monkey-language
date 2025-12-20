@@ -15,14 +15,14 @@ pub struct PrepareRegisterOption {
     pub assignable: Option<Assignable>,
 }
 
-impl ASMOptions for PrepareRegisterOption {
-    fn transform(&self, stack: &mut Stack, meta: &mut MetaInfo) -> Result<ASMResult, ASMGenerateError> {
+impl PrepareRegisterOption {
+    pub fn transform(&self, stack: &mut Stack, meta: &mut MetaInfo) -> Result<ASMResult, ASMGenerateError> {
         if let Some(Assignable::Float(float_node)) = &self.assignable {
             let size = float_node.byte_size(meta);
             let general_purpose_register_sized = self.general_purpose_register.to_size_register(&ByteSize::try_from(size)?);
             let float_register = &self.general_purpose_register.to_float_register();
 
-            let mut target = match float_node.to_asm(stack, meta, Some(InterimResultOption::from(&general_purpose_register_sized)))? {
+            let mut target = match float_node.to_asm(stack, meta, Some(ASMOptions::InterimResultOption(InterimResultOption::from(&general_purpose_register_sized))))? {
                 ASMResult::Inline(t) | ASMResult::MultilineResulted(t, _) | ASMResult::Multiline(t) => t
             };
 
@@ -35,7 +35,7 @@ impl ASMOptions for PrepareRegisterOption {
             let general_purpose_register_sized = self.general_purpose_register.to_size_register(&ByteSize::try_from(size)?);
             let float_register = &self.general_purpose_register.to_float_register();
 
-            let mut target = match identifier.to_asm::<InterimResultOption>(stack, meta, None)? {
+            let mut target = match identifier.to_asm(stack, meta, None)? {
                 ASMResult::Inline(t) | ASMResult::MultilineResulted(t, _) | ASMResult::Multiline(t) => {
                     ASMBuilder::mov_ident_line(&general_purpose_register_sized, t)
                 }

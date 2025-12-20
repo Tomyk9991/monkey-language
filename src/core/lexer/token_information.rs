@@ -1,5 +1,6 @@
 use std::str::FromStr;
 use crate::core::lexer::token::Token;
+use crate::core::model::types::float::FloatAST;
 use crate::core::model::types::integer::IntegerAST;
 
 #[derive(Debug, PartialEq)]
@@ -74,7 +75,8 @@ impl Iterator for TokenInformationIterator {
             Token::Minus => Token::Multiply,
             Token::Multiply => Token::Divide,
             Token::Divide => Token::Modulo,
-            Token::Modulo => Token::LogicalAnd,
+            Token::Modulo => Token::NotEquals,
+            Token::NotEquals => Token::LogicalAnd,
             Token::LogicalAnd => Token::LogicalOr,
             Token::LogicalOr => Token::LogicalNot,
             Token::LogicalNot => Token::Pipe,
@@ -87,10 +89,9 @@ impl Iterator for TokenInformationIterator {
             Token::LessThan => Token::GreaterThan,
             Token::GreaterThan => Token::Underscore,
             Token::Underscore => Token::Ampersand,
-            Token::Ampersand => Token::Equals,
-            Token::Equals => Token::EqualsEquals,
-            Token::EqualsEquals => Token::NotEquals,
-            Token::NotEquals => Token::Function,
+            Token::Ampersand => Token::EqualsEquals,
+            Token::EqualsEquals => Token::Equals,
+            Token::Equals => Token::Function,
             Token::Function => Token::Numbers("".to_string()),
             Token::Numbers(_) => Token::Literal("".to_string()),
             Token::Literal(_) => Token::If,

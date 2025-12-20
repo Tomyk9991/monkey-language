@@ -3,7 +3,6 @@ use std::fmt::{Display, Formatter};
 use std::path::PathBuf;
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
-use crate::core::code_generator::asm_options::ASMOptions;
 use crate::core::code_generator::asm_result::{ASMResult};
 use crate::core::io::monkey_file::MonkeyFile;
 use crate::core::lexer::parse::{Parse, ParseOptions, ParseResult};

@@ -4,7 +4,6 @@ use uuid::Uuid;
 
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
-use crate::core::code_generator::asm_options::ASMOptions;
 use crate::core::code_generator::asm_options::prepare_register::PrepareRegisterOption;
 use crate::core::code_generator::asm_result::{ASMResult};
 use crate::core::code_generator::generator::{Stack, StackLocation};

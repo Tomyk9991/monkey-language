@@ -1,25 +1,18 @@
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
-use std::str::FromStr;
-
-use anyhow::Context;
 
 use crate::core::lexer::parse::{Parse, ParseOptions, ParseResult};
 use crate::core::lexer::token_match::MatchResult;
 use crate::core::lexer::token_with_span::{FilePosition, TokenWithSpan};
 use crate::core::model::abstract_syntax_tree_nodes::assignable::{Assignable, AssignableError};
-use crate::core::model::abstract_syntax_tree_nodes::identifier::{Identifier, IdentifierError};
+use crate::core::model::abstract_syntax_tree_nodes::identifier::{IdentifierError};
 use crate::core::model::abstract_syntax_tree_nodes::l_value::LValue;
 use crate::core::model::abstract_syntax_tree_nodes::variable::Variable;
-use crate::core::model::types::mutability::Mutability;
 use crate::core::model::types::ty::Type;
 use crate::core::parser::errors::EmptyIteratorErr;
 use crate::core::parser::scope::PatternNotMatchedError;
-use crate::core::parser::static_type_context::StaticTypeContext;
 use crate::core::parser::abstract_syntax_tree_nodes::l_value::LValueErr;
 use crate::core::parser::types::r#type::InferTypeError;
-use crate::core::semantics::static_type_check::static_type_check::StaticTypeCheck;
-use crate::core::semantics::static_type_check::static_type_checker::StaticTypeCheckError;
 use crate::pattern;
 
 impl Parse for Variable<'=', ';'> {

@@ -4,7 +4,6 @@ use std::str::FromStr;
 
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, register_destination, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
-use crate::core::code_generator::asm_options::ASMOptions;
 use crate::core::code_generator::asm_result::{ASMResult, ASMResultError, ASMResultVariance};
 use crate::core::code_generator::generator::{Stack, StackLocation};
 use crate::core::code_generator::registers::{ByteSize, GeneralPurposeRegister};
@@ -26,5 +25,3 @@ pub struct PrefixArithmeticOptions {
     pub child_has_pointer_arithmetic: bool,
     pub target: String,
 }
-
-impl ASMOptions for PrefixArithmeticOptions {}

@@ -32,7 +32,7 @@ pub trait Castable<T, K> {
 
 
 impl ToASM for CastTo {
-    fn to_asm<T: ASMOptions>(&self, _stack: &mut Stack, meta: &mut MetaInfo, _options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
+    fn to_asm(&self, _stack: &mut Stack, meta: &mut MetaInfo, _options: Option<ASMOptions>) -> Result<ASMResult, ASMGenerateError> {
         // from, to, instruction
         let mut cast_to_matrix: HashMap<(Type, Type), &'static str> = HashMap::new();
 

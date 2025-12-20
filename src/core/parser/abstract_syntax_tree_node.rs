@@ -43,7 +43,7 @@ impl StaticTypeCheck for AbstractSyntaxTreeNode {
 }
 
 impl ToASM for AbstractSyntaxTreeNode {
-    fn to_asm<T: ASMOptions + 'static>(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
+    fn to_asm(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<ASMOptions>) -> Result<ASMResult, ASMGenerateError> {
         let variables_len = meta.static_type_information.len();
 
         let scopes = match self {

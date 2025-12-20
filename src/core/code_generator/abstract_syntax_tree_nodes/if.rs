@@ -11,7 +11,7 @@ use crate::core::model::abstract_syntax_tree_nodes::if_::{If};
 
 
 impl ToASM for If {
-    fn to_asm<T: ASMOptions + 'static>(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
+    fn to_asm(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<ASMOptions>) -> Result<ASMResult, ASMGenerateError> {
         let mut target = String::new();
 
         target.push_str(&format!("    ; if condition ({})\n", self.condition));
@@ -40,7 +40,7 @@ impl ToASM for If {
         target += &result;
 
 
-        target.push_str(&format!("    jne {}\n", jump_label));
+        target.push_str(&format!("    je {}\n", jump_label));
 
 
         target.push_str(&ASMBuilder::ident_comment_line("if branch"));
@@ -51,11 +51,11 @@ impl ToASM for If {
         if let Some(else_stack) = &self.else_stack {
             target.push_str(&format!("{}:\n", else_label));
             target.push_str(&ASMBuilder::ident_comment_line("else branch"));
-            target.push_str(&stack.generate_scope::<InterimResultOption>(else_stack, meta, None)?);
+            target.push_str(&stack.generate_scope(else_stack, meta, None)?);
         }
 
         target.push_str(&format!("{}:\n", continue_label));
-        target.push_str(&format!("    ; Continue after \"{}\"\n", self));
+        target.push_str("    ; Continue after if \n");
         Ok(ASMResult::Multiline(target))
     }
 

@@ -40,7 +40,7 @@ impl From<anyhow::Error> for ReturnError {
 }
 
 impl ToASM for Return {
-    fn to_asm<T: ASMOptions>(&self, stack: &mut Stack, meta: &mut MetaInfo, _options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
+    fn to_asm(&self, stack: &mut Stack, meta: &mut MetaInfo, _options: Option<ASMOptions>) -> Result<ASMResult, ASMGenerateError> {
         let mut target = String::new();
         target += &ASMBuilder::ident(&ASMBuilder::comment_line(&format!("{}", self)));
 
@@ -48,11 +48,10 @@ impl ToASM for Return {
             let destination_register = return_calling_convention(stack, meta)?.to_size_register_ignore_float(
                 &ByteSize::try_from(meta.static_type_information.expected_return_type.as_ref().map_or(8, |t| t.return_type.byte_size()))?
             );
-            let options = InterimResultOption {
-                general_purpose_register: destination_register.clone(),
-            };
 
-            let source = assignable.to_asm(stack, meta, Some(options))?;
+            let source = assignable.to_asm(stack, meta, Some(ASMOptions::InterimResultOption(InterimResultOption {
+                general_purpose_register: destination_register.clone(),
+            })))?;
 
             match source {
                 ASMResult::Inline(source) => target += &ASMBuilder::mov_ident_line(destination_register, source),

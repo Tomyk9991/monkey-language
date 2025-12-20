@@ -36,7 +36,7 @@ impl Castable<IntegerType, FloatType> for IntegerType {
             to: Type::Float(t2.clone(), Mutability::Immutable),
         };
 
-        let instruction = cast_to.to_asm::<InterimResultOption>(stack, meta, None)?;
+        let instruction = cast_to.to_asm(stack, meta, None)?;
         let last_register = stack.register_to_use
             .last()
             .unwrap_or(&GeneralPurposeRegister::Bit64(Bit64::Rax))
@@ -106,7 +106,7 @@ impl Castable<IntegerType, IntegerType> for IntegerType {
             to: Type::Integer(i2.clone(), Mutability::Immutable),
         };
 
-        let instruction = cast_to.to_asm::<InterimResultOption>(stack, meta, None)?.to_string();
+        let instruction = cast_to.to_asm(stack, meta, None)?.to_string();
         let last_register = stack.register_to_use
             .last()
             .unwrap_or(&GeneralPurposeRegister::Bit64(Bit64::Rax));
@@ -225,7 +225,7 @@ impl OperatorToASM for IntegerType {
             Operator::LogicalAnd => Err(ASMGenerateError::InternalError("`Logical And` instruction is not supported".to_string(), meta.file_position.clone())),
             Operator::LogicalOr => Err(ASMGenerateError::InternalError("`Logical Or` instruction is not supported".to_string(), meta.file_position.clone())),
             Operator::Add | Operator::Sub | Operator::BitwiseAnd | Operator::BitwiseXor | Operator::BitwiseOr => Ok(
-                AssemblerOperation::two_operands(&operator.to_asm::<InterimResultOption>(stack, meta, None)?.to_string(), &registers[0], &registers[1], &meta.file_position)?
+                AssemblerOperation::two_operands(&operator.to_asm(stack, meta, None)?.to_string(), &registers[0], &registers[1], &meta.file_position)?
             ),
             Operator::Div | Operator::Mod => {
                 let rax = GeneralPurposeRegister::Bit64(Bit64::Rax).to_size_register(&ByteSize::try_from(integer_size)?);
@@ -278,7 +278,7 @@ impl OperatorToASM for IntegerType {
             }
             Operator::LessThan | Operator::GreaterThan | Operator::LessThanEqual | Operator::GreaterThanEqual | Operator::Equal | Operator::NotEqual => Ok(AssemblerOperation {
                 prefix: None,
-                operation: AssemblerOperation::compare(&operator.to_asm::<InterimResultOption>(stack, meta, None)?.to_string(), &registers[0], &registers[1])?,
+                operation: AssemblerOperation::compare(&operator.to_asm(stack, meta, None)?.to_string(), &registers[0], &registers[1])?,
                 postfix: None,
                 result_expected: GeneralPurposeRegister::from_str(&registers[0].to_string()).map_err(|_| ASMGenerateError::InternalError(format!("Cannot build {} from register", &registers[0]), meta.file_position.clone()))?.to_size_register(&ByteSize::_1),
             }),

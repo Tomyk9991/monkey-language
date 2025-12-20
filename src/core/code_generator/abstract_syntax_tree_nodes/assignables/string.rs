@@ -17,15 +17,14 @@ use crate::core::lexer::token_with_span::TokenWithSpan;
 use crate::core::model::types::static_string::{StaticString, StaticStringError};
 
 impl ToASM for StaticString {
-    fn to_asm<T: ASMOptions + 'static>(&self, stack: &mut Stack, _meta: &mut MetaInfo, options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
+    fn to_asm(&self, stack: &mut Stack, _meta: &mut MetaInfo, options: Option<ASMOptions>) -> Result<ASMResult, ASMGenerateError> {
         let label = if let Some(key) = stack.data_section.str_key(&self.value) {
             key.to_string()
         } else {
             stack.create_label()
         };
 
-        let any_t = &options as &dyn Any;
-        let destination_register = if let Some(concrete_type) = any_t.downcast_ref::<InterimResultOption>() {
+        let destination_register = if let Some(ASMOptions::InterimResultOption(concrete_type)) = options {
             concrete_type.general_purpose_register.clone()
         } else {
             GeneralPurposeRegister::iter_from_byte_size(self.byte_size(_meta))?.current()

@@ -46,12 +46,12 @@ impl OperatorToASM for Boolean {
             Operator::Mod => no_operation("modulo", meta.file_position.clone()),
             Operator::Equal | Operator::NotEqual => Ok(AssemblerOperation {
                 prefix: None,
-                operation: AssemblerOperation::compare(&operator.to_asm::<InterimResultOption>(&mut Default::default(), &mut Default::default(), None)?.to_string(), &registers[0], &registers[1])?,
+                operation: AssemblerOperation::compare(&operator.to_asm(&mut Default::default(), &mut Default::default(), None)?.to_string(), &registers[0], &registers[1])?,
                 postfix: None,
                 result_expected: GeneralPurposeRegister::from_str(&registers[0].to_string()).map_err(|_| ASMGenerateError::InternalError(format!("Cannot build {} from register", &registers[0]), meta.file_position.clone()))?,
             }),
             Operator::BitwiseAnd | Operator::BitwiseOr => {
-                AssemblerOperation::two_operands(&operator.to_asm::<InterimResultOption>(stack, meta, None)?.to_string(), &registers[0], &registers[1], &meta.file_position)
+                AssemblerOperation::two_operands(&operator.to_asm(stack, meta, None)?.to_string(), &registers[0], &registers[1], &meta.file_position)
             }
             Operator::LogicalAnd => {
                 // the actual data of register[0] is moved to rcx
@@ -64,7 +64,7 @@ impl OperatorToASM for Boolean {
                 let label1 = stack.create_label();
                 let label2 = stack.create_label();
 
-                let jump_instruction = operator.to_asm::<InterimResultOption>(stack, meta, None)?.to_string();
+                let jump_instruction = operator.to_asm(stack, meta, None)?.to_string();
                 target += &ASMBuilder::line(&format!("cmp {}, 0", lhs));
                 target += &ASMBuilder::ident_line(&format!("{} {label1}", jump_instruction));
 
@@ -102,7 +102,7 @@ impl OperatorToASM for Boolean {
                 let lhs = GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::CL));
                 let rhs = GeneralPurposeRegister::Bit8(Bit8::Single(NibbleRegister::AL));
 
-                let jump_instruction = operator.to_asm::<InterimResultOption>(stack, meta, None)?.to_string();
+                let jump_instruction = operator.to_asm(stack, meta, None)?.to_string();
                 target += &ASMBuilder::line(&format!("cmp {}, 0", lhs));
                 target += &ASMBuilder::ident_line(&format!("{} {label1}", jump_instruction));
 

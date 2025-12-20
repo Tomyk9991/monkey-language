@@ -35,7 +35,7 @@ impl Castable<FloatType, IntegerType> for FloatType {
             to: Type::Integer(t2.clone(), Mutability::Immutable),
         };
 
-        let instruction = cast_to.to_asm::<InterimResultOption>(stack, meta, None)?.to_string();
+        let instruction = cast_to.to_asm(stack, meta, None)?.to_string();
         let last_register = stack.register_to_use
             .last()
             .unwrap_or(&GeneralPurposeRegister::Bit64(Bit64::Rax))
@@ -119,7 +119,7 @@ impl Castable<FloatType, FloatType> for FloatType {
             to: Type::Float(t2.clone(), Mutability::Immutable),
         };
 
-        let instruction = cast_to.to_asm::<InterimResultOption>(stack, meta, None)?.to_string();
+        let instruction = cast_to.to_asm(stack, meta, None)?.to_string();
         let last_register = stack.register_to_use
             .last()
             .unwrap_or(&GeneralPurposeRegister::Bit64(Bit64::Rax));
@@ -188,7 +188,7 @@ impl OperatorToASM for FloatType {
         match operator {
             Operator::Noop => Err(ASMGenerateError::InternalError("Noop instruction is not supported on".to_string(), meta.file_position.clone())),
             Operator::Add | Operator::Sub | Operator::Div | Operator::Mul => AssemblerOperation::two_operands(
-                &format!("{}{suffix}", operator.to_asm::<InterimResultOption>(stack, meta, None)?),
+                &format!("{}{suffix}", operator.to_asm(stack, meta, None)?),
                 &registers[0],
                 &registers[1],
                 &meta.file_position
@@ -204,7 +204,7 @@ impl OperatorToASM for FloatType {
                     Operator::GreaterThanEqual => "setae".to_string(),
                     Operator::Equal => "sete".to_string(),
                     Operator::NotEqual => "setne".to_string(),
-                    _ => operator.to_asm::<InterimResultOption>(stack, meta, None)?.to_string()
+                    _ => operator.to_asm(stack, meta, None)?.to_string()
                 };
 
                 let first_register = GeneralPurposeRegister::from_str(&registers[0].to_string()).map_err(|_| ASMGenerateError::InternalError(format!("Cannot build {} from register", &registers[0]), meta.file_position.clone()))?;

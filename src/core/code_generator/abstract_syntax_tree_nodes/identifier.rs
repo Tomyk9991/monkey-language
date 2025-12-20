@@ -21,15 +21,12 @@ use crate::core::parser::types::r#type::{InferTypeError};
 
 
 impl ToASM for Identifier {
-    fn to_asm<T: ASMOptions + 'static>(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
-        if let Some(options) = options {
-            let any_t = &options as &dyn Any;
-            if let Some(s) = any_t.downcast_ref::<PrepareRegisterOption>() {
-                if let Type::Float(_, _) = self.get_type(&meta.static_type_information).ok_or(InferTypeError::NoTypePresent(
-                    LValue::Identifier(Identifier { name: self.name.clone() }), meta.file_position.clone()
-                ))? {
-                    return s.transform(stack, meta);
-                }
+    fn to_asm(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<ASMOptions>) -> Result<ASMResult, ASMGenerateError> {
+        if let Some(ASMOptions::PrepareRegisterOption(s)) = options {
+            if let Type::Float(_, _) = self.get_type(&meta.static_type_information).ok_or(InferTypeError::NoTypePresent(
+                LValue::Identifier(Identifier { name: self.name.clone() }), meta.file_position.clone()
+            ))? {
+                return s.transform(stack, meta);
             }
         }
 

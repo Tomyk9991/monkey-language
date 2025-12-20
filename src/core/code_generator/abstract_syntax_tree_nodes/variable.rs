@@ -57,7 +57,7 @@ impl From<AssignableError> for ParseVariableErr {
 
 
 impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for Variable<ASSIGNMENT, SEPARATOR> {
-    fn to_asm<T: ASMOptions + 'static>(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
+    fn to_asm(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<ASMOptions>) -> Result<ASMResult, ASMGenerateError> {
         let mut target = String::new();
         target += &ASMBuilder::ident(&ASMBuilder::comment_line(&format!("{}", self)));
 
@@ -66,13 +66,13 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for Variable<ASSIGNMEN
                 let i = IdentifierPresent {
                     identifier: self.l_value.clone(),
                 };
-                self.assignable.to_asm(stack, meta, (!self.define).then_some(i))?
+                self.assignable.to_asm(stack, meta, (!self.define).then_some(ASMOptions::IdentifierPresent(i)))?
             },
             _ => {
-                let interim_options = Some(InterimResultOption {
+                let interim_options = InterimResultOption {
                     general_purpose_register: GeneralPurposeRegister::iter_from_byte_size(self.assignable.byte_size(meta))?.current().clone(),
-                });
-                self.assignable.to_asm(stack, meta, interim_options)?
+                };
+                self.assignable.to_asm(stack, meta, Some(ASMOptions::InterimResultOption(interim_options)))?
             },
         };
 

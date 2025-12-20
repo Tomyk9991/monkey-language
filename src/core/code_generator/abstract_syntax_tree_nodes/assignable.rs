@@ -30,7 +30,7 @@ use crate::core::parser::types::r#type::{InferTypeError};
 
 impl ToASM for Assignable {
 
-    fn to_asm<T: ASMOptions + 'static>(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
+    fn to_asm(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<ASMOptions>) -> Result<ASMResult, ASMGenerateError> {
         match &self {
             Assignable::Integer(integer) => Ok(integer.to_asm(stack, meta, options)?),
             Assignable::Identifier(variable) => Ok(variable.to_asm(stack, meta, options)?),

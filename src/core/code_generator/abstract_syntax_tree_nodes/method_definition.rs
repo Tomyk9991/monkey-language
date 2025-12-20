@@ -73,7 +73,7 @@ impl MethodDefinition {
 }
 
 impl ToASM for MethodDefinition {
-    fn to_asm<T: ASMOptions + 'static>(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
+    fn to_asm(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<ASMOptions>) -> Result<ASMResult, ASMGenerateError> {
         let mut label_header: String = String::new();
 
         label_header += &ASMBuilder::line(&format!("{}:", self.method_label_name()));
@@ -130,7 +130,7 @@ impl ToASM for MethodDefinition {
                 }
             }
 
-            let _ = node.to_asm::<InterimResultOption>(stack, meta, None)?
+            let _ = node.to_asm(stack, meta, None)?
                 .apply_with(&mut method_scope)
                 .allow(ASMResultVariance::Inline)
                 .allow(ASMResultVariance::MultilineResulted)

@@ -28,7 +28,7 @@ impl DataSection {
 }
 
 impl ToASM for DataSection {
-    fn to_asm<T: ASMOptions + 'static>(&self, _stack: &mut Stack, _meta: &mut MetaInfo, _options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
+    fn to_asm(&self, _stack: &mut Stack, _meta: &mut MetaInfo, _options: Option<ASMOptions>) -> Result<ASMResult, ASMGenerateError> {
         if self.data.is_empty() {
             return Ok(ASMResult::Inline("".to_string()))
         }

@@ -19,32 +19,29 @@ use crate::core::parser::abstract_syntax_tree_nodes::assignables::integer::{Numb
 
 
 impl ToASM for FloatAST {
-    fn to_asm<T: ASMOptions + 'static>(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
-        if let Some(options) = options {
-            let any_t = &options as &dyn Any;
-            if let Some(concrete_type) = any_t.downcast_ref::<InterimResultOption>() {
+    fn to_asm(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<ASMOptions>) -> Result<ASMResult, ASMGenerateError> {
+        match options {
+            Some(ASMOptions::InterimResultOption(concrete_type)) => {
                 let value_str = if !self.value.to_string().contains('.') {
                     format!("{}.0", self.value)
                 } else {
                     self.value.to_string()
                 };
 
-                return match self.ty {
+                match self.ty {
                     FloatType::Float32 => Ok(ASMResult::MultilineResulted(
                         ASMBuilder::mov_ident_line(concrete_type.general_purpose_register.to_size_register(&ByteSize::_4), format!("__?float32?__({})", value_str)), concrete_type.general_purpose_register.clone())
                     ),
                     FloatType::Float64 => Ok(ASMResult::MultilineResulted(
                         ASMBuilder::mov_ident_line(concrete_type.general_purpose_register.to_size_register(&ByteSize::_8), format!("__?float64?__({})", value_str)), concrete_type.general_purpose_register.clone())
                     )
-                };
-            }
-
-            if let Some(s) = any_t.downcast_ref::<PrepareRegisterOption>() {
+                }
+            },
+            Some(ASMOptions::PrepareRegisterOption(s)) => {
                 return s.transform(stack, meta);
-            }
+            },
+            _ => Err(ASMGenerateError::ASMResult(ASMResultError::NoOptionProvided("float".to_string())))
         }
-
-        Err(ASMGenerateError::ASMResult(ASMResultError::NoOptionProvided("float".to_string())))
     }
 
 

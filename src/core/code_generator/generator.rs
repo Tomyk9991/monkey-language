@@ -97,7 +97,7 @@ impl Stack {
     }
 
 
-    pub fn generate_scope<T: ASMOptions + 'static>(&mut self, nodes: &Vec<AbstractSyntaxTreeNode>, meta: &mut MetaInfo, options: Option<T>) -> Result<String, ASMGenerateError> {
+    pub fn generate_scope(&mut self, nodes: &Vec<AbstractSyntaxTreeNode>, meta: &mut MetaInfo, options: Option<ASMOptions>) -> Result<String, ASMGenerateError> {
         let mut target = String::new();
 
         self.begin_scope();
@@ -193,10 +193,10 @@ impl ASMGenerator {
 
                         meta.static_type_information.merge(StaticTypeContext::new(&main.stack));
 
-                        let main_function_asm = main.to_asm::<InterimResultOption>(&mut self.stack, &mut meta, None)?;
+                        let main_function_asm = main.to_asm(&mut self.stack, &mut meta, None)?;
                         let data_section = self.stack.data_section
                             .clone()
-                            .to_asm::<InterimResultOption>(&mut self.stack, &mut meta, None)?;
+                            .to_asm(&mut self.stack, &mut meta, None)?;
 
                         Ok(format!("{}{}{}{}{}", compile_comment, data_section, boiler_plate, method_definitions, main_function_asm))
                     } else {
@@ -257,7 +257,7 @@ impl ASMGenerator {
 
                     for (index, argument) in method_definition.arguments.iter().enumerate() {
                         let parameter = Parameter {
-                            identifier: argument.identifier.clone(),
+                            identifier: Identifier { name: argument.identifier.identifier() },
                             ty: argument.ty.clone(),
                             register: calling_convention[index][0].clone(),
                             mutability: argument.ty.mutable(),
@@ -284,7 +284,7 @@ impl ASMGenerator {
                     }
 
                     meta.static_type_information.merge(StaticTypeContext::new(&method_definition.stack));
-                    method_definitions += match &method_definition.to_asm::<InterimResultOption>(&mut self.stack, &mut meta, None)? {
+                    method_definitions += match &method_definition.to_asm(&mut self.stack, &mut meta, None)? {
                         ASMResult::Inline(t) => t,
                         ASMResult::MultilineResulted(t, _) => t,
                         ASMResult::Multiline(t) => t

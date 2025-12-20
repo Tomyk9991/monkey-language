@@ -6,3 +6,4 @@ pub mod object;
 pub mod equation_parser;
 pub mod boolean;
 pub mod array;
+mod identifier;

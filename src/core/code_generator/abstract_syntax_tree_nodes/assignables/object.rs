@@ -7,7 +7,7 @@ use crate::core::model::abstract_syntax_tree_nodes::assignables::object::{Object
 
 
 impl ToASM for Object {
-    fn to_asm<T: ASMOptions>(&self, _stack: &mut Stack, _meta: &mut MetaInfo, _options: Option<T>) -> Result<ASMResult, ASMGenerateError> {
+    fn to_asm(&self, _stack: &mut Stack, _meta: &mut MetaInfo, _options: Option<ASMOptions>) -> Result<ASMResult, ASMGenerateError> {
         todo!()
     }
 

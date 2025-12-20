@@ -4,7 +4,6 @@ use crate::core::code_generator::conventions::calling_convention_from;
 
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
-use crate::core::code_generator::asm_options::ASMOptions;
 use crate::core::code_generator::asm_options::interim_result::InterimResultOption;
 use crate::core::code_generator::asm_result::{ASMResult, ASMResultVariance};
 use crate::core::code_generator::conventions::CallingRegister;
