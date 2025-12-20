@@ -1,0 +1,55 @@
+use crate::core::lexer::error::Error;
+use crate::core::lexer::parse::{Parse, ParseOptions, ParseResult};
+use crate::core::lexer::token_with_span::TokenWithSpan;
+use crate::core::model::abstract_syntax_tree_nodes::assignable::Assignable;
+use crate::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::expression::Expression;
+use crate::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::operator::Operator;
+use crate::core::parser::abstract_syntax_tree_nodes::assignables::equation_parser::Equation;
+
+impl Expression {
+    /// identifier expects a variable name. Expressions per se dont have variables names, but the identifier function is called on a l_value
+    pub fn identifier(&self) -> Option<String> {
+        if let Some(value) = &self.value {
+            return value.identifier();
+        }
+
+        None
+    }
+}
+
+impl Parse for Expression {
+    fn parse(tokens: &[TokenWithSpan], _: ParseOptions) -> Result<ParseResult<Self>, Error> where Self: Sized {
+        let mut s: Equation<'_> = Equation::new(tokens);
+        let f = s.parse()?;
+
+        Ok(ParseResult {
+            result: *f.result,
+            consumed: f.consumed,
+        })
+    }
+}
+
+impl Expression {
+    pub fn set(&mut self, lhs: Option<Box<Expression>>, operation: Operator, rhs: Option<Box<Expression>>, value: Option<Box<Assignable>>) {
+        self.lhs = lhs;
+        self.rhs = rhs;
+        self.operator = operation;
+        self.positive = true;
+        self.value = value;
+        self.prefix_arithmetic = None;
+    }
+
+    pub fn flip_value(&mut self) {
+        if let Some(Assignable::Integer(i)) = &mut self.value.as_deref_mut() {
+            i.value = "-".to_string() + &i.value;
+        }
+
+        if let Some(Assignable::Float(f)) = &mut self.value.as_deref_mut() {
+            f.value *= -1.0;
+        }
+
+        if self.value.is_some() {
+            self.positive = !self.positive;
+        }
+    }
+}

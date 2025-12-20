@@ -1,14 +1,14 @@
 use std::fmt::{Debug, Display, Formatter};
 use crate::core::code_generator::asm_options::ASMOptions;
 use crate::core::code_generator::asm_result::{ASMResult, ASMResultError};
-use crate::core::io::code_line::CodeLine;
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::target_os::TargetOS;
-use crate::core::lexer::static_type_context::StaticTypeContext;
-use crate::core::lexer::tokens::assignable_token::AssignableToken;
-use crate::core::lexer::tokens::l_value::LValue;
-use crate::core::lexer::types::cast_to::CastToError;
-use crate::core::lexer::types::type_token::InferTypeError;
+use crate::core::lexer::token_with_span::FilePosition;
+use crate::core::model::abstract_syntax_tree_nodes::assignable::Assignable;
+use crate::core::model::abstract_syntax_tree_nodes::l_value::LValue;
+use crate::core::parser::static_type_context::StaticTypeContext;
+use crate::core::parser::types::cast_to::CastToError;
+use crate::core::parser::types::r#type::InferTypeError;
 
 pub mod generator;
 pub mod target_creator;
@@ -19,20 +19,21 @@ pub mod register_destination;
 pub mod registers;
 pub mod asm_result;
 pub mod asm_options;
+pub mod abstract_syntax_tree_nodes;
 
 #[derive(Debug)]
 pub enum ASMGenerateError {
-    _VariableAlreadyUsed { name: String, code_line: CodeLine },
-    UnresolvedReference { name: String, code_line: CodeLine },
-    CastUnsupported(CastToError, CodeLine),
+    _VariableAlreadyUsed { name: String, file_position: FilePosition },
+    UnresolvedReference { name: String, file_position: FilePosition },
+    CastUnsupported(CastToError, FilePosition),
     EntryPointNotFound,
-    LValueAssignment(LValue, CodeLine),
-    MultipleEntryPointsFound(Vec<CodeLine>),
-    TypeNotInferrable(InferTypeError),
-    InternalError(String),
+    LValueAssignment(LValue, FilePosition),
+    MultipleEntryPointsFound(Vec<FilePosition>),
+    TypeNotInferrable(Box<InferTypeError>),
+    InternalError(String, FilePosition),
     ASMResult(ASMResultError),
-    AssignmentNotImplemented { assignable_token: AssignableToken, },
-    NotImplemented { token: String, },
+    AssignmentNotImplemented { assignable: Assignable, },
+    NotImplemented { ast_node: String, },
 }
 
 impl From<ASMResultError> for ASMGenerateError {
@@ -41,8 +42,8 @@ impl From<ASMResultError> for ASMGenerateError {
     }
 }
 
-impl From<InferTypeError> for ASMGenerateError {
-    fn from(value: InferTypeError) -> Self {
+impl From<Box<InferTypeError>> for ASMGenerateError {
+    fn from(value: Box<InferTypeError>) -> Self {
         ASMGenerateError::TypeNotInferrable(value)
     }
 }
@@ -50,21 +51,21 @@ impl From<InferTypeError> for ASMGenerateError {
 impl Display for ASMGenerateError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            ASMGenerateError::_VariableAlreadyUsed { name, code_line } => write!(f, "Line:{:?}:\tVariable already in use: {}", code_line.actual_line_number, name),
-            ASMGenerateError::UnresolvedReference { name, code_line } => write!(f, "Line:{:?}:\tCannot resolve variable: {}", code_line.actual_line_number, name),
-            ASMGenerateError::AssignmentNotImplemented { assignable_token } => write!(f, "ASM implementation for this Assignment is missing: {}", assignable_token),
-            ASMGenerateError::NotImplemented { token } => write!(f, "Cannot build ASM from this token: {}", token),
+            ASMGenerateError::_VariableAlreadyUsed { name, file_position } => write!(f, "Line:{}:\tVariable already in use: {}", file_position, name),
+            ASMGenerateError::UnresolvedReference { name, file_position } => write!(f, "Line:{}:\tCannot resolve variable: {}", file_position, name),
+            ASMGenerateError::AssignmentNotImplemented { assignable } => write!(f, "ASM implementation for this Assignment is missing: {}", assignable),
+            ASMGenerateError::NotImplemented { ast_node } => write!(f, "Cannot build ASM from this abstract syntax tree node: {}", ast_node),
             ASMGenerateError::TypeNotInferrable(infer) => write!(f, "{}", infer),
-            ASMGenerateError::InternalError(message) => write!(f, "Internal Error: {}", message),
-            ASMGenerateError::CastUnsupported(cast_to, code_line) => write!(f, "Line: {:?}:\t{}", code_line.actual_line_number, cast_to),
+            ASMGenerateError::InternalError(message, file_position) => write!(f, "Internal Error: {} at {}", message, file_position),
+            ASMGenerateError::CastUnsupported(cast_to, file_position) => write!(f, "Line: {}:\t{}", file_position, cast_to),
             ASMGenerateError::ASMResult(r) => write!(f, "{}", r),
             ASMGenerateError::EntryPointNotFound => write!(f, "No entry point for the program was found. Consider adding `main` function"),
             ASMGenerateError::MultipleEntryPointsFound(e) => write!(f, "Multiple entry points were found: [\n{}\n]", {
-                e.iter().map(|l| format!("\tLine: {:?}", l.actual_line_number))
+                e.iter().map(|l| format!("\tLine: {}", l))
                     .collect::<Vec<String>>()
                     .join(",\n")
             }),
-            ASMGenerateError::LValueAssignment(lvalue, code_line) => write!(f, "Line: {:?}\tCannot assign to value: {}", code_line.actual_line_number, lvalue),
+            ASMGenerateError::LValueAssignment(lvalue, file_position) => write!(f, "Line: {}\tCannot assign to value: {}", file_position, lvalue),
         }
     }
 }
@@ -73,16 +74,17 @@ impl std::error::Error for ASMGenerateError { }
 
 #[derive(Debug, Default)]
 pub struct MetaInfo {
-    pub code_line: CodeLine,
+    pub file_position: FilePosition,
     pub target_os: TargetOS,
     pub static_type_information: StaticTypeContext
 }
 
 
 
+
 pub trait ToASM {
-    /// Generates a String that represents the token in assembler language
-    fn to_asm<T: ASMOptions + 'static>(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<T>) -> Result<ASMResult, ASMGenerateError>;
+    /// Generates a String that represents the ast node in assembler language
+    fn to_asm(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<ASMOptions>) -> Result<ASMResult, ASMGenerateError>;
     /// returns a bool, if the current implementor needs to look up it's state in the stack
     fn is_stack_look_up(&self, stack: &mut Stack, meta: &MetaInfo) -> bool;
     /// returns the size in byte to indicate how much space on the stack must be reserved

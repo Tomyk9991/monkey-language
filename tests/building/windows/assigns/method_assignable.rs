@@ -1,8 +1,9 @@
 use monkey_language::core::code_generator::generator::{ASMGenerator};
 use monkey_language::core::code_generator::target_os::TargetOS;
 use monkey_language::core::io::monkey_file::MonkeyFile;
-use monkey_language::core::lexer::tokenizer::Lexer;
-use monkey_language::core::type_checker::static_type_checker::static_type_check;
+use monkey_language::core::parser::ast_parser::ASTParser;
+use monkey_language::core::semantics::static_type_check::static_type_checker::static_type_check;
+use monkey_language::core::semantics::type_infer::type_inferer::infer_type;
 
 #[test]
 fn expression_assign() -> anyhow::Result<()> {
@@ -16,13 +17,12 @@ fn expression_assign() -> anyhow::Result<()> {
     let c: i32 = integer_return() + (i32) b;
     "#;
 
-    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
-    let mut lexer = Lexer::from(monkey_file);
-    let top_level_scope = lexer.tokenize()?;
+    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code)?;
+    let mut top_level_scope = ASTParser::parse(&monkey_file.tokens)?;
+    infer_type(&mut top_level_scope.result.program)?;
+    let _ = static_type_check(&mut top_level_scope.result.program)?;
 
-    static_type_check(&top_level_scope)?;
-
-    let mut code_generator = ASMGenerator::from((top_level_scope, TargetOS::Windows));
+    let mut code_generator = ASMGenerator::from((top_level_scope.result.program, TargetOS::Windows));
     let asm_result = code_generator.generate()?;
 
 
@@ -114,13 +114,12 @@ main:
     let b: f64 = float_f64_5() + float_f64_3();
     "#;
 
-    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
-    let mut lexer = Lexer::from(monkey_file);
-    let top_level_scope = lexer.tokenize()?;
+    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code)?;
+    let mut top_level_scope = ASTParser::parse(&monkey_file.tokens)?;
+    infer_type(&mut top_level_scope.result.program)?;
+    let _ = static_type_check(&mut top_level_scope.result.program)?;
 
-    static_type_check(&top_level_scope)?;
-
-    let mut code_generator = ASMGenerator::from((top_level_scope, TargetOS::Windows));
+    let mut code_generator = ASMGenerator::from((top_level_scope.result.program, TargetOS::Windows));
     let asm_result = code_generator.generate()?;
 
 
@@ -288,13 +287,12 @@ fn pointer_assign_test() -> anyhow::Result<()> {
     let b: *f64 = &a;
     "#;
 
-    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
-    let mut lexer = Lexer::from(monkey_file);
-    let top_level_scope = lexer.tokenize()?;
+    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code)?;
+    let mut top_level_scope = ASTParser::parse(&monkey_file.tokens)?;
+    infer_type(&mut top_level_scope.result.program)?;
+    let _ = static_type_check(&mut top_level_scope.result.program)?;
 
-    static_type_check(&top_level_scope)?;
-
-    let mut code_generator = ASMGenerator::from((top_level_scope, TargetOS::Windows));
+    let mut code_generator = ASMGenerator::from((top_level_scope.result.program, TargetOS::Windows));
     let asm_result = code_generator.generate()?;
 
     let expected = r#"
@@ -351,13 +349,12 @@ let g: f64 = **c;
 let h: *f64 = &r();
 "#;
 
-    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
-    let mut lexer = Lexer::from(monkey_file);
-    let top_level_scope = lexer.tokenize()?;
+    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code)?;
+    let mut top_level_scope = ASTParser::parse(&monkey_file.tokens)?;
+    infer_type(&mut top_level_scope.result.program)?;
+    let _ = static_type_check(&mut top_level_scope.result.program)?;
 
-    static_type_check(&top_level_scope)?;
-
-    let mut code_generator = ASMGenerator::from((top_level_scope, TargetOS::Windows));
+    let mut code_generator = ASMGenerator::from((top_level_scope.result.program, TargetOS::Windows));
     let asm_result = code_generator.generate()?;
 
     println!("{}", asm_result);
@@ -442,13 +439,12 @@ let b: *f64 = &a;
 let addition = *b + f2();
     "#;
 
-    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
-    let mut lexer = Lexer::from(monkey_file);
-    let top_level_scope = lexer.tokenize()?;
+    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code)?;
+    let mut top_level_scope = ASTParser::parse(&monkey_file.tokens)?;
+    infer_type(&mut top_level_scope.result.program)?;
+    let _ = static_type_check(&mut top_level_scope.result.program)?;
 
-    static_type_check(&top_level_scope)?;
-
-    let mut code_generator = ASMGenerator::from((top_level_scope, TargetOS::Windows));
+    let mut code_generator = ASMGenerator::from((top_level_scope.result.program, TargetOS::Windows));
     let asm_result = code_generator.generate()?;
 
     let expected = r#"
@@ -529,13 +525,12 @@ let b: *f64 = &a;
 let addition = f2() + *b;
     "#;
 
-    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
-    let mut lexer = Lexer::from(monkey_file);
-    let top_level_scope = lexer.tokenize()?;
+    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code)?;
+    let mut top_level_scope = ASTParser::parse(&monkey_file.tokens)?;
+    infer_type(&mut top_level_scope.result.program)?;
+    let _ = static_type_check(&mut top_level_scope.result.program)?;
 
-    static_type_check(&top_level_scope)?;
-
-    let mut code_generator = ASMGenerator::from((top_level_scope, TargetOS::Windows));
+    let mut code_generator = ASMGenerator::from((top_level_scope.result.program, TargetOS::Windows));
     let asm_result = code_generator.generate()?;
 
     println!("{}", asm_result);
@@ -614,13 +609,12 @@ fn f1(): f64 { return 5.0_f64; }
 let addition = f1() + f1();
     "#;
 
-    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
-    let mut lexer = Lexer::from(monkey_file);
-    let top_level_scope = lexer.tokenize()?;
+    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code)?;
+    let mut top_level_scope = ASTParser::parse(&monkey_file.tokens)?;
+    infer_type(&mut top_level_scope.result.program)?;
+    let _ = static_type_check(&mut top_level_scope.result.program)?;
 
-    static_type_check(&top_level_scope)?;
-
-    let mut code_generator = ASMGenerator::from((top_level_scope, TargetOS::Windows));
+    let mut code_generator = ASMGenerator::from((top_level_scope.result.program, TargetOS::Windows));
     let asm_result = code_generator.generate()?;
 
 
@@ -692,13 +686,12 @@ let a: f64 = f1();
 let addition = f1() + (a + a);
     "#;
 
-    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
-    let mut lexer = Lexer::from(monkey_file);
-    let top_level_scope = lexer.tokenize()?;
+    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code)?;
+    let mut top_level_scope = ASTParser::parse(&monkey_file.tokens)?;
+    infer_type(&mut top_level_scope.result.program)?;
+    let _ = static_type_check(&mut top_level_scope.result.program)?;
 
-    static_type_check(&top_level_scope)?;
-
-    let mut code_generator = ASMGenerator::from((top_level_scope, TargetOS::Windows));
+    let mut code_generator = ASMGenerator::from((top_level_scope.result.program, TargetOS::Windows));
     let asm_result = code_generator.generate()?;
 
     let expected = r#"
@@ -767,13 +760,12 @@ let a: f64 = f1();
 let addition = (a + a) + f1();
     "#;
 
-    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
-    let mut lexer = Lexer::from(monkey_file);
-    let top_level_scope = lexer.tokenize()?;
+    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code)?;
+    let mut top_level_scope = ASTParser::parse(&monkey_file.tokens)?;
+    infer_type(&mut top_level_scope.result.program)?;
+    let _ = static_type_check(&mut top_level_scope.result.program)?;
 
-    static_type_check(&top_level_scope)?;
-
-    let mut code_generator = ASMGenerator::from((top_level_scope, TargetOS::Windows));
+    let mut code_generator = ASMGenerator::from((top_level_scope.result.program, TargetOS::Windows));
     let asm_result = code_generator.generate()?;
 
 
@@ -845,13 +837,12 @@ let a2 = f1() + (f1() + f1());
 let a3 = (f1() + f1()) + (f1() + f1());
     "#;
 
-    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
-    let mut lexer = Lexer::from(monkey_file);
-    let top_level_scope = lexer.tokenize()?;
+    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code)?;
+    let mut top_level_scope = ASTParser::parse(&monkey_file.tokens)?;
+    infer_type(&mut top_level_scope.result.program)?;
+    let _ = static_type_check(&mut top_level_scope.result.program)?;
 
-    static_type_check(&top_level_scope)?;
-
-    let mut code_generator = ASMGenerator::from((top_level_scope, TargetOS::Windows));
+    let mut code_generator = ASMGenerator::from((top_level_scope.result.program, TargetOS::Windows));
     let asm_result = code_generator.generate()?;
 
 
@@ -1037,13 +1028,12 @@ fn f2(): f64 { return 5.0_f64; }
 let addition = (((f1() + f2()) + (f2() + f1())) + (f2() + f2())) + ((f2() + (f2() + f2())) + (f2() + (f1() + f2())));
     "#;
 
-    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
-    let mut lexer = Lexer::from(monkey_file);
-    let top_level_scope = lexer.tokenize()?;
+    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code)?;
+    let mut top_level_scope = ASTParser::parse(&monkey_file.tokens)?;
+    infer_type(&mut top_level_scope.result.program)?;
+    let _ = static_type_check(&mut top_level_scope.result.program)?;
 
-    static_type_check(&top_level_scope)?;
-
-    let mut code_generator = ASMGenerator::from((top_level_scope, TargetOS::Windows));
+    let mut code_generator = ASMGenerator::from((top_level_scope.result.program, TargetOS::Windows));
     let asm_result = code_generator.generate()?;
 
 
@@ -1296,14 +1286,12 @@ fn f1(): f64 { return 5.0_f64; }
     let b: f64 = a;
     "#;
 
-    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
-    let mut lexer = Lexer::from(monkey_file);
-    let top_level_scope = lexer.tokenize()?;
+    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code)?;
+    let mut top_level_scope = ASTParser::parse(&monkey_file.tokens)?;
+    infer_type(&mut top_level_scope.result.program)?;
+    let _ = static_type_check(&mut top_level_scope.result.program)?;
 
-
-    static_type_check(&top_level_scope)?;
-
-    let mut code_generator = ASMGenerator::from((top_level_scope, TargetOS::Windows));
+    let mut code_generator = ASMGenerator::from((top_level_scope.result.program, TargetOS::Windows));
     let asm_result = code_generator.generate()?;
 
 
@@ -1349,13 +1337,12 @@ fn f1(): f64 { return 5.0_f64; }
     let b: f64 = (a);
     "#;
 
-    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
-    let mut lexer = Lexer::from(monkey_file);
-    let top_level_scope = lexer.tokenize()?;
+    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code)?;
+    let mut top_level_scope = ASTParser::parse(&monkey_file.tokens)?;
+    infer_type(&mut top_level_scope.result.program)?;
+    let _ = static_type_check(&mut top_level_scope.result.program)?;
 
-    static_type_check(&top_level_scope)?;
-
-    let mut code_generator = ASMGenerator::from((top_level_scope, TargetOS::Windows));
+    let mut code_generator = ASMGenerator::from((top_level_scope.result.program, TargetOS::Windows));
 
     let asm_result = code_generator.generate()?;
 

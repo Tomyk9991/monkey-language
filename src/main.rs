@@ -1,46 +1,55 @@
+use crate::cli::program_args::{OptimizationLevel, PrintOption, ProgramArgs};
+use crate::core::io::monkey_file::MonkeyFile;
+use crate::core::model::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
+use crate::core::parser::ast_parser::ASTParser;
+use crate::core::semantics::static_type_check::static_type_checker::static_type_check;
+use crate::core::semantics::type_infer::type_inferer::infer_type;
 use clap::Parser;
 use colored::Colorize;
-use crate::cli::program_args::OptimizationLevel;
-use crate::cli::program_args::{PrintOption, ProgramArgs};
 use crate::core::code_generator::generator::ASMGenerator;
 use crate::core::code_generator::target_creator::TargetCreator;
 use crate::core::code_generator::target_os::TargetOS;
-use crate::core::io::monkey_file::MonkeyFile;
-use crate::core::lexer::tokenizer::Lexer;
-use crate::core::type_checker::static_type_checker::static_type_check;
+use crate::core::optimization::optimization_trait::Optimization;
+use crate::core::optimization::optimization_trait::OptimizationContext;
 
-mod core;
 mod cli;
+mod core;
 mod utils;
-
 
 fn run_compiler() -> anyhow::Result<()> {
     let only_write = false;
 
     let args = ProgramArgs::parse();
     let entry_point_file = args.input.clone();
+
     let monkey_file: MonkeyFile = MonkeyFile::read(entry_point_file)?;
 
-// 1) Build AST
-    let mut top_level_scope = Lexer::from(monkey_file).tokenize()?;
+    // 1) Build AST
+    let mut top_level_scope = ASTParser::parse(&monkey_file.tokens)?;
+
+    let program: &mut Vec<AbstractSyntaxTreeNode> = &mut top_level_scope.result.program;
+
+    // 2) Static Type Checking
+    infer_type(program)?;
+    let mut static_type_context = static_type_check(&top_level_scope.result.program)?;
+
+    // 3) o1 Optimization
+    let top_level_scope = if args.optimization_level == OptimizationLevel::O1 {
+        let optimization_context = top_level_scope.result.o1(&mut static_type_context, OptimizationContext::from(top_level_scope.result.clone()));
+        optimization_context.program
+    } else {
+        top_level_scope.result
+    };
 
     if let Some(print_scope) = &args.print_scope {
         match print_scope {
             PrintOption::Production => println!("{}", top_level_scope),
-            PrintOption::Debug => println!("{:?}", top_level_scope)
+            PrintOption::Debug => println!("{:#?}", top_level_scope),
         };
     }
-
-// 2) Static Type Checking
-    static_type_check(&top_level_scope)?;
-
-// 3) o1 Optimization
-    if args.optimization_level == OptimizationLevel::O1 {
-        top_level_scope.o1();
-    }
-
-// 3) Building
-    let mut code_generator = ASMGenerator::from((top_level_scope, args.target_os.clone(), true));
+    // 3) Building
+    let got_main = top_level_scope.has_main_method;
+    let mut code_generator = ASMGenerator::from((top_level_scope.program, args.target_os.clone(), got_main));
     let target_creator = TargetCreator::try_from((args.input.as_str(), &args.target_os))?;
     let asm_result = code_generator.generate()?;
 
@@ -88,11 +97,14 @@ fn run_compiler() -> anyhow::Result<()> {
 
 fn main() {
     if let Err(error) = run_compiler() {
-        eprintln!("{} {error}", "Error:".red());
+        eprintln!("{}\n\t{error}", "Error:".red());
     }
 }
 
-fn with_path<F>(path: &str, f: F) -> anyhow::Result<()> where F: FnOnce() -> anyhow::Result<()> {
+fn with_path<F>(path: &str, f: F) -> anyhow::Result<()>
+where
+    F: FnOnce() -> anyhow::Result<()>,
+{
     let s = std::env::current_dir()?;
 
     std::env::set_current_dir(path)?;
@@ -110,6 +122,6 @@ fn more_windows_errors(status: i32) -> Option<String> {
         -1073741675 => Some("Integer overflow".to_string()),
         -1073741571 => Some("Stack overflow".to_string()),
         -1073741819 => Some("Access violation. Pointing to invalid memory".to_string()),
-        _ => None
+        _ => None,
     }
 }

@@ -1,19 +1,16 @@
 use std::fs::File;
 use std::io::Read;
-use std::ops::Range;
 use std::path::{Path, PathBuf};
 
 use anyhow::Context;
-
-use crate::core::constants::{CLOSING_SCOPE, OPENING_SCOPE};
-use crate::core::io::code_line::{CodeLine, Normalizable};
-use crate::core::model::scope_type::{ScopeType, ScopeTypeIterator};
+use crate::core::lexer::tokenizer::tokenize;
+use crate::core::lexer::token_with_span::TokenWithSpan;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct MonkeyFile {
     pub path: PathBuf,
-    pub lines: Vec<CodeLine>,
-    pub size: usize,
+    pub tokens: Vec<TokenWithSpan>,
+    pub size: usize
 }
 
 impl MonkeyFile {
@@ -26,122 +23,21 @@ impl MonkeyFile {
         let mut buffer = String::new();
 
         let size = file.read_to_string(&mut buffer)?;
-
-        let monkey_file = Self::read_from_str(&buffer);
-
+        let tokens = tokenize(&buffer)?;
 
         Ok(Self {
             path: path_buffer,
+            tokens,
             size,
-            ..monkey_file
         })
     }
 
-    #[allow(unused)]
-    pub fn read_from_str(buffer: &str) -> Self {
-        let mut buffer: String = buffer.to_owned();
-
-        buffer = buffer.replace("if(", "if (");
-        let mut lines = Self::read_buffer(&buffer);
-
-        let actual_lines = get_line_ranges(&buffer);
-
-        buffer = buffer.replace('\n', "");
-        buffer = buffer.replace('\r', "");
-
-        let mut lines = Self::read_buffer(&buffer);
-
-        lines.normalize();
-
-        lines.iter_mut()
-            .zip(actual_lines.iter())
-            .for_each(|(mut line, number)| {
-                line.actual_line_number = number.clone();
-            });
-
-
-        Self {
+    pub fn read_from_str(buffer: &str) -> anyhow::Result<Self> {
+        let tokens = tokenize(buffer)?;
+        Ok(Self {
             path: PathBuf::new(),
-            lines,
+            tokens,
             size: buffer.chars().count(),
-        }
-    }
-
-    fn read_buffer(buffer: &str) -> Vec<CodeLine> {
-        buffer.lines()
-            .enumerate()
-            .filter(|(_, line)| !line.trim().starts_with("//"))
-            .map(|(index, line)| CodeLine::new(line.to_string(), index..index, index + 1))
-            .collect::<Vec<_>>()
+        })
     }
 }
-
-fn get_line_ranges(buffer: &str) -> Vec<Range<usize>> {
-    let mut line_ranges = Vec::new();
-    let mut start = None;
-
-    let mut line_count = 1;
-
-    let mut whole_file = buffer.chars();
-    let mut scope_stack: Vec<ScopeType> = vec![];
-
-    while let Some(char) = whole_file.next() {
-        if start.is_none() && !char.is_whitespace() {
-            start = Some(line_count);
-        }
-
-
-        if char == CLOSING_SCOPE && scope_stack.last().is_some() {
-            if let Some(s) = start {
-                let range = s..line_count;
-                line_ranges.push(range);
-                start = None;
-            }
-
-            scope_stack.pop();
-        }
-
-        if char == '\n' {
-            line_count += 1;
-        }
-
-        let iterator = ScopeTypeIterator::default();
-
-        for (buffer_match, scope_type) in iterator {
-            let len = buffer_match.len() - 1;
-            let iter_clone = whole_file.clone(); // clone is fine here, its just an iterator
-            let iter_len = iter_clone.count();
-
-            // check if the whole file has still enough iterations to look ahead in lookup
-            if iter_len < len {
-                continue;
-            }
-
-            let lookup = String::from(char) + &whole_file.as_str()[..len];
-
-            if lookup == buffer_match {
-                scope_stack.push(scope_type);
-                start = Some(line_count);
-            }
-        }
-
-        if scope_stack.last().is_some() && char == OPENING_SCOPE {
-            if let Some(s) = start {
-                let range = s..line_count;
-                line_ranges.push(range);
-                start = None;
-            }
-        }
-
-        if char == ';' {
-            if let Some(s) = start {
-                let range = s..line_count;
-                line_ranges.push(range);
-                start = None;
-            }
-        }
-    }
-
-    line_ranges
-}
-

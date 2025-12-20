@@ -3,12 +3,17 @@ pub mod interim_result;
 pub mod prepare_register;
 pub mod identifier_present;
 
-use crate::core::code_generator::asm_result::ASMResult;
-use crate::core::code_generator::generator::Stack;
-use crate::core::code_generator::{ASMGenerateError, MetaInfo};
+use crate::core::code_generator::asm_options::identifier_present::IdentifierPresent;
+use crate::core::code_generator::asm_options::in_expression_method_call::InExpressionMethodCall;
+use crate::core::code_generator::asm_options::interim_result::InterimResultOption;
+use crate::core::code_generator::asm_options::prepare_register::PrepareRegisterOption;
+use crate::core::parser::abstract_syntax_tree_nodes::assignables::equation_parser::prefix_arithmetic::PrefixArithmeticOptions;
 
-pub trait ASMOptions: Clone {
-    fn transform(&self, _stack: &mut Stack, _meta: &mut MetaInfo) -> Result<ASMResult, ASMGenerateError> {
-        Ok(ASMResult::Inline(String::new()))
-    }
+#[derive(Clone)]
+pub enum ASMOptions {
+    PrefixArithmeticOptions(PrefixArithmeticOptions),
+    InExpressionMethodCall(InExpressionMethodCall),
+    InterimResultOption(InterimResultOption),
+    PrepareRegisterOption(PrepareRegisterOption),
+    IdentifierPresent(IdentifierPresent)
 }

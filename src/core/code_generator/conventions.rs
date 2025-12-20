@@ -1,18 +1,19 @@
-use std::fmt::{Display, Formatter};
 use crate::core::code_generator::generator::Stack;
-use crate::core::code_generator::MetaInfo;
 use crate::core::code_generator::registers::{Bit64, FloatRegister, GeneralPurposeRegister};
 use crate::core::code_generator::target_os::TargetOS;
-use crate::core::io::code_line::CodeLine;
-use crate::core::lexer::static_type_context::StaticTypeContext;
-use crate::core::lexer::tokens::assignable_token::AssignableToken;
-use crate::core::lexer::tokens::method_definition::MethodDefinition;
-use crate::core::lexer::tokens::name_token::NameToken;
-use crate::core::lexer::types::type_token::{InferTypeError, TypeToken};
+use crate::core::code_generator::MetaInfo;
+use crate::core::model::abstract_syntax_tree_nodes::assignable::Assignable;
+use crate::core::model::abstract_syntax_tree_nodes::identifier::Identifier;
+use crate::core::model::abstract_syntax_tree_nodes::l_value::LValue;
+use crate::core::model::abstract_syntax_tree_nodes::method_definition::MethodDefinition;
+use crate::core::model::types::ty::Type;
+use crate::core::parser::static_type_context::StaticTypeContext;
+use crate::core::parser::types::r#type::InferTypeError;
+use std::fmt::{Display, Formatter};
 
 /// An enum representing the destination register. If its a register it contains the register
 /// For floats its for example a "rcx" or "rdx" for windows calling convention
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, PartialOrd, Debug, PartialEq)]
 pub enum CallingRegister {
     Register(GeneralPurposeRegister),
     Stack,
@@ -27,7 +28,7 @@ impl Display for CallingRegister {
     }
 }
 
-pub fn calling_convention(stack: &mut Stack, meta: &MetaInfo, calling_arguments: &[AssignableToken], method_name: &str) -> Result<Vec<Vec<CallingRegister>>, InferTypeError> {
+pub fn calling_convention(stack: &mut Stack, meta: &mut MetaInfo, calling_arguments: &[Assignable], method_name: &str) -> Result<Vec<Vec<CallingRegister>>, Box<InferTypeError>> {
     match meta.target_os {
         TargetOS::Windows => windows_calling_convention(stack, meta, calling_arguments, method_name),
         TargetOS::Linux | TargetOS::WindowsSubsystemLinux => {
@@ -45,7 +46,7 @@ pub fn calling_convention_from(method_definition: &MethodDefinition, target_os: 
     }
 }
 
-pub fn return_calling_convention(_stack: &mut Stack, meta: &MetaInfo) -> Result<GeneralPurposeRegister, InferTypeError> {
+pub fn return_calling_convention(_stack: &mut Stack, meta: &MetaInfo) -> Result<GeneralPurposeRegister, Box<InferTypeError>> {
     match meta.target_os {
         TargetOS::Windows => Ok(GeneralPurposeRegister::Bit64(Bit64::Rax)),
         TargetOS::Linux | TargetOS::WindowsSubsystemLinux => {
@@ -54,7 +55,7 @@ pub fn return_calling_convention(_stack: &mut Stack, meta: &MetaInfo) -> Result<
     }
 }
 
-fn windows_calling_convention(_stack: &mut Stack, meta: &MetaInfo, calling_arguments: &[AssignableToken], method_name: &str) -> Result<Vec<Vec<CallingRegister>>, InferTypeError> {
+fn windows_calling_convention(_stack: &mut Stack, meta: &mut MetaInfo, calling_arguments: &[Assignable], method_name: &str) -> Result<Vec<Vec<CallingRegister>>, Box<InferTypeError>> {
     static FLOAT_ORDER: [CallingRegister; 4] = [
         CallingRegister::Register(GeneralPurposeRegister::Float(FloatRegister::Xmm0)),
         CallingRegister::Register(GeneralPurposeRegister::Float(FloatRegister::Xmm1)),
@@ -71,42 +72,44 @@ fn windows_calling_convention(_stack: &mut Stack, meta: &MetaInfo, calling_argum
     let mut result = vec![];
 
 
-    let method_defs = method_definitions(&meta.static_type_information, &meta.code_line, calling_arguments, method_name)?;
+    let method_defs = method_definitions(&mut meta.static_type_information, calling_arguments, method_name)?;
 
     if method_defs.is_empty() {
-        return Err(InferTypeError::UnresolvedReference(method_name.to_string(), meta.code_line.clone()))
+        return Err(Box::new(InferTypeError::UnresolvedReference(method_name.to_string(), meta.file_position.clone())))
     }
 
     if method_defs.len() > 1 {
-        return Err(InferTypeError::MethodCallSignatureMismatch {
+        return Err(Box::new(InferTypeError::MethodCallSignatureMismatch {
             signatures: meta.static_type_information.methods
-                .iter().filter(|m| m.name.name == method_name)
-                .map(|m| m.arguments.iter().map(|a| a.type_token.clone()).collect::<Vec<_>>())
+                .iter().filter(|m| m.identifier.identifier() == method_name)
+                .map(|m| m.arguments.iter().map(|a| a.ty.clone()).collect::<Vec<_>>())
                 .collect::<Vec<_>>(),
-            method_name: NameToken { name: method_name.to_string() },
-            code_line: meta.code_line.clone(),
-            provided: calling_arguments.iter().filter_map(|a| a.infer_type_with_context(&meta.static_type_information, &meta.code_line).ok()).collect::<Vec<_>>(),
-        })
+            method_name: LValue::Identifier(Identifier { name: method_name.to_string() }),
+            file_position: meta.file_position.clone(),
+            provided: calling_arguments.iter().filter_map(|a| a.get_type(&meta.static_type_information)).collect::<Vec<_>>(),
+        }))
     }
 
-    let method_def = if let Some(method_def) = meta.static_type_information.methods.iter().find(|m| m.name.name == method_name) {
+    let method_def = if let Some(method_def) = meta.static_type_information.methods.iter().find(|m| m.identifier.identifier() == method_name) {
         method_def.clone()
     } else {
-        return Err(InferTypeError::UnresolvedReference(method_name.to_string(), meta.code_line.clone()));
+        return Err(Box::new(InferTypeError::UnresolvedReference(method_name.to_string(), meta.file_position.clone())));
     };
 
     for (index, calling_argument) in calling_arguments.iter().enumerate() {
-        let calling_ty: TypeToken = calling_argument.infer_type_with_context(&meta.static_type_information, &meta.code_line)?;
+        let calling_ty: Type = calling_argument.get_type(&meta.static_type_information).ok_or(InferTypeError::NoTypePresent(
+            LValue::Identifier(Identifier { name: "Argument".to_string() }), meta.file_position.clone()
+        ))?;
 
         match calling_ty {
-            TypeToken::Integer(_, _) | TypeToken::Bool(_) | TypeToken::Custom(_, _) | TypeToken::Array(_, _, _) => {
+            Type::Integer(_, _) | Type::Bool(_) | Type::Custom(_, _) | Type::Array(_, _, _) => {
                 if index < 4 {
                     result.push(vec![POINTER_ORDER[index].clone()]);
                 } else {
                     result.push(vec![CallingRegister::Stack]);
                 }
             }
-            TypeToken::Float(_, _) => {
+            Type::Float(_, _) => {
                 let mut r = vec![];
                 if method_def.is_extern {
                     r.push(POINTER_ORDER[index].clone());
@@ -120,7 +123,8 @@ fn windows_calling_convention(_stack: &mut Stack, meta: &MetaInfo, calling_argum
 
                 result.push(r);
             }
-            TypeToken::Void => {}
+            Type::Void => {}
+            Type::Statement => {}
         }
     }
 
@@ -128,17 +132,21 @@ fn windows_calling_convention(_stack: &mut Stack, meta: &MetaInfo, calling_argum
 }
 
 /// Returns every possible method definition based on the argument signature and method name
-pub fn method_definitions(meta: &StaticTypeContext, code_line: &CodeLine, arguments: &[AssignableToken], method_name: &str) -> Result<Vec<MethodDefinition>, InferTypeError> {
+pub fn method_definitions(type_context: &mut StaticTypeContext, arguments: &[Assignable], method_name: &str) -> Result<Vec<MethodDefinition>, Box<InferTypeError>> {
     let mut method_definitions = vec![];
 
-    'outer: for method in &meta.methods {
-        if method.name.name != method_name || method.arguments.len() != arguments.len() {
+    'outer: for method in &type_context.methods {
+        if method.identifier.identifier() != method_name || method.arguments.len() != arguments.len() {
             continue;
         }
 
         for (index, argument) in method.arguments.iter().enumerate() {
-            let calling_type = arguments[index].infer_type_with_context(meta, code_line)?;
-            if argument.type_token < calling_type {
+            let calling_type = arguments[index].get_type(type_context);
+            if let Some(calling_type) = calling_type {
+                if argument.ty < calling_type {
+                    continue 'outer;
+                }
+            } else {
                 continue 'outer;
             }
         }
@@ -167,15 +175,15 @@ fn windows_calling_convention_from(method_definition: &MethodDefinition) -> Vec<
     let mut result = vec![];
 
     for (index, argument) in method_definition.arguments.iter().enumerate() {
-        match argument.type_token {
-            TypeToken::Integer(_, _) | TypeToken::Bool(_) | TypeToken::Custom(_, _) | TypeToken::Array(_, _, _) => {
+        match argument.ty {
+            Type::Integer(_, _) | Type::Bool(_) | Type::Custom(_, _) | Type::Array(_, _, _) => {
                 if index < 4 {
                     result.push(vec![POINTER_ORDER[index].clone()]);
                 } else {
                     result.push(vec![CallingRegister::Stack]);
                 }
             }
-            TypeToken::Float(_, _) => {
+            Type::Float(_, _) => {
                 let mut r = vec![];
                 if index < 4 {
                     r.push(FLOAT_ORDER[index].clone());
@@ -185,7 +193,7 @@ fn windows_calling_convention_from(method_definition: &MethodDefinition) -> Vec<
 
                 result.push(r);
             }
-            TypeToken::Void => {}
+            Type::Void | Type::Statement => {}
         }
     }
 

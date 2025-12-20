@@ -1,7 +1,8 @@
 pub mod io;
-pub mod lexer;
+pub mod parser;
 pub mod constants;
 pub mod model;
 pub mod code_generator;
-
-pub mod type_checker;
+pub mod semantics;
+pub mod lexer;
+pub mod optimization;

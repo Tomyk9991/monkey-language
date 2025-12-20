@@ -18,7 +18,7 @@ pub struct ProgramArgs {
     #[arg(short, long)]
     /// Print the scope with the given option (Supported: production, debug)
     pub print_scope: Option<PrintOption>,
-    #[arg(short = 'o', long, default_value_t = OptimizationLevel::O0)]
+    #[arg(short = 'o', long, default_value_t = OptimizationLevel::O1)]
     /// Describes the level of provided optimization
     pub optimization_level: OptimizationLevel,
 }

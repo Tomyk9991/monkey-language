@@ -1,110 +1,170 @@
-use crate::core::code_generator::conventions::calling_convention_from;
-use crate::core::code_generator::target_os::TargetOS;
-use crate::core::io::monkey_file::MonkeyFile;
-use crate::core::lexer::scope::{Scope, ScopeError};
-use crate::core::lexer::static_type_context::StaticTypeContext;
+use crate::core::lexer::error::Error;
+use crate::core::lexer::semantic_token_merge::semantic_token_merge;
 use crate::core::lexer::token::Token;
-use crate::core::lexer::tokens::assignable_token::AssignableToken;
-use crate::core::lexer::tokens::l_value::LValue;
-use crate::core::lexer::tokens::method_definition::MethodDefinition;
-use crate::core::lexer::tokens::parameter_token::ParameterToken;
-use crate::core::lexer::tokens::variable_token::VariableToken;
-use crate::core::lexer::TryParse;
-use crate::core::lexer::types::type_token::InferTypeError;
+use crate::core::lexer::token_with_span::{FilePosition, TokenWithSpan};
 
-pub struct Lexer {
-    current_file: MonkeyFile
+pub fn tokenize(string: &str) -> Result<Vec<TokenWithSpan>, Error> {
+    let token = semantic_token_merge(&collect_greedy(string)?)?;
+    Ok(token)
 }
 
-impl From<MonkeyFile> for Lexer {
-    fn from(value: MonkeyFile) -> Self {
-        Self {
-            current_file: value
+/// Collects tokens from a string greedily.
+///
+/// # Arguments
+///
+/// * `string`: &str - The string to collect tokens from.
+///
+/// returns: Result<Vec<Token>, Error>
+///
+/// # Examples
+///
+/// ```
+/// use monkey_language::core::lexer::error::Error;
+/// use monkey_language::core::lexer::tokenizer::collect_greedy;
+/// use monkey_language::core::lexer::token::Token;
+/// use monkey_language::core::lexer::token_with_span::FilePosition;
+///
+/// let tokens = collect_greedy("let a = 10;")?.iter().map(|token| token.token.clone()).collect::<Vec<_>>();
+/// assert_eq!(tokens, vec![Token::Let, Token::Literal("a".to_string()), Token::Equals, Token::Numbers("10".to_string()), Token::SemiColon]);
+/// let span = collect_greedy("let a = 10;")?.iter().map(|token| token.span.clone()).collect::<Vec<_>>();
+/// assert_eq!(span[0], FilePosition { line: 1..=1, column: 1..=3 });
+/// # Ok::<(), Error>(())
+/// ```
+pub fn collect_greedy(string: &str) -> Result<Vec<TokenWithSpan>, Error> {
+    let mut tokens = vec![];
+    let mut index = 0;
+    let mut line = 1;
+    let mut column = 1;
+    let chars = string.chars().collect::<Vec<_>>();
+
+    while index < chars.len() {
+        if chars[index] == '\n' {
+            line += 1;
+            column = 1;
+            index += 1;
+            continue;
         }
-    }
-}
 
-impl Lexer {
-    /// Tokenize the current file
-    /// # Returns
-    /// A `Scope` containing all the tokens
-    /// # Errors
-    /// - If the file is empty
-    /// - If the file contains an invalid token
-    pub fn tokenize(&mut self) -> Result<Scope, ScopeError> {
-        let mut scope = Scope {
-            tokens: vec![],
-        };
+        if chars[index].is_whitespace() {
+            index += 1;
+            column += 1;
+            continue;
+        }
 
-        let mut iterator = self.current_file.lines.iter().peekable();
+        let start_token = column;
+        let token_target = Token::iter();
+        let mut found = false;
 
-        while iterator.peek().is_some() {
-            let token = Scope::try_parse(&mut iterator)?;
+        for token_information in token_target {
+            let mut collected = String::new();
+            let before_collect_index = index;
+            let before_collect_column = column;
 
-            if let Token::Import(imported_monkey_file) = token {
-                let inner_scope = Lexer::from(imported_monkey_file.monkey_file.clone()).tokenize()?;
+            // check if the next char is a normal letter
+            // if in literal mode -> literal mode, if first char is a letter
+            let is_literal_mode = collected
+                .chars()
+                .next()
+                .map(|c| c.is_alphabetic() || c == '_' || c == '$')
+                .unwrap_or(true);
 
-                // todo: this could result in collisions.
-                for t in inner_scope.tokens {
-                    scope.tokens.push(t);
+            // token length is not always known. for expected tokens like if, let, mut, etc. we know the length
+            if let Some(token_length) = token_information.token_length {
+                while collected.len() < token_length && index < chars.len() {
+                    if chars[index].is_whitespace() {
+                        if collected.is_empty() {
+                            return Err(Error::InvalidCharacter(chars[index]));
+                        }
+
+                        index += 1;
+                        continue;
+                    }
+
+                    collected.push(chars[index]);
+                    index += 1;
+                    column += 1;
                 }
-
-                scope.tokens.push(Token::Import(imported_monkey_file));
             } else {
-                scope.tokens.push(token)
+                // but for literals we don't know the length; so we need to collect until we find a single character token or whitespace
+                'outer: while 
+                    index < chars.len() && 
+                    !chars[index].is_whitespace()
+                    && (is_literal_mode && !done_collecting_literal(chars.get(index)))
+                {
+                    collected.push(chars[index]);
+                    index += 1;
+                    column += 1;
+
+                    if collected.starts_with("\"") {
+                        while index < chars.len() {
+                            collected.push(chars[index]);
+                            if collected.ends_with("\"") {
+                                index += 1;
+                                column += 1;
+                                break 'outer;
+                            }
+                            index += 1;
+                            column += 1;
+                        }
+                    }
+                }
             }
-        }
 
-        // top level type context. top level variables and all methods are visible
-        let mut type_context: StaticTypeContext = StaticTypeContext::new(&scope.tokens);
+            let end_column = column - 1;
 
-        let mut methods: Vec<*mut MethodDefinition> = Vec::new();
+            let is_literal_mode = collected
+                .chars()
+                .next()
+                .map(|c| c.is_alphabetic() || c == '_' || c == '$')
+                .unwrap_or(true);
 
-        for token in &mut scope.tokens {
-            if let Token::MethodDefinition(method_ref) = token {
-                methods.push(method_ref);
-            }
-        }
+            let whole_literal_captured = if is_literal_mode {
+                // check if the next char is a something else than an operation or whitespace
+                done_collecting_literal(chars.get(index))
+            } else {
+                true
+            };
 
-        Self::infer_types(&mut scope.tokens, &mut type_context)?;
-
-        for method in methods.iter_mut() {
-            let calling_convention = calling_convention_from(unsafe { &(*(*method)) }, &TargetOS::Windows);
-
-            for (index, argument) in unsafe { &(*(*method)) }.arguments.iter().enumerate() {
-                let parameter_token = ParameterToken {
-                    name_token: argument.name.clone(),
-                    ty: argument.type_token.clone(),
-                    register: calling_convention[index][0].clone(),
-                    mutability: argument.type_token.mutable(),
-                    code_line: unsafe { &(*(*method)) }.code_line.clone(),
+            if token_information.matches(&collected) && whole_literal_captured {
+                let token = match token_information.token {
+                    Token::Literal(_) => Token::Literal(collected),
+                    Token::Numbers(_) => Token::Numbers(collected),
+                    _ => token_information.token,
                 };
 
-                type_context.context.push(VariableToken {
-                    l_value: LValue::Name(argument.name.clone()),
-                    mutability: argument.type_token.mutable(),
-                    ty: Some(argument.type_token.clone()),
-                    define: true,
-                    assignable: AssignableToken::Parameter(parameter_token),
-                    code_line: unsafe { &(*(*method)) }.code_line.clone(),
+                tokens.push(TokenWithSpan {
+                    token,
+                    span: FilePosition {
+                        line: line..=line,
+                        column: start_token..=end_column,
+                    },
                 });
-            }
 
-            Scope::infer_type(unsafe { &mut (*(*method)).stack }, &mut type_context)?;
-
-            for _ in 0..unsafe { &(*(*method)) }.arguments.len() {
-                type_context.context.pop();
+                found = true;
+                break;
+            } else {
+                index = before_collect_index;
+                column = before_collect_column;
             }
         }
 
-        Ok(scope)
+        if !found {
+            return Err(Error::InvalidCharacter(chars[index]));
+        }
     }
 
-    pub fn infer_types(scope: &mut Vec<Token>, type_context: &mut StaticTypeContext) -> Result<(), InferTypeError> {
-        for token in scope {
-            token.infer_type(type_context)?;
-        }
+    Ok(tokens)
+}
 
-        Ok(())
+fn done_collecting_literal(target_char: Option<&char>) -> bool {
+    // check if the next char is a something else than an operation or whitespace
+    if let Some(next_char) = target_char {
+        if next_char.is_whitespace() {
+            true
+        } else {
+            !(next_char.is_alphanumeric() || *next_char == '_' || *next_char == '$' || *next_char == '"')
+        }
+    } else {
+        true
     }
 }

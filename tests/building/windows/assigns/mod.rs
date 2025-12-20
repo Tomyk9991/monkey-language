@@ -1,4 +1,4 @@
-pub mod assignable;
+mod assignable;
 mod number_assignable;
 mod float_assignable;
 mod pointer_casting_mixed;
