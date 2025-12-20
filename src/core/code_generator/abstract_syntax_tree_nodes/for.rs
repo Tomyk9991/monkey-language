@@ -3,22 +3,8 @@ use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::asm_options::ASMOptions;
 use crate::core::code_generator::asm_result::{ASMResult, ASMResultError, ASMResultVariance};
 use crate::core::code_generator::generator::Stack;
-use crate::core::model::abstract_syntax_tree_nodes::for_::{For, ForErr};
-use crate::core::parser::abstract_syntax_tree_nodes::variable::ParseVariableErr;
-use crate::core::parser::utils::dyck::DyckError;
+use crate::core::model::abstract_syntax_tree_nodes::for_::{For};
 
-
-impl From<DyckError> for ForErr {
-    fn from(s: DyckError) -> Self {
-        ForErr::DyckLanguageErr { target_value: s.target_value, ordering: s.ordering }
-    }
-}
-
-impl From<ParseVariableErr> for ForErr {
-    fn from(value: ParseVariableErr) -> Self {
-        ForErr::ParseVariableErr(value)
-    }
-}
 
 impl ToASM for For {
     fn to_asm(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<ASMOptions>) -> Result<ASMResult, ASMGenerateError> {

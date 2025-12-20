@@ -1,5 +1,4 @@
 use std::fmt::{Debug, Display, Formatter};
-use crate::core::lexer::error::Error;
 use crate::core::model::abstract_syntax_tree_nodes::assignable::Assignable;
 use crate::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::operator::Operator;
 use crate::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::prefix_arithmetic::PrefixArithmetic;
@@ -21,21 +20,6 @@ impl From<Option<Box<Assignable>>> for Expression {
         Expression {
             value,
             ..Default::default()
-        }
-    }
-}
-
-impl From<crate::core::lexer::error::Error> for crate::core::parser::abstract_syntax_tree_nodes::assignables::equation_parser::Error {
-    fn from(value: Error) -> Self {
-        match value {
-            Error::InvalidCharacter(f) => crate::core::parser::abstract_syntax_tree_nodes::assignables::equation_parser::Error::UndefinedSequence(f.to_string()),
-            Error::UnexpectedToken(d) => crate::core::parser::abstract_syntax_tree_nodes::assignables::equation_parser::Error::UndefinedSequence(d.token.to_string()),
-            Error::UnexpectedEOF => crate::core::parser::abstract_syntax_tree_nodes::assignables::equation_parser::Error::SourceEmpty,
-            Error::ExpectedToken(f) => crate::core::parser::abstract_syntax_tree_nodes::assignables::equation_parser::Error::TermNotParsable(f.to_string()),
-            Error::Callstack(f) => crate::core::parser::abstract_syntax_tree_nodes::assignables::equation_parser::Error::UndefinedSequence(format!("Stacktrace: {:?}", f)),
-            Error::WithContext { error, context } => {
-                crate::core::parser::abstract_syntax_tree_nodes::assignables::equation_parser::Error::UndefinedSequence(format!("With context: {}\n{:?}", error, context))
-            }
         }
     }
 }

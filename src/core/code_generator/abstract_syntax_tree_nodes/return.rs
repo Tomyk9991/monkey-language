@@ -6,14 +6,8 @@ use crate::core::code_generator::conventions::return_calling_convention;
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::registers::{ByteSize, GeneralPurposeRegister};
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
-use crate::core::model::abstract_syntax_tree_nodes::ret::{Return, ReturnError};
+use crate::core::model::abstract_syntax_tree_nodes::ret::{Return};
 
-
-impl From<anyhow::Error> for ReturnError {
-    fn from(value: anyhow::Error) -> Self {
-        ReturnError::PatternNotMatched { target_value: value.to_string() }
-    }
-}
 
 impl ToASM for Return {
     fn to_asm(&self, stack: &mut Stack, meta: &mut MetaInfo, _options: Option<ASMOptions>) -> Result<ASMResult, ASMGenerateError> {

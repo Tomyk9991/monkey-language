@@ -1,4 +1,3 @@
-use std::error::Error;
 use std::fmt::{Display, Formatter};
 use crate::core::lexer::token_with_span::FilePosition;
 use crate::core::model::abstract_syntax_tree_nodes::assignable::{Assignable};
@@ -7,11 +6,6 @@ use crate::core::model::abstract_syntax_tree_nodes::assignable::{Assignable};
 pub struct Return {
     pub assignable: Option<Assignable>,
     pub file_position: FilePosition,
-}
-
-#[derive(Debug)]
-pub enum ReturnError {
-    PatternNotMatched { target_value: String },
 }
 
 impl Display for Return {
@@ -25,15 +19,3 @@ impl Display for Return {
         })
     }
 }
-
-impl Display for ReturnError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", match self {
-            ReturnError::PatternNotMatched { target_value } => {
-                format!("Pattern not matched for: `{}?\n\t return assignable;", target_value)
-            }
-        })
-    }
-}
-
-impl Error for ReturnError { }

@@ -1,4 +1,3 @@
-use std::error::Error;
 use crate::core::code_generator::{register_destination, ASMGenerateError, MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::asm_options::ASMOptions;
@@ -8,39 +7,8 @@ use crate::core::code_generator::asm_result::{ASMResult, ASMResultError, ASMResu
 use crate::core::code_generator::generator::{Stack, StackLocation};
 use crate::core::code_generator::registers::{Bit64, ByteSize, GeneralPurposeRegister};
 use crate::core::model::abstract_syntax_tree_nodes::assignable::{Assignable};
-use crate::core::model::abstract_syntax_tree_nodes::identifier::IdentifierError;
-use crate::core::model::abstract_syntax_tree_nodes::variable::{ParseVariableErr, Variable};
+use crate::core::model::abstract_syntax_tree_nodes::variable::{Variable};
 use crate::core::model::types::ty::Type;
-use crate::core::parser::abstract_syntax_tree_nodes::l_value::LValueErr;
-use crate::core::parser::types::r#type::InferTypeError;
-
-impl Error for ParseVariableErr {}
-
-impl From<Box<InferTypeError>> for ParseVariableErr {
-    fn from(value: Box<InferTypeError>) -> Self {
-        ParseVariableErr::InferType(value)
-    }
-}
-
-impl From<LValueErr> for ParseVariableErr {
-    fn from(value: LValueErr) -> Self {
-        ParseVariableErr::LValue(value)
-    }
-}
-
-impl From<IdentifierError> for ParseVariableErr {
-    fn from(a: IdentifierError) -> Self { ParseVariableErr::IdentifierErr(a) }
-}
-
-impl From<anyhow::Error> for ParseVariableErr {
-    fn from(value: anyhow::Error) -> Self {
-        let mut buffer = String::new();
-        buffer += &value.to_string();
-        buffer += "\n";
-
-        ParseVariableErr::PatternNotMatched { target_value: buffer }
-    }
-}
 
 impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for Variable<ASSIGNMENT, SEPARATOR> {
     fn to_asm(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<ASMOptions>) -> Result<ASMResult, ASMGenerateError> {

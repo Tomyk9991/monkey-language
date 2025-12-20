@@ -34,24 +34,6 @@ impl Display for If {
 
 
         Ok(())
-
-        // let mut buffer = String::new();
-        // buffer.push_str("if (");
-        // buffer.push_str(&self.condition.to_string());
-        // buffer.push_str(") {\n");
-        //
-        // for a in &self.if_stack {
-        //     buffer.push_str(&format!("    {};\n", a));
-        // }
-        // buffer.push_str("}");
-        // if let Some(else_stack) = &self.else_stack {
-        //     buffer.push_str(" else {\n");
-        //     for a in else_stack {
-        //         buffer.push_str(&format!("    {};\n", a));
-        //     }
-        //     buffer.push_str("}\n");
-        // }
-        // write!(f, "{buffer}")
     }
 }
 

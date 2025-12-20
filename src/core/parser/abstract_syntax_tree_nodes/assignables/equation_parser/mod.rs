@@ -1,16 +1,14 @@
-use std::fmt::{Debug, Display, Formatter};
+use std::fmt::{Debug};
 
 use crate::core::lexer::parse::{Parse, ParseOptions, ParseResult};
 use crate::core::lexer::token::Token;
 use crate::core::lexer::token_match::MatchResult;
 use crate::core::lexer::token_with_span::TokenWithSpan;
-use crate::core::model::abstract_syntax_tree_nodes::assignable::{Assignable};
+use crate::core::model::abstract_syntax_tree_nodes::assignable::Assignable;
 use crate::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::expression::Expression;
 use crate::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::operator::Operator;
 use crate::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::prefix_arithmetic::{PointerArithmetic, PrefixArithmetic};
-use crate::core::model::abstract_syntax_tree_nodes::identifier::IdentifierError;
 use crate::core::model::types::ty::Type;
-use crate::core::parser::types::r#type::InferTypeError;
 use crate::core::parser::utils::dyck::dyck_language_generic;
 use crate::pattern;
 
@@ -36,58 +34,6 @@ impl PartialEq for ParseResult<Box<Expression>> {
 fn contains(a: &[TokenWithSpan], b: &TokenWithSpan) -> bool {
     a.iter().any(|x| x.token == b.token)
 }
-
-#[derive(Debug)]
-#[allow(unused)]
-pub enum Error {
-    PositionNotInRange(i32),
-    UndefinedSequence(String),
-    FunctionNotFound,
-    SourceEmpty,
-    NotAType(String),
-    // Message
-    TermNotParsable(String),
-    ParenExpected,
-    BracketExpected,
-    CannotParse,
-}
-
-impl From<InferTypeError> for Error {
-    fn from(value: InferTypeError) -> Self {
-        match value {
-            InferTypeError::TypeNotAllowed(t) => Error::NotAType(t.to_string()),
-            _ => unreachable!("Cannot reach this"),
-        }
-    }
-}
-
-impl From<IdentifierError> for Error {
-    fn from(value: IdentifierError) -> Self {
-        Error::UndefinedSequence(value.to_string())
-    }
-}
-
-impl Display for Error {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Error::PositionNotInRange(index) => format!("Index {index} out of range"),
-                Error::ParenExpected => "Expected \")\"".to_string(),
-                Error::BracketExpected => "Expected \"]\"".to_string(),
-                Error::TermNotParsable(v) => v.to_string(),
-                Error::UndefinedSequence(value) => value.to_string(),
-                Error::FunctionNotFound => "Not a function".to_string(),
-                Error::SourceEmpty => "Source code is empty".to_string(),
-                Error::CannotParse => "Cannot parse".to_string(),
-                Error::NotAType(f) => format!("Unexpected type: {f}"),
-            }
-        )
-    }
-}
-
-impl std::error::Error for Error {}
 
 
 #[allow(clippy::should_implement_trait)]

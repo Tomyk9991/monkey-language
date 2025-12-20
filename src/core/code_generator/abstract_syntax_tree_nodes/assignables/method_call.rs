@@ -8,48 +8,13 @@ use crate::core::code_generator::register_destination::byte_size_from_word;
 use crate::core::code_generator::registers::{Bit64, ByteSize, GeneralPurposeRegister};
 use crate::core::code_generator::ToASM;
 use crate::core::code_generator::{conventions, ASMGenerateError, MetaInfo};
-use crate::core::model::abstract_syntax_tree_nodes::assignable::{Assignable};
-use crate::core::model::abstract_syntax_tree_nodes::assignables::method_call::{MethodCall, MethodCallErr};
-use crate::core::model::abstract_syntax_tree_nodes::identifier::{Identifier, IdentifierError};
+use crate::core::model::abstract_syntax_tree_nodes::assignable::Assignable;
+use crate::core::model::abstract_syntax_tree_nodes::assignables::method_call::MethodCall;
+use crate::core::model::abstract_syntax_tree_nodes::identifier::Identifier;
 use crate::core::model::abstract_syntax_tree_nodes::l_value::LValue;
 use crate::core::model::types::ty::Type;
 use crate::core::parser::types::r#type::InferTypeError;
-use crate::core::parser::utils::dyck::DyckError;
-use std::cmp::Ordering;
-use std::fmt::{Debug, Display, Formatter};
-
-impl std::error::Error for MethodCallErr {}
-
-impl From<IdentifierError> for MethodCallErr {
-    fn from(value: IdentifierError) -> Self {
-        MethodCallErr::IdentifierErr(value)
-    }
-}
-
-impl From<DyckError> for MethodCallErr {
-    fn from(s: DyckError) -> Self {
-        MethodCallErr::DyckLanguageErr { target_value: s.target_value, ordering: s.ordering }
-    }
-}
-
-impl Display for MethodCallErr {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let message = match self {
-            MethodCallErr::IdentifierErr(a) => a.to_string(),
-            MethodCallErr::DyckLanguageErr { target_value, ordering } =>
-                {
-                    let error: String = match ordering {
-                        Ordering::Less => String::from("Expected `)`"),
-                        Ordering::Equal => String::from("Expected expression between `,`"),
-                        Ordering::Greater => String::from("Expected `(`")
-                    };
-                    format!("\"{target_value}\": {error}")
-                }
-        };
-
-        write!(f, "{}", message)
-    }
-}
+use std::fmt::Debug;
 
 impl ToASM for MethodCall {
     fn to_asm(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<ASMOptions>) -> Result<ASMResult, ASMGenerateError> {

@@ -40,6 +40,4 @@ impl PartialOrd for Parameter {
 
         Some(Ordering::Equal)
     }
-    // partial order without code_line
-
 }

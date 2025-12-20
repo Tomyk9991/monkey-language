@@ -9,8 +9,8 @@ use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::register_destination::word_from_byte_size;
 use crate::core::code_generator::registers::{Bit64, ByteSize, FloatRegister, GeneralPurposeRegister};
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
+use crate::core::lexer::token_with_span::FilePosition;
 use crate::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::operator::Operator;
-use crate::core::model::abstract_syntax_tree_nodes::identifier::IdentifierError;
 use crate::core::model::types::float::FloatType;
 use crate::core::model::types::integer::{IntegerAST, IntegerType};
 use crate::core::model::types::mutability::Mutability;
@@ -226,7 +226,7 @@ impl FromStr for FloatType {
         Ok(match s {
             "f32" => FloatType::Float32,
             "f64" => FloatType::Float64,
-            _ => return Err(InferTypeError::TypeNotAllowed(IdentifierError::UnmatchedRegex { target_value: String::from(s) }))
+            _ => return Err(InferTypeError::IllegalType(s.to_string(), FilePosition::default())),
         })
     }
 }

@@ -7,24 +7,10 @@ use crate::core::code_generator::conventions::CallingRegister;
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::registers::ByteSize;
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
-use crate::core::model::abstract_syntax_tree_nodes::identifier::IdentifierError;
-use crate::core::model::abstract_syntax_tree_nodes::method_definition::{MethodDefinition, MethodDefinitionErr};
+use crate::core::model::abstract_syntax_tree_nodes::method_definition::{MethodDefinition};
 use crate::core::model::types::ty::Type;
 use crate::core::parser::static_type_context::{CurrentMethodInfo, StaticTypeContext};
-use crate::core::parser::types::r#type::InferTypeError;
 use crate::utils::math;
-
-impl From<IdentifierError> for MethodDefinitionErr {
-    fn from(value: IdentifierError) -> Self {
-        MethodDefinitionErr::IdentifierErr(value)
-    }
-}
-
-impl From<Box<InferTypeError>> for MethodDefinitionErr {
-    fn from(value: Box<InferTypeError>) -> Self {
-        MethodDefinitionErr::ReturnErr(value)
-    }
-}
 
 impl MethodDefinition {
     pub fn method_label_name(&self) -> String {

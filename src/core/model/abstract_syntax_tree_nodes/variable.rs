@@ -1,11 +1,8 @@
 use std::fmt::{Display, Formatter};
 use crate::core::lexer::token_with_span::FilePosition;
 use crate::core::model::abstract_syntax_tree_nodes::assignable::{Assignable};
-use crate::core::model::abstract_syntax_tree_nodes::identifier::IdentifierError;
 use crate::core::model::abstract_syntax_tree_nodes::l_value::LValue;
 use crate::core::model::types::ty::Type;
-use crate::core::parser::abstract_syntax_tree_nodes::l_value::LValueErr;
-use crate::core::parser::types::r#type::InferTypeError;
 
 /// AST node for a variable. Pattern is defined as: name <Assignment> assignment <Separator>
 /// # Examples
@@ -22,25 +19,6 @@ pub struct Variable<const ASSIGNMENT: char, const SEPARATOR: char> {
     pub define: bool,
     pub assignable: Assignable,
     pub file_position: FilePosition,
-}
-
-#[derive(Debug)]
-pub enum ParseVariableErr {
-    PatternNotMatched { target_value: String },
-    IdentifierErr(IdentifierError),
-    LValue(LValueErr),
-    InferType(Box<InferTypeError>),
-}
-
-impl Display for ParseVariableErr {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", match self {
-            ParseVariableErr::PatternNotMatched { target_value } => format!("`{target_value}`\n\tThe pattern for a variable is defined as: lvalue = assignment;"),
-            ParseVariableErr::IdentifierErr(a) => a.to_string(),
-            ParseVariableErr::InferType(err) => err.to_string(),
-            ParseVariableErr::LValue(err) => err.to_string(),
-        })
-    }
 }
 
 impl<const ASSIGNMENT: char, const SEPARATOR: char> Display for Variable<ASSIGNMENT, SEPARATOR> {

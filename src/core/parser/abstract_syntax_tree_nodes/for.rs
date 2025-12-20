@@ -6,49 +6,7 @@ use crate::core::model::abstract_syntax_tree_nodes::assignable::{Assignable};
 use crate::core::model::abstract_syntax_tree_nodes::for_::For;
 use crate::core::model::abstract_syntax_tree_nodes::variable::Variable;
 use crate::core::model::scope::Scope;
-use crate::core::parser::abstract_syntax_tree_nodes::variable::ParseVariableErr;
-use crate::core::parser::utils::dyck::DyckError;
 use crate::pattern;
-use std::cmp::Ordering;
-use std::error::Error;
-use std::fmt::{Debug, Display, Formatter};
-
-#[derive(Debug)]
-pub enum ForErr {
-    ParseVariableErr(ParseVariableErr),
-    DyckLanguageErr { target_value: String, ordering: Ordering },
-}
-
-impl From<DyckError> for ForErr {
-    fn from(s: DyckError) -> Self {
-        ForErr::DyckLanguageErr { target_value: s.target_value, ordering: s.ordering }
-    }
-}
-
-impl From<ParseVariableErr> for ForErr {
-    fn from(value: ParseVariableErr) -> Self {
-        ForErr::ParseVariableErr(value)
-    }
-}
-
-impl Error for ForErr {}
-
-impl Display for ForErr {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", match self {
-            ForErr::ParseVariableErr(a) => a.to_string(),
-            ForErr::DyckLanguageErr { target_value, ordering } =>
-                {
-                    let error: String = match ordering {
-                        Ordering::Less => String::from("Expected `)`"),
-                        Ordering::Equal => String::from("Expected expression between `,`"),
-                        Ordering::Greater => String::from("Expected `(`")
-                    };
-                    format!("\"{target_value}\": {error}")
-                }
-        })
-    }
-}
 
 impl Parse for For {
     fn parse(tokens: &[TokenWithSpan], _: ParseOptions) -> Result<ParseResult<Self>, crate::core::lexer::error::Error> where Self: Sized, Self: Default {

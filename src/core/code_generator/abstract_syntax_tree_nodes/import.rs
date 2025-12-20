@@ -2,14 +2,8 @@ use crate::core::code_generator::asm_options::ASMOptions;
 use crate::core::code_generator::asm_result::ASMResult;
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
-use crate::core::model::abstract_syntax_tree_nodes::import::{Import, ImportError};
+use crate::core::model::abstract_syntax_tree_nodes::import::{Import};
 
-
-impl From<anyhow::Error> for ImportError {
-    fn from(value: anyhow::Error) -> Self {
-        ImportError::MonkeyFileRead(value)
-    }
-}
 
 impl ToASM for Import {
     fn to_asm(&self, _stack: &mut Stack, _meta: &mut MetaInfo, _options: Option<ASMOptions>) -> Result<ASMResult, ASMGenerateError> {

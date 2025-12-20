@@ -7,7 +7,7 @@ use crate::core::lexer::token_match::MatchResult;
 use crate::core::lexer::token_with_span::{FilePosition, TokenWithSpan};
 use crate::core::model::abstract_syntax_tree_nodes::assignable::Assignable;
 use crate::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::operator::Operator;
-use crate::core::model::abstract_syntax_tree_nodes::identifier::{Identifier, IdentifierError};
+use crate::core::model::abstract_syntax_tree_nodes::identifier::{Identifier};
 use crate::core::model::abstract_syntax_tree_nodes::l_value::LValue;
 use crate::core::model::abstract_syntax_tree_nodes::variable::Variable;
 use crate::core::model::types::float::FloatType;
@@ -35,10 +35,10 @@ pub mod common {
 pub enum InferTypeError {
     TypesNotCalculable(Type, Operator, Type, FilePosition),
     UnresolvedReference(String, FilePosition),
-    TypeNotAllowed(IdentifierError),
     MultipleTypesInArray{expected: Type, unexpected_type: Type, unexpected_type_index: usize, file_position: FilePosition},
     IllegalDereference(Assignable, Type, FilePosition),
     IllegalArrayTypeLookup(Type, FilePosition),
+    IllegalType(String, FilePosition),
     IllegalIndexOperation(Type, FilePosition),
     NoTypePresent(LValue, FilePosition),
     DefineNotAllowed(Variable<'=', ';'>, FilePosition),
@@ -142,13 +142,6 @@ impl OperatorToASM for Type {
     }
 }
 
-
-impl From<IdentifierError> for InferTypeError {
-    fn from(value: IdentifierError) -> Self {
-        InferTypeError::TypeNotAllowed(value)
-    }
-}
-
 impl Error for InferTypeError {}
 
 impl Display for InferTypeError {
@@ -158,7 +151,6 @@ impl Display for InferTypeError {
             InferTypeError::UnresolvedReference(s, file_position) => write!(f, "Line: {}: \tUnresolved reference: {s}", file_position),
             InferTypeError::MismatchedTypes { expected, actual, file_position } => write!(f, "Line: {}: \tMismatched types: Expected `{expected}` but found `{actual}`", file_position),
             InferTypeError::NameCollision(name, file_position) => write!(f, "Line: {}: \tTwo symbols share the same name: `{name}`", file_position),
-            InferTypeError::TypeNotAllowed(ty) => write!(f, "This type is not allowed due to: {}", ty),
             InferTypeError::MethodCallArgumentAmountMismatch { expected, actual, file_position } => write!(f, "Line: {:?}: \tThe method expects {} parameter, but {} are provided", file_position, expected, actual),
             InferTypeError::MethodCallArgumentTypeMismatch { info } => write!(f, "Line: {}: \t The {}. argument must be of type: `{}` but `{}` is provided", info.file_position, info.nth_parameter, info.expected, info.actual),
             InferTypeError::MethodReturnArgumentTypeMismatch { expected, actual, file_position } => write!(f, "Line: {}: \t The return type is: `{}` but `{}` is provided", file_position, expected, actual),
@@ -186,6 +178,9 @@ impl Display for InferTypeError {
                 write!(f, "Line: {}\t`{float}` doesn't fit into the type `{ty}`", file_position),
             InferTypeError::DefineNotAllowed(variable, code_line) => {
                 write!(f, "Line: {}\t`{}` is not allowed to be defined here", code_line, variable.l_value)
+            }
+            InferTypeError::IllegalType(illegal_type, file_position) => {
+                write!(f, "Line: {}\t`{illegal_type}` is not a valid type", file_position)
             }
         }
     }
@@ -304,45 +299,15 @@ impl Type {
                 // if list of tokens contains the custom string, its an invalid type
                 if let Some(a) = Token::iter().find(|a| a.matches(custom)) {
                     if !matches!(a.token, Token::Literal(_)) {
-                        return Err(Box::new(InferTypeError::TypeNotAllowed(IdentifierError::KeywordReserved(String::from(custom), FilePosition::default()))));
+                        return Err(Box::new(InferTypeError::IllegalType(String::from(custom), FilePosition::default())));
                     }
                 }
 
                 if !lazy_regex::regex_is_match!(r"^[\*&]*[a-zA-Z_$][a-zA-Z_$0-9]*[\*&]*$", s) {
-                    return Err(Box::new(InferTypeError::TypeNotAllowed(IdentifierError::UnmatchedRegex { target_value: String::from(custom) })));
+                    return Err(Box::new(InferTypeError::IllegalType(String::from(custom), FilePosition::default())));
                 }
 
                 Type::Custom(Identifier { name: custom.to_string() }, mutability)
-            }
-        })
-    }
-
-    pub fn from_str_with_token_consumed(s: &str, mutability: Mutability) -> Result<(Self, i32), Box<InferTypeError>> {
-        if let ["[ ", type_str, ", ", type_size, "]"] = &s.split_inclusive(' ').collect::<Vec<_>>()[..] {
-            let (inner_type, inner_consumed) = Type::from_str_with_token_consumed(type_str.trim(), mutability.clone())?;
-            return Ok((Type::Array(Box::new(inner_type), type_size.trim().parse::<usize>()
-                .map_err(|_| InferTypeError::TypeNotAllowed(IdentifierError::UnmatchedRegex {
-                    target_value: s.to_string(),
-                }))?, mutability), inner_consumed + 4));
-        }
-
-        Ok(match s {
-            "bool" => (Type::Bool(Mutability::Immutable), 1),
-            "void" => (Type::Void, 1),
-            custom => {
-                if let Ok(int) = IntegerType::from_str(custom) {
-                    return Ok((Type::Integer(int, mutability), 1));
-                }
-
-                if let Ok(float) = FloatType::from_str(custom) {
-                    return Ok((Type::Float(float, mutability), 1));
-                }
-
-                if !lazy_regex::regex_is_match!(r"^[\*&]*[a-zA-Z_$][a-zA-Z_$0-9]*[\*&]*$", s) {
-                    return Err(Box::new(InferTypeError::TypeNotAllowed(IdentifierError::UnmatchedRegex { target_value: String::from(custom) })));
-                }
-
-                (Type::Custom(Identifier { name: custom.to_string() }, mutability), 1)
             }
         })
     }
@@ -420,35 +385,35 @@ impl Type {
             (Type::Integer(_, _), Type::Integer(desired, _)) => {
                 if let Assignable::Integer(integer) = assignable {
                     match desired {
-                        IntegerType::I8 if Self::in_range(-127_i8, 127_i8, IntegerType::from_number_str(&integer.value)) => {
+                        IntegerType::I8 if Self::in_range(-127_i8, 127_i8, IntegerType::from_number_str(&integer.value, file_position)) => {
                             integer.ty = desired.clone();
                             return Ok(Some(desired_type.clone()))
                         },
-                        IntegerType::U8 => if Self::in_range(0_u8, 255_u8, IntegerType::from_number_str(&integer.value)) {
+                        IntegerType::U8 => if Self::in_range(0_u8, 255_u8, IntegerType::from_number_str(&integer.value, file_position)) {
                             integer.ty = desired.clone();
                             return Ok(Some(desired_type.clone()))
                         },
-                        IntegerType::I16 => if Self::in_range(-32768_i16, 32767_i16, IntegerType::from_number_str(&integer.value)) {
+                        IntegerType::I16 => if Self::in_range(-32768_i16, 32767_i16, IntegerType::from_number_str(&integer.value, file_position)) {
                             integer.ty = desired.clone();
                             return Ok(Some(desired_type.clone()))
                         },
-                        IntegerType::U16 => if Self::in_range(0_u16, 65535_u16, IntegerType::from_number_str(&integer.value)) {
+                        IntegerType::U16 => if Self::in_range(0_u16, 65535_u16, IntegerType::from_number_str(&integer.value, file_position)) {
                             integer.ty = desired.clone();
                             return Ok(Some(desired_type.clone()))
                         },
-                        IntegerType::I32 => if Self::in_range(-2_147_483_648_i32, 2_147_483_647_i32, IntegerType::from_number_str(&integer.value)) {
+                        IntegerType::I32 => if Self::in_range(-2_147_483_648_i32, 2_147_483_647_i32, IntegerType::from_number_str(&integer.value, file_position)) {
                             integer.ty = desired.clone();
                             return Ok(Some(desired_type.clone()))
                         },
-                        IntegerType::U32 => if Self::in_range(0_u32, 4_294_967_295_u32, IntegerType::from_number_str(&integer.value)) {
+                        IntegerType::U32 => if Self::in_range(0_u32, 4_294_967_295_u32, IntegerType::from_number_str(&integer.value, file_position)) {
                             integer.ty = desired.clone();
                             return Ok(Some(desired_type.clone()))
                         },
-                        IntegerType::I64 => if Self::in_range(-9_223_372_036_854_775_808_i64, 9_223_372_036_854_775_807_i64, IntegerType::from_number_str(&integer.value)) {
+                        IntegerType::I64 => if Self::in_range(-9_223_372_036_854_775_808_i64, 9_223_372_036_854_775_807_i64, IntegerType::from_number_str(&integer.value, file_position)) {
                             integer.ty = desired.clone();
                             return Ok(Some(desired_type.clone()))
                         },
-                        IntegerType::U64 => if Self::in_range(0_u64, 18_446_744_073_709_551_615_u64, IntegerType::from_number_str(&integer.value)) {
+                        IntegerType::U64 => if Self::in_range(0_u64, 18_446_744_073_709_551_615_u64, IntegerType::from_number_str(&integer.value, file_position)) {
                             integer.ty = desired.clone();
                             return Ok(Some(desired_type.clone()))
                         },

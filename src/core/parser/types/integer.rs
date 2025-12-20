@@ -9,8 +9,8 @@ use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::register_destination::word_from_byte_size;
 use crate::core::code_generator::registers::{Bit64, ByteSize, FloatRegister, GeneralPurposeRegister};
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
+use crate::core::lexer::token_with_span::FilePosition;
 use crate::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::operator::Operator;
-use crate::core::model::abstract_syntax_tree_nodes::identifier::IdentifierError;
 use crate::core::model::types::float::FloatType;
 use crate::core::model::types::integer::{IntegerAST, IntegerType};
 use crate::core::model::types::mutability::Mutability;
@@ -164,8 +164,8 @@ impl Castable<IntegerType, IntegerType> for IntegerType {
 }
 
 impl IntegerType {
-    pub fn from_number_str<T: FromStr>(value: &str) -> Result<T, Box<InferTypeError>> {
-        value.parse().map_err(|_| Box::new(InferTypeError::TypeNotAllowed(IdentifierError::UnmatchedRegex { target_value: String::from(value) })))
+    pub fn from_number_str<T: FromStr>(value: &str, file_position: &FilePosition) -> Result<T, Box<InferTypeError>> {
+        value.parse().map_err(|_| Box::new(InferTypeError::IllegalType(String::from(value), file_position.clone())))
     }
 
     pub fn signed(&self) -> bool {
@@ -298,7 +298,7 @@ impl FromStr for IntegerType {
             "u32" => IntegerType::U32,
             "i64" => IntegerType::I64,
             "u64" => IntegerType::U64,
-            _ => return Err(InferTypeError::TypeNotAllowed(IdentifierError::UnmatchedRegex { target_value: String::from(s) }))
+            _ => return Err(InferTypeError::IllegalType(String::from(s), FilePosition::default()))
         })
     }
 }

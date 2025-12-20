@@ -1,4 +1,3 @@
-use std::error::Error;
 use std::fmt::{Display, Formatter};
 use crate::core::io::monkey_file::MonkeyFile;
 use crate::core::lexer::token_with_span::FilePosition;
@@ -9,11 +8,6 @@ pub struct Import {
     pub file_position: FilePosition
 }
 
-#[derive(Debug)]
-pub enum ImportError {
-    MonkeyFileRead(anyhow::Error)
-}
-
 
 impl Display for Import {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -21,15 +15,6 @@ impl Display for Import {
     }
 }
 
-impl Display for ImportError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", match self {
-            ImportError::MonkeyFileRead(a) => format!("Cannot read the file: {a}")
-        })
-    }
-}
-
-impl Error for ImportError { }
 impl Default for Import {
     fn default() -> Self {
         Import {

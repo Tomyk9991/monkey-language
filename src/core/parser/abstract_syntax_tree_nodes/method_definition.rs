@@ -1,52 +1,14 @@
-use std::error::Error;
-use std::fmt::{Display, Formatter};
-
 use crate::core::lexer::collect_tokens_until_scope_close::CollectTokensFromUntil;
 use crate::core::lexer::parse::{Parse, ParseOptions, ParseResult};
 use crate::core::lexer::token::Token;
 use crate::core::lexer::token_match::MatchResult;
 use crate::core::lexer::token_with_span::{FilePosition, TokenWithSpan};
-use crate::core::model::abstract_syntax_tree_nodes::identifier::IdentifierError;
 use crate::core::model::abstract_syntax_tree_nodes::l_value::LValue;
 use crate::core::model::abstract_syntax_tree_nodes::method_definition::{MethodArgument, MethodDefinition};
 use crate::core::model::scope::Scope;
 use crate::core::model::types::ty::Type;
-use crate::core::parser::types::r#type::InferTypeError;
 use crate::core::parser::utils::dyck::dyck_language_generic;
 use crate::pattern;
-
-
-#[derive(Debug)]
-pub enum MethodDefinitionErr {
-    IdentifierErr(IdentifierError),
-    ReturnErr(Box<InferTypeError>),
-}
-
-impl From<IdentifierError> for MethodDefinitionErr {
-    fn from(value: IdentifierError) -> Self {
-        MethodDefinitionErr::IdentifierErr(value)
-    }
-}
-
-impl From<InferTypeError> for MethodDefinitionErr {
-    fn from(value: InferTypeError) -> Self {
-        MethodDefinitionErr::ReturnErr(Box::new(value))
-    }
-}
-
-
-impl Error for MethodDefinitionErr {}
-
-impl Display for MethodDefinitionErr {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", match self {
-            MethodDefinitionErr::IdentifierErr(a) => a.to_string(),
-            MethodDefinitionErr::ReturnErr(a) => a.to_string(),
-        })
-    }
-}
-
-
 
 fn contains(a: &[TokenWithSpan], b: &TokenWithSpan) -> bool {
     a.iter().any(|x| x.token == b.token)
