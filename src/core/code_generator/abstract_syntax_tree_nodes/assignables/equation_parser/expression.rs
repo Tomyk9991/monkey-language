@@ -484,7 +484,7 @@ impl ToASM for Expression {
 
 
             let s = if let Some(prefix_arithmetic) = &self.prefix_arithmetic {
-                Self::prefix_arithmetic_to_asm(prefix_arithmetic, value, &stack.register_to_use.last(&meta.file_position)?, stack, meta)
+                Self::prefix_arithmetic_to_asm(prefix_arithmetic, value, &stack.register_to_use.last(&meta.file_position)?, stack, meta, options)
             } else if matches!(value.as_ref(), Assignable::MethodCall(_)) {
                 value.to_asm(stack, meta, Some(ASMOptions::InExpressionMethodCall(InExpressionMethodCall)))
             } else {
@@ -565,7 +565,7 @@ fn extract_last_general_purpose_instruction(current_asm: &str) -> Option<String>
 }
 
 impl Expression {
-    pub fn prefix_arithmetic_to_asm(prefix_arithmetic: &PrefixArithmetic, value: &Assignable, target_register: &GeneralPurposeRegister, stack: &mut Stack, meta: &mut MetaInfo) -> Result<ASMResult, ASMGenerateError> {
+    pub fn prefix_arithmetic_to_asm(prefix_arithmetic: &PrefixArithmetic, value: &Assignable, target_register: &GeneralPurposeRegister, stack: &mut Stack, meta: &mut MetaInfo, options: Option<ASMOptions>) -> Result<ASMResult, ASMGenerateError> {
         let mut target = String::new();
         let register_to_use = stack.register_to_use.last(&meta.file_position)?;
         let register_64 = register_to_use.to_64_bit_register();
@@ -575,7 +575,7 @@ impl Expression {
         if let Some(prefix_arithmetic) = value.prefix_arithmetic() {
             if let Assignable::Expression(a) = value {
                 if let Some(child) = &a.value {
-                    Self::prefix_arithmetic_to_asm(&prefix_arithmetic, child, target_register, stack, meta)?
+                    Self::prefix_arithmetic_to_asm(&prefix_arithmetic, child, target_register, stack, meta, options.clone())?
                         .apply_with(&mut target)
                         .allow(ASMResultVariance::MultilineResulted)
                         .allow(ASMResultVariance::MultilineResulted)
@@ -614,6 +614,7 @@ impl Expression {
             register_64,
             target_register: target_register.clone(),
             child_has_pointer_arithmetic,
+            is_lvalue: matches!(options, Some(ASMOptions::LValueExpressionOption)),
             target,
         })))
     }

@@ -9,7 +9,7 @@ impl ToASM for LValue {
     fn to_asm(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<ASMOptions>) -> Result<ASMResult, ASMGenerateError> {
         match self {
             LValue::Identifier(name) => name.to_asm(stack, meta, options),
-            LValue::Expression(node) => node.to_asm(stack, meta, options),
+            LValue::Expression(node) => node.to_asm(stack, meta, Some(ASMOptions::LValueExpressionOption)),
         }
     }
 

@@ -21,7 +21,7 @@ impl ToASM for MethodCall {
         let mut calling_convention = conventions::calling_convention(stack, meta, &self.arguments, &self.identifier.identifier())?;
         calling_convention.reverse();
 
-        let method_defs = conventions::method_definitions(&mut meta.static_type_information, &self.arguments, &self.identifier.identifier())?;
+        let method_defs = conventions::method_definitions(&meta.static_type_information, &self.arguments, &self.identifier.identifier())?;
 
         if method_defs.is_empty() {
             return Err(ASMGenerateError::TypeNotInferrable(Box::new(InferTypeError::UnresolvedReference(self.identifier.to_string(), meta.file_position.clone()))));

@@ -11,6 +11,9 @@ impl Optimization for AbstractSyntaxTreeNode {
             AbstractSyntaxTreeNode::MethodCall(method_call) => {
                 method_call.o1(static_type_context, optimization)
             },
+            AbstractSyntaxTreeNode::Variable(variable) => {
+                variable.o1(static_type_context, optimization)
+            }
             // Add other AST node types and their respective o1 implementations here
             _ => optimization,
         }

@@ -72,7 +72,7 @@ fn windows_calling_convention(_stack: &mut Stack, meta: &mut MetaInfo, calling_a
     let mut result = vec![];
 
 
-    let method_defs = method_definitions(&mut meta.static_type_information, calling_arguments, method_name)?;
+    let method_defs = method_definitions(&meta.static_type_information, calling_arguments, method_name)?;
 
     if method_defs.is_empty() {
         return Err(Box::new(InferTypeError::UnresolvedReference(method_name.to_string(), meta.file_position.clone())))
@@ -132,8 +132,9 @@ fn windows_calling_convention(_stack: &mut Stack, meta: &mut MetaInfo, calling_a
 }
 
 /// Returns every possible method definition based on the argument signature and method name
-pub fn method_definitions(type_context: &mut StaticTypeContext, arguments: &[Assignable], method_name: &str) -> Result<Vec<MethodDefinition>, Box<InferTypeError>> {
+pub fn method_definitions(type_context: &StaticTypeContext, arguments: &[Assignable], method_name: &str) -> Result<Vec<MethodDefinition>, Box<InferTypeError>> {
     let mut method_definitions = vec![];
+
 
     'outer: for method in &type_context.methods {
         if method.identifier.identifier() != method_name || method.arguments.len() != arguments.len() {

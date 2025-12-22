@@ -2,6 +2,7 @@ use crate::core::lexer::error::Error;
 use crate::core::lexer::parse::{Parse, ParseOptions, ParseResult};
 use crate::core::lexer::token::Token;
 use crate::core::lexer::token_with_span::TokenWithSpan;
+use crate::core::model::abstract_syntax_tree_nodes::assignable::Assignable;
 use crate::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::expression::Expression;
 use crate::core::model::abstract_syntax_tree_nodes::identifier::Identifier;
 use crate::core::model::abstract_syntax_tree_nodes::l_value::LValue;
@@ -23,7 +24,24 @@ impl Parse for LValue {
                 consumed: identifier.consumed,
                 result: LValue::Identifier(identifier.result)
             })
-        } else {
+        } else if let Ok(mut expr_res) = Expression::parse(tokens, ParseOptions::default()) {
+            let expr = &mut expr_res.result;
+            if let (Some(value), _, None, None, None) = (&mut expr.value, &expr.prefix_arithmetic, &expr.index_operator, &expr.lhs, &expr.rhs) {
+                if let Assignable::Expression(inner_expr) = &mut **value {
+                    inner_expr.prefix_arithmetic = expr.prefix_arithmetic.clone();
+                    return Ok(ParseResult {
+                        consumed: expr_res.consumed,
+                        result: LValue::Expression(inner_expr.clone())
+                    })
+                }
+            }
+
+            Ok(ParseResult {
+                consumed: expr_res.consumed,
+                result: LValue::Expression(expr_res.result)
+            })
+        }
+        else {
             Err(Error::UnexpectedToken(tokens[0].clone()))
         }
     }

@@ -1,5 +1,6 @@
 use crate::core::model::abstract_syntax_tree_nodes::identifier::Identifier;
 use crate::core::model::abstract_syntax_tree_nodes::l_value::LValue;
+use crate::core::model::types::mutability::Mutability;
 use crate::core::model::types::ty::Type;
 use crate::core::parser::static_type_context::StaticTypeContext;
 use crate::core::parser::types::r#type::InferTypeError;
@@ -15,7 +16,10 @@ impl InferType for Identifier {
             }
         }) {
             return if let Some(ty) = &v.ty {
-                Ok(ty.clone())
+                let mut ty = ty.clone();
+                ty.set_mutability(Mutability::from(v.mutability));
+
+                Ok(ty)
             } else {
                 Err(Box::new(InferTypeError::NoTypePresent(v.l_value.clone(), type_context.current_file_position.clone())))
             };

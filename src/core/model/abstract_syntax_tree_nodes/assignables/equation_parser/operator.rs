@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter};
 
 #[allow(unused)]
-#[derive(PartialEq, Clone, Debug, Eq, Hash)]
+#[derive(PartialEq, Clone, Copy, Debug, Eq, Hash)]
 pub enum Operator {
     Noop,
     Add,

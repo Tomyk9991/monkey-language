@@ -82,7 +82,7 @@ impl InferType for Expression {
             };
         }
 
-        Self::infer_type_after_operation(self.to_string(), &mut self.lhs, self.operator.clone(), &mut self.rhs, type_context)
+        Self::infer_type_after_operation(self.to_string(), &mut self.lhs, self.operator, &mut self.rhs, type_context)
     }
 
 }
@@ -118,7 +118,7 @@ impl Expression {
                     let mut rhs_clone = rhs_type.clone();
                     rhs_clone.set_mutability(Mutability::Immutable);
 
-                    if let Some(result_type) = base_type_matrix.get(&(lhs_clone, operator.clone(), rhs_clone)) {
+                    if let Some(result_type) = base_type_matrix.get(&(lhs_clone, operator, rhs_clone)) {
                         return Ok(result_type.clone());
                     }
 

@@ -1,13 +1,14 @@
-use crate::core::code_generator::{register_destination, ASMGenerateError, MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
-use crate::core::code_generator::asm_options::ASMOptions;
 use crate::core::code_generator::asm_options::identifier_present::IdentifierPresent;
 use crate::core::code_generator::asm_options::interim_result::InterimResultOption;
+use crate::core::code_generator::asm_options::ASMOptions;
 use crate::core::code_generator::asm_result::{ASMResult, ASMResultError, ASMResultVariance};
 use crate::core::code_generator::generator::{Stack, StackLocation};
+use crate::core::code_generator::register_destination::word_from_byte_size;
 use crate::core::code_generator::registers::{Bit64, ByteSize, GeneralPurposeRegister};
-use crate::core::model::abstract_syntax_tree_nodes::assignable::{Assignable};
-use crate::core::model::abstract_syntax_tree_nodes::variable::{Variable};
+use crate::core::code_generator::{register_destination, ASMGenerateError, MetaInfo, ToASM};
+use crate::core::model::abstract_syntax_tree_nodes::assignable::Assignable;
+use crate::core::model::abstract_syntax_tree_nodes::variable::Variable;
 use crate::core::model::types::ty::Type;
 
 impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for Variable<ASSIGNMENT, SEPARATOR> {
@@ -54,6 +55,7 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for Variable<ASSIGNMEN
                 ASMResult::Inline(r) => r,
                 ASMResult::MultilineResulted(t, r) => {
                     target += &t;
+                    let r = format!("{} [{}]", word_from_byte_size(self.assignable.byte_size(meta)), r);
                     r.to_string()
                 }
                 ASMResult::Multiline(_) => {
@@ -98,6 +100,7 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for Variable<ASSIGNMEN
                         register = r;
                     }
                 }
+
 
                 target += &ASMBuilder::mov_ident_line(destination, register);
             },

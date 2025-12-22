@@ -59,26 +59,6 @@ pub enum MethodCallSignatureMismatchCause {
     IfCondition,
 }
 
-
-impl From<bool> for Mutability {
-    fn from(value: bool) -> Self {
-        if value {
-            Mutability::Mutable
-        } else {
-            Mutability::Immutable
-        }
-    }
-}
-
-impl From<&str> for Mutability {
-    fn from(s: &str) -> Self {
-        match s {
-            "mut" => Mutability::Mutable,
-            _ => Mutability::Immutable
-        }
-    }
-}
-
 impl Display for Mutability {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", match self {
@@ -203,9 +183,9 @@ impl Display for Type {
 impl Parse for Type {
     fn parse(tokens: &[TokenWithSpan], options: ParseOptions) -> Result<ParseResult<Self>, crate::core::lexer::error::Error> where Self: Sized, Self: Default {
         // mutable
-        if !options.can_be_mutable { // to prevent syntax looking like `mut mut * Type`
+        if options.can_be_mutable { // prevent parse with mut mut type
             if let [TokenWithSpan { token: Token::Mut, ..}, ..] = tokens {
-                let mut ty = Self::parse(&tokens[1..], ParseOptions::builder().with_can_be_mutable(true).build())?;
+                let mut ty = Self::parse(&tokens[1..], ParseOptions::builder().with_can_be_mutable(false).build())?;
                 ty.result.set_mutability(Mutability::Mutable);
                 return Ok(ParseResult {
                     result: ty.result,

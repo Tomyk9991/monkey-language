@@ -47,16 +47,16 @@ impl Default for AbstractSyntaxTreeNode {
 
 impl Display for AbstractSyntaxTreeNode {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let width = f.width().unwrap_or(0);
-        write!(f, "{}", match self {
-            AbstractSyntaxTreeNode::Variable(node) => format!("{:width$}", node),
-            AbstractSyntaxTreeNode::MethodCall(node) => format!("{:width$}", node),
-            AbstractSyntaxTreeNode::MethodDefinition(node) => format!("{:width$}", node),
-            AbstractSyntaxTreeNode::If(node) => format!("{:width$}", node),
-            AbstractSyntaxTreeNode::Import(node) => format!("{:width$}", node),
-            AbstractSyntaxTreeNode::Return(node) => format!("{:width$}", node),
-            AbstractSyntaxTreeNode::While(node) => format!("{:width$}", node),
-            AbstractSyntaxTreeNode::For(node) => format!("{:width$}", node),
-        })
+        let ident = f.width().unwrap_or(0);
+        match self {
+            AbstractSyntaxTreeNode::Variable(node) => write!(f, "{:width$}", node, width = ident),
+            AbstractSyntaxTreeNode::MethodCall(node) => write!(f, "{:width$}", node, width = ident),
+            AbstractSyntaxTreeNode::MethodDefinition(node) => write!(f, "{:width$}", node, width = ident),
+            AbstractSyntaxTreeNode::If(node) => write!(f, "{:width$}", node, width = ident),
+            AbstractSyntaxTreeNode::Import(node) => write!(f, "{:width$}", node, width = ident),
+            AbstractSyntaxTreeNode::Return(node) => write!(f, "{:width$}", node, width = ident),
+            AbstractSyntaxTreeNode::While(node) => write!(f, "{:width$}", node, width = ident),
+            AbstractSyntaxTreeNode::For(node) => write!(f, "{:width$}", node, width = ident),
+        }
     }
 }

@@ -14,3 +14,13 @@ impl InferType for MethodCall {
         Err(Box::new(InferTypeError::UnresolvedReference(self.to_string(), type_context.current_file_position.clone())))
     }
 }
+
+impl MethodCall {
+    pub fn get_type(&self, type_context: &StaticTypeContext) -> Option<Type> {
+        if let Some(method_def) = conventions::method_definitions(type_context, &self.arguments, &self.identifier.identifier()).ok()?.first() {
+            return Some(method_def.return_type.clone());
+        }
+
+        None
+    }
+}

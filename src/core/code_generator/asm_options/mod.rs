@@ -15,5 +15,6 @@ pub enum ASMOptions {
     InExpressionMethodCall(InExpressionMethodCall),
     InterimResultOption(InterimResultOption),
     PrepareRegisterOption(PrepareRegisterOption),
-    IdentifierPresent(IdentifierPresent)
+    IdentifierPresent(IdentifierPresent),
+    LValueExpressionOption
 }

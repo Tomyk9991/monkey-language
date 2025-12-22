@@ -8,5 +8,6 @@ pub struct PrefixArithmeticOptions {
     pub register_64: GeneralPurposeRegister,
     pub target_register: GeneralPurposeRegister,
     pub child_has_pointer_arithmetic: bool,
+    pub is_lvalue: bool,
     pub target: String,
 }

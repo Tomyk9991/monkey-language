@@ -1,8 +1,9 @@
 use monkey_language::core::code_generator::generator::ASMGenerator;
 use monkey_language::core::code_generator::target_os::TargetOS;
 use monkey_language::core::io::monkey_file::MonkeyFile;
-use monkey_language::core::scanner::parser::ASTParser;
-use monkey_language::core::semantics::type_checker::static_type_checker::static_type_check;
+use monkey_language::core::parser::ast_parser::ASTParser;
+use monkey_language::core::semantics::static_type_check::static_type_checker::static_type_check;
+use monkey_language::core::semantics::type_infer::type_inferer::infer_type;
 
 #[test]
 pub fn mutable_ref_test() -> anyhow::Result<()> {
@@ -15,13 +16,12 @@ pub fn mutable_ref_test() -> anyhow::Result<()> {
     mut_ref(&a);
     "#;
 
-    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code);
-    let mut lexer = ASTParser::from(monkey_file);
-    let top_level_scope = lexer.parse()?;
+    let monkey_file: MonkeyFile = MonkeyFile::read_from_str(code)?;
+    let mut top_level_scope = ASTParser::parse(&monkey_file.tokens)?;
+    infer_type(&mut top_level_scope.result.program)?;
+    let _ = static_type_check(&mut top_level_scope.result.program)?;
 
-    static_type_check(&top_level_scope)?;
-
-    let mut code_generator = ASMGenerator::from((top_level_scope, TargetOS::Windows));
+    let mut code_generator = ASMGenerator::from((top_level_scope.result.program, TargetOS::Windows));
     let asm_result = code_generator.generate()?;
 
     let expected = r#"
@@ -34,9 +34,9 @@ global main
     push rbp
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
-    sub rsp, 32
+    sub rsp, 64
     mov QWORD [rbp - 8], rcx
-    ; *x = (*x + 1)
+    ; *x: i32 = (*x + 1)
     mov rdx, QWORD [rbp - 8]
     ; (*x + 1)
     mov rax, QWORD [rbp - 8]
@@ -50,7 +50,7 @@ main:
     mov rbp, rsp
     ; Reserve stack space as MS convention. Shadow stacking
     sub rsp, 64
-    ; let a: i32 = 5
+    ; let mut a: i32 = 5
     mov DWORD [rbp - 4], 5
     lea rax, [rbp - 4]
     push rax

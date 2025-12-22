@@ -34,7 +34,7 @@ impl Assignable {
             Assignable::Object(node) => Some(Type::Custom(Identifier { name: node.ty.to_string() }, Mutability::Immutable)),
             Assignable::Array(node) => node.values[0].get_type(type_context),
             Assignable::Expression(node) => node.get_type(type_context),
-            Assignable::MethodCall(_) => None,
+            Assignable::MethodCall(node) => node.get_type(type_context),
             Assignable::Identifier(identifier) => identifier.get_type(type_context),
             Assignable::Parameter(param) => Some(param.ty.clone()),
         }

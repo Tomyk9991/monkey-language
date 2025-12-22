@@ -47,7 +47,7 @@ impl ToASM for PrefixArithmetic {
                         PointerArithmetic::Asterics => {
                             options.target.push_str(&ASMBuilder::mov_ident_line(&options.register_64, &options.register_or_stack_address));
 
-                            if !options.child_has_pointer_arithmetic {
+                            if !options.child_has_pointer_arithmetic && !options.is_lvalue {
                                 options.target.push_str(&ASMBuilder::mov_ident_line(&options.register_64, format!("QWORD [{}]", options.register_64)));
                                 let value_type = options.value.infer_type(&mut meta.static_type_information).ok();
 

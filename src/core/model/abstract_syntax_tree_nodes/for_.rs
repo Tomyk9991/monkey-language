@@ -15,11 +15,14 @@ pub struct For {
 
 impl Display for For {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}for ({} {}; {}) {{", " ".repeat(f.width().unwrap_or(0)), self.initialization, self.condition, self.update)?;
-        for a in &self.stack {
-            write!(f, "\n{:width$}{}", "", a, width = f.width().unwrap_or(0) + 4)?;
+        let ident: usize = f.width().unwrap_or(0);
+        writeln!(f, "{}for ({} {}; {}) {{", " ".repeat(ident), self.initialization, self.condition, self.update)?;
+
+        for node in &self.stack {
+            writeln!(f, "{:width$}", node, width = ident + 4)?;
         }
-        write!(f, "\n{}}}", " ".repeat(f.width().unwrap_or(0)))?;
+
+        write!(f, "{}}}", " ".repeat(ident))?;
         
         Ok(())
     }

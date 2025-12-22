@@ -9,7 +9,6 @@ use colored::Colorize;
 use crate::core::code_generator::generator::ASMGenerator;
 use crate::core::code_generator::target_creator::TargetCreator;
 use crate::core::code_generator::target_os::TargetOS;
-use crate::core::optimization::optimization_trait::Optimization;
 use crate::core::optimization::optimization_trait::OptimizationContext;
 
 mod cli;
@@ -35,8 +34,7 @@ fn run_compiler() -> anyhow::Result<()> {
 
     // 3) o1 Optimization
     let top_level_scope = if args.optimization_level == OptimizationLevel::O1 {
-        let optimization_context = top_level_scope.result.o1(&mut static_type_context, OptimizationContext::from(top_level_scope.result.clone()));
-        optimization_context.program
+        top_level_scope.result.o1(&mut static_type_context, OptimizationContext::from(top_level_scope.result.clone()))
     } else {
         top_level_scope.result
     };
