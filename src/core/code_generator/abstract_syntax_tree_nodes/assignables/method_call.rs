@@ -140,7 +140,7 @@ impl ToASM for MethodCall {
 
         // due to variadic function calls and windows calling conventions
         // float parameters need to have the value in the general purpose register AND in the xmm register accordingly
-        // since multiple pops result in unexpected or even crashing behaviour. just one pop is needed
+        // since multiple pops result in unexpected or even crashing behavior. just one pop is needed
         let mut popped_into = GeneralPurposeRegister::Bit64(Bit64::Rax);
         for all_conventions in parameters.iter().rev() {
             for (index, (register_convention_sized, assign, size)) in all_conventions.iter().enumerate() {

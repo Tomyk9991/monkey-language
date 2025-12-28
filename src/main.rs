@@ -34,7 +34,7 @@ fn run_compiler() -> anyhow::Result<()> {
 
     // 3) o1 Optimization
     let top_level_scope = if args.optimization_level == OptimizationLevel::O1 {
-        top_level_scope.result.o1(&mut static_type_context, OptimizationContext::from(top_level_scope.result.clone()))
+        top_level_scope.result.o1(&mut static_type_context, OptimizationContext::default())
     } else {
         top_level_scope.result
     };
@@ -46,7 +46,7 @@ fn run_compiler() -> anyhow::Result<()> {
         };
     }
     // 3) Building
-    let got_main = top_level_scope.has_main_method;
+    let got_main = top_level_scope.has_main_method && !top_level_scope.program.is_empty();
     let mut code_generator = ASMGenerator::from((top_level_scope.program, args.target_os.clone(), got_main));
     let target_creator = TargetCreator::try_from((args.input.as_str(), &args.target_os))?;
     let asm_result = code_generator.generate()?;

@@ -3,3 +3,4 @@ mod expression;
 mod static_string;
 mod integer;
 mod float;
+mod bool;

@@ -1,11 +1,20 @@
 use crate::core::model::types::integer::{IntegerAST, IntegerType};
+use crate::core::optimization::optimization_trait::{ConstFoldable, OptimizationContext};
+use crate::core::parser::static_type_context::StaticTypeContext;
+
+impl ConstFoldable for IntegerAST {
+    fn is_const(&self) -> bool {
+        true
+    }
+
+    fn const_fold(&self, _static_type_context: &StaticTypeContext, _optimization_context: &OptimizationContext) -> Option<Self> {
+        Some(self.clone())
+    }
+}
 
 impl IntegerAST {
     fn apply_bin_op<SignedOp, UnsignedOp>(&self, right: &IntegerAST, signed_op: SignedOp, unsigned_op: UnsignedOp) -> Option<IntegerAST>
-    where
-        SignedOp: Fn(i128, i128) -> i128,
-        UnsignedOp: Fn(u128, u128) -> u128,
-    {
+    where SignedOp: Fn(i128, i128) -> i128, UnsignedOp: Fn(u128, u128) -> u128 {
         if self.ty != right.ty {
             return None;
         }

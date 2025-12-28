@@ -216,6 +216,11 @@ impl ASMGenerator {
                      main_stack.push(AbstractSyntaxTreeNode::Return(Return::num_0()));
                 }
             }
+
+            if main_stack.is_empty() {
+                main_stack.push(AbstractSyntaxTreeNode::Return(Return::num_0()));
+            }
+
             let main_function = AbstractSyntaxTreeNode::MethodDefinition(MethodDefinition {
                 identifier: LValue::Identifier(Identifier { name: "main".to_string() }),
                 return_type: Type::Integer(IntegerType::I32, Mutability::Immutable),

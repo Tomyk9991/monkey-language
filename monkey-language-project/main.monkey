@@ -1,10 +1,10 @@
 extern fn printf(format: *string, value: i32): void;
 
-fn mut_ref(x: mut *i32): void {
-    *x = *x + 1;
+fn method_call(): i32 {
+    return 42 + 3;
 }
 
-let mut a: i32 = 5;
-mut_ref(&a);
+let a = 3 + 2;
+let b = 10 * a + method_call();
 
-printf("Value of a after mut_ref: %d\n", a);
+printf("The result is: %d", b);
