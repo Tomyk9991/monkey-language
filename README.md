@@ -1,103 +1,70 @@
-# Monkey language
-A compiled, minimal self written programming language for learning purposes
-## The language looks like this:
+# monkey-language
+
+## Overview
+monkey-language is a statically-typed, compiled programming language and compiler written in Rust. Initially created as a learning project for compiler construction, it is actively developed with the goal of reaching a stable 1.0 version that is practically usable.
+
+## Goals and Motivation
+The project aims to provide a platform for exploring compiler design and programming language implementation. While it is currently a hobby project, the long-term goal is to create a stable and functional language.
+
+## Key Language Features
+- **Statically typed** with type inference.
+- **Compiled language** for performance.
+- **Immutable variables by default**: Mutability must be explicitly declared using `mut` (similar to Rust).
+- **Explicit mutability** applies to both variable declarations and function/method parameters.
+
+## Build Instructions
+1. Ensure you have [Rust](https://www.rust-lang.org/) installed.
+2. Clone the repository:
+   ```bash
+   git clone https://github.com/tomyk9991/monkey-language/
+   cd monkey-language
+   ```
+3. Build the project using Cargo:
+   ```bash
+   cargo build --release
+   ```
+
+## CLI Usage
+The compiler provides a command-line interface. Typical usage:
+```bash
+cargo run -- <options>
 ```
-if (hallo) {
-    let if_stack_variable = 5;
+### Options
+- **Input source file**: Specify the `.monkey` file to compile (default: current directory).
+- **Target OS**: Choose the target OS (`Linux`, `Windows`, `WSL`).
+- **Build-only mode**: Compile without running the program.
+- **Scope printing**: Enable production/debug scope printing.
+- **Optimization level**: Set optimization level (default: `O1`).
 
-    if(if_stack_variable) {
-        let nested_if_stack_variable = 13;
-    }else{nested_else_stack_variable = "nice";}
-} else {
-    let else_stack_variable = "hallo";
-}
-
-if (lello) {
-    let if_stack_variable = 5;
-
-    if(if_stack_variable) {
-        let nested_if_stack_variable = 13;
-    }
-    else{
-        let nested_else_stack_variable = "hallo";
-    }
-}
-else
-{
-
-}
-
-let variable = ((4 - 2 * 3 + 1) * -sqrt(3*3+4*4)) / 2;
-variable = ((true & true | true | true) & sqrt(false&true&false|true)) & false;
-
-fn hallo(): void {
-
-}
-
-let objectVariable =
-{
-    guten: "Hallo",
-    ciau: 5,
-    rofl: name(),
-    mofl: name(nestedMethod("Hallo", moin("Ciao", 5)))
-};
-
-let nestedObjects = {
-    guten: "Hallo",
-    ciau: 5,
-    mofl: {
-        guten: "Hallo",
-        ciau: 5,
-        property1: name(),
-        property2: name(nestedMethod("Hallo", moin("Ciao", 5)))
-    },
-    rofl: name(),
-};
-
-let inline = { test: "Hallo", nested: { integer: -51 } };
-let variable_inside = { test: "Hallo" };
-
-let myString = "Strings are great!";
-let guten_tag = name();
-guten_tag = name("Guten Morgen", 5);
-name(nestedMethod("Hallo", moin("Ciao", 5)));
-let hallo = "Github"; tschuess = 5;
-let mallo = "";
-let variable_with_another_variable_assignment = hallo;
-
-fn method_name(variable, variable): void {
-    function_variable_one = 10;
-}
-
-fn f(variable, variable): void
-{
-    function_variable_two = 10;
-}
-
-hallo = "Clion"; let ciao = 5;
-mallo = "";
+### Example
+```bash
+cargo run -- --input monkey-language-project/main.monkey --target-os windows -o0 --print-scope Production
 ```
 
-## Compiling
-Compiling is as easy as you think
+## Language Examples
+### Variables and Mutability
+```monkey
+let x = 10; // Immutable by default
+let mut y = 20; // Explicitly mutable
+y = y + x;
+```
 
-`cargo build`
+### Simple Function
+```monkey
+fn add(a: i32, b: i32): i32 {
+    return a + b;
+}
 
-## Requirements
-For compiling and linking this language uses `nasm` and `ld`. Both is needed in order to use this language.
-## Running
+let result = add(5, 10);
+```
 
-`cargo run`
+## Project Status
+monkey-language is under active development but is not yet production-ready. The primary development platform is Windows, with early groundwork for Linux support.
 
-## Arguments
- - `Input file`: 
-   - The main source file
- - `target-os`:
-   - Currently, can target `Windows`, `Linux` and `WSL`
+### Roadmap
+- Stabilize core language features.
+- Expand platform support.
+- Improve optimization and code generation.
 
-## Example
-### Windows
-`cargo run -- --input monkey-language-project/main.monkey --target-os windows`
-
-### Linux
-`cargo run -- --input monkey-language-project/main.monkey --target-os linux`
+## License
+This project currently has no defined license.
