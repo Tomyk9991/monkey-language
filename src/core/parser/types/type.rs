@@ -1,6 +1,6 @@
 use crate::core::code_generator::abstract_syntax_tree_nodes::assignables::equation_parser::operator::{AssemblerOperation, OperatorToASM};
 use crate::core::code_generator::generator::Stack;
-use crate::core::code_generator::{ASMGenerateError, MetaInfo};
+use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::lexer::parse::{Parse, ParseOptions, ParseResult};
 use crate::core::lexer::token::Token;
 use crate::core::lexer::token_match::MatchResult;
@@ -438,7 +438,30 @@ impl Type {
             Type::Bool(_) => 1,
             Type::Void => 0,
             Type::Statement => 0,
-            Type::Custom(_, _) => 8, // todo: calculate custom data types recursively
+            Type::Custom(_, _) => 8
+        }
+    }
+
+    pub fn byte_size_with_meta(&self, meta: &MetaInfo) -> usize {
+        match self {
+            Type::Integer(int, _) => int.byte_size(),
+            Type::Float(float, _) => float.byte_size(),
+            Type::Array(array_type, _, _) => array_type.byte_size(),
+            Type::Bool(_) => 1,
+            Type::Void => 0,
+            Type::Statement => 0,
+            Type::Custom(identifier_type, _) => {
+                if identifier_type.name.starts_with('*') {
+                    return 8; // pointer size
+                }
+
+                if let Some(struct_def) = meta.static_type_information.custom_defined_types.get(&self).cloned() {
+                    struct_def.byte_size(meta)
+                } else {
+                    eprintln!("Warning: Cannot calculate byte size of custom type: {}", identifier_type);
+                    8
+                }
+            }
         }
     }
 }

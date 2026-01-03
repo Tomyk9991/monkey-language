@@ -14,11 +14,11 @@ impl ToASM for Struct {
         false
     }
 
-    fn byte_size(&self, _: &MetaInfo) -> usize {
-        self.fields.iter().fold(0, |acc, field| acc + field.ty.byte_size())
+    fn byte_size(&self, meta_info: &MetaInfo) -> usize {
+        self.fields.iter().fold(0, |acc, field| acc + field.ty.byte_size_with_meta(meta_info))
     }
 
-    fn data_section(&self, _stack: &mut Stack, _meta: &mut MetaInfo) -> bool {
+    fn data_section(&self, _stack: &mut Stack, meta: &mut MetaInfo) -> bool {
         let mut target = String::new();
         target += &ASMBuilder::comment_line(&format!("{}", self).replace("\n", "").replace("    ", " ").replace("}", " }"));
 
@@ -28,7 +28,14 @@ impl ToASM for Struct {
 
         for field in &self.fields {
             let padding = " ".repeat(longest_field_name_length - field.name.name.chars().count());
-            target += &ASMBuilder::ident_line(&format!(".{}{}\tresb {}", field.name, padding, field.ty.byte_size()));
+
+            let field_type_byte_size = if let Some(struct_def) = meta.static_type_information.custom_defined_types.get(&field.ty).cloned() {
+                struct_def.byte_size(meta)
+            } else {
+                field.ty.byte_size()
+            };
+
+            target += &ASMBuilder::ident_line(&format!(".{}{}\tresb {}", field.name, padding, field_type_byte_size));
         }
 
         target += &ASMBuilder::line("endstruc");
