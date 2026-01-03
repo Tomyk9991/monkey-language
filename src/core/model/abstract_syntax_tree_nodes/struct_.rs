@@ -17,7 +17,7 @@ pub struct Field {
 /// AST node for struct definition
 /// # Pattern
 /// - `struct StructName { field1: Type1, field2: Type2, ... }`
-/// where field is represented by [Field] struct
+///   where field is represented by [Field] struct
 #[derive(Debug, PartialEq, Clone, Default)]
 pub struct Struct {
     pub ty: Type,

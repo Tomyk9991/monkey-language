@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap};
 use std::ops::{Deref, DerefMut};
 use crate::core::lexer::token_with_span::FilePosition;
 use crate::core::model::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
@@ -33,7 +33,7 @@ impl StaticTypeContext {
         for variable in other.context {
             self.context.push(variable);
         }
-        
+
         for (ty, struct_def) in other.custom_defined_types {
             self.custom_defined_types.insert(ty, struct_def);
         }

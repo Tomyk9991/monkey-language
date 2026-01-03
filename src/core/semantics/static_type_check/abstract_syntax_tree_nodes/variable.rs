@@ -66,12 +66,12 @@ impl Variable<'=', ';'> {
                             LValue::Identifier(Identifier { name: identifier }),
                             self_file_position,
                         ),
-                        InferTypeError::MismatchedTypes { expected, actual, file_position} => InferTypeError::MismatchedTypes {
+                        InferTypeError::MismatchedTypes { expected, actual, file_position: _} => InferTypeError::MismatchedTypes {
                             expected,
                             actual,
                             file_position: self_file_position,
                         },
-                        InferTypeError::MultipleTypesInArray { expected, unexpected_type, unexpected_type_index, file_position } => InferTypeError::MultipleTypesInArray {
+                        InferTypeError::MultipleTypesInArray { expected, unexpected_type, unexpected_type_index, file_position: _ } => InferTypeError::MultipleTypesInArray {
                             expected,
                             unexpected_type,
                             unexpected_type_index,

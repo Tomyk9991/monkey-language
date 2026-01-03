@@ -1,10 +1,9 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use crate::core::code_generator::asm_result::{ASMResult};
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::asm_options::ASMOptions;
-use crate::core::model::abstract_syntax_tree_nodes::struct_::Struct;
 
 #[derive(Default, Debug, Clone)]
 pub struct DataSection {

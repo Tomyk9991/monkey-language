@@ -26,7 +26,7 @@ impl ToASM for Object {
             };
 
             let current_word = word_from_byte_size(field.assignable.byte_size(meta));
-            let mut struct_offset = format!("{}.{}", struct_def.ty, field.l_value.identifier());
+            let struct_offset = format!("{}.{}", struct_def.ty, field.l_value.identifier());
             let destination = format!("{current_word} [rsp - {current_stack_position} - {struct_offset}]", current_stack_position = stack.stack_position);
 
             let field_asm = field.assignable.to_asm(stack, meta, Some(ASMOptions::InterimResultOption(interim_options)))?;
@@ -55,13 +55,13 @@ impl ToASM for Object {
     }
 
     fn is_stack_look_up(&self, _stack: &mut Stack, _meta: &MetaInfo) -> bool {
-        false
+        self.fields.iter().any(|f| f.assignable.is_stack_look_up(_stack, _meta))
     }
 
     fn byte_size(&self, meta: &MetaInfo) -> usize {
         meta.static_type_information.custom_defined_types.get(&self.ty)
             .cloned()
-            .and_then(|struct_def| Some(struct_def.byte_size(meta)))
+            .map(|struct_def| struct_def.byte_size(meta))
             .unwrap_or(0)
     }
 }
