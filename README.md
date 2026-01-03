@@ -43,14 +43,14 @@ cargo run -- --input monkey-language-project/main.monkey --target-os windows -o0
 
 ## Language Examples
 ### Variables and Mutability
-```monkey
+```rust
 let x = 10; // Immutable by default
 let mut y = 20; // Explicitly mutable
 y = y + x;
 ```
 
 ### Simple Function
-```monkey
+```rust
 fn add(a: i32, b: i32): i32 {
     return a + b;
 }
