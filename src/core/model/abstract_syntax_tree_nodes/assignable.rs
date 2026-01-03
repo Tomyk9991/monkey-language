@@ -27,17 +27,19 @@ pub enum Assignable {
 
 impl Display for Assignable {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let width = f.width().unwrap_or(0);
+
         write!(f, "{}", match self {
-            Assignable::String(node) => format!("{}", node),
-            Assignable::Integer(node) => format!("{}", node),
-            Assignable::Float(node) => format!("{}", node),
-            Assignable::Boolean(node) => format!("{}", node),
-            Assignable::MethodCall(node) => format!("{}", node),
-            Assignable::Identifier(node) => format!("{}", node),
-            Assignable::Object(node) => format!("{}", node),
-            Assignable::Expression(node) => format!("{}", node),
-            Assignable::Parameter(node) => format!("{}", node),
-            Assignable::Array(node) => format!("{}", node),
+            Assignable::String(node) => format!("{:width$}", node),
+            Assignable::Integer(node) => format!("{:width$}", node),
+            Assignable::Float(node) => format!("{:width$}", node),
+            Assignable::Boolean(node) => format!("{:width$}", node),
+            Assignable::MethodCall(node) => format!("{:width$}", node),
+            Assignable::Identifier(node) => format!("{:width$}", node),
+            Assignable::Object(node) => format!("{:width$}", node),
+            Assignable::Expression(node) => format!("{:width$}", node),
+            Assignable::Parameter(node) => format!("{:width$}", node),
+            Assignable::Array(node) => format!("{:width$}", node),
         })
     }
 }

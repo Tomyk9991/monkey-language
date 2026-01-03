@@ -10,14 +10,14 @@ pub struct Object {
 
 impl Display for Object {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let ident = f.width().unwrap_or(0);
+        let ident: usize = f.width().unwrap_or(0);
 
-        writeln!(f, "{}{{", " ".repeat(ident))?;
+        writeln!(f, "{{")?;
         for (index, field) in self.fields.iter().enumerate() {
             if index == self.fields.len() - 1 {
-                writeln!(f, "{}{:width$}", " ".repeat(ident), field, width = ident + 4)?;
+                writeln!(f, "{:width$}", field, width = ident + 4)?;
             } else {
-                writeln!(f, "{}{:width$},", " ".repeat(ident), field, width = ident + 4)?;
+                writeln!(f, "{:width$},", field, width = ident + 4)?;
             }
         }
 

@@ -24,16 +24,18 @@ pub struct Variable<const ASSIGNMENT: char, const SEPARATOR: char> {
 impl Display for Variable<'=', ';'> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let t = self.ty.as_ref().map_or(String::new(), |ty| format!(": {ty}"));
+        let ident: usize = f.width().unwrap_or(0);
 
         write!(
             f,
-            "{}{}{}{}{} = {}",
-            " ".repeat(f.width().unwrap_or(0)),  // indentation
+            "{}{}{}{}{} = {:width$}",
+            " ".repeat(ident),                          // indentation
             if self.define { "let " } else { "" },      // definition
             if self.mutability { "mut " } else { "" },  // mutability
             self.l_value,                               // name
             &t,                                         // type
-            self.assignable                             // assignment
+            self.assignable,                            // assignment
+            width = ident
         )
     }
 }
@@ -41,16 +43,18 @@ impl Display for Variable<'=', ';'> {
 impl Display for Variable<':', ','> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let t = self.ty.as_ref().map_or(String::new(), |ty| format!(": {ty}"));
+        let ident: usize = f.width().unwrap_or(0);
 
         write!(
             f,
-            "{}{}{}{}{}: {}",
-            " ".repeat(f.width().unwrap_or(0)),  // indentation
+            "{}{}{}{}{}: {:width$}",
+            " ".repeat(ident),                          // indentation
             if self.define { "let " } else { "" },      // definition
             if self.mutability { "mut " } else { "" },  // mutability
             self.l_value,                               // name
             &t,                                         // type
-            self.assignable                             // assignment
+            self.assignable,                            // assignment
+            width = ident
         )
     }
 }
