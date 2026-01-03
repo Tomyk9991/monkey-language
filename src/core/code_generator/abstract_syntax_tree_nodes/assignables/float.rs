@@ -38,7 +38,7 @@ impl ToASM for FloatAST {
         false
     }
 
-    fn byte_size(&self, _meta: &mut MetaInfo) -> usize {
+    fn byte_size(&self, _meta: &MetaInfo) -> usize {
         match self.ty {
             FloatType::Float32 => 4,
             FloatType::Float64 => 8,

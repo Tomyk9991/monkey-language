@@ -128,7 +128,7 @@ impl <T: Findable<T>> FindASTNode<T> {
                         }
                     }
                 }
-                AbstractSyntaxTreeNode::MethodDefinition(_) | AbstractSyntaxTreeNode::Import(_) => {}
+                AbstractSyntaxTreeNode::MethodDefinition(_) | AbstractSyntaxTreeNode::Import(_) | AbstractSyntaxTreeNode::StructDefinition(_) => {}
             }
         }
 

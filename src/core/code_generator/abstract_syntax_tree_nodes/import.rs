@@ -14,7 +14,7 @@ impl ToASM for Import {
         false
     }
 
-    fn byte_size(&self, _meta: &mut MetaInfo) -> usize {
+    fn byte_size(&self, _meta: &MetaInfo) -> usize {
         0
     }
 

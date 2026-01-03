@@ -10,7 +10,9 @@ use crate::core::semantics::static_type_check::StaticTypeCheck;
 impl AbstractSyntaxTreeNode {
     pub fn scope(&self) -> Option<Vec<&Vec<AbstractSyntaxTreeNode>>> {
         match self {
-            AbstractSyntaxTreeNode::Variable(_) | AbstractSyntaxTreeNode::MethodCall(_) | AbstractSyntaxTreeNode::Import(_) | AbstractSyntaxTreeNode::Return(_) => None,
+            AbstractSyntaxTreeNode::Variable(_) | AbstractSyntaxTreeNode::MethodCall(_) |
+            AbstractSyntaxTreeNode::Import(_) | AbstractSyntaxTreeNode::Return(_) |
+            AbstractSyntaxTreeNode::StructDefinition(_) => None,
             AbstractSyntaxTreeNode::MethodDefinition(t) => Some(vec![&t.stack]),
             AbstractSyntaxTreeNode::If(t) => {
                 let mut res = vec![&t.if_stack];
@@ -29,14 +31,15 @@ impl AbstractSyntaxTreeNode {
 impl StaticTypeCheck for AbstractSyntaxTreeNode {
     fn static_type_check(&self, type_context: &mut StaticTypeContext) -> Result<(), StaticTypeCheckError> {
         match self {
-            AbstractSyntaxTreeNode::Variable(variable) => variable.static_type_check(type_context),
-            AbstractSyntaxTreeNode::MethodCall(method_call) => method_call.static_type_check(type_context),
-            AbstractSyntaxTreeNode::MethodDefinition(method_definition) => method_definition.static_type_check(type_context),
-            AbstractSyntaxTreeNode::Import(import) => import.static_type_check(type_context),
-            AbstractSyntaxTreeNode::Return(return_node) => return_node.static_type_check(type_context),
-            AbstractSyntaxTreeNode::If(if_node) => if_node.static_type_check(type_context),
-            AbstractSyntaxTreeNode::For(for_node) => for_node.static_type_check(type_context),
-            AbstractSyntaxTreeNode::While(while_node) => while_node.static_type_check(type_context),
+            AbstractSyntaxTreeNode::Variable(node) => node.static_type_check(type_context),
+            AbstractSyntaxTreeNode::MethodCall(node) => node.static_type_check(type_context),
+            AbstractSyntaxTreeNode::MethodDefinition(node) => node.static_type_check(type_context),
+            AbstractSyntaxTreeNode::Import(node) => node.static_type_check(type_context),
+            AbstractSyntaxTreeNode::Return(node) => node.static_type_check(type_context),
+            AbstractSyntaxTreeNode::If(node) => node.static_type_check(type_context),
+            AbstractSyntaxTreeNode::For(node) => node.static_type_check(type_context),
+            AbstractSyntaxTreeNode::While(node) => node.static_type_check(type_context),
+            AbstractSyntaxTreeNode::StructDefinition(node) => node.static_type_check(type_context),
         }
     }
 }
@@ -64,7 +67,8 @@ impl ToASM for AbstractSyntaxTreeNode {
                 vec![&method_def.stack]
             }
             AbstractSyntaxTreeNode::Variable(_) | AbstractSyntaxTreeNode::MethodCall(_) |
-            AbstractSyntaxTreeNode::Import(_) | AbstractSyntaxTreeNode::Return(_)
+            AbstractSyntaxTreeNode::Import(_) | AbstractSyntaxTreeNode::Return(_) |
+            AbstractSyntaxTreeNode::StructDefinition(_)
             => vec![]
         };
 
@@ -80,55 +84,59 @@ impl ToASM for AbstractSyntaxTreeNode {
         }
 
         match self {
-            AbstractSyntaxTreeNode::Variable(variable) => variable.to_asm(stack, meta, options),
-            AbstractSyntaxTreeNode::MethodCall(method_call) => method_call.to_asm(stack, meta, options),
-            AbstractSyntaxTreeNode::Return(return_node) => return_node.to_asm(stack, meta, options),
-            AbstractSyntaxTreeNode::MethodDefinition(return_node) => return_node.to_asm(stack, meta, options),
-            AbstractSyntaxTreeNode::Import(import_node) => import_node.to_asm(stack, meta, options),
-            AbstractSyntaxTreeNode::If(if_node) => if_node.to_asm(stack, meta, options),
-            AbstractSyntaxTreeNode::For(for_node) => for_node.to_asm(stack, meta, options),
-            AbstractSyntaxTreeNode::While(while_node) => while_node.to_asm(stack, meta, options),
+            AbstractSyntaxTreeNode::Variable(node) => node.to_asm(stack, meta, options),
+            AbstractSyntaxTreeNode::MethodCall(node) => node.to_asm(stack, meta, options),
+            AbstractSyntaxTreeNode::Return(node) => node.to_asm(stack, meta, options),
+            AbstractSyntaxTreeNode::MethodDefinition(node) => node.to_asm(stack, meta, options),
+            AbstractSyntaxTreeNode::Import(node) => node.to_asm(stack, meta, options),
+            AbstractSyntaxTreeNode::If(node) => node.to_asm(stack, meta, options),
+            AbstractSyntaxTreeNode::For(node) => node.to_asm(stack, meta, options),
+            AbstractSyntaxTreeNode::While(node) => node.to_asm(stack, meta, options),
+            AbstractSyntaxTreeNode::StructDefinition(node) => node.to_asm(stack, meta, options)
         }
     }
 
 
     fn is_stack_look_up(&self, stack: &mut Stack, meta: &MetaInfo) -> bool {
         match self {
-            AbstractSyntaxTreeNode::Variable(a) => a.is_stack_look_up(stack, meta),
-            AbstractSyntaxTreeNode::MethodCall(a) => a.is_stack_look_up(stack, meta),
-            AbstractSyntaxTreeNode::If(a) => a.is_stack_look_up(stack, meta),
-            AbstractSyntaxTreeNode::Import(a) => a.is_stack_look_up(stack, meta),
-            AbstractSyntaxTreeNode::For(a) => a.is_stack_look_up(stack, meta),
-            AbstractSyntaxTreeNode::While(a) => a.is_stack_look_up(stack, meta),
-            AbstractSyntaxTreeNode::MethodDefinition(a) => a.is_stack_look_up(stack, meta),
-            AbstractSyntaxTreeNode::Return(return_type) => return_type.is_stack_look_up(stack, meta),
+            AbstractSyntaxTreeNode::Variable(node) => node.is_stack_look_up(stack, meta),
+            AbstractSyntaxTreeNode::MethodCall(node) => node.is_stack_look_up(stack, meta),
+            AbstractSyntaxTreeNode::If(node) => node.is_stack_look_up(stack, meta),
+            AbstractSyntaxTreeNode::Import(node) => node.is_stack_look_up(stack, meta),
+            AbstractSyntaxTreeNode::For(node) => node.is_stack_look_up(stack, meta),
+            AbstractSyntaxTreeNode::While(node) => node.is_stack_look_up(stack, meta),
+            AbstractSyntaxTreeNode::MethodDefinition(node) => node.is_stack_look_up(stack, meta),
+            AbstractSyntaxTreeNode::Return(node) => node.is_stack_look_up(stack, meta),
+            AbstractSyntaxTreeNode::StructDefinition(node) => node.is_stack_look_up(stack, meta),
         }
     }
 
-    fn byte_size(&self, meta: &mut MetaInfo) -> usize {
+    fn byte_size(&self, meta: &MetaInfo) -> usize {
         match self {
-            AbstractSyntaxTreeNode::Variable(a) => a.byte_size(meta),
-            AbstractSyntaxTreeNode::MethodCall(a) => a.byte_size(meta),
-            AbstractSyntaxTreeNode::MethodDefinition(a) => a.byte_size(meta),
-            AbstractSyntaxTreeNode::Import(a) => a.byte_size(meta),
-            AbstractSyntaxTreeNode::For(a) => a.byte_size(meta),
-            AbstractSyntaxTreeNode::While(a) => a.byte_size(meta),
-            AbstractSyntaxTreeNode::If(a) => a.byte_size(meta),
-            AbstractSyntaxTreeNode::Return(r) => r.byte_size(meta),
+            AbstractSyntaxTreeNode::Variable(node) => node.byte_size(meta),
+            AbstractSyntaxTreeNode::MethodCall(node) => node.byte_size(meta),
+            AbstractSyntaxTreeNode::MethodDefinition(node) => node.byte_size(meta),
+            AbstractSyntaxTreeNode::Import(node) => node.byte_size(meta),
+            AbstractSyntaxTreeNode::For(node) => node.byte_size(meta),
+            AbstractSyntaxTreeNode::While(node) => node.byte_size(meta),
+            AbstractSyntaxTreeNode::If(node) => node.byte_size(meta),
+            AbstractSyntaxTreeNode::Return(node) => node.byte_size(meta),
+            AbstractSyntaxTreeNode::StructDefinition(node) => node.byte_size(meta),
         }
     }
 
 
     fn data_section(&self, stack: &mut Stack, meta: &mut MetaInfo) -> bool {
         match self {
-            AbstractSyntaxTreeNode::Variable(v) => v.data_section(stack, meta),
-            AbstractSyntaxTreeNode::MethodCall(v) => v.data_section(stack, meta),
-            AbstractSyntaxTreeNode::MethodDefinition(v) => v.data_section(stack, meta),
-            AbstractSyntaxTreeNode::Import(v) => v.data_section(stack, meta),
-            AbstractSyntaxTreeNode::For(v) => v.data_section(stack, meta),
-            AbstractSyntaxTreeNode::While(v) => v.data_section(stack, meta),
-            AbstractSyntaxTreeNode::If(v) => v.data_section(stack, meta),
-            AbstractSyntaxTreeNode::Return(ret) => ret.data_section(stack, meta),
+            AbstractSyntaxTreeNode::Variable(node) => node.data_section(stack, meta),
+            AbstractSyntaxTreeNode::MethodCall(node) => node.data_section(stack, meta),
+            AbstractSyntaxTreeNode::MethodDefinition(node) => node.data_section(stack, meta),
+            AbstractSyntaxTreeNode::Import(node) => node.data_section(stack, meta),
+            AbstractSyntaxTreeNode::For(node) => node.data_section(stack, meta),
+            AbstractSyntaxTreeNode::While(node) => node.data_section(stack, meta),
+            AbstractSyntaxTreeNode::If(node) => node.data_section(stack, meta),
+            AbstractSyntaxTreeNode::Return(node) => node.data_section(stack, meta),
+            AbstractSyntaxTreeNode::StructDefinition(node) => node.data_section(stack, meta),
         }
     }
 }

@@ -44,7 +44,7 @@ impl ToASM for IntegerAST {
         false
     }
 
-    fn byte_size(&self, _meta: &mut MetaInfo) -> usize {
+    fn byte_size(&self, _meta: &MetaInfo) -> usize {
         match self.ty {
             IntegerType::I8 | IntegerType::U8 => 1,
             IntegerType::I16 | IntegerType::U16 => 2,

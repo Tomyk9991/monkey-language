@@ -7,3 +7,4 @@ pub mod equation_parser;
 pub mod boolean;
 pub mod array;
 mod identifier;
+mod field;

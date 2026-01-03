@@ -98,6 +98,28 @@ impl Parse for Variable<'=', ';'> {
     }
 }
 
+impl Parse for Variable<':', ','> {
+    fn parse(tokens: &[TokenWithSpan], _: ParseOptions) -> Result<ParseResult<Self>, crate::core::lexer::error::Error> where Self: Sized, Self: Default {
+        if let Some(MatchResult::Parse(l_value)) = pattern!(tokens, @parse LValue, Colon) {
+            if let Some(MatchResult::Parse(assign)) = pattern!(&tokens[l_value.consumed + 1..], @parse Assignable,) {
+                return Ok(ParseResult {
+                    result: Variable {
+                        l_value: l_value.result,
+                        mutability: false,
+                        ty: None,
+                        define: false,
+                        assignable: assign.result,
+                        file_position: FilePosition::from_min_max(&tokens[0], &tokens[l_value.consumed + assign.consumed]),
+                    },
+                    consumed: l_value.consumed + assign.consumed + 1,
+                });
+            }
+        }
+
+        Err(crate::core::lexer::error::Error::UnexpectedToken(tokens[0].clone()))
+    }
+}
+
 impl<const ASSIGNMENT: char, const SEPARATOR: char> TryFrom<Result<ParseResult<Self>, crate::core::lexer::error::Error>> for Variable<ASSIGNMENT, SEPARATOR> {
     type Error = crate::core::lexer::error::Error;
 

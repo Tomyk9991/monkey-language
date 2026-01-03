@@ -1,13 +1,15 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use crate::core::code_generator::asm_result::{ASMResult};
 use crate::core::code_generator::generator::Stack;
 use crate::core::code_generator::{ASMGenerateError, MetaInfo, ToASM};
 use crate::core::code_generator::asm_builder::ASMBuilder;
 use crate::core::code_generator::asm_options::ASMOptions;
+use crate::core::model::abstract_syntax_tree_nodes::struct_::Struct;
 
 #[derive(Default, Debug, Clone)]
 pub struct DataSection {
-    data: HashMap<String, String>
+    data: HashMap<String, String>,
+    struct_definitions: Vec<String>,
 }
 
 impl DataSection {
@@ -15,8 +17,11 @@ impl DataSection {
         self.data.insert(key.to_string(), value.to_string()).is_some()
     }
 
-    pub fn str_key(&self, value: &str) -> Option<&str> {
+    pub fn push_struct_definition(&mut self, struct_definition: String) {
+        self.struct_definitions.push(struct_definition);
+    }
 
+    pub fn str_key(&self, value: &str) -> Option<&str> {
         for (k, v) in &self.data {
             if value == v {
                 return Some(k);
@@ -42,6 +47,13 @@ impl ToASM for DataSection {
         target += &ASMBuilder::line("");
         target += &ASMBuilder::line("");
 
+        for struct_definition in &self.struct_definitions {
+            target += struct_definition;
+        }
+
+        target += &ASMBuilder::line("");
+        target += &ASMBuilder::line("");
+
         Ok(ASMResult::Multiline(target))
     }
 
@@ -49,7 +61,7 @@ impl ToASM for DataSection {
         false
     }
 
-    fn byte_size(&self, _meta: &mut MetaInfo) -> usize {
+    fn byte_size(&self, _meta: &MetaInfo) -> usize {
         0
     }
 }

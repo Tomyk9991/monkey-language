@@ -7,6 +7,7 @@ use crate::core::model::abstract_syntax_tree_nodes::if_::If;
 use crate::core::model::abstract_syntax_tree_nodes::import::Import;
 use crate::core::model::abstract_syntax_tree_nodes::method_definition::MethodDefinition;
 use crate::core::model::abstract_syntax_tree_nodes::ret::Return;
+use crate::core::model::abstract_syntax_tree_nodes::struct_::Struct;
 use crate::core::model::abstract_syntax_tree_nodes::variable::Variable;
 use crate::core::model::abstract_syntax_tree_nodes::while_::While;
 
@@ -120,6 +121,15 @@ impl From<ParseResult<MethodCall>> for Result<ParseResult<AbstractSyntaxTreeNode
     fn from(value: ParseResult<MethodCall>) -> Self {
         Ok(ParseResult {
             result: AbstractSyntaxTreeNode::MethodCall(value.result),
+            consumed: value.consumed,
+        })
+    }
+}
+
+impl From<ParseResult<Struct>> for Result<ParseResult<AbstractSyntaxTreeNode>, Error> {
+    fn from(value: ParseResult<Struct>) -> Self {
+        Ok(ParseResult {
+            result: AbstractSyntaxTreeNode::StructDefinition(value.result),
             consumed: value.consumed,
         })
     }

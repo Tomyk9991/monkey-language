@@ -1,9 +1,10 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::ops::{Deref, DerefMut};
 use crate::core::lexer::token_with_span::FilePosition;
 use crate::core::model::abstract_syntax_tree_node::AbstractSyntaxTreeNode;
 use crate::core::model::abstract_syntax_tree_nodes::l_value::LValue;
 use crate::core::model::abstract_syntax_tree_nodes::method_definition::MethodDefinition;
+use crate::core::model::abstract_syntax_tree_nodes::struct_::Struct;
 use crate::core::model::abstract_syntax_tree_nodes::variable::Variable;
 use crate::core::model::types::ty::Type;
 use crate::core::parser::types::r#type::{InferTypeError};
@@ -21,6 +22,7 @@ pub struct CurrentMethodInfo {
 pub struct StaticTypeContext {
     pub context: Vec<Variable<'=', ';'>>,
     pub expected_return_type: Option<CurrentMethodInfo>,
+    pub custom_defined_types: HashMap<Type, Struct>,
     pub current_file_position: FilePosition,
     pub methods: Vec<MethodDefinition>
 }
@@ -30,6 +32,10 @@ impl StaticTypeContext {
     pub fn merge(&mut self, other: StaticTypeContext) {
         for variable in other.context {
             self.context.push(variable);
+        }
+        
+        for (ty, struct_def) in other.custom_defined_types {
+            self.custom_defined_types.insert(ty, struct_def);
         }
     }
 
@@ -92,6 +98,7 @@ impl StaticTypeContext {
     pub fn new(scope: &Vec<AbstractSyntaxTreeNode>) -> StaticTypeContext {
         let mut context: Vec<Variable<'=', ';'>> = Vec::new();
         let mut methods = Vec::new();
+        let mut custom_defined_types = HashMap::new();
 
         for node in scope {
             match node {
@@ -99,7 +106,10 @@ impl StaticTypeContext {
                     if variable.ty.is_some() {
                         context.push(variable.clone());
                     }
-                }
+                },
+                AbstractSyntaxTreeNode::StructDefinition(struct_def) => {
+                    custom_defined_types.insert(struct_def.ty.clone(), struct_def.clone());
+                },
                 AbstractSyntaxTreeNode::MethodDefinition(method_definition) => {
                     methods.push(method_definition.clone());
                 },
@@ -116,6 +126,7 @@ impl StaticTypeContext {
         Self {
             context,
             expected_return_type: None,
+            custom_defined_types,
             current_file_position: scope.first().map_or(FilePosition::default(), |n| n.file_position().clone()),
             methods,
         }

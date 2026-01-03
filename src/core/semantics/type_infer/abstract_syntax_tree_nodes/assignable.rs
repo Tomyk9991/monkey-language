@@ -15,7 +15,12 @@ impl InferType for Assignable {
             Assignable::Array(array) => Ok(array.infer_type(type_context)?),
             Assignable::Float(a) => Ok(Type::Float(a.ty.clone(), Mutability::Immutable)),
             Assignable::Boolean(_) => Ok(Type::Bool(Mutability::Immutable)),
-            Assignable::Object(object) => Ok(Type::Custom(Identifier { name: object.ty.to_string() }, Mutability::Immutable)),
+            Assignable::Object(object) => {
+                for field in &mut object.fields {
+                    field.infer_type(type_context)?;
+                }
+                Ok(Type::Custom(Identifier { name: object.ty.to_string() }, Mutability::Immutable))
+            },
             Assignable::Expression(expression) => {Ok(expression.infer_type(type_context)?)}
             Assignable::MethodCall(method_call) => { Ok(method_call.infer_type(type_context)?) }
             Assignable::Identifier(var) => Ok(var.infer_type(type_context)?),
@@ -31,7 +36,7 @@ impl Assignable {
             Assignable::Integer(a) => Some(Type::Integer(a.ty.clone(), Mutability::Immutable)),
             Assignable::Float(node) => Some(Type::Float(node.ty.clone(), Mutability::Immutable)),
             Assignable::Boolean(_) => Some(Type::Bool(Mutability::Immutable)),
-            Assignable::Object(node) => Some(Type::Custom(Identifier { name: node.ty.to_string() }, Mutability::Immutable)),
+            Assignable::Object(node) => Some(node.ty.clone()),
             Assignable::Array(node) => node.values[0].get_type(type_context),
             Assignable::Expression(node) => node.get_type(type_context),
             Assignable::MethodCall(node) => node.get_type(type_context),

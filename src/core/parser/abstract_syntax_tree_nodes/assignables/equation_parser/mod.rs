@@ -9,7 +9,7 @@ use crate::core::model::abstract_syntax_tree_nodes::assignables::equation_parser
 use crate::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::operator::Operator;
 use crate::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::prefix_arithmetic::{PointerArithmetic, PrefixArithmetic};
 use crate::core::model::types::ty::Type;
-use crate::core::parser::utils::dyck::dyck_language_generic;
+use crate::core::parser::utils::dyck::dyck_language;
 use crate::pattern;
 
 pub mod expression;
@@ -87,7 +87,7 @@ impl<'a> Equation<'a> {
     fn parse(&mut self) -> Result<ParseResult<Box<Expression>>, crate::core::lexer::error::Error> where Self: Sized {
         self.next_char();
 
-        if dyck_language_generic(self.source_code, [vec!['('], vec![','], vec![')']], vec![')'], contains).is_err() {
+        if dyck_language(self.source_code, [vec!['('], vec![','], vec![')']], vec![')'], contains).is_err() {
             return Err(crate::core::lexer::error::Error::UnexpectedToken(self.source_code[0].clone()));
         }
 

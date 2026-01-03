@@ -38,7 +38,7 @@ impl ArrayOrObject<TokenWithSpan> for Vec<char> {
 /// Let Σ = {( ) [a-z A-Z]}
 ///
 /// {u ∈ Σ* | all prefixes of u contain no more )'s than ('s and the number of ('s in equals the number of )'s }
-pub fn dyck_language_generic<T: ArrayOrObject<K>, K, F>(sequence: &[K], values: [T; 3], breaker: T, contains: F) -> Result<Vec<Vec<K>>, DyckError>
+pub fn dyck_language<T: ArrayOrObject<K>, K, F>(sequence: &[K], values: [T; 3], breaker: T, contains: F) -> Result<Vec<Vec<K>>, DyckError>
 where
     K: Clone + Debug,
     F: Fn(&[K], &K) -> bool {

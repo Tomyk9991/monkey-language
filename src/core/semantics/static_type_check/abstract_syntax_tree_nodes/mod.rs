@@ -6,3 +6,5 @@ mod return_;
 mod if_;
 mod for_;
 mod while_;
+mod struct_;
+mod assignable;

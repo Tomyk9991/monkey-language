@@ -6,7 +6,7 @@ use crate::core::lexer::token_match::MatchResult;
 use crate::core::lexer::token_with_span::TokenWithSpan;
 use crate::core::model::abstract_syntax_tree_nodes::assignable::Assignable;
 use crate::core::model::types::array::Array;
-use crate::core::parser::utils::dyck::dyck_language_generic;
+use crate::core::parser::utils::dyck::dyck_language;
 use crate::pattern;
 
 fn contains(a: &[TokenWithSpan], b: &TokenWithSpan) -> bool {
@@ -27,7 +27,7 @@ impl Parse for Array {
         }
 
         if let Some(MatchResult::Collect(array_content)) = pattern!(tokens, SquareBracketOpen, @ parse CollectTokensFromUntil<'[', ']'>, SquareBracketClose) {
-            let array_elements = dyck_language_generic(&array_content, [vec!['{', '('], vec![','], vec!['}', ')']], vec![], contains)
+            let array_elements = dyck_language(&array_content, [vec!['{', '('], vec![','], vec!['}', ')']], vec![], contains)
                 .map_err(|_| Error::UnexpectedToken(tokens[0].clone()))?;
 
             if array_elements.is_empty() {

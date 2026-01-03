@@ -5,6 +5,7 @@ use crate::core::model::abstract_syntax_tree_nodes::assignable::Assignable;
 use crate::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::expression::Expression;
 use crate::core::model::abstract_syntax_tree_nodes::assignables::equation_parser::prefix_arithmetic::PrefixArithmetic;
 use crate::core::model::abstract_syntax_tree_nodes::assignables::method_call::MethodCall;
+use crate::core::model::abstract_syntax_tree_nodes::assignables::object::Object;
 use crate::core::model::abstract_syntax_tree_nodes::identifier::Identifier;
 use crate::core::model::types::array::Array;
 use crate::core::model::types::boolean::Boolean;
@@ -26,7 +27,10 @@ impl TryFrom<Result<ParseResult<Self>, Error>> for Assignable {
 
 impl Parse for Assignable {
     fn parse(tokens: &[TokenWithSpan], parse_options: ParseOptions) -> Result<ParseResult<Self>, Error> where Self: Sized, Self: Default {
+        let expression_index = 1;
+
         let mut parsers = vec![
+            |tokens: &[TokenWithSpan]| Object::parse(tokens, ParseOptions::default()).map(|r| ParseResult { result: Assignable::Object(r.result), consumed: r.consumed }),
             |tokens: &[TokenWithSpan]| StaticString::parse(tokens, ParseOptions::default()).map(|r| ParseResult { result: Assignable::String(r.result), consumed: r.consumed }),
             |tokens: &[TokenWithSpan]| FloatAST::parse(tokens, ParseOptions::default()).map(|r| ParseResult { result: Assignable::Float(r.result), consumed: r.consumed }),
             |tokens: &[TokenWithSpan]| IntegerAST::parse(tokens, ParseOptions::default()).map(|r| ParseResult { result: Assignable::Integer(r.result), consumed: r.consumed }),
@@ -37,7 +41,7 @@ impl Parse for Assignable {
         ];
 
         if !parse_options.ignore_expression {
-            parsers.insert(0, |tokens: &[TokenWithSpan]| Expression::parse(tokens, ParseOptions::default()).map(|r| ParseResult { result: Assignable::Expression(r.result), consumed: r.consumed }),);
+            parsers.insert(expression_index, |tokens: &[TokenWithSpan]| Expression::parse(tokens, ParseOptions::default()).map(|r| ParseResult { result: Assignable::Expression(r.result), consumed: r.consumed }),);
         }
 
         if tokens.is_empty() {
@@ -47,7 +51,7 @@ impl Parse for Assignable {
         for (index, parser) in parsers.iter().enumerate() {
             match parser(tokens) {
                 Ok(assignable) => {
-                    if !parse_options.ignore_expression && index == 0 {
+                    if !parse_options.ignore_expression && index == expression_index {
                         // we parsed an expression, wrap it in an arithmetic equation
                         let expr = match &assignable.result {
                             Assignable::Expression(e) => e,

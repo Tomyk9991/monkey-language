@@ -201,7 +201,7 @@ impl ToASM for MethodCall {
         true
     }
 
-    fn byte_size(&self, meta: &mut MetaInfo) -> usize {
+    fn byte_size(&self, meta: &MetaInfo) -> usize {
         if let Some(method_def) = meta.static_type_information.methods.iter().find(|m| m.identifier == self.identifier) {
             method_def.return_type.byte_size()
         } else {

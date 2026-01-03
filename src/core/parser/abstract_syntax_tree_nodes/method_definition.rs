@@ -7,7 +7,7 @@ use crate::core::model::abstract_syntax_tree_nodes::l_value::LValue;
 use crate::core::model::abstract_syntax_tree_nodes::method_definition::{MethodArgument, MethodDefinition};
 use crate::core::model::scope::Scope;
 use crate::core::model::types::ty::Type;
-use crate::core::parser::utils::dyck::dyck_language_generic;
+use crate::core::parser::utils::dyck::dyck_language;
 use crate::pattern;
 
 fn contains(a: &[TokenWithSpan], b: &TokenWithSpan) -> bool {
@@ -21,7 +21,7 @@ impl Parse for MethodDefinition {
             if let Some(MatchResult::Collect(parsed_parameters)) = pattern!(&tokens[parsed_fn_name.consumed + 2..], ParenthesisOpen, @ parse CollectTokensFromUntil<'(', ')'>, ParenthesisClose) {
                 if let Some(MatchResult::Parse(parsed_return_type)) = pattern!(&tokens[parsed_fn_name.consumed + parsed_parameters.len() + 4..], Colon, @ parse Type, SemiColon) {
                     let const_tokens = 6;
-                    let parsed_parameters = dyck_language_generic(&parsed_parameters, [vec!['(', '{'], vec![','], vec![')', '}']], vec![')'], contains)
+                    let parsed_parameters = dyck_language(&parsed_parameters, [vec!['(', '{'], vec![','], vec![')', '}']], vec![')'], contains)
                         .map_err(|_| crate::core::lexer::error::Error::UnexpectedToken(tokens[0].clone()))?
                         .iter()
                         .map(|param| MethodArgument::parse(param, ParseOptions::default()))
@@ -56,7 +56,7 @@ impl Parse for MethodDefinition {
                     // fn name(args): return_type
                     let const_tokens = 4;
                     let parsed_parameters_tokens_consumed = parsed_parameters.len();
-                    let parsed_parameters = dyck_language_generic(&parsed_parameters, [vec!['(', '{'], vec![','], vec![')', '}']], vec![')'], contains)
+                    let parsed_parameters = dyck_language(&parsed_parameters, [vec!['(', '{'], vec![','], vec![')', '}']], vec![')'], contains)
                         .map_err(|_| crate::core::lexer::error::Error::UnexpectedToken(tokens[0].clone()))?
                         .iter()
                         .map(|param| MethodArgument::parse(param, ParseOptions::default()))
@@ -92,7 +92,7 @@ impl Parse for MethodDefinition {
                 // fn name(args)
                 let const_tokens = 3;
                 let parsed_parameters_tokens_consumed = parsed_parameters.len();
-                let parsed_parameters = dyck_language_generic(&parsed_parameters, [vec!['(', '{'], vec![','], vec![')', '}']], vec![')'], contains)
+                let parsed_parameters = dyck_language(&parsed_parameters, [vec!['(', '{'], vec![','], vec![')', '}']], vec![')'], contains)
                     .map_err(|_| crate::core::lexer::error::Error::UnexpectedToken(tokens[0].clone()))?
                     .iter()
                     .map(|param| MethodArgument::parse(param, ParseOptions::default()))

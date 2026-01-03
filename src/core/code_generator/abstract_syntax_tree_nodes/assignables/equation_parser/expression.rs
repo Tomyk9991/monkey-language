@@ -529,7 +529,7 @@ impl ToASM for Expression {
         true
     }
 
-    fn byte_size(&self, meta: &mut MetaInfo) -> usize {
+    fn byte_size(&self, meta: &MetaInfo) -> usize {
         if let Some(ty) = self.get_type(&meta.static_type_information) {
             return ty.byte_size();
         }

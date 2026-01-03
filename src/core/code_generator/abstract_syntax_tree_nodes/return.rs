@@ -55,7 +55,7 @@ impl ToASM for Return {
         false
     }
 
-    fn byte_size(&self, meta: &mut MetaInfo) -> usize {
+    fn byte_size(&self, meta: &MetaInfo) -> usize {
         if let Some(assignable) = &self.assignable {
             return assignable.byte_size(meta)
         }

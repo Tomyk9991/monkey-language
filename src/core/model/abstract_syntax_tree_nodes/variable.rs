@@ -21,19 +21,35 @@ pub struct Variable<const ASSIGNMENT: char, const SEPARATOR: char> {
     pub file_position: FilePosition,
 }
 
-impl<const ASSIGNMENT: char, const SEPARATOR: char> Display for Variable<ASSIGNMENT, SEPARATOR> {
+impl Display for Variable<'=', ';'> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let t = self.ty.as_ref().map_or(String::new(), |ty| format!(": {ty}"));
 
         write!(
             f,
-            "{}{}{}{}{} {} {}",
+            "{}{}{}{}{} = {}",
             " ".repeat(f.width().unwrap_or(0)),  // indentation
             if self.define { "let " } else { "" },      // definition
             if self.mutability { "mut " } else { "" },  // mutability
             self.l_value,                               // name
             &t,                                         // type
-            ASSIGNMENT,                                 // assignment literal
+            self.assignable                             // assignment
+        )
+    }
+}
+
+impl Display for Variable<':', ','> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let t = self.ty.as_ref().map_or(String::new(), |ty| format!(": {ty}"));
+
+        write!(
+            f,
+            "{}{}{}{}{}: {}",
+            " ".repeat(f.width().unwrap_or(0)),  // indentation
+            if self.define { "let " } else { "" },      // definition
+            if self.mutability { "mut " } else { "" },  // mutability
+            self.l_value,                               // name
+            &t,                                         // type
             self.assignable                             // assignment
         )
     }

@@ -17,7 +17,8 @@ impl ToASM for Assignable {
             Assignable::MethodCall(method_call) => Ok(method_call.to_asm(stack, meta, options)?),
             Assignable::Boolean(boolean) => Ok(boolean.to_asm(stack, meta, options)?),
             Assignable::Array(array) => Ok(array.to_asm(stack, meta, options)?),
-            Assignable::Parameter(_) | Assignable::Object(_) => Err(ASMGenerateError::AssignmentNotImplemented { assignable: self.clone() })
+            Assignable::Object(object) => Ok(object.to_asm(stack, meta, options)?),
+            Assignable::Parameter(_) => Err(ASMGenerateError::AssignmentNotImplemented { assignable: self.clone() })
         }
     }
 
@@ -37,7 +38,7 @@ impl ToASM for Assignable {
         }
     }
 
-    fn byte_size(&self, meta: &mut MetaInfo) -> usize {
+    fn byte_size(&self, meta: &MetaInfo) -> usize {
         match self {
             Assignable::String(a) => a.byte_size(meta),
             Assignable::Integer(a) => a.byte_size(meta),

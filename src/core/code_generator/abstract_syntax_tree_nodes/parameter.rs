@@ -25,7 +25,7 @@ impl ToASM for Parameter {
         false
     }
 
-    fn byte_size(&self, _meta: &mut MetaInfo) -> usize {
+    fn byte_size(&self, _meta: &MetaInfo) -> usize {
         self.ty.byte_size()
     }
 }

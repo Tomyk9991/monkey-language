@@ -1,4 +1,3 @@
-use crate::core::model::abstract_syntax_tree_nodes::assignable::Assignable;
 use crate::core::model::abstract_syntax_tree_nodes::identifier::Identifier;
 use crate::core::model::abstract_syntax_tree_nodes::l_value::LValue;
 use crate::core::model::abstract_syntax_tree_nodes::variable::Variable;
@@ -11,36 +10,9 @@ use crate::core::semantics::static_type_check::StaticTypeCheck;
 impl StaticTypeCheck for Variable<'=', ';'> {
     fn static_type_check(&self, type_context: &mut StaticTypeContext) -> Result<(), StaticTypeCheckError> {
         if self.define {
-            if let Assignable::Array(array) = &self.assignable {
-                // check if all types are equal, where the first type is the expected type
-                let all_types = array.values
-                    .iter()
-                    .map(|a| a.get_type(type_context).ok_or(InferTypeError::NoTypePresent(
-                        LValue::Identifier(Identifier { name: a.identifier().unwrap_or(self.l_value.identifier()) }),
-                        self.file_position.clone(),
-                    )))
-                    .collect::<Vec<Result<Type, InferTypeError>>>();
-
-                if !all_types.is_empty() {
-                    let first_type = &all_types[0];
-                    if let Ok(first_type) = first_type {
-                        for (index, current_type) in all_types.iter().enumerate() {
-                            if let Ok(current_type) = current_type {
-                                if current_type != first_type {
-                                    return Err(StaticTypeCheckError::InferredError(Box::new(InferTypeError::MultipleTypesInArray {
-                                        expected: first_type.clone(),
-                                        unexpected_type: current_type.clone(),
-                                        unexpected_type_index: index,
-                                        file_position: self.file_position.clone(),
-                                    })))
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
+            self.assignable.static_type_check(type_context).map_err(self.map_inner_static_type_check_error())?;
             let ty = self.assignable.get_type(type_context);
+
             if matches!(ty, Some(Type::Void) | Some(Type::Statement)) {
                 return Err(StaticTypeCheckError::VoidType { assignable: self.assignable.clone(), file_position: self.file_position.clone() });
             }
@@ -78,5 +50,38 @@ impl StaticTypeCheck for Variable<'=', ';'> {
         }
 
         Ok(())
+    }
+}
+
+impl Variable<'=', ';'> {
+    fn map_inner_static_type_check_error(&self) -> Box<dyn FnOnce(StaticTypeCheckError) -> StaticTypeCheckError + '_> {
+        let identifier = self.l_value.identifier();
+        let self_file_position = self.file_position.clone();
+
+        Box::new(move |e| {
+            match e {
+                StaticTypeCheckError::InferredError(infer_error) => {
+                    StaticTypeCheckError::InferredError(Box::new(match *infer_error {
+                        InferTypeError::NoTypePresent(..) => InferTypeError::NoTypePresent(
+                            LValue::Identifier(Identifier { name: identifier }),
+                            self_file_position,
+                        ),
+                        InferTypeError::MismatchedTypes { expected, actual, file_position} => InferTypeError::MismatchedTypes {
+                            expected,
+                            actual,
+                            file_position: self_file_position,
+                        },
+                        InferTypeError::MultipleTypesInArray { expected, unexpected_type, unexpected_type_index, file_position } => InferTypeError::MultipleTypesInArray {
+                            expected,
+                            unexpected_type,
+                            unexpected_type_index,
+                            file_position: self_file_position,
+                        },
+                        other => other,
+                    }))
+                },
+                other => other
+            }
+        })
     }
 }

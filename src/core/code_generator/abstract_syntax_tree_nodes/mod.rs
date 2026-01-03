@@ -11,3 +11,4 @@ pub mod parameter;
 pub mod r#for;
 pub mod r#while;
 pub mod l_value;
+mod struct_;

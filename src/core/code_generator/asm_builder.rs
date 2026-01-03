@@ -25,7 +25,7 @@ impl Display for MovInstruction {
 
 impl ASMBuilder {
     pub fn comment_line(argument: &str) -> String {
-        format!("; {}\n", argument)
+        format!("; {}\n", argument.replace("\n", "").replace("    ", " ").replace("}", " }"))
     }
 
     pub fn line(argument: &str) -> String {

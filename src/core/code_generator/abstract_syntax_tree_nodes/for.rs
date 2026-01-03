@@ -62,7 +62,7 @@ impl ToASM for For {
         false
     }
 
-    fn byte_size(&self, meta: &mut MetaInfo) -> usize {
+    fn byte_size(&self, meta: &MetaInfo) -> usize {
         self.initialization.byte_size(meta)
     }
 

@@ -20,7 +20,7 @@ impl ToASM for LValue {
         }
     }
 
-    fn byte_size(&self, meta: &mut MetaInfo) -> usize {
+    fn byte_size(&self, meta: &MetaInfo) -> usize {
         match self {
             LValue::Identifier(a) => a.byte_size(meta),
             LValue::Expression(node) => node.byte_size(meta)

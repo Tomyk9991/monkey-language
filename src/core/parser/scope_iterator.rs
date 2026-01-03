@@ -8,6 +8,7 @@ use crate::core::model::abstract_syntax_tree_nodes::if_::If;
 use crate::core::model::abstract_syntax_tree_nodes::import::Import;
 use crate::core::model::abstract_syntax_tree_nodes::method_definition::MethodDefinition;
 use crate::core::model::abstract_syntax_tree_nodes::ret::Return;
+use crate::core::model::abstract_syntax_tree_nodes::struct_::Struct;
 use crate::core::model::abstract_syntax_tree_nodes::variable::Variable;
 use crate::core::model::abstract_syntax_tree_nodes::while_::While;
 
@@ -52,7 +53,8 @@ impl Iterator for ScopeIterator {
             AbstractSyntaxTreeNode::MethodCall(_) => AbstractSyntaxTreeNode::MethodDefinition(MethodDefinition::default()),
             AbstractSyntaxTreeNode::MethodDefinition(_) => AbstractSyntaxTreeNode::Import(Import::default()),
             AbstractSyntaxTreeNode::Import(_) => AbstractSyntaxTreeNode::Return(Return::default()),
-            AbstractSyntaxTreeNode::Return(_) => AbstractSyntaxTreeNode::For(For::default()),
+            AbstractSyntaxTreeNode::Return(_) => AbstractSyntaxTreeNode::StructDefinition(Struct::default()),
+            AbstractSyntaxTreeNode::StructDefinition(_) => AbstractSyntaxTreeNode::For(For::default()),
             AbstractSyntaxTreeNode::For(_) => AbstractSyntaxTreeNode::While(While::default()),
             AbstractSyntaxTreeNode::While(_) => AbstractSyntaxTreeNode::If(If::default()),
         };
@@ -86,6 +88,9 @@ impl Iterator for ScopeIterator {
             },
             AbstractSyntaxTreeNode::MethodCall(_) => ScopeIterationItem {
                 parser: Box::new(move |tokens| MethodCall::parse(tokens, ParseOptions::builder().with_ends_with_semicolon(true).build())?.into()),
+            },
+            AbstractSyntaxTreeNode::StructDefinition(_) => ScopeIterationItem {
+                parser: Box::new(move |tokens| Struct::parse(tokens, ParseOptions::default())?.into()),
             }
         })
     }

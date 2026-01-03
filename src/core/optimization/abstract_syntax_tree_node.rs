@@ -30,7 +30,8 @@ impl ConstFoldable for AbstractSyntaxTreeNode {
             AbstractSyntaxTreeNode::Return(node) => node.is_const(),
             AbstractSyntaxTreeNode::If(node) => node.is_const(),
             AbstractSyntaxTreeNode::For(node) => node.is_const(),
-            AbstractSyntaxTreeNode::While(node) => node.is_const()
+            AbstractSyntaxTreeNode::While(node) => node.is_const(),
+            AbstractSyntaxTreeNode::StructDefinition(_) => false
         }
     }
 
@@ -43,7 +44,8 @@ impl ConstFoldable for AbstractSyntaxTreeNode {
             AbstractSyntaxTreeNode::Return(node) => node.const_fold(static_type_context, optimization_context).map(AbstractSyntaxTreeNode::Return),
             AbstractSyntaxTreeNode::If(node) => node.const_fold(static_type_context, optimization_context).map(AbstractSyntaxTreeNode::If),
             AbstractSyntaxTreeNode::For(node) => node.const_fold(static_type_context, optimization_context).map(AbstractSyntaxTreeNode::For),
-            AbstractSyntaxTreeNode::While(node) => node.const_fold(static_type_context, optimization_context).map(AbstractSyntaxTreeNode::While)
+            AbstractSyntaxTreeNode::While(node) => node.const_fold(static_type_context, optimization_context).map(AbstractSyntaxTreeNode::While),
+            AbstractSyntaxTreeNode::StructDefinition(_) => None,
         }
     }
 }

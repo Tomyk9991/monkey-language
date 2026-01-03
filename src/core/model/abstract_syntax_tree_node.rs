@@ -6,6 +6,7 @@ use crate::core::model::abstract_syntax_tree_nodes::if_::If;
 use crate::core::model::abstract_syntax_tree_nodes::import::Import;
 use crate::core::model::abstract_syntax_tree_nodes::method_definition::MethodDefinition;
 use crate::core::model::abstract_syntax_tree_nodes::ret::Return;
+use crate::core::model::abstract_syntax_tree_nodes::struct_::Struct;
 use crate::core::model::abstract_syntax_tree_nodes::variable::Variable;
 use crate::core::model::abstract_syntax_tree_nodes::while_::While;
 
@@ -14,6 +15,7 @@ use crate::core::model::abstract_syntax_tree_nodes::while_::While;
 #[allow(clippy::large_enum_variant)]
 pub enum AbstractSyntaxTreeNode {
     Variable(Variable<'=', ';'>),
+    StructDefinition(Struct),
     MethodCall(MethodCall),
     MethodDefinition(MethodDefinition),
     Import(Import),
@@ -26,14 +28,15 @@ pub enum AbstractSyntaxTreeNode {
 impl AbstractSyntaxTreeNode {
     pub fn file_position(&self) -> FilePosition {
         match self {
-            AbstractSyntaxTreeNode::Variable(v) => v.file_position.clone(),
-            AbstractSyntaxTreeNode::MethodCall(m) => m.file_position.clone(),
-            AbstractSyntaxTreeNode::MethodDefinition(m) => m.file_position.clone(),
-            AbstractSyntaxTreeNode::If(m) => m.file_position.clone(),
-            AbstractSyntaxTreeNode::Import(m) => m.file_position.clone(),
-            AbstractSyntaxTreeNode::Return(m) => m.file_position.clone(),
-            AbstractSyntaxTreeNode::While(a) => a.file_position.clone(),
-            AbstractSyntaxTreeNode::For(m) => m.file_position.clone(),
+            AbstractSyntaxTreeNode::Variable(node) => node.file_position.clone(),
+            AbstractSyntaxTreeNode::MethodCall(node) => node.file_position.clone(),
+            AbstractSyntaxTreeNode::StructDefinition(node) => node.file_position.clone(),
+            AbstractSyntaxTreeNode::MethodDefinition(node) => node.file_position.clone(),
+            AbstractSyntaxTreeNode::If(node) => node.file_position.clone(),
+            AbstractSyntaxTreeNode::Import(node) => node.file_position.clone(),
+            AbstractSyntaxTreeNode::Return(node) => node.file_position.clone(),
+            AbstractSyntaxTreeNode::While(node) => node.file_position.clone(),
+            AbstractSyntaxTreeNode::For(node) => node.file_position.clone(),
         }
     }
 }
@@ -57,6 +60,7 @@ impl Display for AbstractSyntaxTreeNode {
             AbstractSyntaxTreeNode::Return(node) => write!(f, "{:width$}", node, width = ident),
             AbstractSyntaxTreeNode::While(node) => write!(f, "{:width$}", node, width = ident),
             AbstractSyntaxTreeNode::For(node) => write!(f, "{:width$}", node, width = ident),
+            AbstractSyntaxTreeNode::StructDefinition(node) => write!(f, "{:width$}", node, width = ident),
         }
     }
 }

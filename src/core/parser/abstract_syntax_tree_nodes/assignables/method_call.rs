@@ -6,7 +6,7 @@ use crate::core::lexer::token_with_span::{FilePosition, TokenWithSpan};
 use crate::core::model::abstract_syntax_tree_nodes::assignable::{Assignable};
 use crate::core::model::abstract_syntax_tree_nodes::assignables::method_call::MethodCall;
 use crate::core::model::abstract_syntax_tree_nodes::l_value::LValue;
-use crate::core::parser::utils::dyck::{dyck_language_generic};
+use crate::core::parser::utils::dyck::{dyck_language};
 use crate::pattern;
 
 fn contains(a: &[TokenWithSpan], b: &TokenWithSpan) -> bool {
@@ -19,7 +19,7 @@ impl Parse for MethodCall {
         if parse_options.ends_with_semicolon {
             if let Some(MatchResult::Parse(fn_name)) = pattern!(tokens, @ parse LValue,) {
                 if let Some(MatchResult::Collect(parsed_parameters)) = pattern!(&tokens[fn_name.consumed..], ParenthesisOpen, @ parse CollectTokensFromUntil<'(', ')'>, ParenthesisClose, SemiColon) {
-                    let parameters = dyck_language_generic(&parsed_parameters, [vec!['(', '{'], vec![','], vec![')', '}']], vec![')'], contains)
+                    let parameters = dyck_language(&parsed_parameters, [vec!['(', '{'], vec![','], vec![')', '}']], vec![')'], contains)
                         .map_err(|_| Error::UnexpectedToken(tokens[0].clone()))?
                         .iter()
                         .map(|param| Assignable::parse(param, ParseOptions::default()))
@@ -51,7 +51,7 @@ impl Parse for MethodCall {
 
         if let Some(MatchResult::Parse(fn_name)) = pattern!(tokens, @ parse LValue,) {
             if let Some(MatchResult::Collect(parsed_parameters)) = pattern!(&tokens[fn_name.consumed..], ParenthesisOpen, @ parse CollectTokensFromUntil<'(', ')'>, ParenthesisClose) {
-                let parameters = dyck_language_generic(&parsed_parameters, [vec!['(', '{'], vec![','], vec![')', '}']], vec![')'], contains)
+                let parameters = dyck_language(&parsed_parameters, [vec!['(', '{'], vec![','], vec![')', '}']], vec![')'], contains)
                     .map_err(|_| Error::UnexpectedToken(tokens[0].clone()))?
                     .iter()
                     .map(|param| Assignable::parse(param, ParseOptions::default()))

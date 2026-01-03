@@ -11,12 +11,7 @@ use crate::core::model::types::ty::Type;
 use crate::core::parser::types::r#type::InferTypeError;
 
 impl ToASM for Identifier {
-    fn to_asm(
-        &self,
-        stack: &mut Stack,
-        meta: &mut MetaInfo,
-        options: Option<ASMOptions>,
-    ) -> Result<ASMResult, ASMGenerateError> {
+    fn to_asm(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<ASMOptions>) -> Result<ASMResult, ASMGenerateError> {
         if let Some(ASMOptions::PrepareRegisterOption(s)) = options {
             if let Type::Float(_, _) =
                 self.get_type(&meta.static_type_information)
@@ -31,11 +26,7 @@ impl ToASM for Identifier {
             }
         }
 
-        if let Some(stack_location) = stack
-            .variables
-            .iter()
-            .rfind(|&variable| variable.name.identifier() == self.name.as_str())
-        {
+        if let Some(stack_location) = stack.variables.iter().rfind(|&variable| variable.name.identifier() == self.name.as_str()) {
             if let Some(found_variable) = meta.static_type_information.context.iter().rfind(|v| {
                 if let LValue::Identifier(n) = &v.l_value {
                     n.name == *self.name
@@ -128,7 +119,7 @@ impl ToASM for Identifier {
         true
     }
 
-    fn byte_size(&self, meta: &mut MetaInfo) -> usize {
+    fn byte_size(&self, meta: &MetaInfo) -> usize {
         if let Some(v) = meta.static_type_information.iter().rfind(|v| {
             if let LValue::Identifier(n) = &v.l_value {
                 n.name == *self.name

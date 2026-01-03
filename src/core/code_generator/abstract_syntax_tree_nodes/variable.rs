@@ -11,7 +11,7 @@ use crate::core::model::abstract_syntax_tree_nodes::assignable::Assignable;
 use crate::core::model::abstract_syntax_tree_nodes::variable::Variable;
 use crate::core::model::types::ty::Type;
 
-impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for Variable<ASSIGNMENT, SEPARATOR> {
+impl ToASM for Variable<'=', ';'> {
     fn to_asm(&self, stack: &mut Stack, meta: &mut MetaInfo, options: Option<ASMOptions>) -> Result<ASMResult, ASMGenerateError> {
         let mut target = String::new();
         target += &ASMBuilder::ident(&ASMBuilder::comment_line(&format!("{}", self)));
@@ -23,6 +23,9 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for Variable<ASSIGNMEN
                 };
                 self.assignable.to_asm(stack, meta, (!self.define).then_some(ASMOptions::IdentifierPresent(i)))?
             },
+            Assignable::Object(_) => {
+                self.assignable.to_asm(stack, meta, options.clone())?
+            }
             _ => {
                 let interim_options = InterimResultOption {
                     general_purpose_register: GeneralPurposeRegister::iter_from_byte_size(self.assignable.byte_size(meta))?.current().clone(),
@@ -117,7 +120,11 @@ impl<const ASSIGNMENT: char, const SEPARATOR: char> ToASM for Variable<ASSIGNMEN
         self.assignable.is_stack_look_up(stack, meta)
     }
 
-    fn byte_size(&self, _meta: &mut MetaInfo) -> usize {
+    fn byte_size(&self, meta: &MetaInfo) -> usize {
+        if let Assignable::Object(obj) = &self.assignable {
+            return obj.byte_size(meta);
+        }
+        
         self.ty.as_ref().map_or(0, |ty| ty.byte_size())
     }
 

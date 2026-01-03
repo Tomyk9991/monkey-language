@@ -170,26 +170,16 @@ fn variable_test() -> anyhow::Result<()> {
 
 #[test]
 fn variable_test_types() -> anyhow::Result<()> {
-    // todo
-    // let variables = r#"
-    // let fisch = "Fische sind wirklich wirklich toll";
-    // let hallo = "Thomas"; let tschuess = 5;
-    // let mallo = "";
-    // let michi =
-    // Data {
-    //     guten: "Hallo",
-    //     ciau: 5,
-    //     rofl: name(),
-    //     mofl: name(nestedMethod("Hallo", moin("Ciao", 5)))
-    // };
-    // let value = 9;
-    // let ref_value = &value;
-    // let pointer_arithmetic = *ref_value + 1;
-    // "#;
     let variables = r#"
     let fisch = "Fische sind wirklich wirklich toll";
     let hallo = "Thomas"; let tschuess = 5;
     let mallo = "";
+    let michi = Data {
+         guten: "Hallo",
+         ciau: 5,
+         rofl: name(),
+         mofl: name(nestedMethod("Hallo", moin("Ciao", 5)))
+    };
     let value = 9;
     let ref_value = &value;
     let pointer_arithmetic = *ref_value + 1;
@@ -204,6 +194,7 @@ fn variable_test_types() -> anyhow::Result<()> {
         r#type::common::string(),
         Type::Integer(IntegerType::I32, Mutability::Immutable),
         r#type::common::string(),
+        Type::Custom(Identifier { name: "Data".to_string() }, Mutability::Immutable),
         Type::Integer(IntegerType::I32, Mutability::Immutable),
         Type::Custom(Identifier { name: "*i32".to_string() }, Mutability::Immutable),
         Type::Integer(IntegerType::I32, Mutability::Immutable),

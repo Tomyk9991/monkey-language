@@ -12,6 +12,7 @@ use crate::core::semantics::static_type_check::StaticTypeCheck;
 #[allow(clippy::large_enum_variant)]
 pub enum StaticTypeCheckError {
     UnresolvedReference { name: LValue, file_position: FilePosition },
+    TypeDefinitionMissing { expected_type: Type, file_position: FilePosition },
     NoTypePresent { name: LValue, file_position: FilePosition },
     VoidType { assignable: Assignable, file_position: FilePosition },
     ImmutabilityViolated { name: LValue, file_position: FilePosition },
@@ -28,6 +29,7 @@ impl Display for StaticTypeCheckError {
             StaticTypeCheckError::NoTypePresent { name, file_position } => format!("Line: {}\tType not inferred: `{name}`", file_position),
             StaticTypeCheckError::ImmutabilityViolated { name, file_position } => format!("Line: {}\tThis symbol isn't declared mutable: `{name}`", file_position),
             StaticTypeCheckError::VoidType { assignable, file_position } => format!("Line: {}\tCannot assign void to a variable: `{assignable}`", file_position),
+            StaticTypeCheckError::TypeDefinitionMissing { expected_type, file_position } => format!("Line: {}\tType definition missing for type: `{expected_type}`", file_position),
         })
     }
 }

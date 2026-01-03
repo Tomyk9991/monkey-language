@@ -4,6 +4,7 @@ use crate::core::lexer::parse::{Parse, ParseResult};
 use crate::core::lexer::token::Token;
 use crate::core::lexer::token_with_span::TokenWithSpan;
 use crate::core::model::abstract_syntax_tree_nodes::assignable::Assignable;
+use crate::core::model::abstract_syntax_tree_nodes::identifier::Identifier;
 use crate::core::model::abstract_syntax_tree_nodes::l_value::LValue;
 use crate::core::model::abstract_syntax_tree_nodes::variable::Variable;
 use crate::core::model::types::ty::Type;
@@ -125,6 +126,12 @@ impl TokenMatchSingleReturn for &[TokenWithSpan] {
 
 impl From<ParseResult<Type>> for Match<Type> {
     fn from(value: ParseResult<Type>) -> Self {
+        Match::Parse(value)
+    }
+}
+
+impl From<ParseResult<Identifier>> for Match<Identifier> {
+    fn from(value: ParseResult<Identifier>) -> Self {
         Match::Parse(value)
     }
 }

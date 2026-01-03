@@ -78,7 +78,7 @@ impl ToASM for Array {
         false
     }
 
-    fn byte_size(&self, meta: &mut MetaInfo) -> usize {
+    fn byte_size(&self, meta: &MetaInfo) -> usize {
         self.values.iter().map(|a| a.byte_size(meta)).sum::<usize>()
     }
 

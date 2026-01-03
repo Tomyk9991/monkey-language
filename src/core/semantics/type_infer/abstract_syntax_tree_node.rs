@@ -13,7 +13,7 @@ impl InferType for AbstractSyntaxTreeNode {
             AbstractSyntaxTreeNode::While(while_loop) => while_loop.infer_type(type_context)?,
             AbstractSyntaxTreeNode::MethodCall(method_call) => method_call.infer_type(type_context)?, 
             AbstractSyntaxTreeNode::MethodDefinition(method_definition) => method_definition.infer_type(type_context)?,
-            AbstractSyntaxTreeNode::Import(_) | AbstractSyntaxTreeNode::Return(_) => Type::Statement
+            AbstractSyntaxTreeNode::StructDefinition(_) | AbstractSyntaxTreeNode::Import(_) | AbstractSyntaxTreeNode::Return(_) => Type::Statement,
         };
 
         Ok(ty)
